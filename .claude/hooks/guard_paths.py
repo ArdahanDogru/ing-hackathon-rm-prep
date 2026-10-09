@@ -26,6 +26,8 @@ MODULES = ("ingest", "decision", "ui", "narrator", "eval")
 EDIT_TOOLS = {"Edit": "file_path", "Write": "file_path", "MultiEdit": "file_path",
               "NotebookEdit": "notebook_path"}
 SHELL_TOOLS = ("Bash", "PowerShell")
+# Starting and stopping sessions belongs to the lead (fleet MCP server tools)
+SESSION_TOOLS = ("mcp__fleet__start_session", "mcp__fleet__stop_session", "mcp__fleet__resume_session")
 FORBIDDEN_GIT = [
     (re.compile(r"\bgit\b[^;&|\n]*\b(merge|push)\b"), "merging and pushing belong to ing-lead"),
     (re.compile(r"\bgit\b[^;&|\n]*\b(checkout|switch)\s+(-\S+\s+)*main\b"), "workers never check out main"),
@@ -56,6 +58,9 @@ def check(event: dict, branch: str, top: str, worktrees: list[str]) -> str | Non
         return None
     tool = event.get("tool_name", "")
     inp = event.get("tool_input") or {}
+    if tool in SESSION_TOOLS:
+        return (f"Blocked for the {module} worker: ing-lead starts and stops sessions. "
+                "Send ing-lead a 'blocker:' message if you need another session.")
     if tool in SHELL_TOOLS:
         cmd = str(inp.get("command") or "")
         for pattern, why in FORBIDDEN_GIT:

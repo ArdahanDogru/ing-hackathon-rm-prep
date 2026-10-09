@@ -7,7 +7,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell",
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell|mcp__fleet__start_session|mcp__fleet__stop_session|mcp__fleet__resume_session",
         "hooks": [
           {
             "type": "command",

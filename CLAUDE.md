@@ -380,6 +380,36 @@ The project runs as fleet office sessions on laptop-a that message each other
 At most 3 sessions work at the same time (the lead counts). Start ui only when
 decision is done or the user asks.
 
+Starting and stopping workers (lead only; fleet MCP tools, device `laptop-a`;
+the guard hook blocks these tools on worker branches):
+1. `git worktree add -b <m> C:/Users/yardang/dev/ing-wt/<m> main` if the
+   worktree is missing (else rebase it on main first).
+2. `list_sessions` — no running session may already be named `ing-<m>`.
+3. `start_session(device="laptop-a", cwd="C:/Users/yardang/dev/ing-wt/<m>",
+   name="ing-<m>", prompt=<template below, with <m> and the first milestone>)`.
+4. When its work is merged and no milestone is left: `stop_session`. To bring a
+   stopped worker back with its history: `resume_session` with a message.
+Tell the user in the lead's chat each time a worker starts or stops.
+
+Worker prompt template:
+
+```text
+You are ing-<m>, the <m> worker for the ING hackathon prototype, in worktree
+C:/Users/yardang/dev/ing-wt/<m> on branch <m>. Read CLAUDE.md, mainly "Multi-agent workflow"
+and the "<M> layer" section.
+You may change only src/rmprep/<m>/ and tests/<m>/ (fixtures in tests/<m>/fixtures/).
+contracts.py, other modules, CLAUDE.md and main belong to ing-lead; a hook blocks edits there.
+Python: C:/Users/yardang/dev/ing-hackathon/prototype/.venv/Scripts/python
+- Need a contract change: send ing-lead "contract request: <change> because <reason>",
+  then continue with other work.
+- Each milestone: test-first, full test suite green, commit, then send ing-lead
+  "milestone <n> done, tests green, <m>@<sha>".
+- "merged X, rebase" from ing-lead: commit your work, `git rebase main`, rerun the tests, continue.
+- Blocked: send ing-lead "blocker: <what>". Do not message other workers or the user's other sessions.
+Do not use the superpowers finishing-a-development-branch skill; merges belong to ing-lead.
+Start with: <first milestone>.
+```
+
 Rules:
 - A worker edits only its two folders. `.claude/hooks/guard_paths.py` blocks
   other edits, merges, pushes, `checkout main` and `reset --hard` on worker

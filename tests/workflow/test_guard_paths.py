@@ -52,6 +52,16 @@ def test_worker_git_limits():
         assert guard.check(shell(cmd, tool="Bash"), "decision", WT, TREES) is None, cmd
 
 
+def test_only_the_lead_starts_and_stops_sessions():
+    for tool in guard.SESSION_TOOLS:
+        ev = {"tool_name": tool, "tool_input": {"device": "laptop-a"}, "cwd": WT}
+        assert "ing-lead starts and stops" in guard.check(ev, "decision", WT, TREES)
+        assert guard.check({**ev, "cwd": MAIN}, "main", MAIN, TREES) is None
+    settings = json.loads((HOOK.parents[1] / "settings.json").read_text(encoding="utf-8"))
+    matcher = settings["hooks"]["PreToolUse"][0]["matcher"].split("|")
+    assert set(guard.SESSION_TOOLS) <= set(matcher)
+
+
 def test_branch_names_map_to_modules():
     assert guard.module_of("decision") == "decision"
     assert guard.module_of("ui-fake-backend") == "ui"
