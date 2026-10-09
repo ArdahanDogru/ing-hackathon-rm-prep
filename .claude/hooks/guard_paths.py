@@ -1,4 +1,4 @@
-"""PreToolUse guard for the multi-agent workflow (CLAUDE.md "Multi-agent workflow").
+"""PreToolUse guard for the multi-agent workflow (docs/workflow.md).
 
 A session on branch main (the lead) may do anything. A session on a worker
 branch (ingest, decision, ui, narrator, eval; also "<module>-..." or

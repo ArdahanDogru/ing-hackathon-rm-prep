@@ -1,5 +1,5 @@
-"""Contracts shared across layers. Owned by the lead (see CLAUDE.md,
-"Multi-agent workflow"); workers request changes, they never edit this file.
+"""Contracts shared across layers. Owned by the lead (see docs/workflow.md);
+workers request changes, they never edit this file.
 
 DataPoint: adapters, checks and the evidence store (ingest).
 EvidenceSet: what ingest hands to the layers downstream (decision, ui, narrator).
@@ -206,7 +206,7 @@ class SourceStatus:
 # =============================================================================
 # DRAFT v0 — NOT FROZEN.
 # Decision / UI contracts, drafted 2026-10-10 from the plan the user approved.
-# They are frozen only after CLAUDE.md "Decision layer" and "UI" are written
+# They are frozen only after docs/decision.md and docs/ui.md are written
 # (step D, user + lead). Until then, names and fields may still change; check
 # filters and weights against the real persona_schema.json fields.
 # =============================================================================
@@ -289,7 +289,7 @@ class ProductOption:
 
 @dataclass(frozen=True)
 class ConstraintResult:
-    rule_id: str            # e.g. "risk_ceiling"; rules defined in CLAUDE.md step D
+    rule_id: str            # e.g. "risk_ceiling"; rules defined in docs/decision.md
     passed: bool
     reason: str             # why, in words the RM can repeat to the client
     evidence_ids: tuple[str, ...] = ()
