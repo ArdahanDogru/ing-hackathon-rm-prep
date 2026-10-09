@@ -58,15 +58,19 @@ def test_branch_names_map_to_modules():
     assert guard.module_of("main") is None and guard.module_of("uix") is None
 
 
-def test_hook_blocks_with_exit_code_2_in_a_real_repo(tmp_path):
+def _run_hook(payload: bytes) -> dict | None:
+    r = subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True)
+    assert r.returncode == 0  # the decision is in the JSON, never in the exit code
+    return json.loads(r.stdout) if r.stdout.strip() else None
+
+
+def test_hook_denies_with_a_json_decision_in_a_real_repo(tmp_path):
     repo = tmp_path / "r"
     subprocess.run(["git", "init", "-q", "-b", "decision", str(repo)], check=True)
     event = {"tool_name": "Write", "tool_input": {"file_path": "src/rmprep/contracts.py"}, "cwd": str(repo)}
-    r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(event), capture_output=True, text=True)
-    assert r.returncode == 2 and "may edit only" in r.stderr
-    bom = subprocess.run([sys.executable, str(HOOK)], input=("﻿" + json.dumps(event)).encode("utf-8"),
-                         capture_output=True)
-    assert bom.returncode == 2  # PowerShell pipes add a BOM
+    out = _run_hook(json.dumps(event).encode())["hookSpecificOutput"]
+    assert out["hookEventName"] == "PreToolUse" and out["permissionDecision"] == "deny"
+    assert "may edit only" in out["permissionDecisionReason"]
+    assert _run_hook(("﻿" + json.dumps(event)).encode("utf-8"))  # PowerShell pipes add a BOM
     event["tool_input"]["file_path"] = "src/rmprep/decision/x.py"
-    r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(event), capture_output=True, text=True)
-    assert r.returncode == 0
+    assert _run_hook(json.dumps(event).encode()) is None

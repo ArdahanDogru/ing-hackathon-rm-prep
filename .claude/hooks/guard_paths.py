@@ -7,8 +7,10 @@ own worktree, never the main checkout or another worktree, and may not merge,
 push, check out main or reset --hard. Files outside the repository (temp files)
 are not checked.
 
-Blocking = exit code 2 with the reason on stderr (Claude Code shows it to Claude).
-Standard library only: the hook runs with the plain `python` on PATH.
+Blocking = a PreToolUse "deny" decision as JSON on stdout, exit code 0. (Exit
+code 2 is not reliable on Windows: the shell that runs the hook turned it into
+1, which does not block.) Standard library only: the hook runs with the plain
+`python` on PATH.
 """
 
 from __future__ import annotations
@@ -95,8 +97,11 @@ def main() -> int:
                  if line.startswith("worktree ")]
     reason = check(event, branch, top, worktrees)
     if reason:
-        print(reason, file=sys.stderr)
-        return 2
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": reason,
+        }}))
     return 0
 
 
