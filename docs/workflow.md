@@ -48,6 +48,18 @@ worker rebases at the start of its next milestone; waking an idle session costs
 a full context reread). Red → undo the merge and send the worker the failing
 tests. Never push.
 
+## Lead: pause, and after a restart
+
+- "Pause" from the user (e.g. before the laptop sleeps or shuts down): ask each
+  working worker to commit at the next safe point and say so; then
+  `stop_session` it. Note in the chat which workers were stopped and at which
+  milestone. Sleep only freezes the sessions; a shutdown ends them all.
+- "Resume", or the user continued the lead after a restart/agent restart:
+  `list_sessions`; `resume_session` each worker that was working (message:
+  "the session restarted; check `git status`, commit or finish the open work,
+  then continue your milestone"). Messages sent while a session was down are
+  lost: ask each resumed worker for its state once.
+
 ## Lead: starting and stopping workers
 
 At most 3 sessions work at the same time (the lead counts). Start a worker only
