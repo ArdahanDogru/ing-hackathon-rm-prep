@@ -1,0 +1,800 @@
+{
+ "snapshot_id": "20261010-001233-6b20",
+ "created_at": "2026-10-10T00:12:33.679743+03:00",
+ "excluded_sources": [],
+ "source_status": {
+  "evds": {
+   "status": "ok",
+   "error": null,
+   "fallback_from": null,
+   "excluded": false
+  },
+  "manual": {
+   "status": "ok",
+   "error": null,
+   "fallback_from": null,
+   "excluded": false
+  },
+  "tefas": {
+   "status": "ok",
+   "error": null,
+   "fallback_from": null,
+   "excluded": false
+  },
+  "tefas_web": {
+   "status": "ok",
+   "error": null,
+   "fallback_from": null,
+   "excluded": false
+  }
+ },
+ "datapoints": [
+  {
+   "id": "E006675d0",
+   "quantity": "fund_price",
+   "entity": "ADE",
+   "value": 0.935301,
+   "unit": "TRY",
+   "as_of": "2026-10-09",
+   "source": "tefas",
+   "source_url": "https://www.tefas.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.594127+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/tefas/Fon_Verileri_EXCEL_Tum_Veri_2026-10-09.xlsx#Tablo Verisi!row=24;col=price",
+   "flags": [],
+   "note": ""
+  },
+  {
+   "id": "E020fbd79",
+   "quantity": "gold_try_kg",
+   "entity": "Gold, Borsa İstanbul close, TL/kg",
+   "value": 6570001.0,
+   "unit": "TRY/kg",
+   "as_of": "2026-10-05",
+   "source": "evds",
+   "source_url": "https://evds3.tcmb.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.242492+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/evds/TP.ALTINPIYASA.KAP02.json#items[90]",
+   "flags": [
+    "unverified_series"
+   ],
+   "note": ""
+  },
+  {
+   "id": "E0f6edd5b",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 500.000-999.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=12",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 75.000 TL."
+  },
+  {
+   "id": "E11682c9d",
+   "quantity": "fund_risk_level",
+   "entity": "ADE",
+   "value": 4.0,
+   "unit": "level",
+   "as_of": "2026-10-09",
+   "source": "tefas_web",
+   "source_url": "https://www.tefas.gov.tr/tr/fon-getirileri",
+   "fetched_at": "2026-10-10T00:12:36.250409+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/tefas_web/fon-getirileri.html#fonKodu=ADE;field=riskDegeri",
+   "flags": [
+    "needs_check"
+   ],
+   "note": "AK PORTFÖY MUTLAK GETİRİ HEDEFLİ DEĞİŞKEN FON; Değişken Şemsiye Fonu; as_of assumed = previous business day"
+  },
+  {
+   "id": "E13af95ea",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 7.500.000-9.999.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=20",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 900.000 TL."
+  },
+  {
+   "id": "E15eec94d",
+   "quantity": "fund_price",
+   "entity": "AAL",
+   "value": 3.662446,
+   "unit": "TRY",
+   "as_of": "2026-10-09",
+   "source": "tefas",
+   "source_url": "https://www.tefas.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.594127+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/tefas/Fon_Verileri_EXCEL_Tum_Veri_2026-10-09.xlsx#Tablo Verisi!row=6;col=price",
+   "flags": [],
+   "note": ""
+  },
+  {
+   "id": "E1970c4a6",
+   "quantity": "policy_rate",
+   "entity": "CBRT policy rate (monthly, BIS)",
+   "value": 37.0,
+   "unit": "pct",
+   "as_of": "2026-08-31",
+   "source": "evds",
+   "source_url": "https://evds3.tcmb.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.242492+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/evds/TP.BISPOLFAIZ.TUR.json#items[2]",
+   "flags": [],
+   "note": ""
+  },
+  {
+   "id": "E1fc1d06e",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 2.000.000-4.999.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=16",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 285.000 TL."
+  },
+  {
+   "id": "E24339b6b",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 0-9.999,99 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=3",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 3.000 TL."
+  },
+  {
+   "id": "E2877afbc",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 250.000-499.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=11",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 30.000 TL."
+  },
+  {
+   "id": "E32643a0c",
+   "quantity": "usd_try",
+   "entity": "USD/TRY CBRT buying rate",
+   "value": 49.1267,
+   "unit": "TRY",
+   "as_of": "2026-10-09",
+   "source": "evds",
+   "source_url": "https://evds3.tcmb.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.242492+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/evds/TP.DK.USD.A.YTL.json#items[130]",
+   "flags": [],
+   "note": ""
+  },
+  {
+   "id": "E3d977549",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 25.000.000-34.999.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=27",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 3.000.000 TL."
+  },
+  {
+   "id": "E41754645",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 0-9.999,99 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=2",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 3.000 TL. Copied by hand from ing.com.tr (rates.txt). Gross/net not stated."
+  },
+  {
+   "id": "E41e889ab",
+   "quantity": "fund_return_1y",
+   "entity": "ABG",
+   "value": 32.6564,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "tefas_web",
+   "source_url": "https://www.tefas.gov.tr/tr/fon-getirileri",
+   "fetched_at": "2026-10-10T00:12:36.250409+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/tefas_web/fon-getirileri.html#fonKodu=ABG;field=getiri1y",
+   "flags": [
+    "needs_check"
+   ],
+   "note": "ATLAS PORTFÖY DÖRDÜNCÜ SERBEST (TL) FON; Serbest Şemsiye Fonu; as_of assumed = previous business day"
+  },
+  {
+   "id": "E42b47116",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 100.000-249.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=8",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 15.000 TL."
+  },
+  {
+   "id": "E45feffc5",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 1.000.000-1.999.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=14",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 150.000 TL."
+  },
+  {
+   "id": "E48b4dba0",
+   "quantity": "cbrt_funding_cost",
+   "entity": "CBRT weighted average funding cost",
+   "value": 37.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "evds",
+   "source_url": "https://evds3.tcmb.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.242492+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/evds/TP.APIFON4.json#items[94]",
+   "flags": [],
+   "note": ""
+  },
+  {
+   "id": "E4b971dc0",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 500.000-999.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=13",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 75.000 TL."
+  },
+  {
+   "id": "E4c80e666",
+   "quantity": "cpi_index",
+   "entity": "CPI general index (2025=100)",
+   "value": 137.23,
+   "unit": "index",
+   "as_of": "2026-09-30",
+   "source": "evds",
+   "source_url": "https://evds3.tcmb.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.242492+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/evds/TP.TUKFIY2025.GENEL.json#items[3]",
+   "flags": [],
+   "note": ""
+  },
+  {
+   "id": "E5b2dda4f",
+   "quantity": "fund_risk_level",
+   "entity": "ABG",
+   "value": 7.0,
+   "unit": "level",
+   "as_of": "2026-10-09",
+   "source": "tefas_web",
+   "source_url": "https://www.tefas.gov.tr/tr/fon-getirileri",
+   "fetched_at": "2026-10-10T00:12:36.250409+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/tefas_web/fon-getirileri.html#fonKodu=ABG;field=riskDegeri",
+   "flags": [
+    "needs_check"
+   ],
+   "note": "ATLAS PORTFÖY DÖRDÜNCÜ SERBEST (TL) FON; Serbest Şemsiye Fonu; as_of assumed = previous business day"
+  },
+  {
+   "id": "E5f1c6744",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 35.000.000 TL üzeri",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=29",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate (same as standard for this tier). Faiz işletilmeyecek tutar 3.000.000 TL."
+  },
+  {
+   "id": "E64e1f181",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 35.000.000 TL üzeri",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=28",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 3.000.000 TL."
+  },
+  {
+   "id": "E66e55ae6",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 15.000.000-24.999.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=24",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 2.000.000 TL."
+  },
+  {
+   "id": "E6ff78ab4",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 250.000-499.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=10",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 30.000 TL."
+  },
+  {
+   "id": "E7994b342",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 50.000-99.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=6",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 7.500 TL."
+  },
+  {
+   "id": "E7c5630e6",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 5.000.000-7.499.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=19",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 600.000 TL."
+  },
+  {
+   "id": "E829a2bd4",
+   "quantity": "bist100_return_index",
+   "entity": "BIST 100 total return index (XU100-CFNNTLTL), close",
+   "value": 24380.98,
+   "unit": "index",
+   "as_of": "2026-10-08",
+   "source": "evds",
+   "source_url": "https://evds3.tcmb.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.242492+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/evds/TP.MK.G.BILESIK.json#items[93]",
+   "flags": [
+    "unverified_series"
+   ],
+   "note": ""
+  },
+  {
+   "id": "E88e3fbab",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 50.000-99.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=7",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 7.500 TL."
+  },
+  {
+   "id": "E8a0e13dc",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 25.000.000-34.999.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=26",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 3.000.000 TL."
+  },
+  {
+   "id": "E943afdab",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 100.000-249.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=9",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 15.000 TL."
+  },
+  {
+   "id": "E9cb9f7ad",
+   "quantity": "deposit_rate",
+   "entity": "TRY savings deposit rate up to 3M, weighted average (new deposits)",
+   "value": 43.82,
+   "unit": "pct",
+   "as_of": "2026-10-02",
+   "source": "evds",
+   "source_url": "https://evds3.tcmb.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.242492+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/evds/TP.TRYTAS.MT02.json#items[17]",
+   "flags": [],
+   "note": ""
+  },
+  {
+   "id": "E9f884249",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 10.000-49.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=5",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 5.000 TL."
+  },
+  {
+   "id": "Ea1b6ffd1",
+   "quantity": "fund_risk_level",
+   "entity": "IGF",
+   "value": 0.0,
+   "unit": "level",
+   "as_of": "2026-10-09",
+   "source": "tefas_web",
+   "source_url": "https://www.tefas.gov.tr/tr/fon-getirileri",
+   "fetched_at": "2026-10-10T00:12:36.250409+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/tefas_web/fon-getirileri.html#fonKodu=IGF;field=riskDegeri",
+   "flags": [
+    "needs_check",
+    "out_of_range"
+   ],
+   "note": "İŞ PORTFÖY GÜZEL SERBEST (DÖVİZ) ÖZEL FON; Serbest Şemsiye Fonu; as_of assumed = previous business day; value 0.0 outside [1.0, 7.0]"
+  },
+  {
+   "id": "Eac851fd0",
+   "quantity": "fund_return_1y",
+   "entity": "AAL",
+   "value": 42.2491,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "tefas_web",
+   "source_url": "https://www.tefas.gov.tr/tr/fon-getirileri",
+   "fetched_at": "2026-10-10T00:12:36.250409+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/tefas_web/fon-getirileri.html#fonKodu=AAL;field=getiri1y",
+   "flags": [
+    "needs_check"
+   ],
+   "note": "ATA PORTFÖY PARA PİYASASI (TL) FONU; Para Piyasası Şemsiye Fonu; as_of assumed = previous business day"
+  },
+  {
+   "id": "Eb431d70b",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 1.000.000-1.999.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=15",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 150.000 TL."
+  },
+  {
+   "id": "Eb9d5f9ff",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 10.000-49.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=4",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 5.000 TL."
+  },
+  {
+   "id": "Eb9f6ee7a",
+   "quantity": "fund_price",
+   "entity": "ABG",
+   "value": 12.9066,
+   "unit": "TRY",
+   "as_of": "2026-10-09",
+   "source": "tefas",
+   "source_url": "https://www.tefas.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.594127+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/tefas/Fon_Verileri_EXCEL_Tum_Veri_2026-10-09.xlsx#Tablo Verisi!row=9;col=price",
+   "flags": [],
+   "note": ""
+  },
+  {
+   "id": "Ec17602f1",
+   "quantity": "bist100_price_index",
+   "entity": "BIST 100 price index (XU100), close",
+   "value": 12213.58,
+   "unit": "index",
+   "as_of": "2026-10-08",
+   "source": "evds",
+   "source_url": "https://evds3.tcmb.gov.tr/",
+   "fetched_at": "2026-10-10T00:12:35.242492+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/evds/TP.MK.F.BILESIK.json#items[93]",
+   "flags": [
+    "unverified_series"
+   ],
+   "note": ""
+  },
+  {
+   "id": "Ec4ce250d",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 10.000.000-14.999.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=22",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 1.250.000 TL."
+  },
+  {
+   "id": "Ec54c5255",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 2.000.000-4.999.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=17",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 285.000 TL."
+  },
+  {
+   "id": "Eca5ed805",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 10.000.000-14.999.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=23",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 1.250.000 TL."
+  },
+  {
+   "id": "Ecdcd7157",
+   "quantity": "fund_return_1y",
+   "entity": "ADE",
+   "value": 25.3116,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "tefas_web",
+   "source_url": "https://www.tefas.gov.tr/tr/fon-getirileri",
+   "fetched_at": "2026-10-10T00:12:36.250409+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/tefas_web/fon-getirileri.html#fonKodu=ADE;field=getiri1y",
+   "flags": [
+    "needs_check"
+   ],
+   "note": "AK PORTFÖY MUTLAK GETİRİ HEDEFLİ DEĞİŞKEN FON; Değişken Şemsiye Fonu; as_of assumed = previous business day"
+  },
+  {
+   "id": "Ecfd60c78",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 15.000.000-24.999.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=25",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 2.000.000 TL."
+  },
+  {
+   "id": "Edb393020",
+   "quantity": "fund_risk_level",
+   "entity": "AAL",
+   "value": 1.0,
+   "unit": "level",
+   "as_of": "2026-10-09",
+   "source": "tefas_web",
+   "source_url": "https://www.tefas.gov.tr/tr/fon-getirileri",
+   "fetched_at": "2026-10-10T00:12:36.250409+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/tefas_web/fon-getirileri.html#fonKodu=AAL;field=riskDegeri",
+   "flags": [
+    "needs_check"
+   ],
+   "note": "ATA PORTFÖY PARA PİYASASI (TL) FONU; Para Piyasası Şemsiye Fonu; as_of assumed = previous business day"
+  },
+  {
+   "id": "Eecdcbe06",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap standart, 5.000.000-7.499.999 TL",
+   "value": 23.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=18",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Faiz işletilmeyecek tutar 600.000 TL."
+  },
+  {
+   "id": "Efb110007",
+   "quantity": "deposit_rate",
+   "entity": "ING Turuncu Hesap hoş geldin, 7.500.000-9.999.999 TL",
+   "value": 39.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "source": "manual",
+   "source_url": "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari",
+   "fetched_at": "2026-10-10T00:12:35.253180+03:00",
+   "snapshot_id": "20261010-001233-6b20",
+   "raw_ref": "20261010-001233-6b20/payloads/manual/ing_turuncu_hesap.csv#row=21",
+   "flags": [
+    "manual_entry"
+   ],
+   "note": "Welcome rate. Faiz işletilmeyecek tutar 900.000 TL."
+  }
+ ]
+}

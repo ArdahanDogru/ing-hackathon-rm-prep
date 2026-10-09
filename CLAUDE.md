@@ -363,6 +363,86 @@ source's rows and the cross-source conflict it caused.
     never change data, flags or the parser at run time (keeps replay and
     audit intact).
 
+## Multi-agent workflow (set up 2026-10-10)
+
+The project runs as fleet office sessions on laptop-a that message each other
+(cross-session messaging, `SendMessage`). Not an agent team: fleet sessions are
+`claude -p`, where teams cannot form.
+
+| Session | Folder (git worktree) | Branch | Owns |
+|---|---|---|---|
+| `ing-lead` | `C:/Users/yardang/dev/ing-hackathon/prototype` | `main` | `contracts.py`, `cli.py`, `__main__.py`, `pyproject.toml`, `CLAUDE.md`, `docs/`, `config/`, `.claude/`, `tests/contracts/`, `tests/workflow/`, merges |
+| `ing-ingest` | `C:/Users/yardang/dev/ing-wt/ingest` | `ingest` | `src/rmprep/ingest/`, `tests/ingest/` |
+| `ing-decision` | `C:/Users/yardang/dev/ing-wt/decision` | `decision` | `src/rmprep/decision/`, `tests/decision/` |
+| `ing-ui` | `C:/Users/yardang/dev/ing-wt/ui` | `ui` | `src/rmprep/ui/`, `tests/ui/` |
+| later `ing-narrator`, `ing-eval` | `ing-wt/narrator`, `ing-wt/eval` | same name | same pattern |
+
+At most 3 sessions work at the same time (the lead counts). Start ui only when
+decision is done or the user asks.
+
+Rules:
+- A worker edits only its two folders. `.claude/hooks/guard_paths.py` blocks
+  other edits, merges, pushes, `checkout main` and `reset --hard` on worker
+  branches. Contracts, dependencies and config change only through the lead.
+- One test package per module: `tests/<module>/__init__.py`, fixtures in
+  `tests/<module>/fixtures/`. Shared fixtures (personas, a small real
+  EvidenceSet, illustrative DecisionResults) are in `tests/contracts/fixtures/`;
+  regenerate them with `python -m tests.contracts.make_fixtures`.
+- All worktrees share `prototype/.venv`. pytest puts `src` first
+  (`pythonpath = ["src"]`), so each worktree tests its own code. Python:
+  `C:/Users/yardang/dev/ing-hackathon/prototype/.venv/Scripts/python`.
+- Data (`data/`, `.env`) exists only in the main checkout. A live ingest from a
+  worktree uses `python -m rmprep --root C:/Users/yardang/dev/ing-hackathon/prototype ...`.
+
+Messages (one short paragraph; no chatter):
+- worker → lead: `contract request: <change> because <reason>` |
+  `milestone <n> done, tests green, <branch>@<sha>` | `blocker: <what>`.
+- lead → worker: `merged <branch>@<sha>, rebase` | an answer to a request or blocker.
+- Workers do not message each other. The lead reports each merge and contract
+  change to the user in its own chat.
+
+Merge (lead, in the main checkout): `git merge --no-ff <branch>`, full
+`pytest`; green → keep and tell the workers that are working now to rebase
+(an idle worker rebases at the start of its next milestone; waking an idle
+session costs a full context reread); red → undo the merge and send the worker
+the failing tests. Never push. Workers: commit, then `git rebase main`.
+
+## Contracts v1 (DRAFT — not frozen)
+
+`contracts.py` holds a draft of the decision/UI contracts: `Persona`,
+`ProductOption`, `ConstraintResult`, `ScoredOption` (with `confidence` and
+`stability` in 0..1), `RejectedOption`, `ClarificationQuestion`,
+`DecisionWarning`, `DataQualityNote`, `DecisionResult` (`run_id`,
+`config_hash`, `state` = `ready` | `needs_rm_input`, questions, assumptions,
+warnings, data-quality notes, `rm_status` = pending | approved | rejected) and
+the `Backend` protocol (`answer_question` and `approve` are stubs). They are
+frozen when the two sections below are written. Workers do not start before that.
+
+## Decision layer (step D — to be written by the user with ing-lead)
+
+Facts to design against (p01–p05 checked 2026-10-10):
+- Persona values are free Turkish text, not enums. `risk_profili`:
+  Muhafazakâr, Temkinli, Dengeli, Agresif. `yatirim_ufku`: "1-3 yıl", "5+ yıl".
+  `likidite_ihtiyaci`, `gelir_nakit_akisi_ihtiyaci`, `anapara_koruma_tercihi`:
+  Düşük / Orta / Yüksek. `doviz_maruz_kalma_tercihi` is free text ("Sınırlı",
+  "Açık", "Çeşitlendirilmiş", "Mevcut döviz gelirini dikkate alarak kontrollü").
+  `oncelikler` and `acik_kisitlar` are free-text lists (one constraint each).
+- So the decision layer needs a mapping from text to levels/rules, and a text
+  it cannot map is a clarification question (`needs_rm_input`), not a guess.
+- Evidence available (snapshot 20261010-001233-6b20): deposit rates (EVDS +
+  28 manual), policy rate, CBRT funding cost, CPI, USD/TRY, gold TL/kg, BIST
+  100, TEFAS fund price/size/investors, fund returns 1m–5y and risk level 1–7.
+  No per-fund volatility, fees or redemption days.
+
+To decide: product universe, filters (rule ids), criteria and weights per
+persona field, confidence/stability formulas, milestones of the worker.
+
+## UI (step D — to be written by the user with ing-lead)
+
+Streamlit (`pip install -e ".[ui]"`) on `FakeBackend` serving
+`tests/contracts/fixtures/`. To decide: screens, RM approve/answer flow,
+milestones of the worker.
+
 ## Commands
 
 ```

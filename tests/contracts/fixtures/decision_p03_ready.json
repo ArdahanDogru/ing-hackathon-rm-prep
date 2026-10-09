@@ -1,0 +1,107 @@
+{
+ "run_id": "R20261010-090000-p03a",
+ "config_hash": "draft-0000",
+ "created_at": "2026-10-10T09:00:00+03:00",
+ "persona_id": "P03",
+ "snapshot_id": "20261010-001233-6b20",
+ "excluded_sources": [],
+ "state": "ready",
+ "options": [
+  {
+   "option": {
+    "option_id": "fund:ABG",
+    "kind": "fund",
+    "label": "Fon ABG (risk 7)",
+    "entity": "ABG"
+   },
+   "score": 0.82,
+   "score_parts": {
+    "growth": 0.62,
+    "diversification": 0.2
+   },
+   "constraints": [
+    {
+     "rule_id": "risk_ceiling",
+     "passed": true,
+     "reason": "Aggressive profile allows level 7",
+     "evidence_ids": [
+      "E5b2dda4f"
+     ]
+    }
+   ],
+   "confidence": 0.75,
+   "stability": 0.55,
+   "evidence_ids": [
+    "E41e889ab"
+   ]
+  },
+  {
+   "option": {
+    "option_id": "fund:ADE",
+    "kind": "fund",
+    "label": "Fon ADE (risk 4)",
+    "entity": "ADE"
+   },
+   "score": 0.66,
+   "score_parts": {
+    "growth": 0.41,
+    "diversification": 0.25
+   },
+   "constraints": [
+    {
+     "rule_id": "risk_ceiling",
+     "passed": true,
+     "reason": "Risk level within the ceiling",
+     "evidence_ids": [
+      "E11682c9d"
+     ]
+    }
+   ],
+   "confidence": 0.75,
+   "stability": 0.7,
+   "evidence_ids": [
+    "Ecdcd7157"
+   ]
+  }
+ ],
+ "rejected": [],
+ "questions": [
+  {
+   "question_id": "q1",
+   "text": "Is any of the cash needed within 12 months?",
+   "reason": "acik_kisitlar says short-term need must not be assumed.",
+   "about": "acik_kisitlar[0]",
+   "choices": [
+    "no",
+    "yes, part of it"
+   ],
+   "answer": "no"
+  }
+ ],
+ "assumptions": [
+  "Horizon 5+ years taken as 5 years for returns."
+ ],
+ "warnings": [
+  {
+   "code": "concentration",
+   "message": "Top option is a single equity fund",
+   "evidence_ids": []
+  }
+ ],
+ "data_quality": [
+  {
+   "message": "EVDS series are not verified on the EVDS site yet",
+   "flags": [
+    "unverified_series"
+   ],
+   "sources": [
+    "evds"
+   ],
+   "evidence_ids": [
+    "E32643a0c"
+   ]
+  }
+ ],
+ "rm_status": "pending",
+ "rm_note": ""
+}
