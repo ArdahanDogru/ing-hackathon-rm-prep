@@ -13,7 +13,7 @@ sessions are `claude -p`, where teams cannot form. The user starts only
 | `ing-ui` | `C:/Users/yardang/dev/ing-wt/ui` | `ui` | `src/rmprep/ui/`, `tests/ui/` |
 | later `ing-narrator`, `ing-eval` | `ing-wt/narrator`, `ing-wt/eval` | same name | same pattern |
 
-Design per module: ingest = `CLAUDE.md`, decision = `docs/decision.md`,
+Design per module: ingest = `docs/ingest.md`, decision = `docs/decision.md`,
 ui = `docs/ui.md`.
 
 ## Rules for everyone
