@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from rmprep.config import (
+from rmprep.ingest.config import (
     ConfigError,
     EvdsSource,
     ManualSource,
@@ -14,7 +14,7 @@ from rmprep.config import (
     parse_config,
 )
 
-CONFIG_PATH = Path(__file__).resolve().parents[1] / "config" / "sources.yaml"
+CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "sources.yaml"
 
 
 @pytest.fixture

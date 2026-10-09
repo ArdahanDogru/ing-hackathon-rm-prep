@@ -3,10 +3,10 @@ from datetime import date
 
 import pytest
 
-from conftest import FIXTURES, T0
-from rmprep.adapters import manual
+from tests.ingest.conftest import FIXTURES, T0
+from rmprep.ingest.adapters import manual
 from rmprep.contracts import Flag
-from rmprep.snapshot import SnapshotWriter
+from rmprep.ingest.snapshot import SnapshotWriter
 
 RATES = FIXTURES / "manual" / "rates.csv"
 
@@ -89,7 +89,7 @@ def test_empty_inbox_fails(tmp_path, cfg, inbox):
 def test_unfilled_withholding_template_is_fully_rejected(cfg):
     # Brief rule 7: tax rates are never invented. The empty template must not
     # produce a single row if someone copies it to the inbox unfilled.
-    from conftest import PROJECT
+    from tests.ingest.conftest import PROJECT
     data = (PROJECT / "config" / "withholding_tax_template.csv").read_bytes()
     accepted, rejected = manual.parse_file(data, "template.csv", cfg, cfg.sources["manual"])
     assert accepted == [] and len(rejected) == 8

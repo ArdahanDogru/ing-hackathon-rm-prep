@@ -10,7 +10,7 @@ from collections import defaultdict
 from datetime import date
 from itertools import combinations
 
-from rmprep.config import Config
+from rmprep.ingest.config import Config
 from rmprep.contracts import DataPoint, Flag
 
 

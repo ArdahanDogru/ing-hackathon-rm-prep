@@ -3,12 +3,12 @@ from datetime import date, datetime, timedelta
 import httpx
 import pytest
 
-from conftest import T0, TEFAS_WEB_FUNDS, FakeEvds, tefas_web_page
-from rmprep.adapters import tefas_web
-from rmprep.config import ConfigError, parse_config
+from tests.ingest.conftest import T0, TEFAS_WEB_FUNDS, FakeEvds, tefas_web_page
+from rmprep.ingest.adapters import tefas_web
+from rmprep.ingest.config import ConfigError, parse_config
 from rmprep.contracts import TR_TZ, Flag
-from rmprep.quality import run_checks
-from rmprep.snapshot import SnapshotWriter
+from rmprep.ingest.quality import run_checks
+from rmprep.ingest.snapshot import SnapshotWriter
 
 
 def _fetch(tmp_path, cfg, fake, at=T0, sid="20261009-150000-0001"):

@@ -3,9 +3,9 @@ from datetime import date, timedelta
 import duckdb
 import pytest
 
-from conftest import T0
+from tests.ingest.conftest import T0
 from rmprep.contracts import TR_TZ, DataPoint, Flag
-from rmprep.store import EvidenceStore
+from rmprep.ingest.store import EvidenceStore
 
 
 def dp(snapshot_id="S1", entity="USD", value=41.0, flags=()):

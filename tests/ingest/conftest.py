@@ -7,10 +7,10 @@ from pathlib import Path
 import httpx
 import pytest
 
-from rmprep.config import load_raw, parse_config
+from rmprep.ingest.config import load_raw, parse_config
 from rmprep.contracts import TR_TZ
 
-PROJECT = Path(__file__).resolve().parents[1]
+PROJECT = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 # Fixed "now" for tests: 9 October 2026, 15:00 Turkey time.

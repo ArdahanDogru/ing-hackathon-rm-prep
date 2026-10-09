@@ -3,11 +3,11 @@ from datetime import date, timedelta
 import httpx
 import pytest
 
-from conftest import FIXTURES, KEY, T0, FakeEvds
-from rmprep.adapters import evds
-from rmprep.config import parse_config
+from tests.ingest.conftest import FIXTURES, KEY, T0, FakeEvds
+from rmprep.ingest.adapters import evds
+from rmprep.ingest.config import parse_config
 from rmprep.contracts import Flag
-from rmprep.snapshot import MANIFEST, SnapshotWriter
+from rmprep.ingest.snapshot import MANIFEST, SnapshotWriter
 
 TODAY = T0.date()
 

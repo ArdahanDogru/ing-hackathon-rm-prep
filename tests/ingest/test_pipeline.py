@@ -8,12 +8,12 @@ import duckdb
 import pytest
 import yaml
 
-from conftest import FIXTURES, KEY, T0, FakeEvds
+from tests.ingest.conftest import FIXTURES, KEY, T0, FakeEvds
 from rmprep.cli import main
 from rmprep.contracts import Flag
-from rmprep.pipeline import ExclusionError, Paths, build_evidence, ingest, replay
-from rmprep.snapshot import MANIFEST, SnapshotIntegrityError, open_snapshot
-from rmprep.store import EvidenceStore
+from rmprep.ingest.pipeline import ExclusionError, Paths, build_evidence, ingest, replay
+from rmprep.ingest.snapshot import MANIFEST, SnapshotIntegrityError, open_snapshot
+from rmprep.ingest.store import EvidenceStore
 
 TEFAS_CSV = FIXTURES / "tefas" / "tefas_export.csv"
 RATES_CSV = FIXTURES / "manual" / "rates.csv"
@@ -293,7 +293,7 @@ def test_cli_evds_find_without_key(paths, capsys, monkeypatch):
 def test_cli_evds_find_output(paths, capsys, monkeypatch):
     from argparse import Namespace
 
-    from test_evds import FakeMeta
+    from tests.ingest.test_evds import FakeMeta
     from rmprep.cli import _evds_meta
     monkeypatch.setenv("EVDS_API_KEY", KEY)
     assert _evds_meta(paths, Namespace(command="evds-find", text="mevduat"),

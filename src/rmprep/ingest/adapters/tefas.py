@@ -16,11 +16,11 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from rmprep.adapters._inbox import list_inbox, payload_name
-from rmprep.config import Config, TefasSource, normalize_header
+from rmprep.ingest.adapters._inbox import list_inbox, payload_name
+from rmprep.ingest.config import Config, TefasSource, normalize_header
 from rmprep.contracts import TR_TZ, DataPoint
-from rmprep.parsing import ParseError, detect_decimal, parse_date, parse_number, read_csv_rows
-from rmprep.snapshot import Snapshot, SnapshotWriter, SourceRecord, raw_ref
+from rmprep.ingest.parsing import ParseError, detect_decimal, parse_date, parse_number, read_csv_rows
+from rmprep.ingest.snapshot import Snapshot, SnapshotWriter, SourceRecord, raw_ref
 
 _HEADER_SCAN_ROWS = 20
 

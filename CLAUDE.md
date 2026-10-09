@@ -38,22 +38,25 @@ prototype/
                             then copy to data/inbox/manual/. Unfilled rows are
                             all rejected (test_manual).
   src/rmprep/
-    contracts.py            DataPoint, Flag, make_id
-    config.py               load + validate sources.yaml
-    snapshot.py             raw snapshot write/verify/read
-    parsing.py              Turkish number/date parsing, CSV decoding
-    adapters/evds.py | tefas.py | manual.py | _inbox.py   (| kap.py later)
-    quality.py              checks (pure functions)
-    store.py                DuckDB evidence store + Parquet export
-    pipeline.py             ingest / replay orchestration, fallback
-    cli.py                  `python -m rmprep ...`
+    contracts.py            DataPoint, Flag, make_id, EvidenceSet (lead-owned)
+    cli.py                  `python -m rmprep ...` (lead-owned)
+    ingest/                 ingestion layer (ingest worker)
+      config.py             load + validate sources.yaml
+      snapshot.py           raw snapshot write/verify/read
+      parsing.py            Turkish number/date parsing, CSV decoding
+      adapters/evds.py | tefas.py | tefas_web.py | manual.py | _inbox.py   (| kap.py later)
+      quality.py            checks (pure functions)
+      store.py              DuckDB evidence store + Parquet export
+      pipeline.py           ingest / replay orchestration, fallback
   data/
     inbox/tefas/            manually exported TEFAS .xlsx/.csv
     inbox/manual/           manual CSVs (deposit rates, withholding tax)
     snapshots/<snapshot_id>/manifest.json, payloads/...
     evidence.duckdb
     export/<snapshot_id>.parquet
-  tests/ + tests/fixtures/
+  tests/<module>/           one test package per module (tests/ingest/, tests/contracts/);
+                            fixtures in tests/<module>/fixtures/; import shared test
+                            helpers as `from tests.ingest.conftest import ...`
   docs/architecture.md      annotated data-flow diagram (update it when the flow changes)
   docs/architecture.html|.pdf|.png  rendered copies; keep the Mermaid code in .md and
                             .html identical, then re-render (command in architecture.md)
@@ -169,7 +172,7 @@ checks them on the EVDS site; a `VERIFY_` code cannot be `verified: true`.
      the first day of a period → `evds.request_start` uses the first day of
      the month. The JSON response shape (`items`, `Tarih`, code with `_`) was
      confirmed by the first real ingest on 2026-10-09.
-   - Tests do not use the real series list: `tests/conftest.py`
+   - Tests do not use the real series list: `tests/ingest/conftest.py`
      `TEST_EVDS_SERIES` replaces it, so changing codes in `sources.yaml`
      does not break tests.
    - `python -m rmprep evds-find TEXT` / `evds-info CODE` use the metadata
@@ -299,7 +302,7 @@ snapshot or the stored rows.
 Exit code 2 only for hard errors (bad config, missing/tampered snapshot,
 unknown `--exclude` source), not for failed sources.
 
-## Tests (pytest, fixtures in `tests/fixtures/`, `tmp_path` for data dirs)
+## Tests (pytest, fixtures in `tests/ingest/fixtures/`, `tmp_path` for data dirs)
 
 HTTP is mocked with `httpx.MockTransport` (no extra dependency). Required cases:
 no API key, HTTP error (→ fallback and → no-previous-snapshot), stale,

@@ -22,6 +22,7 @@ rmprep = "rmprep.cli:main"
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
 kap = ["docling"]
+ui = ["streamlit"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -29,3 +30,6 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# src first: every git worktree shares the one .venv, whose editable install
+# points at the main checkout; without this, a worktree would test main's code.
+pythonpath = ["src"]

@@ -5,11 +5,11 @@ from datetime import date, datetime
 import pytest
 from openpyxl import Workbook
 
-from conftest import FIXTURES, T0
-from rmprep.adapters import tefas
+from tests.ingest.conftest import FIXTURES, T0
+from rmprep.ingest.adapters import tefas
 from rmprep.contracts import Flag
-from rmprep.parsing import ParseError
-from rmprep.snapshot import SnapshotWriter
+from rmprep.ingest.parsing import ParseError
+from rmprep.ingest.snapshot import SnapshotWriter
 
 CSV = FIXTURES / "tefas" / "tefas_export.csv"
 

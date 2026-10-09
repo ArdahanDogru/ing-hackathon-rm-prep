@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from rmprep.contracts import TR_TZ
-from rmprep.snapshot import (
+from rmprep.ingest.snapshot import (
     MANIFEST,
     SnapshotError,
     SnapshotIntegrityError,

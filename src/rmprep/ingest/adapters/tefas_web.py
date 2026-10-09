@@ -26,9 +26,9 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from rmprep.config import TEFAS_DISALLOWED_PREFIXES, Config, TefasWebSource
+from rmprep.ingest.config import TEFAS_DISALLOWED_PREFIXES, Config, TefasWebSource
 from rmprep.contracts import TR_TZ, DataPoint, Flag
-from rmprep.snapshot import Snapshot, SnapshotWriter, SourceRecord, raw_ref
+from rmprep.ingest.snapshot import Snapshot, SnapshotWriter, SourceRecord, raw_ref
 
 PAYLOAD_NAME = "fon-getirileri.html"
 _PUSH_RE = re.compile(r"self\.__next_f\.push\((\[.*?\])\)</script>", re.S)

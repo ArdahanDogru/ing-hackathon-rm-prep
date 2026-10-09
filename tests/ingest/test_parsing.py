@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 import pytest
 
-from rmprep.parsing import (
+from rmprep.ingest.parsing import (
     ParseError,
     decode_text,
     detect_decimal,

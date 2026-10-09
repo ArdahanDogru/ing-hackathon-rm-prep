@@ -29,9 +29,9 @@ from typing import Any
 
 import httpx
 
-from rmprep.config import Config, EvdsSeries, EvdsSource, normalize_header
+from rmprep.ingest.config import Config, EvdsSeries, EvdsSource, normalize_header
 from rmprep.contracts import TR_TZ, DataPoint, Flag
-from rmprep.snapshot import MANIFEST, Snapshot, SnapshotWriter, SourceRecord, raw_ref
+from rmprep.ingest.snapshot import MANIFEST, Snapshot, SnapshotWriter, SourceRecord, raw_ref
 
 _DAILY_RE = re.compile(r"^(\d{2})-(\d{2})-(\d{4})$")
 _MONTHLY_RE = re.compile(r"^(\d{4})-(\d{1,2})$")

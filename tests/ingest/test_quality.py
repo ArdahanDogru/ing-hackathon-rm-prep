@@ -2,9 +2,9 @@ from datetime import date, timedelta
 
 import pytest
 
-from conftest import T0
+from tests.ingest.conftest import T0
 from rmprep.contracts import DataPoint, Flag
-from rmprep.quality import (
+from rmprep.ingest.quality import (
     check_cross_source_conflict,
     check_duplicates,
     check_plausibility,

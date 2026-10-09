@@ -1,14 +1,20 @@
-"""DataPoint contract shared by adapters, checks and the evidence store."""
+"""Contracts shared across layers. Owned by the lead (see CLAUDE.md,
+"Multi-agent workflow"); workers request changes, they never edit this file.
+
+DataPoint: adapters, checks and the evidence store (ingest).
+EvidenceSet: what ingest hands to the layers downstream (decision, ui, narrator).
+"""
 
 from __future__ import annotations
 
 import dataclasses
 import hashlib
 import math
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import StrEnum
+from typing import Protocol
 from zoneinfo import ZoneInfo
 
 # All timestamps in the system are Turkey time (UTC+3, no DST).
@@ -137,3 +143,26 @@ class DataPoint:
 
     def sorted_flags(self) -> list[str]:
         return sorted(f.value for f in self.flags)
+
+
+class SourceStatusLike(Protocol):
+    """What downstream layers may read about one source of a snapshot (the
+    ingest manifest record has more; do not depend on it)."""
+
+    status: str                 # ok | failed | skipped
+    error: str | None
+    fallback_from: str | None   # snapshot_id the rows came from, if fallback
+    excluded: bool              # on_failure: exclude
+
+
+@dataclass(frozen=True)
+class EvidenceSet:
+    """Checked evidence of one snapshot (rmprep.ingest.pipeline.build_evidence).
+    Downstream must read excluded_sources so it can say what a result was
+    computed without. Excluded (read time, by the user) != missing."""
+
+    snapshot_id: str
+    created_at: datetime
+    excluded_sources: frozenset[str]                 # excluded at read time (UI)
+    source_status: Mapping[str, SourceStatusLike]    # from the manifest
+    datapoints: tuple[DataPoint, ...]                # checked, sorted by id

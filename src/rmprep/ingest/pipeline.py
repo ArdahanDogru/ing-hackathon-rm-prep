@@ -20,18 +20,18 @@ from pathlib import Path
 import httpx
 from dotenv import dotenv_values
 
-from rmprep.adapters import evds, manual, tefas, tefas_web
-from rmprep.config import Config, EvdsSource, SourceConfig, load_raw, parse_config
-from rmprep.contracts import TR_TZ, DataPoint, Flag
-from rmprep.quality import run_checks
-from rmprep.snapshot import (
+from rmprep.contracts import TR_TZ, DataPoint, EvidenceSet, Flag
+from rmprep.ingest.adapters import evds, manual, tefas, tefas_web
+from rmprep.ingest.config import Config, EvdsSource, SourceConfig, load_raw, parse_config
+from rmprep.ingest.quality import run_checks
+from rmprep.ingest.snapshot import (
     Snapshot,
     SnapshotWriter,
     SourceRecord,
     find_previous_ok,
     open_snapshot,
 )
-from rmprep.store import EvidenceStore
+from rmprep.ingest.store import EvidenceStore
 
 _PARSERS = {"evds": evds.parse, "tefas": tefas.parse, "tefas_web": tefas_web.parse,
             "manual": manual.parse}
@@ -67,15 +67,6 @@ class Paths:
 
     def inbox(self, rel: str) -> Path:
         return self.root / rel
-
-
-@dataclass(frozen=True)
-class EvidenceSet:
-    snapshot_id: str
-    created_at: datetime
-    excluded_sources: frozenset[str]          # excluded at read time (UI)
-    source_status: dict[str, SourceRecord]    # from the manifest
-    datapoints: tuple[DataPoint, ...]         # checked, sorted by id
 
 
 # --- ingest ------------------------------------------------------------------------

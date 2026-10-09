@@ -9,10 +9,10 @@ from pathlib import Path
 
 import httpx
 
-from rmprep.adapters import evds
-from rmprep.adapters.evds import EvdsParseError
-from rmprep.config import ConfigError, EvdsSource, load_config
-from rmprep.pipeline import (
+from rmprep.ingest.adapters import evds
+from rmprep.ingest.adapters.evds import EvdsParseError
+from rmprep.ingest.config import ConfigError, EvdsSource, load_config
+from rmprep.ingest.pipeline import (
     EvidenceSet,
     ExclusionError,
     Paths,
@@ -21,7 +21,7 @@ from rmprep.pipeline import (
     load_env,
     replay,
 )
-from rmprep.snapshot import SnapshotError, list_snapshots
+from rmprep.ingest.snapshot import SnapshotError, list_snapshots
 
 
 def _table(rows: list[list[str]]) -> str:
