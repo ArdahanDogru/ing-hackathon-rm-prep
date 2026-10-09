@@ -64,6 +64,9 @@ def test_hook_blocks_with_exit_code_2_in_a_real_repo(tmp_path):
     event = {"tool_name": "Write", "tool_input": {"file_path": "src/rmprep/contracts.py"}, "cwd": str(repo)}
     r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(event), capture_output=True, text=True)
     assert r.returncode == 2 and "may edit only" in r.stderr
+    bom = subprocess.run([sys.executable, str(HOOK)], input=("﻿" + json.dumps(event)).encode("utf-8"),
+                         capture_output=True)
+    assert bom.returncode == 2  # PowerShell pipes add a BOM
     event["tool_input"]["file_path"] = "src/rmprep/decision/x.py"
     r = subprocess.run([sys.executable, str(HOOK)], input=json.dumps(event), capture_output=True, text=True)
     assert r.returncode == 0

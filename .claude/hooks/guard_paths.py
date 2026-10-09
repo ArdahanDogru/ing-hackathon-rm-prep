@@ -83,7 +83,7 @@ def check(event: dict, branch: str, top: str, worktrees: list[str]) -> str | Non
 
 def main() -> int:
     try:
-        event = json.load(sys.stdin)
+        event = json.loads(sys.stdin.buffer.read().decode("utf-8-sig"))  # a BOM is fine
     except ValueError:
         return 0
     cwd = event.get("cwd") or os.getcwd()
