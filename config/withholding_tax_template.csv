@@ -1,0 +1,9 @@
+quantity;entity;value;unit;as_of;source_url;note
+withholding_tax_rate;TL vadeli mevduat, 6 aya kadar vadeli;;pct;;;Faiz geliri stopajı. as_of = karar yürürlük tarihi.
+withholding_tax_rate;TL vadeli mevduat, 1 yıla kadar vadeli;;pct;;;Faiz geliri stopajı. as_of = karar yürürlük tarihi.
+withholding_tax_rate;TL vadeli mevduat, 1 yıldan uzun vadeli;;pct;;;Faiz geliri stopajı. as_of = karar yürürlük tarihi.
+withholding_tax_rate;TL vadesiz mevduat ve günlük hesap (Turuncu Hesap türü);;pct;;;Check which rate applies to daily-interest accounts.
+withholding_tax_rate;Döviz (USD/EUR) mevduat;;pct;;;FX deposit interest stopajı.
+withholding_tax_rate;Yatırım fonu, hisse senedi yoğun fon;;pct;;;Fon kazancı stopajı (fon türüne göre).
+withholding_tax_rate;Yatırım fonu, para piyasası fonu;;pct;;;Fon kazancı stopajı (fon türüne göre).
+withholding_tax_rate;Yatırım fonu, diğer fonlar (değişken, borçlanma araçları, fon sepeti);;pct;;;Fon kazancı stopajı (fon türüne göre). Add rows if types differ.

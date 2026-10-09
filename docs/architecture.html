@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ingestion pipeline — architecture</title>
+<style>
+  @page { size: A3 portrait; margin: 12mm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1f2328; margin: 24px; font-size: 13px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 28px 0 8px; border-bottom: 1px solid #d0d7de; padding-bottom: 4px; }
+  .sub { color: #59636e; margin-bottom: 16px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #d0d7de; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #f6f8fa; }
+  td:first-child { white-space: nowrap; font-weight: 600; }
+  code { font-family: Consolas, monospace; background: #eff1f3; padding: 0 3px; border-radius: 3px; font-size: 12px; }
+  .diagram { text-align: center; }
+  .tables { page-break-before: always; }
+  /* PDF: scale the whole diagram onto page 1 (A3 portrait). */
+  @media print {
+    .diagram { break-inside: avoid; }
+    .diagram svg { width: 100% !important; max-width: 100% !important; height: 340mm !important; }
+  }
+</style>
+</head>
+<body>
+<h1>Ingestion pipeline — architecture</h1>
+<div class="sub">RM meeting-prep tool · steps 1–9 built (EVDS, TEFAS, manual CSV) · step 10 (KAP via docling) not built ·
+source: <code>docs/architecture.md</code></div>
+
+<h2>1. Data flow</h2>
+<div class="diagram">
+<pre class="mermaid">
+flowchart TB
+    subgraph IN["Inputs"]
+        EVDS[("TCMB EVDS API<br/>HTTPS, key in 'key' header")]
+        TEFASF[/"TEFAS files exported by hand<br/>data/inbox/tefas/ .xlsx .csv"/]
+        MAN[/"Manual CSV<br/>data/inbox/manual/ .csv"/]
+        CFG["config/sources.yaml<br/>quantities, sources, ToS notes"]
+        ENV[".env<br/>EVDS_API_KEY"]
+    end
+
+    subgraph ONLINE["(1) ONLINE ZONE: ingest only"]
+        LOAD["(2) config.parse_config<br/>validate, fail fast"]
+        F1["(3) evds.fetch<br/>1 request per series"]
+        F2["(4) tefas.fetch<br/>copy files, no HTTP"]
+        F3["(5) manual.fetch<br/>record rejected rows"]
+        POL{"(6) source failed?<br/>on_failure"}
+        PREV["previous:<br/>find_previous_ok, set fallback_from"]
+        EXC["exclude:<br/>set excluded = true"]
+    end
+
+    subgraph SNAP["(7) RAW SNAPSHOT: immutable"]
+        W["SnapshotWriter<br/>.tmp folder, read-only, rename"]
+        FS[("data/snapshots/{id}/<br/>manifest.json + manifest.sha256<br/>payloads/{source}/{file}")]
+    end
+
+    subgraph OFFLINE["(8) OFFLINE ZONE: snapshot only"]
+        OPEN["(9) open_snapshot<br/>verify every SHA-256,<br/>load config copy from manifest"]
+        PARSE["adapters.parse<br/>evds / tefas / manual"]
+        FB["(10) fallback rows:<br/>re-parse older snapshot"]
+        EXCL["(11) drop excluded sources<br/>read time, UI cross-out"]
+        QC["(12) quality.run_checks<br/>plausibility, staleness,<br/>duplicates, cross-source"]
+        ES[["EvidenceSet<br/>snapshot_id, excluded_sources,<br/>source_status, datapoints"]]
+    end
+
+    subgraph OUT["Outputs"]
+        DB[("(13) data/evidence.duckdb<br/>key: snapshot_id + id, is_latest")]
+        PQ[("(14) data/export/{id}.parquet")]
+        CLI["CLI: show, list"]
+        DOWN["Meeting-prep layer<br/>(not built yet)"]
+    end
+
+    CFG --> LOAD
+    LOAD --> F1 & F2 & F3
+    ENV --> F1
+    EVDS --> F1
+    TEFASF --> F2
+    MAN --> F3
+    F1 & F2 & F3 --> POL
+    POL -- "no" --> W
+    POL -- "previous" --> PREV --> W
+    POL -- "exclude" --> EXC --> W
+    W --> FS
+    FS --> OPEN --> PARSE --> FB --> EXCL --> QC --> ES
+    ES -- "ingest / replay:<br/>full set, no exclusion" --> DB --> PQ
+    ES -- "show --exclude" --> CLI
+    ES -- "build_evidence(id, exclude)" --> DOWN
+    REPLAY["rmprep replay {id}"] -. "skips the online zone" .-> OPEN
+</pre>
+</div>
+
+<div class="tables">
+<h2>2. Annotations (numbers match the diagram)</h2>
+<table>
+<tr><th>#</th><th>Where</th><th>What happens</th><th>Why</th></tr>
+<tr><td>1</td><td><code>pipeline.ingest</code></td><td>The only code that reads the clock, the network, <code>.env</code>, the inbox folders and the current <code>sources.yaml</code>.</td><td>Keeps every outside input in one place, so everything after the snapshot can be replayed.</td></tr>
+<tr><td>2</td><td><code>config.py</code></td><td>Checks types, unknown keys, quantity references and a required <code>tos_note</code> for each source. Errors name the key path.</td><td>A typo stops the run before any data is fetched.</td></tr>
+<tr><td>3</td><td><code>adapters/evds.py</code></td><td>One GET for each series. The key goes in the <code>key</code> header, never in the URL. <code>VERIFY_</code> codes get no request. Each response is parsed in memory before it is stored.</td><td>A stored payload always parses on replay, and the key is never stored.</td></tr>
+<tr><td>4</td><td><code>adapters/tefas.py</code></td><td>Copies hand-exported files byte for byte. Matches headers through aliases and reads Turkish numbers and dates. The module imports no HTTP client.</td><td>Follows the no-scraping rule.</td></tr>
+<tr><td>5</td><td><code>adapters/manual.py</code></td><td>Validates each row. Rejected rows go into the manifest with their reasons, and accepted rows get <code>manual_entry</code>.</td><td>Every manual value has a source URL and a date.</td></tr>
+<tr><td>6</td><td><code>pipeline._apply_failure_policy</code></td><td>A failed source (no key, HTTP error, empty inbox, bad file) gets <code>fallback_from</code> (last snapshot where the source was ok) or <code>excluded: true</code>.</td><td>You choose the policy for each source in <code>sources.yaml</code>.</td></tr>
+<tr><td>7</td><td><code>snapshot.py</code></td><td>Writes to <code>.tmp-{id}</code>, writes the manifest and its hash, makes the files read-only, then renames the folder. The manifest is refused if it contains the API key.</td><td>A snapshot is complete or absent, never partly written or changed.</td></tr>
+<tr><td>8</td><td><code>pipeline.build_evidence</code></td><td>Pure function of (snapshot bytes, manifest, exclude set). The staleness date is the snapshot <code>created_at</code>, not today.</td><td>Same snapshot + same exclusions gives the same output.</td></tr>
+<tr><td>9</td><td><code>snapshot.open_snapshot</code></td><td>Checks the manifest hash and each payload hash, and rejects extra files.</td><td>A changed snapshot cannot be replayed without notice.</td></tr>
+<tr><td>10</td><td><code>pipeline._source_points</code></td><td>Re-parses the older snapshot named in <code>fallback_from</code>. Rows get the new <code>snapshot_id</code> and the <code>fallback_snapshot</code> flag, but keep their original <code>raw_ref</code> and <code>fetched_at</code>. If there is no older snapshot, EVDS gives <code>missing</code> rows.</td><td>Old data is used openly, never presented as new.</td></tr>
+<tr><td>11</td><td><code>build_evidence(..., exclude_sources)</code></td><td>Removes the excluded sources <b>before</b> the checks.</td><td>A conflict caused only by a crossed-out source disappears.</td></tr>
+<tr><td>12</td><td><code>quality.py</code></td><td>Adds flags and notes only; values never change.</td><td>The raw evidence stays intact; flags explain the problems.</td></tr>
+<tr><td>13</td><td><code>store.py</code></td><td>Load = delete + insert in one transaction (idempotent). <code>is_latest</code> = rows of the newest snapshot by <code>created_at</code>. Times are stored in Turkey time.</td><td>Replaying an old snapshot does not make it the latest.</td></tr>
+<tr><td>14</td><td><code>store.export_parquet</code></td><td>Contract columns only, sorted by <code>id</code>. <code>is_latest</code> is not exported.</td><td>Replay gives a byte-identical file.</td></tr>
+</table>
+
+<h2>3. Which stage adds which flag</h2>
+<table>
+<tr><th>Flag</th><th>Added by</th><th>When</th></tr>
+<tr><td><code>missing</code></td><td>evds adapter, pipeline</td><td><code>VERIFY_</code> code; series with no observations; EVDS failed and no older snapshot</td></tr>
+<tr><td><code>unverified_series</code></td><td>evds adapter</td><td>series has <code>verified: false</code></td></tr>
+<tr><td><code>manual_entry</code></td><td>manual adapter</td><td>every accepted manual row</td></tr>
+<tr><td><code>fallback_snapshot</code></td><td>pipeline</td><td>row comes from an older snapshot</td></tr>
+<tr><td><code>out_of_range</code></td><td>quality</td><td>value outside <code>[min, max]</code> of its quantity</td></tr>
+<tr><td><code>stale</code></td><td>quality</td><td>latest observation older than <code>max_age_days</code> at the snapshot date</td></tr>
+<tr><td><code>conflict</code></td><td>quality</td><td>same id with different values, or sources differ by more than <code>conflict_tolerance</code></td></tr>
+<tr><td><code>needs_check</code></td><td>quality</td><td>conflicting duplicate; <code>as_of</code> after snapshot date; quantity not in config</td></tr>
+</table>
+</div>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: false, theme: "default",
+                       themeVariables: { fontSize: "18px" },
+                       flowchart: { useMaxWidth: true, nodeSpacing: 40, rankSpacing: 45 } });
+  // ?diagram=1 shows only the diagram (used for the PNG export).
+  if (new URLSearchParams(location.search).has("diagram")) {
+    document.querySelectorAll("body > :not(.diagram):not(script)").forEach(e => e.remove());
+  }
+  await mermaid.run({ querySelector: ".mermaid" });
+  document.body.dataset.rendered = "yes";
+</script>
+</body>
+</html>

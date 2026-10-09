@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rmprep"
+version = "0.1.0"
+description = "Ingestion layer for an RM meeting-prep tool"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "openpyxl>=3.1",
+    "duckdb>=1.0",
+    "tzdata>=2024.1",
+]
+
+[project.scripts]
+rmprep = "rmprep.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+kap = ["docling"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

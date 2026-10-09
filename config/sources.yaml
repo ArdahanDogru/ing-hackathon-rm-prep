@@ -1,0 +1,271 @@
+# Source configuration for the ingestion layer.
+# A copy of this file (as parsed) is stored in every snapshot manifest; replay
+# uses that copy, not this file.
+version: 1
+
+# Every DataPoint quantity must be declared here.
+#   max_age_days        staleness limit for the latest observation
+#   min / max           plausibility bounds (inclusive)
+#   conflict_tolerance  max relative difference between sources before "conflict"
+quantities:
+  usd_try:
+    unit: TRY
+    max_age_days: 5
+    min: 1
+    max: 500
+    conflict_tolerance: 0.005
+  cpi_index:
+    unit: index
+    max_age_days: 45
+    min: 1
+    max: 1000000
+    conflict_tolerance: 0.001
+  policy_rate:
+    unit: pct
+    max_age_days: 60
+    min: 0
+    max: 100
+    conflict_tolerance: 0.001
+  # Effective cost of CBRT funding. Often equal to the policy rate, but not
+  # always (Jul-Aug 2026: 40% while the policy rate was 37%).
+  cbrt_funding_cost:
+    unit: pct
+    max_age_days: 7
+    min: 0
+    max: 100
+    conflict_tolerance: 0.001
+  deposit_rate:
+    unit: pct
+    max_age_days: 14
+    min: 0
+    max: 100
+    conflict_tolerance: 0.01
+  withholding_tax_rate:
+    unit: pct
+    max_age_days: 365
+    min: 0
+    max: 50
+    conflict_tolerance: 0.0
+  fund_price:
+    unit: TRY
+    max_age_days: 5
+    min: 0
+    max: 1000000
+    conflict_tolerance: 0.0001
+  fund_total_value:
+    unit: TRY
+    max_age_days: 5
+    min: 0
+    max: 10000000000000
+    conflict_tolerance: 0.001
+  fund_investor_count:
+    unit: count
+    max_age_days: 5
+    min: 0
+    max: 100000000
+    conflict_tolerance: 0.0
+  # Fund returns from the TEFAS web page, in % over the period. Observed range
+  # on 2026-10-09: -99.97 (1 month) to 7685.9 (5 years).
+  fund_return_1m: &fund_return
+    unit: pct
+    max_age_days: 5
+    min: -100
+    max: 10000
+    conflict_tolerance: 0.0001
+  fund_return_3m: *fund_return
+  fund_return_6m: *fund_return
+  fund_return_ytd: *fund_return
+  fund_return_1y: *fund_return
+  fund_return_3y: *fund_return
+  fund_return_5y: *fund_return
+  # Borsa İstanbul and gold (from EVDS). Ranges are wide on purpose: they only
+  # catch unit errors.
+  bist100_price_index:
+    unit: index
+    max_age_days: 7
+    min: 1
+    max: 10000000
+    conflict_tolerance: 0.001
+  bist100_return_index:
+    unit: index
+    max_age_days: 7
+    min: 1
+    max: 1000000000
+    conflict_tolerance: 0.001
+  gold_try_kg:
+    unit: TRY/kg
+    max_age_days: 10
+    min: 1000
+    max: 1000000000
+    conflict_tolerance: 0.005
+  # Fund risk value (riskDegeri) 1 = lowest, 7 = highest.
+  fund_risk_level:
+    unit: level
+    max_age_days: 5
+    min: 1
+    max: 7
+    conflict_tolerance: 0.0
+
+sources:
+  evds:
+    adapter: evds
+    enabled: true
+    on_failure: previous
+    source_url: https://evds3.tcmb.gov.tr/
+    # Source: "EVDS Kullanım Şartları" and "EVDS Web Servis Kılavuzu" (read 2026-10-09).
+    tos_note: >-
+      EVDS Kullanım Şartları (plus the TCMB website terms they refer to):
+      access through the web service is allowed; the data may be used and
+      published by third parties ON CONDITION THAT THE SOURCE IS CITED
+      ("Kaynak: TCMB EVDS"); a translated presentation must say it is not an
+      official TCMB translation; commercial use is allowed but no extra charge
+      may be passed to users for the data; EVDS content is not investment
+      advice; TCMB gives no warranty and accepts no liability; data that TCMB
+      takes from other institutions (e.g. CPI from TÜİK) is their
+      responsibility. Web service guide: personal key in the "key" HTTP header
+      (wrong/missing key -> 403); data is updated at most daily, so fetch once
+      a day; max 1000 observations per request.
+    base_url: https://evds3.tcmb.gov.tr/igmevdsms-dis/
+    api_key_env: EVDS_API_KEY
+    lookback_days: 120
+    timeout_seconds: 20
+    # verified: true only after a person has checked the code on the EVDS site.
+    # Codes starting with VERIFY_ are placeholders: no request, value = missing.
+    # The first five codes below: meaning confirmed by the user on the EVDS site
+    # on 2026-10-09 (all "Düzey" = level, no formula applied).
+    series:
+      # Checked 2026-10-09: EVDS value for 09-10-2026 (49.1267) = ForexBuying in
+      # the TCMB bulletin dated 08.10.2026 (tcmb.gov.tr/kurlar/202610/08102026.xml).
+      # EVDS dates a rate by the day it applies, i.e. the day after the bulletin.
+      - code: TP.DK.USD.A.YTL
+        quantity: usd_try
+        entity: USD/TRY CBRT buying rate
+        frequency: daily
+        verified: true
+      # TP.FG.J0 (2003=100) is archived since 01-2026 and returns no data.
+      - code: TP.TUKFIY2025.GENEL   # "Genel Endeks", group bie_tukfiy2025 "Tüketici Fiyat Endeksi (2025=100)", AYLIK
+        quantity: cpi_index
+        entity: CPI general index (2025=100)
+        frequency: monthly
+        verified: true
+      # Codes below were found with `rmprep evds-find` / `evds-info` on 2026-10-09
+      # (EVDS metadata name in the comment).
+      - code: TP.APIFON4            # "TCMB Ağırlıklı Ortalama Fonlama Maliyeti", İŞ GÜNÜ
+        quantity: cbrt_funding_cost
+        entity: CBRT weighted average funding cost
+        frequency: daily
+        verified: true
+      # Checked 2026-10-09: 37% for Jun-Aug 2026 = TCMB one-week repo rate page
+      # (37.00% since 23.01.2026).
+      - code: TP.BISPOLFAIZ.TUR     # "Türkiye (TUR) Merkez Bankası Politika Faiz Oranı", AYLIK (BIS)
+        quantity: policy_rate
+        entity: CBRT policy rate (monthly, BIS)
+        frequency: monthly
+        verified: true
+      - code: TP.TRYTAS.MT02        # "3 Aya Kadar Vadeli (TL Tasarruf Mevduatı, Akım, %)", HAFTALIK(CUMA)
+        quantity: deposit_rate
+        entity: TRY savings deposit rate up to 3M, weighted average (new deposits)
+        frequency: weekly
+        verified: true
+      # Added 2026-10-10 (brief section 7.2 recommends Borsa İstanbul). Found with
+      # evds-info bie_mkbrgn / bie_altinbistbul. Not yet confirmed by the user.
+      - code: TP.MK.F.BILESIK       # "(FİYAT) BİST 100 Endeks (XU100), Kapanış Fiyatlarına Göre (Ocak 1986=0,01)", İŞ GÜNÜ
+        quantity: bist100_price_index
+        entity: BIST 100 price index (XU100), close
+        frequency: daily
+        verified: false
+      - code: TP.MK.G.BILESIK       # "(GETİRİ) BİST 100 Endeks (XU100-CFNNTLTL), Kapanış Fiyatlarına Göre", İŞ GÜNÜ
+        quantity: bist100_return_index
+        entity: BIST 100 total return index (XU100-CFNNTLTL), close
+        frequency: daily
+        verified: false
+      # TP.ALTINPIYASA.KAP05 (TL/gr) has no data after 25-08-2026; KAP02 (TL/kg) is current.
+      - code: TP.ALTINPIYASA.KAP02  # "Altın - Kapanış Fiyatı - TL/kg", group bie_altinbistbul "Altın Piyasası (BİST)", İŞ GÜNÜ
+        quantity: gold_try_kg
+        entity: Gold, Borsa İstanbul close, TL/kg
+        frequency: daily
+        verified: false
+
+  tefas:
+    adapter: tefas
+    enabled: true
+    on_failure: previous
+    source_url: https://www.tefas.gov.tr/
+    tos_note: >-
+      NO scraping and NO automated requests to tefas.gov.tr. Data comes only
+      from files that a person exported (or copied) by hand from the TEFAS site
+      into the inbox folder. On 2026-10-09 the site had no terms-of-use page,
+      only privacy (KVKK) and cookie notices; the site states that Takasbank
+      does not guarantee that the information is correct, complete or current.
+      Organizers (2026-10-09): rule 8 "Veri kaynaklarının kullanım koşullarına
+      uyulur"; collecting data from public sources is in scope and TEFAS is
+      recommended by name. robots.txt (2026-10-09): "Allow: /" but
+      "Disallow: /api/" for all user agents (and separately for anthropic-ai,
+      GPTBot, CCBot, Google-Extended). So: never call /api/ automatically;
+      HTML pages such as /tr/fon-getirileri are allowed.
+    inbox: data/inbox/tefas
+    file_patterns: ["*.xlsx", "*.csv"]
+    date_column: date
+    entity_column: fund_code
+    # canonical column -> accepted header names. Matching ignores case, extra
+    # spaces and Turkish letters (ı/İ/I -> i, ş -> s, ...), so "FON ADI" and
+    # "Fon Adı" both match "Fon Adı".
+    column_aliases:
+      date: [Tarih, Date]
+      fund_code: [Fon Kodu, Fund Code, Kod]
+      fund_name: [Fon Adı, Fund Name]
+      price: [Fiyat, Price, Birim Pay Değeri]
+      total_value: [Fon Toplam Değer, Portföy Büyüklüğü, Total Value]
+      investor_count: [Kişi Sayısı, Yatırımcı Sayısı, Number of Investors]
+    # canonical column -> quantity
+    value_columns:
+      price: fund_price
+      total_value: fund_total_value
+      investor_count: fund_investor_count
+
+  tefas_web:
+    adapter: tefas_web
+    enabled: true
+    on_failure: previous
+    source_url: https://www.tefas.gov.tr/tr/fon-getirileri
+    tos_note: >-
+      Organizers' rule 8: follow each source's terms; collecting public data
+      is in scope and TEFAS is recommended. tefas.gov.tr has no terms page;
+      robots.txt (2026-10-09) allows "/" but disallows /api/, /private/,
+      /tefasbuild, /_next/ and /static/ for all agents. This source makes ONE
+      GET per ingest of the allowed HTML page below and never calls /api/
+      (config rejects disallowed paths). The site states that Takasbank does
+      not guarantee the data. Returns and risk values are from the previous
+      day according to the site.
+    url: https://www.tefas.gov.tr/tr/fon-getirileri
+    user_agent: rmprep-hackathon-prototype/0.1 (ING hackathon; one request per day)
+    timeout_seconds: 30
+    min_funds: 1000          # fewer funds -> the page changed -> source fails
+    flag_needs_check: true   # set to false once the scraper has a stable record
+    # field in the page data -> quantity
+    value_fields:
+      getiri1a: fund_return_1m
+      getiri3a: fund_return_3m
+      getiri6a: fund_return_6m
+      getiriyb: fund_return_ytd
+      getiri1y: fund_return_1y
+      getiri3y: fund_return_3y
+      getiri5y: fund_return_5y
+      riskDegeri: fund_risk_level
+
+  manual:
+    adapter: manual
+    enabled: true
+    on_failure: previous
+    source_url: data/inbox/manual
+    tos_note: >-
+      Values entered by hand from public pages (bank deposit rate tables,
+      GİB / Resmî Gazete withholding tax rates). Every row must cite its own
+      source_url and as_of. ING Türkiye terms (ing.com.tr/tr/ing/kullanim-sartlari,
+      read 2026-10-09): all rights reserved; site information is not legally
+      binding and is for information only; no explicit rule on reuse or
+      automated access. Show ING rates as "indicative, from ing.com.tr on
+      <as_of>" and confirm reuse with the organizers.
+    inbox: data/inbox/manual
+    file_patterns: ["*.csv"]
+    allowed_quantities: [deposit_rate, withholding_tax_rate]

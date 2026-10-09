@@ -1,0 +1,3 @@
+quantity;entity;value;unit;as_of;source_url;note
+deposit_rate;<Bank> 3M TRY;45,50;pct;01.10.2026;https://<bank site>/rates;example row: copy this file to data/inbox/manual/ and replace
+withholding_tax_rate;TRY deposit up to 6M;17,5;pct;01.07.2026;https://www.gib.gov.tr/;example row

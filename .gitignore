@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+data/snapshots/
+data/evidence.duckdb
+data/evidence.duckdb.wal
+data/export/
+data/inbox/**/*
+!data/inbox/**/.gitkeep

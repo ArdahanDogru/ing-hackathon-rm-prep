@@ -1,0 +1,8 @@
+quantity;entity;value;unit;as_of;source_url;note
+deposit_rate;Bank A 3M TRY;45,50;pct;01.10.2026;https://bank-a.example/rates;3-month TRY deposit
+withholding_tax_rate;TRY deposit up to 6M;17,5;pct;2026-07-01;https://www.gib.gov.tr/;
+deposit_rate;Bank B 3M TRY;44,00;pct;01.10.2026;;no url
+deposit_rate;Bank C 3M TRY;43,00;pct;;https://bank-c.example/;no date
+gold_price;Gold;3000;TRY;01.10.2026;https://x.example/;not allowed
+deposit_rate;Bank D 3M TRY;abc;pct;01.10.2026;https://bank-d.example/;bad value
+deposit_rate;Bank E 3M TRY;40;TRY;01.10.2026;https://bank-e.example/;wrong unit
