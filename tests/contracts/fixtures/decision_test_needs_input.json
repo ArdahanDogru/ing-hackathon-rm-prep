@@ -1,0 +1,75 @@
+{
+ "run_id": "R01examp1e1",
+ "config_hash": "example00000",
+ "created_at": "2026-10-10T09:00:00+03:00",
+ "persona": {
+  "persona_id": "P01",
+  "profil": "Emekli girişimci",
+  "yas": 62,
+  "risk_profili": "Muhafazakâr",
+  "durum": "Varlığı TL mevduat ağırlıklı",
+  "yatirim_amaci": "Düzenli gelir ve sermayenin korunmasını önceliklendirmek",
+  "yatirim_ufku": "1-3 yıl",
+  "likidite_ihtiyaci": "Orta",
+  "doviz_maruz_kalma_tercihi": "Sınırlı",
+  "gelir_nakit_akisi_ihtiyaci": "Yüksek",
+  "anapara_koruma_tercihi": "Yüksek",
+  "oncelikler": [
+   "düzenli gelir",
+   "likiditeyi koruma",
+   "sınırlı dalgalanma"
+  ],
+  "acik_kisitlar": [
+   "bilinmeyen bir kısıt"
+  ],
+  "rm_notu": "Mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor."
+ },
+ "snapshot_id": "20261010-001233-6b20",
+ "excluded_sources": [],
+ "state": "needs_rm_input",
+ "options": [],
+ "rejected": [],
+ "questions": [
+  {
+   "question_id": "q:acik_kisitlar[0]",
+   "text": "Bu kısıt nasıl uygulanmalı: \"bilinmeyen bir kısıt\"?",
+   "reason": "\"bilinmeyen bir kısıt\" metni tanımlı değerlerle eşleşmiyor.",
+   "about": "acik_kisitlar[0]",
+   "choices": [
+    "Risk tavanını 4 ile sınırla",
+    "Döviz maruziyetini sınırla",
+    "Likidite ihtiyacı yok say",
+    "Tür başına yoğunlaşmayı sınırla",
+    "Yüksek likidite iste",
+    "Dikkate alma"
+   ],
+   "answer": null,
+   "blocking": true
+  }
+ ],
+ "assumptions": [
+  "Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.",
+  "Tüm değerler vergi öncesidir (stopaj oranları girilmedi)."
+ ],
+ "warnings": [],
+ "data_quality": [
+  {
+   "message": "tefas_web: 254 değer \"needs_check\" işaretli.",
+   "flags": [
+    "needs_check"
+   ],
+   "sources": [
+    "tefas_web"
+   ],
+   "evidence_ids": [
+    "E01487022",
+    "E01e7c0c7",
+    "E032f6e36"
+   ]
+  }
+ ],
+ "rm_status": "pending",
+ "rm_note": "",
+ "rm_selected": [],
+ "rm_option_notes": {}
+}

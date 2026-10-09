@@ -796,5 +796,22 @@
    ],
    "note": "Welcome rate. Faiz işletilmeyecek tutar 900.000 TL."
   }
- ]
+ ],
+ "entities": {
+  "AAL": {
+   "name": "ATA PORTFÖY PARA PİYASASI (TL) FONU",
+   "category": "Para Piyasası Şemsiye Fonu",
+   "source": "tefas_web"
+  },
+  "ABG": {
+   "name": "ATLAS PORTFÖY DÖRDÜNCÜ SERBEST (TL) FON",
+   "category": "Serbest Şemsiye Fonu",
+   "source": "tefas_web"
+  },
+  "ADE": {
+   "name": "AK PORTFÖY MUTLAK GETİRİ HEDEFLİ DEĞİŞKEN FON",
+   "category": "Değişken Şemsiye Fonu",
+   "source": "tefas_web"
+  }
+ }
 }

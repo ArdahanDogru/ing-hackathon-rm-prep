@@ -1,0 +1,214 @@
+# Decision layer configuration (docs/decision.md). Lead-owned.
+# Every table, weight, penalty, threshold and text of the engine lives here;
+# tuning is a change of this file, not of the code. config_hash = sha256 of
+# this file AS PARSED (comments and spacing do not change it).
+version: 1
+
+# --- 1. Product universe --------------------------------------------------------
+deposit:
+  option_id: "deposit:ing_turuncu"
+  label: "ING Turuncu Hesap (standart)"
+  source: manual
+  quantity: deposit_rate
+  # entity = "<entity_prefix>, <tier>"; the persona has no amount, so one tier.
+  entity_prefix: "ING Turuncu Hesap standart"
+  tier: "100.000-249.999 TL"
+  # EVDS market average, for the deposit_vs_market warning.
+  market_entity: "TRY savings deposit rate up to 3M, weighted average (new deposits)"
+
+# EntityInfo.category (TEFAS umbrella type) -> fund_kind; null = not in the universe.
+fund_kinds:
+  "Para Piyasası Şemsiye Fonu": money_market
+  "Borçlanma Araçları Şemsiye Fonu": debt
+  "Katılım Şemsiye Fonu": participation
+  "Kıymetli Madenler Şemsiye Fonu": precious_metals
+  "Hisse Senedi Şemsiye Fonu": equity
+  "Değişken Şemsiye Fonu": variable
+  "Karma Şemsiye Fonu": mixed
+  "Fon Sepeti Şemsiye Fonu": fund_of_funds
+  "Serbest Şemsiye Fonu": null     # qualified investors only
+
+# Upper-case fund name contains one of these -> fx = true.
+fx_name_words: ["DÖVİZ", "EUROBOND", "DOLAR"]
+
+# --- 3. Persona text -> levels -----------------------------------------------------
+# Keys are matched after normalization (Turkish lower case, spaces collapsed,
+# punctuation dropped except + and -). No fuzzy matching.
+risk_profiles:
+  "Muhafazakâr": {ceiling: 2, appetite: 0.0}
+  "Temkinli": {ceiling: 3, appetite: 0.3333333333}
+  "Dengeli": {ceiling: 5, appetite: 0.6666666667}
+  "Agresif": {ceiling: 7, appetite: 1.0}
+
+horizon:
+  # years <= max_years -> period; the last entry has no max.
+  periods:
+    - {max_years: 1, period: 6m}
+    - {max_years: 3, period: 1y}
+    - {max_years: null, period: 3y}
+  years: {3m: 0.25, 6m: 0.5, 1y: 1, 3y: 3, 5y: 5}
+  # fund_return_<period>; next shorter one if missing.
+  fallback: [3y, 1y, 6m, 3m]
+
+levels: {"Düşük": 0.0, "Orta": 0.5, "Yüksek": 1.0}
+
+fx_levels: {"Sınırlı": 1.0, "Açık": 0.0, "Çeşitlendirilmiş": 0.0}
+
+# Safe level used (with an assumption) while a non-blocking question is open.
+safe_levels:
+  yatirim_ufku: 6m
+  likidite_ihtiyaci: "Yüksek"
+  anapara_koruma_tercihi: "Yüksek"
+  gelir_nakit_akisi_ihtiyaci: "Orta"
+  doviz_maruz_kalma_tercihi: "Sınırlı"
+
+# oncelikler phrase -> effect. boost:<criterion> adds priority_boost to its raw
+# weight; diversity sets the cap of the first 10 to diversity_cap; note:<key>
+# only adds the assumption text assumptions.<key>.
+priorities:
+  "düzenli gelir": boost:income
+  "likiditeyi koruma": boost:liquidity
+  "erişilebilir likidite": boost:liquidity
+  "yüksek likidite": boost:liquidity
+  "sınırlı dalgalanma": boost:low_risk
+  "uzun vadeli dayanıklılık": boost:low_risk
+  "sermayenin korunması": boost:principal
+  "uzun vadeli büyüme": boost:return
+  "fırsat maliyetini azaltma": boost:return
+  "sade ürün yapısı": boost:simplicity
+  "çeşitlendirme": diversity
+  "kur riskini yönetme": note:fx_priority
+  "kuşaklar arası planlama": note:no_evidence_priority
+priority_boost: 1.0
+
+# acik_kisitlar phrase -> effect id (effects below).
+constraints:
+  "yüksek riskli ürünlerden kaçınma": risk_cap
+  "döviz maruziyetini gerekçesiz artırmama": fx_limit
+  "kısa vadeli nakit ihtiyacı varsayılmamalı": no_liquidity_need
+  "tek ürün veya tek varlık sınıfında yoğunlaşmama": concentration_limit
+  "uzun süre kilitli veya düşük likiditeli seçeneklerden kaçınma": liquidity_need
+constraint_effects:
+  risk_cap: {max_ceiling: 4}
+  fx_limit: {min_fx_intensity: 0.5}
+  no_liquidity_need: {liquidity_weight: 0.0, liquidity_intensity: 0.0}
+  concentration_limit: {diversity: true}
+  liquidity_need: {min_liquidity_intensity: 1.0}
+  ignore: {}
+
+# --- 4. Scoring ----------------------------------------------------------------------
+kinds:   # liquidity / income / simplicity values (0..1)
+  deposit:         {liquidity: 1.0, income: 1.0, simplicity: 1.0}
+  money_market:    {liquidity: 0.9, income: 0.6, simplicity: 1.0}
+  debt:            {liquidity: 0.7, income: 0.5, simplicity: 0.7}
+  participation:   {liquidity: 0.6, income: 0.4, simplicity: 0.6}
+  precious_metals: {liquidity: 0.6, income: 0.2, simplicity: 0.7}
+  equity:          {liquidity: 0.5, income: 0.2, simplicity: 0.6}
+  variable:        {liquidity: 0.5, income: 0.2, simplicity: 0.3}
+  mixed:           {liquidity: 0.5, income: 0.3, simplicity: 0.4}
+  fund_of_funds:   {liquidity: 0.5, income: 0.2, simplicity: 0.3}
+
+principal_value: {deposit: 1.0, fund_base: 0.8, fund_step: 0.15}   # fund: max(0, base - step*(risk-1))
+
+# Raw weight = base + per_level * level (+ appetite terms), then normalized.
+weights:
+  return:     {base: 1.0, appetite: 1.0}
+  low_risk:   {base: 1.0, appetite: -1.0}
+  liquidity:  {base: 0.0, level: likidite_ihtiyaci, per_level: 2.0}
+  income:     {base: 0.0, level: gelir_nakit_akisi_ihtiyaci, per_level: 2.0}
+  principal:  {base: 0.0, level: anapara_koruma_tercihi, per_level: 2.0}
+  simplicity: {base: 0.0}
+  quality:    {base: 0.5}
+
+penalties:   # max; penalty = max * intensity * violation
+  principal: 0.3
+  liquidity: 0.3
+  fx_exposure: 0.3
+  risk_unknown: 0.3
+  risk_unknown_above_ceiling_factor: 2.0
+  track_record: 0.2
+  fund_size: 0.1
+fund_size_min: {total_value_try: 100000000, investors: 100}
+
+display:
+  first: 3              # positions 1-3: at most first_cap per fund_kind
+  first_cap: 1
+  shortlist: 10         # positions 1-10: at most cap per fund_kind
+  cap: 3
+  diversity_cap: 2      # with concentration_limit or the çeşitlendirme priority
+
+# --- 5. confidence / stability -------------------------------------------------------
+confidence:
+  flags: {needs_check: 0.9, manual_entry: 0.9, unverified_series: 0.8,
+          fallback_snapshot: 0.8, stale: 0.7, conflict: 0.6}
+  risk_estimate: 0.7
+  shorter_period: 0.8
+stability:
+  step: 0.2             # each weight / penalty max x (1 - step) and x (1 + step)
+
+# --- 6. Warnings -----------------------------------------------------------------------
+warnings:
+  low_stability_below: 0.5
+  deposit_vs_market_points: 5.0
+
+# --- Texts (Turkish; {name} fields are filled by the engine) -----------------------------
+texts:
+  reasons:
+    return: "Yıllıklandırılmış getiri {annual:.1f}% ({period}); adayların %{pct:.0f}'inden iyi."
+    low_risk: "Risk değeri {risk}/7."
+    liquidity: "Likidite (ürün türüne göre): {value:.1f}."
+    income: "Düzenli gelir uygunluğu (ürün türüne göre): {value:.1f}."
+    principal: "Anapara koruma: {value:.2f}."
+    simplicity: "Ürün sadeliği: {value:.1f}."
+    quality: "Fon büyüklüğü ve yatırımcı sayısı: adayların %{pct:.0f}'inden iyi."
+    "penalty:principal": "Risk değeri {risk}; müşteri anaparanın korunmasını istiyor."
+    "penalty:liquidity": "Ürün türünün likiditesi düşük; müşterinin likidite ihtiyacı var."
+    "penalty:fx_exposure": "Döviz fonu; müşteri sınırlı döviz maruziyeti istiyor."
+    "penalty:risk_unknown": "Risk değeri yok; türündeki en yüksek risk ({risk}) varsayıldı."
+    "penalty:track_record": "{period} getirisi yok; daha kısa dönem kullanıldı."
+    "penalty:fund_size": "Fon küçük ({size_m:.0f} milyon TL, {investors:.0f} yatırımcı)."
+  constraint:
+    passed: "Risk değeri {risk}, müşterinin tavanı {ceiling} içinde."
+    failed: "Risk değeri {risk}, müşterinin risk tavanı {ceiling} üzerinde."
+  questions:
+    risk_profili: "Müşterinin risk profili nedir?"
+    acik_kisitlar: "Bu kısıt nasıl uygulanmalı: \"{text}\"?"
+    yatirim_ufku: "Yatırım ufku hangi döneme karşılık geliyor?"
+    likidite_ihtiyaci: "Likidite ihtiyacı hangi düzeyde?"
+    anapara_koruma_tercihi: "Anapara koruma tercihi hangi düzeyde?"
+    gelir_nakit_akisi_ihtiyaci: "Gelir / nakit akışı ihtiyacı hangi düzeyde?"
+    doviz_maruz_kalma_tercihi: "Döviz fonları için hangi düzey uygulanmalı?"
+    reason: "\"{text}\" metni tanımlı değerlerle eşleşmiyor."
+  effect_labels:
+    risk_cap: "Risk tavanını 4 ile sınırla"
+    fx_limit: "Döviz maruziyetini sınırla"
+    no_liquidity_need: "Likidite ihtiyacı yok say"
+    concentration_limit: "Tür başına yoğunlaşmayı sınırla"
+    liquidity_need: "Yüksek likidite iste"
+    ignore: "Dikkate alma"
+  assumptions:
+    past_returns: "Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır."
+    pre_tax: "Tüm değerler vergi öncesidir (stopaj oranları girilmedi)."
+    deposit_tier: "Mevduat için {tier} diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir)."
+    no_real_returns: "Reel getiri hesaplanmadı (TÜFE geçmişi yetersiz)."
+    kind_proxy: "Likidite ve gelir uygunluğu ürün türünden türetildi (valör verisi yok)."
+    safe_level: "\"{field}\" için \"{text}\" anlaşılamadı; güvenli düzey \"{level}\" varsayıldı."
+    unused_priority: "Kullanılmayan öncelik: \"{text}\"."
+    fx_priority: "\"kur riskini yönetme\" önceliği döviz düzeyi ile ele alındı."
+    no_evidence_priority: "\"kuşaklar arası planlama\" için kanıt yok; puana katılmadı."
+  warnings:
+    concentration: "İlk {n} seçenek yeterince çeşitlendirilemedi: {kind} türünden {count} seçenek."
+    fx_exposure: "Kısa listede döviz fonu var; müşteri sınırlı döviz maruziyeti istiyor."
+    risk_estimate: "Risk değeri bilinmeyen fon kısa listede; tahmini risk tavanın üzerinde."
+    low_stability: "İlk 3'teki bir seçeneğin sırası ağırlıklara duyarlı (istikrar {stability:.2f})."
+    deposit_vs_market: "ING standart mevduat oranı (%{ing:.2f}) piyasa ortalamasının (%{market:.2f}) {diff:.1f} puan altında."
+    no_fx_deposit_data: "Döviz mevduatı oranı kanıtlarda yok; döviz mevduatı karşılaştırılamadı."
+  data_quality:
+    flag_count: "{source}: {count} değer \"{flag}\" işaretli."
+    excluded: "Sonuç {source} kaynağı olmadan hesaplandı (RM tarafından hariç tutuldu)."
+    failed: "{source} alınamadı: {error}"
+    fallback: "{source} değerleri {snapshot} anlık görüntüsünden geldi."
+    out_of_range: "{count} değer aralık dışında olduğu için kullanılmadı."
+    removed_serbest: "{count} serbest fon çıkarıldı (yalnızca nitelikli yatırımcılar)."
+    removed_no_entity: "{count} fon, adı ve türü bilinmediği için çıkarıldı."
+    removed_unknown_kind: "{count} fon, tanımsız şemsiye türü nedeniyle çıkarıldı."

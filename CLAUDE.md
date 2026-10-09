@@ -32,6 +32,7 @@ prototype/
   pyproject.toml            deps + optional extras [kap], [ui]
   .env                      EVDS_API_KEY=...   (gitignored, never logged)
   config/sources.yaml       sources, series, quantities, bounds
+  config/decision.yaml      decision tables, weights, penalties, texts (docs/decision.md)
   config/manual_template.csv  example for data/inbox/manual/
   config/withholding_tax_template.csv  empty stopaj rows (brief rule 7: never
                             hard-code tax rates); fill from Resmî Gazete/GİB,
@@ -78,8 +79,8 @@ and message formats: `docs/workflow.md`.
 - A worker edits only `src/rmprep/<module>/` and `tests/<module>/`. Everything
   else (`contracts.py`, `pyproject.toml`, `config/`, `docs/`, this file, main)
   belongs to ing-lead; a hook enforces it. Ask ing-lead for changes.
-- The decision/UI contracts in `contracts.py` are a DRAFT until
-  `docs/decision.md` and `docs/ui.md` are written.
+- The decision/UI contracts in `contracts.py` are frozen (v1, 2026-10-10);
+  their design is `docs/decision.md` and `docs/ui.md`.
 
 ## Commands
 

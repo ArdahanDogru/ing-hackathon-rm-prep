@@ -156,6 +156,16 @@ class SourceStatusLike(Protocol):
 
 
 @dataclass(frozen=True)
+class EntityInfo:
+    """Descriptive text for one DataPoint entity (now: one TEFAS fund), verbatim
+    from the source. Mapping it to kinds is the decision layer's job."""
+
+    name: str           # e.g. fonUnvan "A1 CAPİTAL PORTFÖY ALTIN FONU"
+    category: str       # e.g. fonTurAciklama "Kıymetli Madenler Şemsiye Fonu"
+    source: str         # source that gave it, e.g. "tefas_web"
+
+
+@dataclass(frozen=True)
 class EvidenceSet:
     """Checked evidence of one snapshot (rmprep.ingest.pipeline.build_evidence).
     Downstream must read excluded_sources so it can say what a result was
@@ -166,6 +176,7 @@ class EvidenceSet:
     excluded_sources: frozenset[str]                 # excluded at read time (UI)
     source_status: Mapping[str, SourceStatusLike]    # from the manifest
     datapoints: tuple[DataPoint, ...]                # checked, sorted by id
+    entities: Mapping[str, EntityInfo] = field(default_factory=dict)  # entity -> info
 
     def to_dict(self) -> dict:
         return {
@@ -175,6 +186,7 @@ class EvidenceSet:
             "source_status": {k: _to_json(SourceStatus.of(v))
                               for k, v in sorted(self.source_status.items())},
             "datapoints": [_to_json(dp) for dp in self.datapoints],
+            "entities": {k: _to_json(v) for k, v in sorted(self.entities.items())},
         }
 
     @classmethod
@@ -185,6 +197,7 @@ class EvidenceSet:
             excluded_sources=frozenset(d["excluded_sources"]),
             source_status={k: _from_json(SourceStatus, v) for k, v in d["source_status"].items()},
             datapoints=tuple(_from_json(DataPoint, x) for x in d["datapoints"]),
+            entities={k: _from_json(EntityInfo, v) for k, v in d.get("entities", {}).items()},
         )
 
 
@@ -204,11 +217,8 @@ class SourceStatus:
 
 
 # =============================================================================
-# DRAFT v0 — NOT FROZEN.
-# Decision / UI contracts, drafted 2026-10-10 from the plan the user approved.
-# They are frozen only after docs/decision.md and docs/ui.md are written
-# (step D, user + lead). Until then, names and fields may still change; check
-# filters and weights against the real persona_schema.json fields.
+# Decision / UI contracts - FROZEN v1 (2026-10-10, after step D).
+# Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
 # --- persona (input; ../persona_schema.json, Turkish field names kept) --------
@@ -266,11 +276,11 @@ class Persona:
         return _to_json(self)
 
 
-# --- decision output ----------------------------------------------------------
+# --- decision output (docs/decision.md) ---------------------------------------
 
 class DecisionState(StrEnum):
-    READY = "ready"                      # ranked options can be shown
-    NEEDS_RM_INPUT = "needs_rm_input"    # an open clarification question blocks a result
+    READY = "ready"                      # ranked; non-blocking questions may be open
+    NEEDS_RM_INPUT = "needs_rm_input"    # an open blocking question; nothing ranked
 
 
 class RmStatus(StrEnum):
@@ -279,17 +289,30 @@ class RmStatus(StrEnum):
     REJECTED = "rejected"
 
 
+OPTION_KINDS = ("deposit", "fund")
+
+
 @dataclass(frozen=True)
 class ProductOption:
-    option_id: str          # stable id, e.g. "fund:TCD" or "deposit:ing_turuncu"
-    kind: str               # e.g. deposit | fund | gold | fx_deposit (list fixed in step D)
-    label: str              # what the RM reads
+    option_id: str          # "deposit:ing_turuncu" | "fund:<code>"
+    kind: str               # "deposit" | "fund"
+    label: str              # what the RM reads (deposit name, fund name)
     entity: str = ""        # DataPoint.entity it is measured by, e.g. a fund code
+    fund_kind: str = ""     # funds only: money_market | debt | ... (config/decision.yaml)
+    fx: bool = False        # funds only: the fund carries FX exposure
+
+    def __post_init__(self) -> None:
+        if self.kind not in OPTION_KINDS:
+            raise ValueError(f"kind must be one of {OPTION_KINDS}, got {self.kind!r}")
+        if self.kind == "fund" and not self.fund_kind:
+            raise ValueError("a fund option needs a fund_kind")
+        if self.kind == "deposit" and (self.fund_kind or self.fx):
+            raise ValueError("a deposit option has no fund_kind and no fx tag")
 
 
 @dataclass(frozen=True)
 class ConstraintResult:
-    rule_id: str            # e.g. "risk_ceiling"; rules defined in docs/decision.md
+    rule_id: str            # hard rule, now only "risk_ceiling" (docs/decision.md section 2)
     passed: bool
     reason: str             # why, in words the RM can repeat to the client
     evidence_ids: tuple[str, ...] = ()
@@ -298,12 +321,13 @@ class ConstraintResult:
 @dataclass(frozen=True)
 class ScoredOption:
     option: ProductOption
-    score: float                                # higher is better
-    score_parts: Mapping[str, float]            # criterion -> weighted part; sums to score
-    constraints: tuple[ConstraintResult, ...]   # all passed (else the option is rejected)
+    score: float                                # sum of score_parts
+    score_parts: Mapping[str, float]            # criterion | "penalty:<rule>" -> part (penalties < 0)
+    constraints: tuple[ConstraintResult, ...]   # hard rules, all passed
     confidence: float                           # 0..1: how far the inputs can be trusted
-    stability: float                            # 0..1: how robust the rank is to weights/exclusions
+    stability: float                            # 0..1: share of perturbed runs in positions 1-10
     evidence_ids: tuple[str, ...] = ()
+    reasons: Mapping[str, str] = field(default_factory=dict)   # same keys as score_parts
 
     def __post_init__(self) -> None:
         for name in ("confidence", "stability"):
@@ -312,6 +336,10 @@ class ScoredOption:
                 raise ValueError(f"{name} must be in [0, 1], got {v!r}")
         if not all(c.passed for c in self.constraints):
             raise ValueError("a scored option must pass all its constraints")
+        if not math.isclose(sum(self.score_parts.values()), self.score, abs_tol=1e-9):
+            raise ValueError("score_parts must sum to score")
+        if set(self.reasons) != set(self.score_parts):
+            raise ValueError("reasons must have exactly the keys of score_parts")
 
 
 @dataclass(frozen=True)
@@ -326,24 +354,31 @@ class RejectedOption:
 
 @dataclass(frozen=True)
 class ClarificationQuestion:
-    question_id: str
-    text: str               # the question for the RM
+    question_id: str        # "q:<field>" | "q:acik_kisitlar[<i>]"
+    text: str               # the question for the RM (Turkish)
     reason: str             # why the engine cannot decide without it
-    about: str = ""         # persona field or rule it resolves, e.g. "acik_kisitlar[0]"
+    about: str = ""         # persona field it resolves, e.g. "acik_kisitlar[0]"
     choices: tuple[str, ...] = ()
     answer: str | None = None
+    blocking: bool = True   # open + blocking -> needs_rm_input
+
+    def __post_init__(self) -> None:
+        if self.answer is not None and self.choices and self.answer not in self.choices:
+            raise ValueError(f"answer {self.answer!r} is not one of {self.choices}")
 
 
 @dataclass(frozen=True)
 class DecisionWarning:
-    code: str               # e.g. "concentration", "fx_exposure"
+    code: str               # concentration | fx_exposure | risk_estimate | low_stability |
+                            # deposit_vs_market | no_fx_deposit_data
     message: str
     evidence_ids: tuple[str, ...] = ()
+    option_ids: tuple[str, ...] = ()            # options it is about; () = the whole result
 
 
 @dataclass(frozen=True)
 class DataQualityNote:
-    message: str            # e.g. "TEFAS returns are 1 day old (stale)"
+    message: str            # e.g. "tefas_web: 1,613 values need check"
     flags: tuple[str, ...] = ()                 # Flag values involved
     sources: tuple[str, ...] = ()
     evidence_ids: tuple[str, ...] = ()
@@ -351,39 +386,67 @@ class DataQualityNote:
 
 @dataclass(frozen=True)
 class DecisionResult:
-    run_id: str
-    config_hash: str        # hash of the decision config (rules, weights) used
+    run_id: str             # "R" + 10 hex; same inputs -> same id (docs/decision.md section 7)
+    config_hash: str        # hash of config/decision.yaml as parsed
     created_at: datetime
-    persona_id: str
+    persona: Persona        # exactly the persona used (an edited test persona included)
     snapshot_id: str
     excluded_sources: frozenset[str]
     state: DecisionState
-    options: tuple[ScoredOption, ...] = ()      # ranked, best first
+    options: tuple[ScoredOption, ...] = ()      # display order; a deposit, if any, is first
     rejected: tuple[RejectedOption, ...] = ()
     questions: tuple[ClarificationQuestion, ...] = ()
     assumptions: tuple[str, ...] = ()
     warnings: tuple[DecisionWarning, ...] = ()
     data_quality: tuple[DataQualityNote, ...] = ()
     rm_status: RmStatus = RmStatus.PENDING
-    rm_note: str = ""
+    rm_note: str = ""                           # the RM's general note
+    rm_selected: tuple[str, ...] = ()           # option_ids to discuss with the client
+    rm_option_notes: Mapping[str, str] = field(default_factory=dict)  # option_id -> note
+
+    @property
+    def persona_id(self) -> str:
+        return self.persona.persona_id
 
     def __post_init__(self) -> None:
-        for name in ("run_id", "config_hash", "persona_id", "snapshot_id"):
+        for name in ("run_id", "config_hash", "snapshot_id"):
             if not getattr(self, name):
                 raise ValueError(f"{name} must be non-empty")
         if self.created_at.tzinfo is None:
             raise ValueError("created_at must be timezone-aware")
         object.__setattr__(self, "created_at", self.created_at.astimezone(TR_TZ))
-        open_q = [q for q in self.questions if q.answer is None]
-        if self.state == DecisionState.NEEDS_RM_INPUT and not open_q:
-            raise ValueError("needs_rm_input requires an unanswered question")
-        if self.state == DecisionState.READY and open_q:
-            raise ValueError("ready with unanswered questions")
-        if self.rm_status == RmStatus.APPROVED and self.state != DecisionState.READY:
-            raise ValueError("only a ready result can be approved")
-        scores = [o.score for o in self.options]
-        if scores != sorted(scores, reverse=True):
-            raise ValueError("options must be ranked best first")
+
+        open_blocking = [q for q in self.questions if q.answer is None and q.blocking]
+        if self.state == DecisionState.NEEDS_RM_INPUT:
+            if not open_blocking:
+                raise ValueError("needs_rm_input requires an unanswered blocking question")
+            if self.options or self.rejected:
+                raise ValueError("needs_rm_input has no options and no rejected options")
+        if self.state == DecisionState.READY and open_blocking:
+            raise ValueError("ready with an unanswered blocking question")
+
+        ids = [o.option.option_id for o in self.options]
+        if len(ids) != len(set(ids)):
+            raise ValueError("option ids must be unique")
+        if "deposit" in [o.option.kind for o in self.options[1:]]:
+            raise ValueError("a deposit option must be first (the baseline)")
+
+        known = set(ids) | {r.option.option_id for r in self.rejected}
+        for w in self.warnings:
+            if not set(w.option_ids) <= known:
+                raise ValueError(f"warning {w.code} names unknown options")
+
+        if not set(self.rm_selected) <= set(ids):
+            raise ValueError("rm_selected names options that are not scored")
+        if not set(self.rm_option_notes) <= set(self.rm_selected):
+            raise ValueError("rm_option_notes only for selected options")
+        if self.rm_status == RmStatus.APPROVED:
+            if self.state != DecisionState.READY:
+                raise ValueError("only a ready result can be approved")
+            if not self.rm_selected:
+                raise ValueError("an approved result needs at least one selected option")
+        elif self.rm_selected:
+            raise ValueError("rm_selected is set only on approval")
 
     def evidence_ids(self) -> frozenset[str]:
         ids: set[str] = set()
@@ -409,8 +472,9 @@ class DecisionResult:
 
 
 class Backend(Protocol):
-    """What the UI calls. FakeBackend (ui worker) serves fixtures; the real
-    backend (lead, on main) wires ingest + decision."""
+    """What the UI calls (docs/ui.md). FakeBackend (ui worker) serves fixtures;
+    the real backend (lead, on main) wires ingest + decision and keeps the runs
+    of the session in memory."""
 
     def list_personas(self) -> list[Persona]: ...
 
@@ -419,13 +483,26 @@ class Backend(Protocol):
     def evidence(self, snapshot_id: str,
                  exclude_sources: frozenset[str] = frozenset()) -> EvidenceSet: ...
 
-    def decide(self, persona_id: str, snapshot_id: str,
+    def decide(self, persona: Persona, snapshot_id: str,
                exclude_sources: frozenset[str] = frozenset()) -> DecisionResult: ...
 
-    # Stubs until the RM loop is designed (step D):
-    def answer_question(self, run_id: str, question_id: str, answer: str) -> DecisionResult: ...
+    def answer_question(self, run_id: str, question_id: str, answer: str) -> DecisionResult:
+        """New run: the inputs of run_id plus this answer (earlier answers kept)."""
+        ...
 
-    def approve(self, run_id: str, status: RmStatus, note: str = "") -> DecisionResult: ...
+    def approve(self, run_id: str, status: RmStatus, note: str = "",
+                selected_option_ids: tuple[str, ...] = ()) -> DecisionResult:
+        """Same run with rm_status set; saved (real backend: data/runs/<run_id>.json)."""
+        ...
+
+    def annotate(self, run_id: str, note: str,
+                 option_notes: Mapping[str, str]) -> DecisionResult:
+        """Set rm_note and rm_option_notes of an approved run; saved again."""
+        ...
+
+    def save_card(self, run_id: str, markdown: str) -> str:
+        """Store the summary card of an approved run; returns where (path or key)."""
+        ...
 
 
 # --- JSON (fixtures, UI cache) --------------------------------------------------
