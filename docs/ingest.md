@@ -272,6 +272,16 @@ source's rows and the cross-source conflict it caused.
    `cli.py` + end-to-end replay test.
 10. *(Later)* KAP adapter.
 
+I1 (added 2026-10-10 for the decision layer, `docs/decision.md`): fund name
+and umbrella type. The `tefas_web` parser also reads `fonUnvan` and
+`fonTurAciklama` for each fund from the page it already downloads (no new
+request) and returns them as `EntityInfo(name, category, source="tefas_web")`,
+text verbatim. `build_evidence` fills `EvidenceSet.entities` (fund code →
+`EntityInfo`) from the snapshot payload, also on replay and fallback; an
+excluded or skipped `tefas_web` gives an empty mapping. No new DataPoints, no
+DuckDB table (`build_evidence` already re-parses the payloads). Tests: parse
+from a fixture page; replay gives identical `entities`; exclusion empties them.
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **Scheduled ingest**: Windows Task Scheduler job running `python -m rmprep
