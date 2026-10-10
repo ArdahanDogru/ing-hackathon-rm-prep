@@ -10,6 +10,12 @@ Streamlit (`pip install -e ".[ui]"`), one page. The UI talks only to the
 wires the real backend (ingest + decision) on main. Start:
 `streamlit run src/rmprep/ui/app.py`.
 
+Real backend (lead, 2026-10-10): `rmprep.backend.RealBackend(root)` (root =
+the prototype folder with `config/` and `data/`; personas from `../p0*.json`).
+`page.default_backend()` returns it when the environment variable `RMPREP_ROOT`
+is set, else the `FakeBackend`: `$env:RMPREP_ROOT="."; streamlit run
+src/rmprep/ui/app.py`. The real backend also refuses to approve a test run.
+
 ## 1. Layout
 
 ```
