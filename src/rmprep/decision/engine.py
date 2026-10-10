@@ -50,10 +50,14 @@ def standard_assumptions(config: DecisionConfig, evidence: EvidenceSet) -> tuple
     a = c["texts"]["assumptions"]
     tier = c["deposit"]["tier"]
     rr = c.get("real_return")
+    # with fund_detail (D12) the liquidity of a fund comes from its sell valör
+    proxy = "kind_proxy_valor" if "fund_detail" in c else "kind_proxy"
+    keys = _STANDARD_ASSUMPTIONS if rr is None else _REAL_ASSUMPTIONS
+    keys = tuple(proxy if k == "kind_proxy" else k for k in keys)
     if rr is None:
-        return tuple(a[k].format(tier=tier) for k in _STANDARD_ASSUMPTIONS)
+        return tuple(a[k].format(tier=tier) for k in keys)
     out = []
-    for key in _REAL_ASSUMPTIONS:
+    for key in keys:
         if key == "real_return":
             cpi = EvidenceIndex(evidence).get(rr["cpi"]["quantity"], rr["cpi"]["entity"])
             out.append(a["real_return_no_cpi"] if cpi is None else
@@ -89,7 +93,7 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
     stab = stability(scoring.features, levels, config)
     options = tuple(
         ScoredOption(option=r.option, score=r.score, score_parts=r.parts,
-                     constraints=(r.constraint,), confidence=confidence(r.features, config),
+                     constraints=r.constraints, confidence=confidence(r.features, config),
                      stability=stab[r.option.option_id], evidence_ids=r.evidence_ids,
                      reasons=r.reasons)
         for r in scoring.scored)

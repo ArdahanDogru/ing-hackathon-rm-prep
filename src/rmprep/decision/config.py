@@ -35,7 +35,8 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
                  "warnings", "data_quality")
 
 # optional sections of D9 (real return after tax); without them: nominal returns
-_D9_SECTIONS = ("real_return", "long_horizon", "quality_value", "underperformance")
+_D9_SECTIONS = ("real_return", "long_horizon", "quality_value", "underperformance",
+                "fund_detail")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
         "constraint_effects", "kinds", "principal_value", "weights", "penalties",
@@ -144,11 +145,13 @@ def _check(c: dict) -> None:
     _keys(c["texts"], "texts", TEXT_SECTIONS)
     _keys(c["texts"]["reasons"], "texts.reasons",
           (*CRITERIA, *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"),
-          ("return_real", "return_net", "penalty:real_loss", "penalty:underperformance"))
+          ("return_real", "return_net", "penalty:real_loss", "penalty:underperformance",
+           "liquidity_valor", "fees"))
     if "real_loss" in c["penalties"] and "penalty:real_loss" not in c["texts"]["reasons"]:
         raise ConfigError("texts.reasons: penalties.real_loss needs penalty:real_loss")
     _check_d9(c)
-    _keys(c["texts"]["constraint"], "texts.constraint", ("passed", "failed"))
+    _keys(c["texts"]["constraint"], "texts.constraint", ("passed", "failed"),
+          ("not_buyable", "buyable"))
     _keys(c["texts"]["questions"], "texts.questions",
           ("risk_profili", "acik_kisitlar", *SAFE_LEVEL_FIELDS, "reason"))
     _keys(c["texts"]["effect_labels"], "texts.effect_labels", tuple(c["constraint_effects"]))
@@ -345,6 +348,30 @@ def _check_d9(c: dict) -> None:
             raise ConfigError(f"underperformance: {why} needs the underperformance section")
         _text(c, "reasons", "penalty:underperformance", why)
         _text(c, "data_quality", "benchmark_missing", why)
+
+    if "fund_detail" in c:
+        fd = c["fund_detail"]
+        _keys(fd, "fund_detail", ("buyable_quantity", "sell_valor_quantity", "entry_fee_quantity",
+                                  "exit_fee_quantity", "liquidity_by_sell_valor"))
+        table = fd["liquidity_by_sell_valor"]
+        path = "fund_detail.liquidity_by_sell_valor"
+        if not isinstance(table, list) or not table or table[-1].get("max_days") is not None:
+            raise ConfigError(f"{path}: a list whose last entry has max_days null")
+        last = -1
+        for i, row in enumerate(table):
+            _keys(row, f"{path}[{i}]", ("max_days", "value"))
+            _num(row["value"], f"{path}[{i}].value", 0, 1)
+            days = row["max_days"]
+            if i < len(table) - 1:
+                if not isinstance(days, int) or isinstance(days, bool) or days <= last:
+                    raise ConfigError(f"{path}[{i}].max_days: integers, increasing, >= 0")
+                last = days
+        why = "the fund_detail section"
+        for section, key in (("constraint", "not_buyable"), ("constraint", "buyable"),
+                             ("reasons", "liquidity_valor"), ("reasons", "fees"),
+                             ("assumptions", "kind_proxy_valor"),
+                             ("data_quality", "buyable_missing")):
+            _text(c, section, key, why)
 
     if "quality_value" in c:
         qv = c["quality_value"]

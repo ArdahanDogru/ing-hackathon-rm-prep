@@ -141,6 +141,12 @@ def build_notes(used_ids: frozenset[str], universe: Universe, evidence: Evidence
     if "underperformance" in config.raw["penalties"] and universe.market_rate is None:
         out.append(DataQualityNote(message=tpl["benchmark_missing"].format(
             entity=config.raw["deposit"]["market_entity"])))
+    fd = config.raw.get("fund_detail")
+    if fd is not None:
+        missing = sum(1 for cand in universe.candidates if cand.option.kind == "fund"
+                      and fd["buyable_quantity"] not in cand.values)
+        if missing:
+            out.append(DataQualityNote(message=tpl["buyable_missing"].format(count=missing)))
     if universe.missing_time_deposit is not None:
         td = config.raw["time_deposit"]
         out.append(DataQualityNote(
