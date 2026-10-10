@@ -1,4 +1,4 @@
-"""Command line: python -m rmprep {ingest, replay, show, list, decide}."""
+"""Command line: python -m rmprep {ingest, replay, show, list, decide, eval}."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ import httpx
 
 from rmprep import decision
 from rmprep.contracts import TR_TZ, Persona
+from rmprep.eval.suite import run_suite
 from rmprep.ingest.adapters import evds
 from rmprep.ingest.adapters.evds import EvdsParseError
 from rmprep.ingest.config import ConfigError, EvdsSource, load_config
@@ -147,6 +148,17 @@ def _decide(paths: Paths, args: argparse.Namespace) -> int:
     return 0
 
 
+def _eval(paths: Paths, args: argparse.Namespace) -> int:
+    kw = {"suite": args.suite, "only": args.only or None, "snapshot": args.snapshot}
+    if args.no_llm:                       # template texts, no grades, no cost
+        kw.update(narrator=None, judge=None)
+    result = run_suite(paths.root, **kw)
+    if result.report_dir is not None:
+        print((result.report_dir / "report.md").read_text(encoding="utf-8"))
+        print(f"report: {result.report_dir}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -172,6 +184,13 @@ def main(argv: list[str] | None = None) -> int:
                        help="answer to an RM question (repeatable)")
     p_dec.add_argument("--personas", type=Path,
                        help="folder with the persona JSONs (default: the folder above --root)")
+    p_eval = sub.add_parser("eval", help="run the eval suite and write its report (docs/eval.md)")
+    p_eval.add_argument("--suite", default="full", help="suite name in the report folder")
+    p_eval.add_argument("--only", action="append", default=[], metavar="ID",
+                        help="scenario id or group to run (repeatable)")
+    p_eval.add_argument("--snapshot", help="snapshot id (default: the frozen eval snapshot)")
+    p_eval.add_argument("--no-llm", action="store_true",
+                        help="no narrator LLM and no judge: template texts, no cost")
     p_find = sub.add_parser("evds-find", help="search EVDS data groups by name; list their series")
     p_find.add_argument("text", help='e.g. "mevduat" or "politika faizi"')
     p_info = sub.add_parser("evds-info", help="show EVDS metadata for a series or data group code")
@@ -195,6 +214,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{s.snapshot_id}  {s.created_at.isoformat()}  {status}")
         elif args.command == "decide":
             return _decide(paths, args)
+        elif args.command == "eval":
+            return _eval(paths, args)
         elif args.command in ("evds-find", "evds-info"):
             return _evds_meta(paths, args)
     except (ConfigError, SnapshotError, ExclusionError, EvdsParseError, ValueError) as e:
