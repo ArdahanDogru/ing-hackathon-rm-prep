@@ -36,7 +36,7 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
 
 # optional sections of D9 (real return after tax); without them: nominal returns
 _D9_SECTIONS = ("real_return", "long_horizon", "quality_value", "underperformance",
-                "fund_detail", "constraint_rules")
+                "fund_detail", "constraint_rules", "short_history")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
         "constraint_effects", "kinds", "principal_value", "weights", "penalties",
@@ -152,7 +152,7 @@ def _check(c: dict) -> None:
     _check_d9(c)
     _keys(c["texts"]["constraint"], "texts.constraint", ("passed", "failed"),
           ("not_buyable", "buyable", "fx_limit", "liquidity_need_valor",
-           "liquidity_need_lock"))
+           "liquidity_need_lock", "short_history"))
     _keys(c["texts"]["questions"], "texts.questions",
           ("risk_profili", "acik_kisitlar", *SAFE_LEVEL_FIELDS, "reason"),
           ("override_fx_limit", "override_reason"))
@@ -411,6 +411,17 @@ def _check_d9(c: dict) -> None:
                                  ("constraint", "liquidity_need_lock"),
                                  ("data_quality", "valor_missing")):
                 _text(c, section, key, why + ".liquidity_need")
+
+    if "short_history" in c:        # D15
+        sh = c["short_history"]
+        _keys(sh, "short_history", ("min_period", "allow_appetite"))
+        if sh["min_period"] not in c["horizon"]["years"]:
+            raise ConfigError(f"short_history.min_period: {sh['min_period']!r} is not in "
+                              "horizon.years")
+        _num(sh["allow_appetite"], "short_history.allow_appetite", 0, 1)
+        for section, key in (("constraint", "short_history"),
+                             ("data_quality", "removed_no_data")):
+            _text(c, section, key, "the short_history section")
 
     if "quality_value" in c:
         qv = c["quality_value"]

@@ -148,6 +148,9 @@ def build_notes(used_ids: frozenset[str], universe: Universe, evidence: Evidence
                       and fd["buyable_quantity"] not in cand.values)
         if missing:
             out.append(DataQualityNote(message=tpl["buyable_missing"].format(count=missing)))
+    if universe.removed_no_data:
+        out.append(DataQualityNote(message=tpl["removed_no_data"].format(
+            count=len(universe.removed_no_data))))
     if valor_missing:
         out.append(DataQualityNote(message=tpl["valor_missing"].format(count=valor_missing)))
     if universe.missing_time_deposit is not None:

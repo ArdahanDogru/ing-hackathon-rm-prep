@@ -45,13 +45,13 @@ def load_evidence(name: str = "evidence_medium.json") -> EvidenceSet:
 
 
 def strip_d9(raw: dict) -> dict:
-    """The config without the D9-D14 additions (real return, real_loss, long
+    """The config without the D9-D15 additions (real return, real_loss, long
     horizon, deposit quality, return weight 1 + appetite; underperformance, the
     diversity pool; fund detail; constraint rules), so the hand-computed values of
     the D1-D8 tests do not change when the lead adds them to config/decision.yaml."""
     raw = copy.deepcopy(raw)
     for key in ("real_return", "long_horizon", "quality_value", "underperformance",
-                "fund_detail", "constraint_rules"):
+                "fund_detail", "constraint_rules", "short_history"):
         raw.pop(key, None)
     for key in ("real_loss", "underperformance"):
         raw["penalties"].pop(key, None)
@@ -321,6 +321,34 @@ def d13_raw(raw) -> dict:
 @pytest.fixture
 def d13_config(d13_raw):
     return parse_config(d13_raw)
+
+
+# --- D15: short history ----------------------------------------------------------------------
+
+D15_SECTION = {"min_period": "3m", "allow_appetite": 1.0}
+D15_TEXTS = {
+    "constraint": {"short_history": "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."},
+    "data_quality": {"removed_no_data": "{count} fon, kullanılabilir veri satırı olmadığı "
+                                        "için çıkarıldı."},
+}
+
+
+def add_d15(raw: dict) -> dict:
+    """Add the D15 config and texts, in place."""
+    raw["short_history"] = dict(D15_SECTION)
+    for section, texts in D15_TEXTS.items():
+        raw["texts"][section].update(texts)
+    return raw
+
+
+@pytest.fixture
+def d15_raw(raw) -> dict:
+    return add_d15(add_d13(add_d12(add_d10(add_d9(raw)))))
+
+
+@pytest.fixture
+def d15_config(d15_raw):
+    return parse_config(d15_raw)
 
 
 def market_row(value=43.82):
