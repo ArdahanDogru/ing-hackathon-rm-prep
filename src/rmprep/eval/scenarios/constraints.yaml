@@ -1,0 +1,27 @@
+# Jury-style constraints: a new constraint text is never guessed (blocking
+# question); the RM's answer picks the effect.
+scenarios:
+  - id: con-p03-no-fx-asks
+    group: constraint
+    description: "add 'döviz maruziyeti istemiyor' -> blocking question"
+    persona: P03
+    add_constraints: ["döviz maruziyeti istemiyor"]
+  - id: con-p03-no-fx-answered
+    group: constraint
+    description: "the RM answers: limit FX exposure"
+    persona: P03
+    add_constraints: ["döviz maruziyeti istemiyor"]
+    answers: {"q:acik_kisitlar[1]": "Döviz maruziyetini sınırla"}
+    compare_to: base-p03
+  - id: con-p03-no-high-risk-answered
+    group: constraint
+    description: "add 'yüksek riskli ürün istemiyor'; the RM answers: risk ceiling 4"
+    persona: P03
+    add_constraints: ["yüksek riskli ürün istemiyor"]
+    answers: {"q:acik_kisitlar[1]": "Risk tavanını 4 ile sınırla"}
+    compare_to: base-p03
+  - id: con-p02-unknown-asks
+    group: constraint
+    description: "an unknown constraint text -> blocking question, nothing ranked"
+    persona: P02
+    add_constraints: ["kripto para içeren ürünlerden uzak durma"]

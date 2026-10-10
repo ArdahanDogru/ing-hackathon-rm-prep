@@ -1,0 +1,7 @@
+# Data access: a source is excluded at read time; the result must say so and
+# must not invent the missing numbers (rule 3).
+scenarios:
+  - {id: data-p05-no-tefas-detail, group: data_access, persona: P05, exclude_sources: [tefas_detail], compare_to: base-p05}
+  - {id: data-p01-no-manual, group: data_access, persona: P01, exclude_sources: [manual], compare_to: base-p01}
+  - {id: data-p03-no-manual, group: data_access, persona: P03, exclude_sources: [manual], compare_to: base-p03}
+  - {id: data-p01-no-tefas-web, group: data_access, persona: P01, exclude_sources: [tefas_web], compare_to: base-p01}

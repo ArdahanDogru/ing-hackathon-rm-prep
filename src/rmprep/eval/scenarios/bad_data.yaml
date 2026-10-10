@@ -1,0 +1,24 @@
+# Conflicting / bad data on top of the snapshot (rows as ingest would flag
+# them); "@top1" is the first fund of the clean run of the same persona.
+scenarios:
+  - id: bad-p04-conflict-price
+    group: bad_data
+    description: "the price of the first fund conflicts between sources"
+    persona: P04
+    evidence_edits:
+      - {quantity: fund_price, entity: "@top1", add_flags: [conflict]}
+    compare_to: base-p04
+  - id: bad-p04-risk-out-of-range
+    group: bad_data
+    description: "the risk level of the first fund is 9 (out of range 1-7)"
+    persona: P04
+    evidence_edits:
+      - {quantity: fund_risk_level, entity: "@top1", value: 9, add_flags: [out_of_range]}
+    compare_to: base-p04
+  - id: bad-p01-stale-return
+    group: bad_data
+    description: "the 1y return of the first fund is stale"
+    persona: P01
+    evidence_edits:
+      - {quantity: fund_return_1y, entity: "@top1", add_flags: [stale]}
+    compare_to: base-p01
