@@ -164,6 +164,7 @@ class Features:
     stopaj_entity: str | None = None    # stopaj row the option needs
     stopaj_missing: bool = False        # that row is missing: stopaj 0
     passed_before: tuple[ConstraintResult, ...] = ()   # passed rules checked before the ceiling
+    liquidity_proxy: bool = False       # fund_detail configured, but liquidity from the kind table
 
     @property
     def constraints(self) -> tuple[ConstraintResult, ...]:
@@ -387,7 +388,8 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             shorter_period=is_fund and period is not None and period != levels.period,
             annual_return=annual, rows=rows, net_return=net, real_return=real,
             stopaj_entity=st_entity, stopaj_missing=net is not None and st_row is None,
-            passed_before=passed_before[opt.option_id]))
+            passed_before=passed_before[opt.option_id],
+            liquidity_proxy=fd is not None and is_fund and valor is None))
     return out, rejected
 
 
