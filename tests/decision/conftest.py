@@ -57,16 +57,49 @@ def config(raw_config):
 
 
 DEP = "ING Turuncu Hesap standart, 100.000-249.999 TL"
+TD = "ING e-Vadeli Mevduat, 32-45 gün, 99.999,99-250.000 TL"
+# config/decision.yaml additions for the time deposit (milestone D8; the lead adds
+# them on main). Tests that need them use the `td_config` fixture.
+TD_SECTION = {"option_id": "time_deposit:ing_e_vadeli", "label": "ING e-Vadeli Mevduat",
+              "source": "manual", "quantity": "deposit_rate",
+              "entity_prefix": "ING e-Vadeli Mevduat", "term": "32-45 gün",
+              "tier": "99.999,99-250.000 TL"}
+TD_KIND = {"liquidity": 0.6, "income": 0.9, "simplicity": 1.0}
+TD_MISSING_TEXT = ("ING e-Vadeli Mevduat oranı ({entity}) kanıtlarda yok; "
+                   "vadeli mevduat seçeneği eklenmedi.")
+
+
+def add_time_deposit(raw: dict) -> dict:
+    """Add the D8 config section to a raw config (in place) and return it."""
+    raw.setdefault("time_deposit", dict(TD_SECTION))
+    raw["kinds"].setdefault("time_deposit", dict(TD_KIND))
+    raw["texts"]["data_quality"].setdefault("time_deposit_missing", TD_MISSING_TEXT)
+    return raw
+
+
+@pytest.fixture
+def td_raw(raw) -> dict:
+    return add_time_deposit(raw)
+
+
+@pytest.fixture
+def td_config(td_raw):
+    return parse_config(td_raw)
+
+
 CATS = {"money_market": "Para Piyasası Şemsiye Fonu", "equity": "Hisse Senedi Şemsiye Fonu",
-        "debt": "Borçlanma Araçları Şemsiye Fonu"}
+        "debt": "Borçlanma Araçları Şemsiye Fonu", "mixed": "Karma Şemsiye Fonu",
+        "participation": "Katılım Şemsiye Fonu"}
 
 
-def make_evidence(funds, deposit=23.0, deposit_flags=("manual_entry",)):
+def make_evidence(funds, deposit=23.0, deposit_flags=("manual_entry",), time_deposit=None):
     """funds: code -> dict(kind, name, risk, returns={period: %}, size, investors,
-    flags=(...) for every row of the fund)."""
+    flags=(...) for every row of the fund). time_deposit: the e-Vadeli rate, if any."""
     rows, ents = [], {}
     if deposit is not None:
         rows.append(dp("deposit_rate", DEP, deposit, flags=deposit_flags))
+    if time_deposit is not None:
+        rows.append(dp("deposit_rate", TD, time_deposit, flags=("manual_entry",)))
     for code, f in funds.items():
         ents[code] = EntityInfo(name=f.get("name", f"{code} FONU"), category=CATS[f["kind"]],
                                 source="tefas_web")

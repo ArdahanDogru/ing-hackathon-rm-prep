@@ -21,6 +21,8 @@ from rmprep.decision.text import normalize
 CONFIG_VERSION = 1
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "decision.yaml"
 
+# option kinds scored from a rate row (risk 1, quality 1); not fund kinds
+DEPOSIT_KINDS = ("deposit", "time_deposit")
 CRITERIA = ("return", "low_risk", "liquidity", "income", "principal", "simplicity", "quality")
 LEVEL_FIELDS = ("likidite_ihtiyaci", "gelir_nakit_akisi_ihtiyaci", "anapara_koruma_tercihi")
 SAFE_LEVEL_FIELDS = ("yatirim_ufku", *LEVEL_FIELDS, "doviz_maruz_kalma_tercihi")
@@ -100,7 +102,7 @@ def _table_keys(d: Mapping, path: str) -> None:
 
 
 def _check(c: dict) -> None:
-    _keys(c, "config", _TOP)
+    _keys(c, "config", _TOP, ("time_deposit",))
     if c["version"] != CONFIG_VERSION:
         raise ConfigError(f"version: expected {CONFIG_VERSION}, got {c['version']!r}")
 
@@ -116,8 +118,16 @@ def _check(c: dict) -> None:
     if not isinstance(c["fund_kinds"], Mapping):
         raise ConfigError("fund_kinds: must be a mapping")
     for category, kind in c["fund_kinds"].items():
-        if kind is not None and (kind == "deposit" or kind not in kinds):
+        if kind is not None and (kind in DEPOSIT_KINDS or kind not in kinds):
             raise ConfigError(f"fund_kinds.{category}: kind {kind!r} has no row in kinds")
+    if "time_deposit" in c:      # optional section (D8)
+        _keys(c["time_deposit"], "time_deposit", ("option_id", "label", "source", "quantity",
+                                                  "entity_prefix", "term", "tier"))
+        if "time_deposit" not in kinds:
+            raise ConfigError("kinds: the time_deposit section needs a time_deposit row")
+        if "time_deposit_missing" not in c["texts"]["data_quality"]:
+            raise ConfigError("texts.data_quality: the time_deposit section needs "
+                              "time_deposit_missing")
     if not isinstance(c["fx_name_words"], list) or not all(
             isinstance(w, str) and w for w in c["fx_name_words"]):
         raise ConfigError("fx_name_words: must be a list of non-empty strings")
@@ -207,7 +217,7 @@ def _check_persona_tables(c: dict) -> None:
 
 def _check_scoring(c: dict) -> None:
     pv = c["principal_value"]
-    _keys(pv, "principal_value", ("deposit", "fund_base", "fund_step"))
+    _keys(pv, "principal_value", ("deposit", "fund_base", "fund_step"), ("time_deposit",))
     for k, v in pv.items():
         _num(v, f"principal_value.{k}", 0, 1)
 
