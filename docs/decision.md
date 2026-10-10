@@ -270,6 +270,7 @@ The best possible score is 1, so a max of 0.3 = up to 30 % of it.
 | `fx_exposure` | 0.3 | FX intensity | 1 if `fx` else 0 |
 | `risk_unknown` | 0.3 (× 2 if the estimate > ceiling) | 1 | 1 if the risk level is missing |
 | `track_record` | 0.2 | 1 | 1 if the horizon period return is missing |
+| `underperformance` (D10) | 0.3 | appetite (0, ⅓, ⅔, 1 from `risk_profili`) | `clamp((B − N) / 0.20, 0, 1)`; N = the option's net return (4.1b), B = the EVDS market deposit rate (`deposit.market_entity`, 43.82 %) net of the deposit stopaj (36.2 %). Missing B → no penalty + a data-quality note. Decided by the user 2026-10-10: a client who wants return or accepts risk must not get an option far below the deposit market. |
 | `real_loss` (D9) | 0.3 | principal level | `clamp(−r / 0.10, 0, 1)` (r = real return after tax, 4.1b) |
 | `fund_size` | 0.1 | 1 | `max(1 − size / 100M TL, 1 − investors / 100)` clamped 0..1; missing → 1 |
 
@@ -297,9 +298,13 @@ maruziyeti istiyor."
 2. Positions 1–3: by score, at most 1 option per `fund_kind`.
 3. Positions 4–10: by score, at most 3 per `fund_kind` counted over positions
    1–10 (2 with `concentration_limit` or the `çeşitlendirme` priority).
-4. If the caps leave places empty, fill them by score and raise
+4. Positions 11–20 (D10, 2026-10-10), only with `concentration_limit` or the
+   `çeşitlendirme` priority: by score, at most 4 per kind counted over
+   positions 1–20 (config `display.pool: 20`, `display.diversity_pool_cap: 4`).
+   Without diversity: by score, as before.
+5. If the caps leave places empty, fill them by score and raise
    `concentration` (section 6).
-5. After position 10: by score.
+6. After position 10 (without diversity) or 20 (with it): by score.
 
 Ties: higher score, then `option_id`. The UI groups the first 20 options by
 `fund_kind` (docs/ui.md section 1, changed 2026-10-10); the order above stays
@@ -402,6 +407,7 @@ funds, with `entities`).
 | D7 | `render` groups like the UI: baseline, then ≤ 5 `fund_kind` groups from the first 20 options (head + alternatives); rejected = count + the first 10 ids | group order and members on a hand-made result; long rejected list cut |
 | D8 | `time_deposit` option (section 1): config section `time_deposit` (OPTIONAL in the checks until the lead adds it: option_id, label, source, quantity, entity_prefix, term, tier); scored like a deposit except the kind table; counts as its own kind (`time_deposit`) for the caps of 4.5 and the groups of the report; penalties as for any option | option from a hand-made row; missing row → no option + note; kind caps; group in `render`; P01–P05 valid on a hand-made evidence with the row |
 | D9 | real return after tax (4.1b): config section `real_return` (OPTIONAL in the checks until the lead adds it; without it the old nominal behaviour stays), `time_deposit.term_days`, penalty `real_loss`, `long_horizon`, deposit quality value from config (`quality_value.deposit`, `quality_value.time_deposit`), new texts (reason for `return` with R/N/r, `penalty:real_loss`, assumptions, data-quality notes for missing CPI / stopaj) | hand-computed N and r for deposit, time deposit (compounding), fund; Turuncu 23 % / stopaj 17.5 % / CPI 29.73 % → r = −8.3 % and penalty 0.3 × level × 0.83; missing CPI / stopaj cases; long-horizon weights; P01–P05 valid on hand-made evidence with the new rows |
+| D10 | penalty `underperformance` (4.3) and the positions 11–20 cap with diversity (4.5); config OPTIONAL until the lead adds it: `penalties.underperformance` (0.3), `underperformance: {scale: 0.20}`, `display.pool` (20), `display.diversity_pool_cap` (4); texts `penalty:underperformance`, data-quality note for a missing benchmark | hand-computed penalty (fund 10 % for P03 → 0.3; P02 → 0.2; Muhafazakâr → 0); missing benchmark; with diversity no kind has more than 4 options in 1–20, without diversity the order does not change; stability counts the new penalty |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]
