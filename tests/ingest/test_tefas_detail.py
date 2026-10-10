@@ -86,7 +86,7 @@ def _many_funds(n):
 def test_config_parses_detail_source(cfg):
     src = cfg.sources["tefas_detail"]
     assert isinstance(src, TefasDetailSource)
-    assert src.value_fields["profilData.fonSatisValor"] == "fund_sell_valor_days"
+    assert src.optional_fields["profilData.fonSatisValor"] == "fund_sell_valor_days"
     assert src.optional_fields["profilData.riskDegeri"] == "fund_risk_level"
     assert src.exclude_categories == ("Serbest Şemsiye Fonu",)
     assert src.min_interval_s == 1.0 and src.max_funds is None
@@ -117,6 +117,37 @@ def test_config_rejects_bad_values(config_raw, key, value, match):
     config_raw["sources"]["tefas_detail"][key] = value
     with pytest.raises(ConfigError, match=match):
         parse_config(config_raw)
+
+
+@pytest.mark.parametrize("status,match", [
+    ({"field": "profilData.tefasDurum", "quantity": "fund_buyable", "map": {"x": 2}},
+     "must be 0 or 1"),
+    ({"field": "profilData.tefasDurum", "quantity": "fund_buyable",
+      "map": {"TEFAS'ta işlem görüyor": 1, "TEFAS'TA  İŞLEM GÖRÜYOR": 0}},
+     "same text after normalization"),
+    ({"field": "tefasDurum", "quantity": "fund_buyable", "map": {"x": 1}},
+     "must be bilgiData.<field>"),
+    ({"field": "profilData.tefasDurum", "quantity": "gold", "map": {"x": 1}},
+     "unknown quantity"),
+    ({"field": "profilData.tefasDurum", "quantity": "fund_buyable", "map": {}},
+     "must not be empty"),
+])
+def test_config_rejects_bad_status(config_raw, status, match):
+    config_raw["sources"]["tefas_detail"]["status"] = status
+    with pytest.raises(ConfigError, match=match):
+        parse_config(config_raw)
+
+
+def test_config_status_map_is_normalized(cfg):
+    st = cfg.sources["tefas_detail"].status
+    assert st.field == "profilData.tefasDurum" and st.quantity == "fund_buyable"
+    assert st.map == {"tefas'ta işlem görüyor": 1.0, "tefas'ta işlem görmüyor": 0.0,
+                      "fon alımına kapalı, fon bozumuna kapalı": 0.0}
+
+
+def test_normalize_status_turkish_lower_case_and_spaces():
+    assert tefas_detail.normalize_status("  TEFAS'ta  İşlem	Görmüyor ") == "tefas'ta işlem görmüyor"
+    assert tefas_detail.normalize_status("KAPALI") == "kapalı"
 
 
 # --- fund list ------------------------------------------------------------------------------
@@ -253,7 +284,7 @@ def test_parse_values_from_real_pages(tmp_path, cfg):
     assert _value(pts, "AAL", "fund_risk_level") == 1
     assert _value(pts, "ZZZ", "fund_price") == 0.686755                 # MAC page
     assert _value(pts, "ZZZ", "fund_risk_level") == 6
-    assert len(pts) == 3 * 6                                            # fees are null
+    assert len(pts) == 3 * 7                                            # fees are null
 
 
 def test_valor_fields_match_the_page_labels(tmp_path, cfg):
@@ -280,7 +311,7 @@ def test_missing_risk_gives_no_risk_row_only(tmp_path, cfg, risk):
     listing = tefas_web_page(TEFAS_WEB_FUNDS[:1])
     pts = _points(tmp_path, cfg, fake=FakeEvds(detail_pages=pages), listing=listing)
     assert {p.quantity for p in pts} == {"fund_price", "fund_total_value", "fund_investor_count",
-                                         "fund_buy_valor_days", "fund_sell_valor_days"}
+                                         "fund_buy_valor_days", "fund_sell_valor_days", "fund_buyable"}
 
 
 def test_parse_row_fields(tmp_path, cfg):
@@ -329,3 +360,48 @@ def test_same_risk_as_tefas_web_gives_no_conflict(tmp_path, cfg):
     risk = [p for p in run_checks(pts, cfg, T0.date()) if p.quantity == "fund_risk_level"]
     assert {(p.entity, p.source) for p in risk} >= {("AAL", "tefas_web"), ("AAL", "tefas_detail")}
     assert not [p for p in risk if Flag.CONFLICT in p.flags]
+
+
+# --- trade status -> fund_buyable (I3b) ------------------------------------------------------
+
+def _status_points(tmp_path, cfg, pages):
+    listing = tefas_web_page([dict(TEFAS_WEB_FUNDS[0], fonKodu=c) for c in pages])
+    src = _src(cfg)
+    rec, snap, _ = _fetch(tmp_path, src, fake=FakeEvds(detail_pages=pages), listing=listing)
+    return rec, tefas_detail.parse(cfg, src, snap)
+
+
+def test_status_gives_fund_buyable_from_real_pages(tmp_path, cfg):
+    rec, pts = _status_points(tmp_path, cfg, {"ZBJ": detail_page("ZBJ"),
+                                              "ABU": detail_page("ABU"),
+                                              "AC4": detail_page("AC4")})
+    assert rec.status == "ok" and rec.rejected_rows == ()
+    assert _value(pts, "ZBJ", "fund_buyable") == 1            # "TEFAS'ta işlem görüyor"
+    assert _value(pts, "ABU", "fund_buyable") == 0            # "TEFAS'ta İşlem Görmüyor"
+    assert _value(pts, "AC4", "fund_buyable") == 0            # "Fon Alımına Kapalı, ..."
+    assert _value(pts, "ABU", "fund_price") == 0.109978
+    assert not [p for p in pts if p.entity == "ABU" and "valor" in p.quantity]
+    p = next(p for p in pts if p.entity == "ABU" and p.quantity == "fund_buyable")
+    assert p.unit == "flag"
+    assert p.raw_ref.endswith("ABU.html.gz#fonKodu=ABU;field=profilData.tefasDurum")
+
+
+@pytest.mark.parametrize("text,reason", [
+    ("Yeni Durum", "unknown profilData.tefasDurum 'Yeni Durum'; no fund_buyable row"),
+    (None, "profilData.tefasDurum: no value; no fund_buyable row"),
+])
+def test_unknown_status_is_noted_but_does_not_fail_the_page(tmp_path, cfg, text, reason):
+    # 1 of 2 pages = 50 % > max_fail_share, so a page failure would fail the source
+    rec, pts = _status_points(tmp_path, cfg, {"ZBJ": detail_page("ZBJ", tefasDurum=text),
+                                              "MAC": detail_page("MAC")})
+    assert rec.status == "ok"
+    assert rec.rejected_rows == ({"fund": "ZBJ", "reason": reason},)
+    assert not [p for p in pts if p.entity == "ZBJ" and p.quantity == "fund_buyable"]
+    assert _value(pts, "ZBJ", "fund_price") == 5.439421       # the other rows stay
+    assert _value(pts, "MAC", "fund_buyable") == 1
+
+
+def test_no_status_block_gives_no_fund_buyable(tmp_path, config_raw):
+    del config_raw["sources"]["tefas_detail"]["status"]
+    pts = _points(tmp_path, parse_config(config_raw))
+    assert not [p for p in pts if p.quantity == "fund_buyable"]

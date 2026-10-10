@@ -43,7 +43,7 @@ from rmprep.ingest.adapters.tefas_web import (
     flight_text,
     previous_business_day,
 )
-from rmprep.ingest.config import DETAIL_OBJECTS, Config, TefasDetailSource
+from rmprep.ingest.config import DETAIL_OBJECTS, Config, TefasDetailSource, normalize_status
 from rmprep.ingest.snapshot import Snapshot, SnapshotWriter, SourceRecord, raw_ref
 
 _NO_VALUE = ("", "-")
@@ -90,9 +90,11 @@ def _number(field: str, raw: Any, required: bool) -> float | None:
     return x
 
 
-def parse_page(src: TefasDetailSource, html: str, code: str) -> dict[str, float | None]:
-    """Configured field ("bilgiData.sonFiyat") -> value; None = optional, no value.
-    Raises PageError with the reason."""
+def parse_page(src: TefasDetailSource, html: str,
+               code: str) -> tuple[dict[str, float | None], list[str]]:
+    """(configured field ("bilgiData.sonFiyat") -> value, notes). None = no value,
+    no row. Notes are problems that do not fail the page (an unknown status
+    text). Raises PageError with the reason if the page fails."""
     text = flight_text(html)
     objects = {}
     for name in DETAIL_OBJECTS:
@@ -108,7 +110,18 @@ def parse_page(src: TefasDetailSource, html: str, code: str) -> dict[str, float 
         for field in fields:
             obj, _, key = field.partition(".")
             values[field] = _number(field, objects[obj].get(key), required)
-    return values
+
+    notes: list[str] = []
+    if src.status:
+        field = src.status.field
+        obj, _, key = field.partition(".")
+        text = objects[obj].get(key)
+        flag = src.status.map.get(normalize_status(text)) if isinstance(text, str) else None
+        if flag is None:
+            what = f"unknown {field} {text!r}" if isinstance(text, str) and text.strip()                 else f"{field}: no value"
+            notes.append(f"{what}; no {src.status.quantity} row")
+        values[field] = flag
+    return values, notes
 
 
 def _read_page(data: bytes) -> str:
@@ -144,7 +157,8 @@ def fetch(
     for code in codes:
         check_url_allowed(src.page_url(code))
 
-    payloads, rejected = [], []
+    payloads, rejected = [], []      # rejected: failed pages and notes (not failures)
+    failed = 0
     last_start: float | None = None
     for code in codes:
         url = src.page_url(code)
@@ -161,16 +175,19 @@ def fetch(
             payloads.append(writer.add_payload(src.name, f"{code}.html.gz",
                                                gzip.compress(resp.content, mtime=0),
                                                meta={"fund": code, "url": url}))
-            parse_page(src, _read_page(resp.content), code)
+            _, notes = parse_page(src, _read_page(resp.content), code)
+            rejected.extend({"fund": code, "reason": n} for n in notes)
         except httpx.HTTPError as e:
+            failed += 1
             rejected.append({"fund": code, "reason": f"{type(e).__name__}: {e}"})
         except PageError as e:
+            failed += 1
             rejected.append({"fund": code, "reason": str(e)})
-        if len(rejected) > src.max_fail_share * len(codes):
+        if failed > src.max_fail_share * len(codes):
             return SourceRecord(
                 status="failed", on_failure=src.on_failure, request=request,
                 payloads=tuple(payloads), rejected_rows=tuple(rejected),
-                error=(f"{len(rejected)} of {len(codes)} pages failed (more than "
+                error=(f"{failed} of {len(codes)} pages failed (more than "
                        f"{src.max_fail_share:.0%}; stopped); the page format may have changed"))
     return SourceRecord(status="ok", on_failure=src.on_failure, fetched_at=now(),
                         request=request, payloads=tuple(payloads),
@@ -188,13 +205,15 @@ def parse(cfg: Config, src: TefasDetailSource, snap: Snapshot, *,
     as_of = previous_business_day(snap.created_at.date())
     flags = [Flag.NEEDS_CHECK] if src.flag_needs_check else []
     quantities = {**src.value_fields, **src.optional_fields}
+    if src.status:
+        quantities[src.status.field] = src.status.quantity
 
     points = []
     for payload in rec.payloads:
         code = payload.meta["fund"]
         try:
-            values = parse_page(src, _read_page(gzip.decompress(snap.read_payload(payload.path))),
-                                code)
+            values, _ = parse_page(
+                src, _read_page(gzip.decompress(snap.read_payload(payload.path))), code)
         except PageError:
             continue
         for field, value in values.items():

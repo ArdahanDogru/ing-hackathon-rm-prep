@@ -61,7 +61,9 @@ def _real_detail_page(fixture: str) -> str:
 
 def detail_page(fixture: str, code: str | None = None, **fields) -> bytes:
     """A real TEFAS fund detail page (fixtures: ZBJ money market, MAC equity, IPB
-    variable; fetched 2026-10-10, all with null fees). `code` renames the fund;
+    variable; fetched 2026-10-10, all with null fees; trade on TEFAS), ABU (not
+    on TEFAS, null valör) and AC4 (closed for purchase and redemption), the last
+    two from the first live run, snapshot 20261010-161537-9555). `code` renames the fund;
     `fields` set values in the page data (bilgiData/profilData), e.g.
     girisKomisyonu=1.5. The data is JSON inside JS string literals, so quotes
     in the page text are escaped as \\"."""
@@ -142,6 +144,8 @@ TEST_DETAIL_QUANTITIES = {
                        "conflict_tolerance": 0.0},
     "fund_exit_fee": {"unit": "pct", "max_age_days": 5, "min": 0, "max": 20,
                       "conflict_tolerance": 0.0},
+    "fund_buyable": {"unit": "flag", "max_age_days": 5, "min": 0, "max": 1,
+                     "conflict_tolerance": 0.0},
 }
 TEST_TEFAS_DETAIL = {
     "adapter": "tefas_detail", "enabled": True, "on_failure": "previous",
@@ -156,13 +160,19 @@ TEST_TEFAS_DETAIL = {
         "bilgiData.sonFiyat": "fund_price",
         "bilgiData.portBuyukluk": "fund_total_value",
         "bilgiData.yatirimciSayi": "fund_investor_count",
-        "profilData.fonGeriAlisValor": "fund_buy_valor_days",
-        "profilData.fonSatisValor": "fund_sell_valor_days",
     },
     "optional_fields": {
+        "profilData.fonGeriAlisValor": "fund_buy_valor_days",
+        "profilData.fonSatisValor": "fund_sell_valor_days",
         "profilData.riskDegeri": "fund_risk_level",
         "profilData.girisKomisyonu": "fund_entry_fee",
         "profilData.cikisKomisyonu": "fund_exit_fee",
+    },
+    "status": {
+        "field": "profilData.tefasDurum",
+        "quantity": "fund_buyable",
+        "map": {"TEFAS'ta işlem görüyor": 1, "TEFAS'ta işlem görmüyor": 0,
+                "Fon Alımına Kapalı, Fon Bozumuna Kapalı": 0},
     },
 }
 
