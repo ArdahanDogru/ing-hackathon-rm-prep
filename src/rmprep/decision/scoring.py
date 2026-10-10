@@ -116,6 +116,22 @@ def _constraint_rules(cand: Candidate, levels: Levels,
     return out
 
 
+def _short_history_rows(cand: Candidate, config: DecisionConfig) -> list[DataPoint] | None:
+    """None if the rule is off or the fund has a return of min_period or longer;
+    else its shorter return rows (e.g. fund_return_1m), the evidence (D15)."""
+    c = config.raw
+    sh = c.get("short_history")
+    if sh is None or cand.option.kind != "fund":
+        return None
+    years = c["horizon"]["years"]
+    least = years[sh["min_period"]]
+    returns = {q[len("fund_return_"):]: r for q, r in cand.values.items()
+               if q.startswith("fund_return_")}
+    if any(p in years and years[p] >= least for p in returns):
+        return None
+    return [returns[p] for p in sorted(returns)]
+
+
 def _fee_rows(cand: Candidate, fd: Mapping[str, Any] | None) -> list[DataPoint]:
     """Entry and exit fee rows of a fund (D12); missing rows count as 0."""
     if fd is None or cand.option.kind != "fund":
@@ -165,6 +181,7 @@ class Features:
     stopaj_missing: bool = False        # that row is missing: stopaj 0
     passed_before: tuple[ConstraintResult, ...] = ()   # passed rules checked before the ceiling
     liquidity_proxy: bool = False       # fund_detail configured, but liquidity from the kind table
+    short_history: bool = False         # listed although its history is short (D15, Agresif)
 
     @property
     def constraints(self) -> tuple[ConstraintResult, ...]:
@@ -203,6 +220,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
     kept: list[tuple[Candidate, int | None]] = []
     rejected: list[RejectedOption] = []
     passed_before: dict[str, tuple[ConstraintResult, ...]] = {}
+    short: dict[str, list[DataPoint]] = {}     # listed with a short history (Agresif)
     for cand in universe.candidates:
         failed: list[ConstraintResult] = []
         passed: list[ConstraintResult] = []
@@ -223,6 +241,15 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
                 reason=texts["constraint"]["failed"].format(risk=risk, ceiling=levels.ceiling),
                 evidence_ids=(row.id,)))
         failed += _constraint_rules(cand, levels, config)
+        short_rows = _short_history_rows(cand, config)
+        if short_rows is not None:
+            if levels.appetite < c["short_history"]["allow_appetite"]:
+                failed.append(ConstraintResult(
+                    rule_id="short_history", passed=False,
+                    reason=texts["constraint"]["short_history"],
+                    evidence_ids=tuple(sorted(r.id for r in short_rows))))
+            else:
+                short[cand.option.option_id] = short_rows
         if failed:
             rejected.append(RejectedOption(cand.option, tuple(failed)))
         else:
@@ -358,7 +385,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
         fee_pct, fee_rows = fees.get(opt.option_id, (0.0, []))
         status = (cand.values.get(fd["buyable_quantity"])
                   if fd is not None and is_fund else None)
-        for extra in (status, valor, *fee_rows):
+        for extra in (status, valor, *fee_rows, *short.get(opt.option_id, ())):
             if extra is not None:
                 rows[extra.quantity] = extra
         fields = {
@@ -389,7 +416,8 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             annual_return=annual, rows=rows, net_return=net, real_return=real,
             stopaj_entity=st_entity, stopaj_missing=net is not None and st_row is None,
             passed_before=passed_before[opt.option_id],
-            liquidity_proxy=fd is not None and is_fund and valor is None))
+            liquidity_proxy=fd is not None and is_fund and valor is None,
+            short_history=opt.option_id in short))
     return out, rejected
 
 
@@ -416,6 +444,8 @@ def _reasons(f: Features, parts: Mapping[str, float], config: DecisionConfig) ->
         v = f.values.get(key, 0.0)
         if key == "return" and f.annual_return is None:
             out[key] = tpl["return_missing"].format(**{**f.fields, "period": f.fields["horizon"]})
+            if f.short_history:
+                out[key] += " " + config.raw["texts"]["constraint"]["short_history"]
         elif key == "return" and f.net_return is not None:
             name = "return_real" if f.real_return is not None else "return_net"
             out[key] = tpl[name].format(**f.fields, value=v, pct=v * 100)

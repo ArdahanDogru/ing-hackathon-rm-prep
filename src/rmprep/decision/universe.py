@@ -66,7 +66,16 @@ class Universe:
     missing_time_deposit: str | None = None     # entity of a configured time deposit w/o row
     cpi: DataPoint | None = None                # annual CPI row (real_return configured)
     stopaj: Mapping[str, DataPoint] = field(default_factory=dict)   # entity -> stopaj row
+    removed_no_data: tuple[str, ...] = ()       # funds without a row the engine uses (D15)
     by_id: Mapping[str, Candidate] = field(default_factory=dict)
+
+
+def _used_quantities(config: DecisionConfig):
+    """Predicate: is a fund quantity one the engine scores with?"""
+    fd = config.raw.get("fund_detail", {})
+    fixed = {"fund_risk_level", "fund_total_value", "fund_investor_count",
+             *(v for k, v in fd.items() if k.endswith("_quantity"))}
+    return lambda q: q in fixed or q.startswith("fund_return_")
 
 
 def stopaj_entity(option: ProductOption, config: DecisionConfig) -> str:
@@ -123,7 +132,8 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
     entities = {k: v for k, v in evidence.entities.items()
                 if v.source not in evidence.excluded_sources}
     fund_codes = sorted({d.entity for d in idx.rows if d.quantity.startswith(FUND_PREFIX)})
-    serbest, no_entity, unknown = [], [], []
+    serbest, no_entity, unknown, no_data = [], [], [], []
+    used = _used_quantities(config) if "short_history" in c else None
     fx_words = [_tr_upper(w) for w in c["fx_name_words"]]
     for code in fund_codes:
         info = entities.get(code)
@@ -142,6 +152,9 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
                                entity=code, fund_kind=kind,
                                fx=any(w in name for w in fx_words))
         values = {q: d for q, d in idx.quantities_of(code).items() if q.startswith(FUND_PREFIX)}
+        if used is not None and not any(used(q) for q in values):
+            no_data.append(code)        # never listed: nothing to show as evidence
+            continue
         candidates.append(Candidate(option, values))
 
     return Universe(
@@ -149,6 +162,7 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
         removed_serbest=tuple(serbest),
         removed_no_entity=tuple(no_entity),
         removed_unknown_kind=tuple(unknown),
+        removed_no_data=tuple(no_data),
         out_of_range=tuple(sorted(d.id for d in idx.rows if Flag.OUT_OF_RANGE in d.flags)),
         market_rate=idx.get("deposit_rate", dep["market_entity"]),
         missing_time_deposit=missing_td,
