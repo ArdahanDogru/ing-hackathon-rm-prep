@@ -15,12 +15,10 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from rmprep.contracts import ConstraintResult, DataPoint, ProductOption, RejectedOption
-from rmprep.decision.config import CRITERIA, DecisionConfig
+from rmprep.decision.config import CRITERIA, PENALTY_RULES, DecisionConfig
 from rmprep.decision.persona import LEVEL_ATTR, Levels
 from rmprep.decision.universe import Candidate, Universe
 
-PENALTY_RULES = ("principal", "liquidity", "fx_exposure", "risk_unknown", "track_record",
-                 "fund_size")
 RISK_MIN, RISK_MAX = 1, 7
 _RISK_Q = "fund_risk_level"
 _SIZE_Q = "fund_total_value"
@@ -244,8 +242,7 @@ def _reasons(f: Features, parts: Mapping[str, float], config: DecisionConfig) ->
     out = {}
     for key in parts:
         if key == "return" and f.annual_return is None:
-            text = tpl.get("return_missing", tpl["penalty:track_record"])
-            out[key] = text.format(**{**f.fields, "period": f.fields["horizon"]})
+            out[key] = tpl["return_missing"].format(**{**f.fields, "period": f.fields["horizon"]})
             continue
         v = f.values.get(key, 0.0)
         out[key] = tpl[key].format(**f.fields, value=v, pct=v * 100)

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from rmprep.contracts import TR_TZ, DataPoint, EvidenceSet, Persona
+from rmprep.contracts import TR_TZ, DataPoint, EntityInfo, EvidenceSet, Persona
 from rmprep.decision.config import load_raw, parse_config
 
 CONTRACT_FIX = Path(__file__).resolve().parents[1] / "contracts" / "fixtures"
@@ -54,3 +54,30 @@ def raw(raw_config) -> dict:
 @pytest.fixture(scope="session")
 def config(raw_config):
     return parse_config(raw_config)
+
+
+DEP = "ING Turuncu Hesap standart, 100.000-249.999 TL"
+CATS = {"money_market": "Para Piyasası Şemsiye Fonu", "equity": "Hisse Senedi Şemsiye Fonu",
+        "debt": "Borçlanma Araçları Şemsiye Fonu"}
+
+
+def make_evidence(funds, deposit=23.0, deposit_flags=("manual_entry",)):
+    """funds: code -> dict(kind, name, risk, returns={period: %}, size, investors,
+    flags=(...) for every row of the fund)."""
+    rows, ents = [], {}
+    if deposit is not None:
+        rows.append(dp("deposit_rate", DEP, deposit, flags=deposit_flags))
+    for code, f in funds.items():
+        ents[code] = EntityInfo(name=f.get("name", f"{code} FONU"), category=CATS[f["kind"]],
+                                source="tefas_web")
+        if f.get("risk") is not None:
+            rows.append(dp("fund_risk_level", code, f["risk"], flags=f.get("flags", ())))
+        for period, r in f.get("returns", {}).items():
+            rows.append(dp(f"fund_return_{period}", code, r, flags=f.get("flags", ())))
+        if f.get("size") is not None:
+            rows.append(dp("fund_total_value", code, f["size"], flags=f.get("flags", ())))
+        if f.get("investors") is not None:
+            rows.append(dp("fund_investor_count", code, f["investors"], flags=f.get("flags", ())))
+    return EvidenceSet(snapshot_id="S-test", created_at=T0, excluded_sources=frozenset(),
+                       source_status={}, datapoints=tuple(sorted(rows, key=lambda d: d.id)),
+                       entities=ents)
