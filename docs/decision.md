@@ -113,6 +113,15 @@ D12 (approved by the user 2026-10-10, parts a, b, c): a second hard rule.
   (279 pages) had 65 such funds. A missing row → no rejection; one data-quality
   note with the count. Checked before `risk_ceiling`; a fund can fail both.
 
+D12 as built (2026-10-10): a buyable fund carries
+`ConstraintResult("not_buyable", passed=True, "TEFAS'ta alıma açık.", (status row,))`
+before `risk_ceiling`; a fund that fails both has both failed results. Fees:
+`N -= (entry + exit) / 100 / horizon years`, only where N exists; the fee text is
+added to the return reason. With `fund_detail` the assumption `kind_proxy` is
+replaced by `kind_proxy_valor`. The status, valör and fee rows are in the
+option's `evidence_ids`. Valör check on the real snapshot: money market sell
+valör 0, equity 2, foreign equity 3.
+
 D13 (approved by the user 2026-10-10): **explicit constraints are hard rules**
 (brief section 12 rule 5: a product that breaks an explicit constraint must not
 enter the recommendation list or the offer text). Each `acik_kisitlar` effect
