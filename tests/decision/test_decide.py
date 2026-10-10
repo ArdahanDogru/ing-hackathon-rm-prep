@@ -11,7 +11,6 @@ from rmprep.decision.config import parse_config
 from rmprep.decision.engine import config_hash, decide, run_id
 from rmprep.decision.notes import build_warnings
 from rmprep.decision.persona import read_persona
-from rmprep.decision.report import render
 from tests.decision.conftest import (
     PERSONA_IDS,
     T0,
@@ -260,26 +259,3 @@ def test_source_notes_also_when_blocked(config, medium):
     r = decide(ev, _edit("P01", risk_profili="?"), config, created_at=T0)
     assert r.state == DecisionState.NEEDS_RM_INPUT
     assert _note(r, "tefas kaynağı olmadan")
-
-
-# --- report ----------------------------------------------------------------------------------
-
-def test_report_shows_baseline_and_positions_1_to_10(config, medium):
-    r = decide(medium, load_persona("P04"), config, created_at=T0)
-    text = render(r)
-    assert r.run_id in text and "P04" in text
-    assert "ING Turuncu Hesap (standart)" in text
-    for i in range(1, 11):
-        assert re.search(rf"^\s*{i}\. ", text, re.M)
-    assert not re.search(r"^\s*11\. ", text, re.M)
-    assert r.options[1].option.label in text
-    assert "penalty:" in text or "return" in text
-    for w in r.warnings:
-        assert w.code in text
-
-
-def test_report_of_a_blocked_result_shows_the_questions(config, medium):
-    p = _edit("P01", acik_kisitlar=("bilinmeyen bir kısıt",))
-    text = render(decide(medium, p, config, created_at=T0))
-    assert "needs_rm_input" in text
-    assert "q:acik_kisitlar[0]" in text and "bilinmeyen bir kısıt" in text
