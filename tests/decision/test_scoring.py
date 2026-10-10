@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from rmprep.contracts import EntityInfo, EvidenceSet, ProductOption
+from rmprep.contracts import ProductOption
 from rmprep.decision.persona import read_persona
 from rmprep.decision.scoring import (
     annualize,
@@ -18,33 +18,12 @@ from rmprep.decision.scoring import (
     score_options,
 )
 from rmprep.decision.universe import build_universe
-from tests.decision.conftest import PERSONA_IDS, T0, dp, load_evidence, load_persona
-
-DEP = "ING Turuncu Hesap standart, 100.000-249.999 TL"
-CATS = {"money_market": "Para Piyasası Şemsiye Fonu", "equity": "Hisse Senedi Şemsiye Fonu",
-        "debt": "Borçlanma Araçları Şemsiye Fonu"}
-
-
-def _evidence(funds, deposit=23.0):
-    """funds: code -> dict(kind, name, risk, returns={period: %}, size, investors)."""
-    rows, ents = [], {}
-    if deposit is not None:
-        rows.append(dp("deposit_rate", DEP, deposit, flags=("manual_entry",)))
-    for code, f in funds.items():
-        ents[code] = EntityInfo(name=f.get("name", f"{code} FONU"), category=CATS[f["kind"]],
-                                source="tefas_web")
-        if f.get("risk") is not None:
-            rows.append(dp("fund_risk_level", code, f["risk"]))
-        for period, r in f.get("returns", {}).items():
-            rows.append(dp(f"fund_return_{period}", code, r))
-        if f.get("size") is not None:
-            rows.append(dp("fund_total_value", code, f["size"]))
-        if f.get("investors") is not None:
-            rows.append(dp("fund_investor_count", code, f["investors"]))
-    return EvidenceSet(snapshot_id="S-test", created_at=T0, excluded_sources=frozenset(),
-                       source_status={}, datapoints=tuple(sorted(rows, key=lambda d: d.id)),
-                       entities=ents)
-
+from tests.decision.conftest import (
+    PERSONA_IDS,
+    load_evidence,
+    load_persona,
+    make_evidence,
+)
 
 SMALL = {
     "MMF": dict(kind="money_market", risk=1, returns={"3y": 100.0, "1y": 30.0},
@@ -61,7 +40,7 @@ def _levels(config, pid="P04", **changes):
 
 
 def _score(config, funds=SMALL, levels=None, **kw):
-    u = build_universe(_evidence(funds, **kw), config)
+    u = build_universe(make_evidence(funds, **kw), config)
     return score_options(u, levels or _levels(config), config)
 
 
@@ -200,7 +179,7 @@ def test_risk_above_ceiling_is_rejected(config):
     [c] = rej.failed
     assert c.rule_id == "risk_ceiling" and not c.passed
     assert c.reason == "Risk değeri 5, müşterinin risk tavanı 2 üzerinde."
-    risk_row = next(d for d in _evidence(SMALL).datapoints
+    risk_row = next(d for d in make_evidence(SMALL).datapoints
                     if d.quantity == "fund_risk_level" and d.entity == "EQF")
     assert c.evidence_ids == (risk_row.id,)
     assert "fund:EQF" not in _by_id(r)
@@ -219,7 +198,7 @@ def test_scored_options_pass_the_risk_ceiling(config):
 
 
 def test_evidence_ids_are_the_rows_used(config):
-    ev = _evidence(SMALL)
+    ev = make_evidence(SMALL)
     u = build_universe(ev, config)
     eq = _by_id(score_options(u, _levels(config), config))["fund:EQF"]
     used = {d.id for d in ev.datapoints if d.entity == "EQF" and d.quantity in (
