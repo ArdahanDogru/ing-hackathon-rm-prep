@@ -167,7 +167,7 @@ def test_fund_without_any_return(config):
     assert n.period is None and n.annual_return is None
     assert n.parts["return"] == 0.0
     assert n.parts["penalty:track_record"] == pytest.approx(-0.2)
-    assert n.reasons["return"]
+    assert n.reasons["return"] == "Getiri verisi yok (3y ve daha kısa dönemler)."
 
 
 # --- risk_ceiling -----------------------------------------------------------------------

@@ -129,3 +129,16 @@ def test_table_keys_that_normalize_alike_are_an_error(raw):
     raw["priorities"]["Düzenli  Gelir."] = "boost:income"
     with pytest.raises(ConfigError, match="priorities"):
         parse_config(raw)
+
+
+@pytest.mark.parametrize("key", ["return_missing", "penalty:fund_size", "quality"])
+def test_missing_reason_text_is_an_error(raw, key):
+    del raw["texts"]["reasons"][key]
+    with pytest.raises(ConfigError, match="texts.reasons"):
+        parse_config(raw)
+
+
+def test_missing_constraint_text_is_an_error(raw):
+    del raw["texts"]["constraint"]["failed"]
+    with pytest.raises(ConfigError, match="texts.constraint"):
+        parse_config(raw)

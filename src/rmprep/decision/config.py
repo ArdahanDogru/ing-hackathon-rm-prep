@@ -24,8 +24,9 @@ DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "decision.yaml"
 CRITERIA = ("return", "low_risk", "liquidity", "income", "principal", "simplicity", "quality")
 LEVEL_FIELDS = ("likidite_ihtiyaci", "gelir_nakit_akisi_ihtiyaci", "anapara_koruma_tercihi")
 SAFE_LEVEL_FIELDS = ("yatirim_ufku", *LEVEL_FIELDS, "doviz_maruz_kalma_tercihi")
-PENALTIES = ("principal", "liquidity", "fx_exposure", "risk_unknown",
-             "risk_unknown_above_ceiling_factor", "track_record", "fund_size")
+PENALTY_RULES = ("principal", "liquidity", "fx_exposure", "risk_unknown", "track_record",
+                 "fund_size")
+PENALTIES = (*PENALTY_RULES, "risk_unknown_above_ceiling_factor")
 EFFECT_KEYS = ("max_ceiling", "min_fx_intensity", "liquidity_weight", "liquidity_intensity",
                "min_liquidity_intensity", "diversity")
 TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumptions",
@@ -125,6 +126,9 @@ def _check(c: dict) -> None:
     _check_scoring(c)
 
     _keys(c["texts"], "texts", TEXT_SECTIONS)
+    _keys(c["texts"]["reasons"], "texts.reasons",
+          (*CRITERIA, *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"))
+    _keys(c["texts"]["constraint"], "texts.constraint", ("passed", "failed"))
     _keys(c["texts"]["questions"], "texts.questions",
           ("risk_profili", "acik_kisitlar", *SAFE_LEVEL_FIELDS, "reason"))
     _keys(c["texts"]["effect_labels"], "texts.effect_labels", tuple(c["constraint_effects"]))
