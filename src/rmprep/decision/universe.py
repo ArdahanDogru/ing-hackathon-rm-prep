@@ -57,13 +57,20 @@ class Candidate:
 
 @dataclass(frozen=True)
 class Universe:
-    candidates: tuple[Candidate, ...]   # the deposit (if any) first, then funds by option_id
+    candidates: tuple[Candidate, ...]   # deposit, time deposit (if any), funds by option_id
     removed_serbest: tuple[str, ...] = ()       # fund codes, sorted
     removed_no_entity: tuple[str, ...] = ()
     removed_unknown_kind: tuple[str, ...] = ()
     out_of_range: tuple[str, ...] = ()          # ids of out_of_range rows ignored, sorted
     market_rate: DataPoint | None = None        # EVDS deposit rate (benchmark only)
+    missing_time_deposit: str | None = None     # entity of a configured time deposit w/o row
     by_id: Mapping[str, Candidate] = field(default_factory=dict)
+
+
+def group_kind(option: ProductOption) -> str:
+    """Kind for the caps of the display order and the report groups: the
+    fund_kind of a fund, else the option kind (time_deposit is its own kind)."""
+    return option.fund_kind or option.kind
 
 
 def _tr_upper(s: str) -> str:
@@ -81,6 +88,18 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
         option = ProductOption(option_id=dep["option_id"], kind="deposit", label=dep["label"],
                                entity=rate.entity)
         candidates.append(Candidate(option, {dep["quantity"]: rate}))
+
+    missing_td = None
+    td = c.get("time_deposit")
+    if td is not None:
+        entity = f"{td['entity_prefix']}, {td['term']}, {td['tier']}"
+        rate = idx.get(td["quantity"], entity)
+        if rate is None:
+            missing_td = entity
+        else:
+            option = ProductOption(option_id=td["option_id"], kind="time_deposit",
+                                   label=f"{td['label']} ({td['term']})", entity=entity)
+            candidates.append(Candidate(option, {td["quantity"]: rate}))
 
     entities = {k: v for k, v in evidence.entities.items()
                 if v.source not in evidence.excluded_sources}
@@ -113,5 +132,6 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
         removed_unknown_kind=tuple(unknown),
         out_of_range=tuple(sorted(d.id for d in idx.rows if Flag.OUT_OF_RANGE in d.flags)),
         market_rate=idx.get("deposit_rate", dep["market_entity"]),
+        missing_time_deposit=missing_td,
         by_id={cand.option.option_id: cand for cand in candidates},
     )

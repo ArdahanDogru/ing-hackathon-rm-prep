@@ -1,7 +1,8 @@
 """Plain-text report of a DecisionResult for tuning (`python -m rmprep decide`).
 
 Grouped like the UI "Kısa liste" (docs/ui.md section 1): the deposit baseline,
-then at most 5 fund_kind groups from the first 20 funds of the display order,
+then at most 5 kind groups (fund_kind; the time deposit is its own kind) from
+the first 20 ranked options of the display order,
 ordered by the score of their best option; each group is its best option (with
 score parts) and its alternatives in score order.
 """
@@ -9,6 +10,7 @@ score parts) and its alternatives in score order.
 from __future__ import annotations
 
 from rmprep.contracts import DecisionResult, ScoredOption
+from rmprep.decision.universe import group_kind
 
 POOL = 20
 MAX_GROUPS = 5
@@ -20,11 +22,12 @@ def _by_score(o: ScoredOption) -> tuple[float, str]:
 
 
 def fund_groups(result: DecisionResult) -> list[tuple[str, list[ScoredOption]]]:
-    """[(fund_kind, options best first)], at most MAX_GROUPS, from the first POOL funds."""
+    """[(group_kind, options best first)], at most MAX_GROUPS, from the first POOL
+    ranked options (funds and the time deposit)."""
     pool = [o for o in result.options if o.option.kind != "deposit"][:POOL]
     groups: dict[str, list[ScoredOption]] = {}
     for o in pool:
-        groups.setdefault(o.option.fund_kind, []).append(o)
+        groups.setdefault(group_kind(o.option), []).append(o)
     ordered = [(kind, sorted(members, key=_by_score)) for kind, members in groups.items()]
     ordered.sort(key=lambda g: _by_score(g[1][0]))
     return ordered[:MAX_GROUPS]
@@ -32,7 +35,7 @@ def fund_groups(result: DecisionResult) -> list[tuple[str, list[ScoredOption]]]:
 
 def _head(prefix: str, o: ScoredOption) -> str:
     opt = o.option
-    kind = opt.fund_kind or opt.kind
+    kind = group_kind(opt)
     fx = " FX" if opt.fx else ""
     return (f"{prefix}{opt.label} ({opt.option_id}, {kind}{fx})  score {o.score:+.3f}  "
             f"confidence {o.confidence:.2f}  stability {o.stability:.2f}")

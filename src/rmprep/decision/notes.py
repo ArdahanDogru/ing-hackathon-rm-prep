@@ -15,7 +15,7 @@ from rmprep.contracts import (
 )
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.persona import Levels
-from rmprep.decision.universe import EvidenceIndex, Universe
+from rmprep.decision.universe import EvidenceIndex, Universe, group_kind
 
 # No source gives an FX deposit rate yet; a row of this quantity would.
 FX_DEPOSIT_QUANTITY = "fx_deposit_rate"
@@ -32,7 +32,7 @@ def build_warnings(options: Sequence[ScoredOption], levels: Levels,
     c = config.raw
     tpl = c["texts"]["warnings"]
     d = c["display"]
-    funds = [o for o in options if o.option.kind == "fund"]
+    funds = [o for o in options if o.option.kind != "deposit"]     # ranked options
     short = funds[:d["shortlist"]]
     first = funds[:d["first"]]
     out: list[DecisionWarning] = []
@@ -40,14 +40,14 @@ def build_warnings(options: Sequence[ScoredOption], levels: Levels,
     # concentration: with the greedy order a cap is broken only when it could not be met
     cap = d["diversity_cap"] if levels.diversity else d["cap"]
     for n, rows, limit in ((d["shortlist"], short, cap), (d["first"], first, d["first_cap"])):
-        counts = Counter(o.option.fund_kind for o in rows)
+        counts = Counter(group_kind(o.option) for o in rows)
         over = sorted((k, v) for k, v in counts.items() if v > limit)
         for kind, count in over:
             out.append(DecisionWarning(
                 code="concentration",
                 message=tpl["concentration"].format(n=n, kind=kind, count=count),
                 option_ids=tuple(o.option.option_id for o in rows
-                                 if o.option.fund_kind == kind)))
+                                 if group_kind(o.option) == kind)))
         if over:
             break
 
@@ -122,6 +122,11 @@ def build_notes(used_ids: frozenset[str], universe: Universe, evidence: Evidence
         out.append(DataQualityNote(
             message=tpl["out_of_range"].format(count=len(universe.out_of_range)),
             flags=(Flag.OUT_OF_RANGE.value,), evidence_ids=universe.out_of_range))
+    if universe.missing_time_deposit is not None:
+        td = config.raw["time_deposit"]
+        out.append(DataQualityNote(
+            message=tpl["time_deposit_missing"].format(entity=universe.missing_time_deposit),
+            sources=(td["source"],)))
     for key, codes in (("removed_serbest", universe.removed_serbest),
                        ("removed_no_entity", universe.removed_no_entity),
                        ("removed_unknown_kind", universe.removed_unknown_kind)):

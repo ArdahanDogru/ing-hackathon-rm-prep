@@ -15,9 +15,9 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from rmprep.contracts import ConstraintResult, DataPoint, ProductOption, RejectedOption
-from rmprep.decision.config import CRITERIA, PENALTY_RULES, DecisionConfig
+from rmprep.decision.config import CRITERIA, DEPOSIT_KINDS, PENALTY_RULES, DecisionConfig
 from rmprep.decision.persona import LEVEL_ATTR, Levels
-from rmprep.decision.universe import Candidate, Universe
+from rmprep.decision.universe import Candidate, Universe, group_kind
 
 RISK_MIN, RISK_MAX = 1, 7
 _RISK_Q = "fund_risk_level"
@@ -91,7 +91,7 @@ class Features:
 
 
 def _risk_of(cand: Candidate) -> int | None:
-    if cand.option.kind == "deposit":
+    if cand.option.kind in DEPOSIT_KINDS:
         return RISK_MIN
     row = cand.values.get(_RISK_Q)
     return None if row is None else int(round(row.value))
@@ -101,7 +101,7 @@ def _return_of(cand: Candidate, levels: Levels, config: DecisionConfig
                ) -> tuple[float | None, str | None, DataPoint | None]:
     """(annual return, period, row) of the horizon period or the next shorter one."""
     h = config.raw["horizon"]
-    if cand.option.kind == "deposit":
+    if cand.option.kind in DEPOSIT_KINDS:
         row = next(iter(cand.values.values()))
         return row.value / 100, "1y", row
     fallback = h["fallback"]
@@ -149,7 +149,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
     for cand, known in kept:
         opt = cand.option
         is_fund = opt.kind == "fund"
-        kind_row = c["kinds"][opt.fund_kind if is_fund else "deposit"]
+        kind_row = c["kinds"][group_kind(opt)]
         estimated = known is None
         risk = known_by_kind.get(opt.fund_kind, RISK_MAX) if estimated else known
         annual, period, ret_row = returns[opt.option_id]
@@ -163,7 +163,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             principal = max(0.0, pv["fund_base"] - pv["fund_step"] * (risk - 1))
         else:
             quality = 1.0
-            principal = pv["deposit"]
+            principal = pv.get(opt.kind, pv["deposit"])
         values = {
             "return": percentile_rank(annual, all_returns) if annual is not None else 0.0,
             "low_risk": 1 - (_clamp(risk, RISK_MIN, RISK_MAX) - 1) / 6,
@@ -276,7 +276,7 @@ class _Ranked(Protocol):
 @dataclass(frozen=True)
 class DisplayOrder:
     rows: tuple[Any, ...]                       # deposit first, then funds in display order
-    concentration: tuple[tuple[str, int], ...] = ()   # (fund_kind, count) over the cap
+    concentration: tuple[tuple[str, int], ...] = ()   # (group_kind, count) over the cap
     concentration_n: int = 0                    # 3 or 10: the range the counts are about
 
 
@@ -295,18 +295,18 @@ def display_order(rows: Sequence[_Ranked], *, diversity: bool,
         for r in list(remaining):
             if len(chosen) >= limit:
                 return
-            if counts[r.option.fund_kind] < per_kind:
+            if counts[group_kind(r.option)] < per_kind:
                 chosen.append(r)
-                counts[r.option.fund_kind] += 1
+                counts[group_kind(r.option)] += 1
                 remaining.remove(r)
         while remaining and len(chosen) < limit:     # caps leave places empty
             r = remaining.pop(0)
             chosen.append(r)
-            counts[r.option.fund_kind] += 1
+            counts[group_kind(r.option)] += 1
             filled[phase] = True
 
     take(d["first"], d["first_cap"], "first")
-    first_counts = Counter(r.option.fund_kind for r in chosen)
+    first_counts = Counter(group_kind(r.option) for r in chosen)
     take(d["shortlist"], cap, "shortlist")
 
     concentration: list[tuple[str, int]] = []
