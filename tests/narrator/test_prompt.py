@@ -8,6 +8,7 @@ from rmprep.narrator.prompt import (
     SCHEMA,
     build_request,
     parse_sections,
+    prompt_facts,
     sections_json,
     system_prompt,
 )
@@ -60,7 +61,7 @@ def test_request_carries_the_facts_and_the_task(config):
     f = _facts()
     req = build_request(f, "TR", config)
     facts_block, task = req.user_blocks
-    assert json.loads(facts_block) == f.to_dict()
+    assert json.loads(facts_block) == prompt_facts(f)
     assert "TR" in task
     assert req.schema == SCHEMA
     assert req.system == system_prompt("TR", config)

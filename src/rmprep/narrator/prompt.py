@@ -11,7 +11,7 @@ from collections.abc import Sequence
 
 from rmprep.contracts import NARRATIVE_SECTIONS, NarrativeSection, NarrativeSentence
 from rmprep.narrator.config import NarratorConfig
-from rmprep.narrator.facts import Facts
+from rmprep.narrator.facts import Facts, KeyNumber, OptionFacts
 from rmprep.narrator.llm import LlmRequest
 
 _SENTENCE = {
@@ -49,7 +49,7 @@ texts in the facts are Turkish; quote them as they are.
 Input: the facts pack (JSON) in the first user block. It is the only source. \
 "baseline" is the comparison deposit, "selected" are the options the RM chose, \
 "alternatives" are the other options of the same groups, "groups" says which is \
-which. Rejected options appear only as a count per rule.
+which. Rejected options appear only as a count per rule. Key numbers are "numbers": {{quantity: [value, unit, evidence_id]}}, with the date in "as_of" (a fourth item when a number has its own date); unit "pct" is a percent, "level" a risk level. A data-quality note has its message and the number of rows it concerns (evidence_count); cite the selected options for it.
 
 Output: JSON with exactly these sections, each a list of sentences; each sentence \
 has its text and its citations (option_ids: option_id values from the facts; \
@@ -101,9 +101,77 @@ def system_prompt(lang: str, config: NarratorConfig) -> str:
                           forbidden=forbidden, disclaimer=config.disclaimer[lang])
 
 
+ALTERNATIVE_NUMBERS = 3     # key numbers per alternative in the prompt pack
+SELECTED_NUMBERS = 6        # key numbers per selected option and the baseline
+MAIN_REASONS = 3            # largest score parts per selected option
+_ORDER = ("fund_return_1y", "deposit_rate", "fund_risk_level", "fund_return_3y",
+          "fund_return_5y", "fund_return_6m", "fund_return_3m", "fund_return_ytd",
+          "fund_return_1m")
+
+
+def _rank(n: KeyNumber) -> tuple[int, str]:
+    """1-year return (or the deposit rate), risk level, longer returns, the rest."""
+    q = n.quantity
+    return (_ORDER.index(q) if q in _ORDER else len(_ORDER), q)
+
+
+def _numbers(o: OptionFacts, limit: int) -> dict:
+    """{"as_of": date, "numbers": {quantity: [value, unit, evidence_id(, as_of)]}};
+    a number gets its own date only if it differs from the option's."""
+    chosen = sorted(o.numbers, key=_rank)[:limit]
+    if not chosen:
+        return {"numbers": {}}
+    day = chosen[0].as_of
+    return {"as_of": day.isoformat(),
+            "numbers": {n.quantity: [n.value, n.unit, n.evidence_id]
+                        + ([n.as_of.isoformat()] if n.as_of != day else []) for n in chosen}}
+
+
+def _option(o: OptionFacts) -> dict:
+    """A selected option or the baseline: what the text says about it."""
+    out = {"option_id": o.option_id, "label": o.label, "kind": o.kind, "fx": o.fx,
+           "confidence": o.confidence, "reasons": [r for _, _, r in o.reasons[:MAIN_REASONS]],
+           **_numbers(o, SELECTED_NUMBERS)}
+    if o.warnings:
+        out["warnings"] = list(o.warnings)
+    if o.rm_note:
+        out["rm_note"] = o.rm_note
+    return out
+
+
+def prompt_facts(f: Facts) -> dict:
+    """The facts pack as the LLM sees it (N8): only what the text needs. Data-
+    quality notes as text and a count (no id lists), alternatives with label,
+    kind, id and ALTERNATIVE_NUMBERS key numbers. Every number and id in it is
+    in the full Facts, which the validator checks against."""
+    return {
+        "run_id": f.run_id,
+        "client": {k: list(v) if isinstance(v, tuple) else v for k, v in f.client.items()},
+        "baseline": _option(f.baseline) if f.baseline else None,
+        "selected": [_option(o) for o in f.selected],
+        "alternatives": [{"option_id": o.option_id, "label": o.label, "kind": o.kind,
+                          "fx": o.fx, **_numbers(o, ALTERNATIVE_NUMBERS)}
+                         for o in f.alternatives],
+        "groups": [{"key": g.key, "selected": list(g.selected),
+                    "alternatives": list(g.alternatives)} for g in f.groups],
+        "warnings": [{"code": w.code, "message": w.message, "option_ids": list(w.option_ids),
+                      "numbers": {n.quantity: [n.value, n.unit, n.evidence_id, n.as_of.isoformat()]
+                                  for n in w.numbers[:ALTERNATIVE_NUMBERS]}}
+                     for w in f.warnings],
+        "data_quality": [{"message": n.message, "evidence_count": len(n.evidence_ids)}
+                         for n in f.data_quality],
+        "assumptions": list(f.assumptions),
+        "open_questions": list(f.open_questions),
+        "rm_note": f.rm_note,
+        "rejected": {"count": f.rejected_count, "rules": dict(f.rejected_rules)},
+    }
+
+
 def facts_block(f: Facts) -> str:
-    """The facts as stable JSON bytes (same facts -> same prompt cache prefix)."""
-    return json.dumps(f.to_dict(), ensure_ascii=False, sort_keys=True, indent=1)
+    """The prompt pack as stable, compact JSON bytes (same facts -> same prompt
+    cache prefix)."""
+    return json.dumps(prompt_facts(f), ensure_ascii=False, sort_keys=True,
+                      separators=(",", ":"))
 
 
 def build_request(f: Facts, lang: str, config: NarratorConfig, *, previous: str | None = None,

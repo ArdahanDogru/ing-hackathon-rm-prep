@@ -104,7 +104,8 @@ def _allowed(f: Facts) -> tuple[set[float], set[date]]:
     numbers.update(float(n) for n in (
         len(f.selected), len(f.alternatives), len(f.groups), len(f.warnings),
         len(f.data_quality), len(f.open_questions), len(f.assumptions), len(f.named_options()),
-        len(c["oncelikler"]), len(c["acik_kisitlar"])))
+        len(c["oncelikler"]), len(c["acik_kisitlar"]),
+        *(len(n.evidence_ids) for n in f.data_quality)))     # evidence_count of the prompt pack
     numbers.update(float(d.year) for d in dates)
     return numbers, dates
 
