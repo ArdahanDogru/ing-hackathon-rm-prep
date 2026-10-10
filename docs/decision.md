@@ -147,6 +147,18 @@ effect id and the reason shown to the RM in "Elenenler":
   The soft preferences (the FX level of `doviz_maruz_kalma_tercihi`, the
   liquidity level) stay penalties.
 
+D13 as built (2026-10-10): the question `q:override:fx_limit` (non-blocking,
+`about` = the constraint text) comes from `read_persona`, so its answer is
+checked like any answer; no answer or "uygula" → the rule applies. An answered
+unknown constraint with effect `fx_limit` or `liquidity_need` is enforced the
+same way. Failed rules in the order `not_buyable`, `risk_ceiling`, then the
+constraint rules in the order of `acik_kisitlar`. Scored options carry passed
+entries only for `not_buyable` and `risk_ceiling`. `fx_limit` has no evidence
+ids (the tag comes from the fund name); `liquidity_need` cites the valör row or
+the time deposit rate row. The valör note counts only listed funds. Real
+snapshot: P02 14 FX funds rejected (override question open); P05 2 funds
+rejected by `liquidity_need`, the 32-day e-Vadeli kept.
+
 ## 3. Persona text → levels
 
 **Matching.** Normalize: Turkish lower case (`İ`→`i`, `I`→`ı`, then

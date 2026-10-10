@@ -135,6 +135,13 @@ kinds:   # liquidity / income / simplicity values (0..1)
 
 underperformance: {scale: 0.20}   # D10: B = EVDS market deposit rate net of the deposit stopaj
 long_horizon: {period: 3y, liquidity_factor: 0.5, return_add: 1.0}   # D9: horizon 3+ years
+constraint_rules:                # D13: explicit constraints as hard rules (needs fund_detail)
+  fx_limit:
+    override_choices: ["uygula", "gerekçeyle kaldır"]
+    override_lifts: "gerekçeyle kaldır"
+  liquidity_need:
+    max_sell_valor_days: 3
+    max_lock_days: 91
 fund_detail:                     # D12: TEFAS fund detail rows (ingest I3/I3b)
   buyable_quantity: fund_buyable           # 0 -> hard rule not_buyable
   sell_valor_quantity: fund_sell_valor_days
@@ -221,11 +228,16 @@ texts:
     return_missing: "Getiri verisi yok ({period} ve daha kısa dönemler)."
     "penalty:fund_size": "Fon küçük ({size_m:.0f} milyon TL, {investors:.0f} yatırımcı)."
   constraint:
+    fx_limit: "Döviz fonu; müşterinin açık kısıtı: döviz maruziyetini gerekçesiz artırmama."
+    liquidity_need_valor: "Satış valörü {valor:.0f} gün, üst sınır {max_days} gün (müşterinin açık kısıtı: düşük likiditeden kaçınma)."
+    liquidity_need_lock: "Vade {days} gün, üst sınır {max_days} gün (müşterinin açık kısıtı: uzun süre kilitlenmekten kaçınma)."
     not_buyable: "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
     buyable: "TEFAS'ta alıma açık."
     passed: "Risk değeri {risk}, müşterinin tavanı {ceiling} içinde."
     failed: "Risk değeri {risk}, müşterinin risk tavanı {ceiling} üzerinde."
   questions:
+    override_fx_limit: "Döviz fonları müşterinin açık kısıtı nedeniyle elendi. Kısıt gerekçeyle kaldırılsın mı?"
+    override_reason: "Kısıt \"gerekçesiz\" diyor; RM gerekçe yazarak kaldırabilir."
     risk_profili: "Müşterinin risk profili nedir?"
     acik_kisitlar: "Bu kısıt nasıl uygulanmalı: \"{text}\"?"
     yatirim_ufku: "Yatırım ufku hangi döneme karşılık geliyor?"
@@ -242,6 +254,7 @@ texts:
     liquidity_need: "Yüksek likidite iste"
     ignore: "Dikkate alma"
   assumptions:
+    fx_override: "RM döviz fonları kısıtını gerekçeyle kaldırdı (gerekçe RM notunda); döviz fonları ceza ile listede."
     kind_proxy_valor: "Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi."
     real_return_cpi: "Getiriler stopaj sonrası ve yıllık TÜFE'ye (%{cpi:.2f}, {cpi_date}) göre reel olarak hesaplandı."
     real_return_no_cpi: "Yıllık TÜFE verisi yok; getiriler stopaj sonrası nominal olarak hesaplandı."
@@ -264,6 +277,7 @@ texts:
     deposit_vs_market: "ING standart mevduat oranı (%{ing:.2f}) piyasa ortalamasının (%{market:.2f}) {diff:.1f} puan altında."
     no_fx_deposit_data: "Döviz mevduatı oranı kanıtlarda yok; döviz mevduatı karşılaştırılamadı."
   data_quality:
+    valor_missing: "{count} fonun satış valörü kanıtlarda yok; likidite kısıtı bu fonlara uygulanamadı."
     buyable_missing: "{count} fonun TEFAS alım durumu kanıtlarda yok; bu fonlar alıma açık sayıldı."
     benchmark_missing: "Piyasa mevduat ortalaması ({entity}) kanıtlarda yok; düşük getiri cezası hesaplanmadı."
     cpi_missing: "Yıllık TÜFE ({entity}) kanıtlarda yok; reel getiri ve reel kayıp cezası hesaplanmadı."
