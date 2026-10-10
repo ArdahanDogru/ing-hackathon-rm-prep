@@ -145,6 +145,7 @@ confidence:
   shorter_period: 0.8
 stability:
   step: 0.2             # each weight / penalty max x (1 - step) and x (1 + step)
+  size: 20              # positions 1..size count as "in" (= the UI pool of 20, docs/ui.md)
 
 # --- 6. Warnings -----------------------------------------------------------------------
 warnings:

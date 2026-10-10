@@ -274,8 +274,9 @@ fund with unknown risk 0.63, deposit 0.9.
 **`stability`**: compute the display order again 26 times; each time one number
 is ×0.8 or ×1.2: one of the 7 raw weights (then normalize again) or one of the 6
 penalty maxima. `stability` = share of these runs in which the option is in
-positions 1–10 (the deposit baseline counts as always in). Step (0.2) and size
-(10) are in the config.
+positions 1–20 (the deposit baseline counts as always in). Step (0.2) and size
+(`stability.size`, 20 = the grouped UI pool; changed 2026-10-10 from 10, D7b)
+are in the config.
 
 ## 6. Warnings and data-quality notes
 
