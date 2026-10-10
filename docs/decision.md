@@ -104,6 +104,15 @@ Every other rule is a penalty (section 4). A fund with no risk level is not
 rejected (penalty `risk_unknown`). The deposit counts as risk level 1.
 A scored option carries `ConstraintResult(rule_id="risk_ceiling", passed=True)`.
 
+D12 (proposed 2026-10-10, waits for the user): a second hard rule.
+
+- `not_buyable`: the fund's latest `fund_buyable` row (ingest I3b) is 0 — the
+  fund does not trade on TEFAS or is closed for purchase, so an ING client cannot
+  buy it → `RejectedOption` with `ConstraintResult(rule_id="not_buyable",
+  passed=False, reason=..., evidence_ids=(status row,))`. The first live run
+  (279 pages) had 65 such funds. A missing row → no rejection; one data-quality
+  note with the count. Checked before `risk_ceiling`; a fund can fail both.
+
 ## 3. Persona text → levels
 
 **Matching.** Normalize: Turkish lower case (`İ`→`i`, `I`→`ı`, then
@@ -441,6 +450,7 @@ funds, with `entities`).
 | D9 | real return after tax (4.1b): config section `real_return` (OPTIONAL in the checks until the lead adds it; without it the old nominal behaviour stays), `time_deposit.term_days`, penalty `real_loss`, `long_horizon`, deposit quality value from config (`quality_value.deposit`, `quality_value.time_deposit`), new texts (reason for `return` with R/N/r, `penalty:real_loss`, assumptions, data-quality notes for missing CPI / stopaj) | hand-computed N and r for deposit, time deposit (compounding), fund; Turuncu 23 % / stopaj 17.5 % / CPI 29.73 % → r = −8.3 % and penalty 0.3 × level × 0.83; missing CPI / stopaj cases; long-horizon weights; P01–P05 valid on hand-made evidence with the new rows |
 | D10 | penalty `underperformance` (4.3) and the positions 11–20 cap with diversity (4.5); config OPTIONAL until the lead adds it: `penalties.underperformance` (0.3), `underperformance: {scale: 0.20}`, `display.pool` (20), `display.diversity_pool_cap` (4); texts `penalty:underperformance`, data-quality note for a missing benchmark | hand-computed penalty (fund 10 % for P03 → 0.3; P02 → 0.2; Muhafazakâr → 0); missing benchmark; with diversity no kind has more than 4 options in 1–20, without diversity the order does not change; stability counts the new penalty |
 | D11 | use `rmprep.grouping` (4.6): `report.render` groups with `grouping.groups`; the kind caps of 4.5 count by `grouping.group_key`; remove `report.fund_groups` and the local constants | report output unchanged on the real snapshot; tests import the shared rule |
+| D12 | (a) hard rule `not_buyable` (section 2); (b) `liquidity` of a fund from its sell valör (`fund_sell_valor_days`) through a config table (start: 0 days 1.0, 1 → 0.9, 2 → 0.8, 3 → 0.7, 4–5 → 0.6, 6–10 → 0.4, more → 0.2), the kind table only when the row is missing (reason says which); (c) entry and exit fees (`fund_entry_fee`, `fund_exit_fee`, %) reduce the net return N by (entry + exit) / horizon years (6m 0.5, 1y 1, 3y 3); reason texts for valör and fees; all config OPTIONAL until the lead adds it | rejected with the rule and the row id; missing status → note; valör table values and the kind fallback; fee effect hand-computed; P01–P05 valid |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]
