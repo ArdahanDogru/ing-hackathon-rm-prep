@@ -1,0 +1,109 @@
+"""Summary card ("Görüşme kartı") of an approved run (docs/ui.md section 3), as
+Markdown and as stand-alone HTML (print to PDF in the browser). Both are built
+from one list of sections, so they always hold the same content."""
+
+from __future__ import annotations
+
+import dataclasses
+import html
+from dataclasses import dataclass, field
+
+from rmprep.contracts import DecisionResult, EvidenceSet, RmStatus
+from rmprep.ui import views
+from rmprep.ui.i18n import t
+
+
+@dataclass(frozen=True)
+class _Item:
+    text: str
+    sub: tuple[str, ...] = ()
+    strong: bool = False
+
+
+@dataclass(frozen=True)
+class _Section:
+    heading: str
+    items: list[_Item] = field(default_factory=list)
+
+
+def _sections(r: DecisionResult, ev: EvidenceSet, lang: str) -> list[_Section]:
+    if r.rm_status != RmStatus.APPROVED:
+        raise ValueError("only an approved run has a card")
+    p = r.persona
+    client = _Section(t("card_client", lang))
+    for f in dataclasses.fields(p):
+        v = getattr(p, f.name)
+        if f.name in views.LIST_FIELDS:
+            v = ", ".join(v) if v else "—"
+        if v != "":
+            client.items.append(_Item(f"{t('f_' + f.name, lang)}: {v}"))
+
+    warned = views.warned(r)
+    options = _Section(t("card_options", lang))
+    for pos, o in enumerate(r.options):
+        oid = o.option.option_id
+        if oid not in r.rm_selected:
+            continue
+        head = [o.option.label, views.kind_label(o, lang)] + (["FX"] if o.option.fx else [])
+        sub = [f"{t('score', lang)} {o.score:.2f} · {t('confidence', lang)} {o.confidence:.2f} · "
+               f"{t('stability', lang)} {o.stability:.2f}"]
+        sub += [f"{b['part']} ({b['value']:+.3f}): {b['reason']}" for b in views.main_parts(o, lang)]
+        sub += [f"⚠ {w.code}: {w.message}" for w in warned.get(oid, [])]
+        if r.rm_option_notes.get(oid):
+            sub.append(f"{t('card_rm_note', lang)}: {r.rm_option_notes[oid]}")
+        options.items.append(_Item(" · ".join(head), tuple(sub), strong=True))
+
+    out = [client, options]
+    general = [w for w in r.warnings if not w.option_ids]
+    if general:
+        out.append(_Section(t("card_general_warnings", lang),
+                            [_Item(f"⚠ {w.code}: {w.message}") for w in general]))
+    if r.data_quality:
+        out.append(_Section(t("data_quality", lang), [_Item(n.message) for n in r.data_quality]))
+    if r.assumptions:
+        out.append(_Section(t("assumptions", lang), [_Item(a) for a in r.assumptions]))
+    out.append(_Section(t("card_sources", lang), [_Item(c) for c in views.citations(r, ev, lang)]))
+    if r.rm_note:
+        out.append(_Section(t("card_rm_note", lang), [_Item(r.rm_note)]))
+    return out
+
+
+def _title(r: DecisionResult, lang: str) -> str:
+    return f"{t('card_title', lang)}: {r.persona_id} · {r.persona.profil}"
+
+
+def _meta(r: DecisionResult, lang: str) -> str:
+    return t("card_meta", lang, run_id=r.run_id, snapshot=r.snapshot_id,
+             created=r.created_at.strftime("%Y-%m-%d %H:%M"))
+
+
+def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR") -> str:
+    lines = [f"# {_title(r, lang)}", "", _meta(r, lang)]
+    for s in _sections(r, evidence, lang):
+        lines += ["", f"## {s.heading}", ""]
+        for it in s.items:
+            lines.append(f"- **{it.text}**" if it.strong else f"- {it.text}")
+            lines += [f"  - {x}" for x in it.sub]
+    return "\n".join(lines) + "\n"
+
+
+_CSS = """body{font-family:system-ui,sans-serif;max-width:48rem;margin:2rem auto;color:#1a1a19;
+line-height:1.45}h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:1.5rem;
+border-bottom:1px solid #d6d5d0}.meta{color:#5c5b56}li{margin:.15rem 0}
+@media print{body{margin:0}}"""
+
+
+def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR") -> str:
+    e = html.escape
+    parts = ["<!DOCTYPE html>", f'<html lang="{lang.lower()}"><head><meta charset="utf-8">',
+             f"<title>{e(_title(r, lang))}</title><style>{_CSS}</style></head><body>",
+             f"<h1>{e(_title(r, lang))}</h1>", f'<p class="meta">{e(_meta(r, lang))}</p>']
+    for s in _sections(r, evidence, lang):
+        parts.append(f"<h2>{e(s.heading)}</h2><ul>")
+        for it in s.items:
+            text = f"<strong>{e(it.text)}</strong>" if it.strong else e(it.text)
+            sub = "".join(f"<li>{e(x)}</li>" for x in it.sub)
+            parts.append(f"<li>{text}{f'<ul>{sub}</ul>' if sub else ''}</li>")
+        parts.append("</ul>")
+    parts.append("</body></html>")
+    return "\n".join(parts) + "\n"
