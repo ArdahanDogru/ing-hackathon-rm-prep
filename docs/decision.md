@@ -222,6 +222,19 @@ the real return after tax, and a negative real return is penalized.
   plus the stopaj assumption for equity funds and "32 günlük vade her ay
   yenilenir; oranlar değişebilir".
 
+Details fixed in D9 (2026-10-10):
+
+- No stopaj on a loss: if R ≤ 0 then N = R.
+- The CPI and stopaj rows used are in the option's `evidence_ids`; they are
+  `manual_entry`, so `confidence` is at most 0.9.
+- `score_parts` order of penalties: `real_loss` before `fund_size`.
+- Assumptions with `real_return`: past returns, `real_return_cpi` (or
+  `real_return_no_cpi`), deposit tier, kind proxy, `stopaj_equity`,
+  `time_deposit_renewal` (only if `term_days` is set).
+- Tests: the shared `config` fixture is the project config without the D9
+  additions (`tests/decision/conftest.py`), so the hand-computed D1–D8 values
+  stay; the D9 tests use `d9_config`.
+
 ### 4.2 Weights
 
 Raw weights from the levels of section 3, plus `priority_boost` (1) for each
@@ -310,9 +323,9 @@ each estimate.
 A row with several flags takes its lowest factor. Today: typical fund 0.9,
 fund with unknown risk 0.63, deposit 0.9.
 
-**`stability`**: compute the display order again 26 times; each time one number
-is ×0.8 or ×1.2: one of the 7 raw weights (then normalize again) or one of the 6
-penalty maxima. `stability` = share of these runs in which the option is in
+**`stability`**: compute the display order again 28 times (26 before D9); each
+time one number is ×0.8 or ×1.2: one of the 7 raw weights (then normalize again)
+or one of the 7 penalty maxima. `stability` = share of these runs in which the option is in
 positions 1–20 (the deposit baseline counts as always in). Step (0.2) and size
 (`stability.size`, 20 = the grouped UI pool; changed 2026-10-10 from 10, D7b)
 are in the config.
