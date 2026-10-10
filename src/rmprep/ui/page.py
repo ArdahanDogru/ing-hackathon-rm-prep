@@ -20,10 +20,13 @@ from rmprep.contracts import (
     DecisionResult,
     DecisionState,
     EvidenceSet,
+    NarrativeDraft,
+    NarrativeStatus,
     Persona,
     RmStatus,
     ScoredOption,
 )
+from rmprep.narrator import template
 from rmprep.ui import card, views
 from rmprep.ui.fake import FakeBackend
 from rmprep.ui.i18n import LANGS, t
@@ -495,7 +498,8 @@ def _approve(run_id: str, option_ids: tuple[str, ...]) -> None:
 
 def _save_card(r: DecisionResult) -> None:
     ss = st.session_state
-    md = card.render_markdown(r, ss["evidence"][1], _lang())
+    lang = _lang()
+    md = card.render_markdown(r, ss["evidence"][1], lang, _approved_narrative(r.run_id, lang))
     ss["card_saved"] = (r.run_id, ss["backend"].save_card(r.run_id, md))
 
 
@@ -550,11 +554,13 @@ def _rm_bar(r: DecisionResult, original: Persona, lang: str) -> None:
 def _card(r: DecisionResult, lang: str) -> None:
     """The summary card of an approved run, its downloads and its notes."""
     ev = st.session_state["evidence"][1]
+    narrative = _approved_narrative(r.run_id, lang)
+    md = card.render_markdown(r, ev, lang, narrative)
     with st.container(border=True):
-        st.markdown(card.render_markdown(r, ev, lang))
-    st.download_button(t("dl_md", lang), card.render_markdown(r, ev, lang),
-                       file_name=f"{r.run_id}.md", mime="text/markdown", key="dl_md")
-    st.download_button(t("dl_html", lang), card.render_html(r, ev, lang),
+        st.markdown(md)
+    st.download_button(t("dl_md", lang), md, file_name=f"{r.run_id}.md", mime="text/markdown",
+                       key="dl_md")
+    st.download_button(t("dl_html", lang), card.render_html(r, ev, lang, narrative),
                        file_name=f"{r.run_id}.html", mime="text/html", key="dl_html")
     _default(f"card_note:{r.run_id}", r.rm_note)
     st.text_area(t("card_note", lang), key=f"card_note:{r.run_id}")
@@ -567,6 +573,74 @@ def _card(r: DecisionResult, lang: str) -> None:
     saved = st.session_state.get("card_saved")
     if saved and saved[0] == r.run_id:
         st.caption(t("card_saved", lang, where=saved[1]))
+
+
+# --- main: meeting text (narrator, contract v1.2) --------------------------------------
+
+def _narratives() -> dict:
+    """(run_id, lang) -> the NarrativeDraft of this session: one per language, made
+    when that language is first opened (an LLM call costs money)."""
+    return st.session_state.setdefault("narratives", {})
+
+
+def _approved_narrative(run_id: str, lang: str) -> NarrativeDraft | None:
+    d = _narratives().get((run_id, lang))
+    return d if d is not None and d.status == NarrativeStatus.APPROVED else None
+
+
+def _text_key(run_id: str, lang: str) -> str:
+    return f"nar_text:{run_id}:{lang}"
+
+
+def _approve_text(run_id: str, lang: str) -> None:
+    ss = st.session_state
+    text = ss.get(_text_key(run_id, lang), "")
+    if not text.strip():
+        ss["nar_error"] = (run_id, lang)
+        return
+    _narratives()[(run_id, lang)] = ss["backend"].approve_narrative(run_id, lang, text)
+    _save_card(ss["result"])
+
+
+def _meeting_text(backend: Backend, r: DecisionResult, original: Persona, lang: str) -> None:
+    """ "Görüşme metni": the narrator draft of an approved run that is not a test
+    run; the RM edits it and approves it (docs/narrator.md, "Human control")."""
+    if r.rm_status != RmStatus.APPROVED or r.persona != original:
+        return
+    st.divider()
+    st.subheader(t("nar_title", lang))
+    key = (r.run_id, lang)
+    if key not in _narratives():
+        try:
+            with st.spinner(t("nar_wait", lang)):
+                _narratives()[key] = backend.draft_narrative(r.run_id, lang)
+        except Exception as e:   # the backend's narrator: API, budget, config
+            st.error(t("nar_error", lang, error=e))
+            return
+    d = _narratives()[key]
+    note = template.banner(d)
+    if note:
+        st.warning(note)
+    labels = {o.option.option_id: o.option.label for o in r.options}
+    for i, sec in enumerate(d.sections):
+        st.markdown(f"**{template.HEADINGS[sec.key][lang]}**")
+        for j, s in enumerate(sec.sentences):
+            st.markdown(f"- {s.text}")
+            if s.option_ids:
+                names = ", ".join(labels.get(o, o) for o in s.option_ids)
+                st.caption(t("nar_options", lang, labels=names))
+            _evidence_button(s.evidence_ids, f"ev:nar:{lang}:{i}:{j}", r, lang)
+    _default(_text_key(r.run_id, lang),
+             d.rm_text if d.status == NarrativeStatus.APPROVED else template.to_markdown(d))
+    st.text_area(t("nar_edit", lang), key=_text_key(r.run_id, lang), height=320)
+    if st.session_state.pop("nar_error", None) == key:
+        st.error(t("nar_empty", lang))
+    st.button(t("nar_approve", lang), key="nar_approve", type="primary", on_click=_approve_text,
+              args=(r.run_id, lang))
+    if d.status == NarrativeStatus.APPROVED:
+        st.success(t("nar_approved", lang))
+    st.caption(t("nar_meta", lang, source=d.source, model=d.model or "—", cost=f"{d.cost_usd:.4f}",
+                 version=d.prompt_version, status=t("nar_status_" + d.status.value, lang)))
 
 
 # --- right pane ---------------------------------------------------------------------
@@ -627,6 +701,7 @@ def main() -> None:
         _questions(result, lang)
         _tabs(result, ev, lang)
         _rm_bar(result, original, lang)
+        _meeting_text(backend, result, original, lang)
         st.divider()
         for c in views.citations(result, ev, lang):
             st.caption(c)

@@ -1,6 +1,8 @@
 """Summary card ("Görüşme kartı") of an approved run (docs/ui.md section 3), as
 Markdown and as stand-alone HTML (print to PDF in the browser). Both are built
-from one list of sections, so they always hold the same content."""
+from one list of sections, so they always hold the same content. The RM-approved
+meeting text (NarrativeDraft.rm_text, contract v1.2) of the card language is
+added at the end."""
 
 from __future__ import annotations
 
@@ -8,7 +10,13 @@ import dataclasses
 import html
 from dataclasses import dataclass, field
 
-from rmprep.contracts import DecisionResult, EvidenceSet, RmStatus
+from rmprep.contracts import (
+    DecisionResult,
+    EvidenceSet,
+    NarrativeDraft,
+    NarrativeStatus,
+    RmStatus,
+)
 from rmprep.ui import views
 from rmprep.ui.i18n import t
 
@@ -77,23 +85,42 @@ def _meta(r: DecisionResult, lang: str) -> str:
              created=r.created_at.strftime("%Y-%m-%d %H:%M"))
 
 
-def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR") -> str:
+def _narrative_text(r: DecisionResult, narrative: NarrativeDraft | None, lang: str) -> str | None:
+    """The RM-approved meeting text of this run and language, else None."""
+    if (narrative is None or narrative.status != NarrativeStatus.APPROVED
+            or narrative.lang != lang or narrative.run_id != r.run_id):
+        return None
+    return narrative.rm_text
+
+
+def _demoted(markdown: str) -> str:
+    """Headings two levels down, so the text sits under the card's "##" heading."""
+    return "\n".join("##" + x if x.startswith("#") else x for x in markdown.splitlines())
+
+
+def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
+                    narrative: NarrativeDraft | None = None) -> str:
     lines = [f"# {_title(r, lang)}", "", _meta(r, lang)]
     for s in _sections(r, evidence, lang):
         lines += ["", f"## {s.heading}", ""]
         for it in s.items:
             lines.append(f"- **{it.text}**" if it.strong else f"- {it.text}")
             lines += [f"  - {x}" for x in it.sub]
+    text = _narrative_text(r, narrative, lang)
+    if text is not None:
+        lines += ["", f"## {t('nar_title', lang)}", "", _demoted(text.strip())]
     return "\n".join(lines) + "\n"
 
 
 _CSS = """body{font-family:system-ui,sans-serif;max-width:48rem;margin:2rem auto;color:#1a1a19;
 line-height:1.45}h1{font-size:1.4rem}h2{font-size:1.1rem;margin-top:1.5rem;
 border-bottom:1px solid #d6d5d0}.meta{color:#5c5b56}li{margin:.15rem 0}
+.narrative{white-space:pre-wrap;font-family:inherit;margin:0}
 @media print{body{margin:0}}"""
 
 
-def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR") -> str:
+def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
+                narrative: NarrativeDraft | None = None) -> str:
     e = html.escape
     parts = ["<!DOCTYPE html>", f'<html lang="{lang.lower()}"><head><meta charset="utf-8">',
              f"<title>{e(_title(r, lang))}</title><style>{_CSS}</style></head><body>",
@@ -105,5 +132,8 @@ def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR") -> s
             sub = "".join(f"<li>{e(x)}</li>" for x in it.sub)
             parts.append(f"<li>{text}{f'<ul>{sub}</ul>' if sub else ''}</li>")
         parts.append("</ul>")
+    text = _narrative_text(r, narrative, lang)
+    if text is not None:   # the RM's Markdown as written (no converter: no new dependency)
+        parts.append(f'<h2>{e(t("nar_title", lang))}</h2><pre class="narrative">{e(text)}</pre>')
     parts.append("</body></html>")
     return "\n".join(parts) + "\n"

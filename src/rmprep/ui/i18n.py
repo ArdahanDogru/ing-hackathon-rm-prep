@@ -128,6 +128,23 @@ LABELS: dict[str, dict[str, str]] = {
     "lang": {"TR": "Dil", "EN": "Language"},
     "en_footer": {"TR": "İngilizce etiketler resmî bir TCMB çevirisi değildir (EVDS terimleri).",
                   "EN": "The English labels are not an official TCMB translation (EVDS terms)."},
+    # meeting text (narrator, contract v1.2)
+    "nar_title": {"TR": "Görüşme metni", "EN": "Meeting text"},
+    "nar_wait": {"TR": "Görüşme metni hazırlanıyor…", "EN": "Preparing the meeting text…"},
+    "nar_error": {"TR": "Görüşme metni hazırlanamadı: {error}",
+                  "EN": "The meeting text could not be prepared: {error}"},
+    "nar_options": {"TR": "Seçenekler: {labels}", "EN": "Options: {labels}"},
+    "nar_edit": {"TR": "Metni düzenleyin (Markdown)", "EN": "Edit the text (Markdown)"},
+    "nar_approve": {"TR": "Metni onayla", "EN": "Approve text"},
+    "nar_approved": {"TR": "Metin onaylandı; kartta yer alıyor.",
+                     "EN": "Text approved; it is on the card."},
+    "nar_empty": {"TR": "Onay için metin boş olamaz.", "EN": "The text to approve cannot be empty."},
+    "nar_meta": {"TR": "Kaynak: {source} · model: {model} · maliyet: ${cost} · istem: {version}"
+                       " · durum: {status}",
+                 "EN": "Source: {source} · model: {model} · cost: ${cost} · prompt: {version}"
+                       " · status: {status}"},
+    "nar_status_draft": {"TR": "taslak", "EN": "draft"},
+    "nar_status_approved": {"TR": "onaylandı", "EN": "approved"},
     # score parts (criteria of config/decision.yaml)
     "p_return": {"TR": "Getiri", "EN": "Return"},
     "p_low_risk": {"TR": "Düşük risk", "EN": "Low risk"},
