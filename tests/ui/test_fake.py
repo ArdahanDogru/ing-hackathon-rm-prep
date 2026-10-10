@@ -12,7 +12,7 @@ def _persona(fake, pid):
 
 def test_fake_has_every_backend_method_with_the_same_signature(fake):
     names = [n for n, _ in inspect.getmembers(Backend, inspect.isfunction) if not n.startswith("_")]
-    assert len(names) == 8
+    assert len(names) == 10
     for name in names:
         expected = list(inspect.signature(getattr(Backend, name)).parameters)[1:]
         assert list(inspect.signature(getattr(fake, name)).parameters) == expected, name
@@ -146,3 +146,76 @@ def test_given_results_replace_the_fixture_of_their_persona(fake):
     other = FakeBackend(CONTRACT_FIX, results=[short])
     assert other.decide(_persona(other, "P02"), SNAPSHOT).options == keep
     assert other.decide(_persona(other, "P03"), SNAPSHOT).persona_id == "P03"
+
+
+# --- narrator (contract v1.2) -------------------------------------------------
+
+def _approved_run(fake):
+    r = fake.decide(_persona(fake, "P02"), SNAPSHOT)
+    fx = next(o for o in r.options if o.option.fx).option.option_id
+    return fake.approve(r.run_id, RmStatus.APPROVED, "ok", (r.options[1].option.option_id, fx))
+
+
+def test_draft_narrative_is_a_template_draft_of_the_approved_run(fake):
+    from rmprep.contracts import NARRATIVE_SECTIONS, NarrativeStatus
+
+    r = _approved_run(fake)
+    d = fake.draft_narrative(r.run_id)
+    assert (d.run_id, d.lang, d.source, d.model, d.prompt_version) == (r.run_id, "TR", "template", "",
+                                                                       "fake")
+    assert d.status == NarrativeStatus.DRAFT and d.checks == () and d.rm_text == ""
+    assert [s.key for s in d.sections] == list(NARRATIVE_SECTIONS)
+    assert all(s.sentences and all(x.text.strip() for x in s.sentences) for s in d.sections)
+    oneriler = next(s for s in d.sections if s.key == "oneriler")
+    assert {i for x in oneriler.sentences for i in x.option_ids} == set(r.rm_selected)
+    scored = {o.option.option_id for o in r.options}
+    assert {i for s in d.sections for x in s.sentences for i in x.option_ids} <= scored
+    ev = {dp.id for dp in fake.evidence(SNAPSHOT).datapoints}
+    assert {i for s in d.sections for x in s.sentences for i in x.evidence_ids} <= ev
+
+
+def test_draft_narrative_is_cached_per_run_and_language(fake):
+    r = _approved_run(fake)
+    tr = fake.draft_narrative(r.run_id)
+    assert fake.draft_narrative(r.run_id, "TR") is tr
+    en = fake.draft_narrative(r.run_id, "EN")
+    assert en.lang == "EN" and en is not tr and en.sections != tr.sections
+
+
+def test_draft_narrative_needs_an_approved_run(fake):
+    r = fake.decide(_persona(fake, "P02"), SNAPSHOT)
+    with pytest.raises(ValueError):
+        fake.draft_narrative(r.run_id)
+    rej = fake.approve(r.run_id, RmStatus.REJECTED, "hayır")
+    with pytest.raises(ValueError):
+        fake.draft_narrative(rej.run_id)
+    with pytest.raises(KeyError):
+        fake.draft_narrative("Rnope")
+
+
+def test_draft_narrative_rejects_an_unknown_language(fake):
+    r = _approved_run(fake)
+    with pytest.raises(ValueError):
+        fake.draft_narrative(r.run_id, "DE")
+
+
+def test_approve_narrative_stores_the_rm_text(fake):
+    from rmprep.contracts import NarrativeStatus
+
+    r = _approved_run(fake)
+    draft = fake.draft_narrative(r.run_id)
+    text = "# Metin\nRM yazdı"
+    a = fake.approve_narrative(r.run_id, "TR", text)
+    assert a.status == NarrativeStatus.APPROVED and a.rm_text == text
+    assert a.sections == draft.sections
+    assert fake.draft_narrative(r.run_id, "TR") == a
+    assert fake.draft_narrative(r.run_id, "EN").status == NarrativeStatus.DRAFT
+
+
+def test_approve_narrative_needs_text_and_an_approved_run(fake):
+    r = _approved_run(fake)
+    with pytest.raises(ValueError):
+        fake.approve_narrative(r.run_id, "TR", "  ")
+    pending = fake.decide(_persona(fake, "P03"), SNAPSHOT)
+    with pytest.raises(ValueError):
+        fake.approve_narrative(pending.run_id, "TR", "metin")
