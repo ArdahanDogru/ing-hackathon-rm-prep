@@ -178,5 +178,6 @@ def test_normalize_header_pairs(a, b):
 # --- manual ------------------------------------------------------------------------------
 
 def test_manual_unknown_allowed_quantity_rejected(raw):
-    raw["sources"]["manual"]["allowed_quantities"].append("gold_price")
-    assert "allowed_quantities[2]" in _error(raw)
+    allowed = raw["sources"]["manual"]["allowed_quantities"]
+    allowed.append("gold_price")
+    assert f"allowed_quantities[{len(allowed) - 1}]" in _error(raw)

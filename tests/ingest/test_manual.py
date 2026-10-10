@@ -34,7 +34,8 @@ def test_bad_rows_rejected_with_reasons(tmp_path, cfg, inbox):
     assert reasons == {
         4: "missing source_url",
         5: "missing as_of",
-        6: "quantity 'gold_price' not allowed (allowed: ['deposit_rate', 'withholding_tax_rate'])",
+        6: f"quantity 'gold_price' not allowed "
+           f"(allowed: {list(cfg.sources['manual'].allowed_quantities)})",
         7: "bad value 'abc'",
         8: "unit 'TRY' does not match quantity unit 'pct'",
     }
