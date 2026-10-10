@@ -83,6 +83,39 @@ def penalty_maxima(config: DecisionConfig) -> dict[str, float]:
     return {r: float(p[r]) for r in rules}
 
 
+def _constraint_rules(cand: Candidate, levels: Levels,
+                      config: DecisionConfig) -> list[ConstraintResult]:
+    """Failed explicit-constraint rules of an option (D13), in the order of
+    levels.hard_rules. Missing valör or term -> not rejected."""
+    c = config.raw
+    texts = c["texts"]["constraint"]
+    opt = cand.option
+    out = []
+    for rule in levels.hard_rules:
+        if rule == "fx_limit" and opt.fx:
+            out.append(ConstraintResult(rule_id=rule, passed=False, reason=texts["fx_limit"]))
+        elif rule == "liquidity_need":
+            limits = c["constraint_rules"]["liquidity_need"]
+            if opt.kind == "fund":
+                valor = cand.values.get(c["fund_detail"]["sell_valor_quantity"])
+                if valor is not None and valor.value > limits["max_sell_valor_days"]:
+                    out.append(ConstraintResult(
+                        rule_id=rule, passed=False,
+                        reason=texts["liquidity_need_valor"].format(
+                            valor=valor.value, max_days=limits["max_sell_valor_days"]),
+                        evidence_ids=(valor.id,)))
+            elif opt.kind == "time_deposit":
+                days = c["time_deposit"].get("term_days")
+                if days is not None and days > limits["max_lock_days"]:
+                    rate = next(iter(cand.values.values()))
+                    out.append(ConstraintResult(
+                        rule_id=rule, passed=False,
+                        reason=texts["liquidity_need_lock"].format(
+                            days=days, max_days=limits["max_lock_days"]),
+                        evidence_ids=(rate.id,)))
+    return out
+
+
 def _fee_rows(cand: Candidate, fd: Mapping[str, Any] | None) -> list[DataPoint]:
     """Entry and exit fee rows of a fund (D12); missing rows count as 0."""
     if fd is None or cand.option.kind != "fund":
@@ -188,6 +221,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
                 rule_id="risk_ceiling", passed=False,
                 reason=texts["constraint"]["failed"].format(risk=risk, ceiling=levels.ceiling),
                 evidence_ids=(row.id,)))
+        failed += _constraint_rules(cand, levels, config)
         if failed:
             rejected.append(RejectedOption(cand.option, tuple(failed)))
         else:

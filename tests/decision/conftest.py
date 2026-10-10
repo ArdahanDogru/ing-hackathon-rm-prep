@@ -272,6 +272,56 @@ def d12_config(d12_raw):
     return parse_config(d12_raw)
 
 
+# --- D13: explicit constraints as hard rules -------------------------------------------------
+
+D13_SECTION = {
+    "fx_limit": {"override_choices": ["uygula", "gerekçeyle kaldır"],
+                 "override_lifts": "gerekçeyle kaldır"},
+    "liquidity_need": {"max_sell_valor_days": 3, "max_lock_days": 91},
+}
+D13_TEXTS = {
+    "constraint": {
+        "fx_limit": "Döviz fonu; müşterinin açık kısıtı: döviz maruziyetini gerekçesiz "
+                    "artırmama.",
+        "liquidity_need_valor": "Satış valörü {valor:.0f} gün, üst sınır {max_days} gün "
+                                "(müşterinin açık kısıtı: düşük likiditeden kaçınma).",
+        "liquidity_need_lock": "Vade {days} gün, üst sınır {max_days} gün (müşterinin açık "
+                               "kısıtı: uzun süre kilitlenmekten kaçınma).",
+    },
+    "questions": {
+        "override_fx_limit": "Döviz fonları müşterinin açık kısıtı nedeniyle elendi. Kısıt "
+                             "gerekçeyle kaldırılsın mı?",
+        "override_reason": "Kısıt \"gerekçesiz\" diyor; RM gerekçe yazarak kaldırabilir.",
+    },
+    "assumptions": {
+        "fx_override": "RM döviz fonları kısıtını gerekçeyle kaldırdı (gerekçe RM notunda); "
+                       "döviz fonları ceza ile listede.",
+    },
+    "data_quality": {
+        "valor_missing": "{count} fonun satış valörü kanıtlarda yok; likidite kısıtı bu "
+                         "fonlara uygulanamadı.",
+    },
+}
+
+
+def add_d13(raw: dict) -> dict:
+    """Add the D13 config and texts, in place (needs fund_detail of D12)."""
+    raw["constraint_rules"] = copy.deepcopy(D13_SECTION)
+    for section, texts in D13_TEXTS.items():
+        raw["texts"][section].update(texts)
+    return raw
+
+
+@pytest.fixture
+def d13_raw(raw) -> dict:
+    return add_d13(add_d12(add_d10(add_d9(raw))))
+
+
+@pytest.fixture
+def d13_config(d13_raw):
+    return parse_config(d13_raw)
+
+
 def market_row(value=43.82):
     return dp("deposit_rate", MARKET, value, source="evds", as_of=date(2026, 10, 2))
 

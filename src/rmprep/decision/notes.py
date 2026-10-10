@@ -113,8 +113,9 @@ def source_notes(evidence: EvidenceSet, config: DecisionConfig) -> list[DataQual
 
 def build_notes(used_ids: frozenset[str], universe: Universe, evidence: EvidenceSet,
                 config: DecisionConfig, stopaj_missing: Mapping[str, int] = {},
-                ) -> tuple[DataQualityNote, ...]:
-    """stopaj_missing: stopaj entity -> count of options scored with stopaj 0."""
+                valor_missing: int = 0) -> tuple[DataQualityNote, ...]:
+    """stopaj_missing: stopaj entity -> count of options scored with stopaj 0;
+    valor_missing: scored funds the liquidity_need rule could not test (D13)."""
     tpl = config.raw["texts"]["data_quality"]
     by_flag: dict[tuple[str, str], list[str]] = defaultdict(list)
     for row in evidence.datapoints:
@@ -147,6 +148,8 @@ def build_notes(used_ids: frozenset[str], universe: Universe, evidence: Evidence
                       and fd["buyable_quantity"] not in cand.values)
         if missing:
             out.append(DataQualityNote(message=tpl["buyable_missing"].format(count=missing)))
+    if valor_missing:
+        out.append(DataQualityNote(message=tpl["valor_missing"].format(count=valor_missing)))
     if universe.missing_time_deposit is not None:
         td = config.raw["time_deposit"]
         out.append(DataQualityNote(

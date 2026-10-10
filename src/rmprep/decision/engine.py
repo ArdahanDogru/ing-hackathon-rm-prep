@@ -109,6 +109,12 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
     for w in warnings:
         used.update(w.evidence_ids)
     stopaj_missing = Counter(f.stopaj_entity for f in scoring.features if f.stopaj_missing)
-    notes = build_notes(frozenset(used), universe, evidence, config, stopaj_missing)
+    valor_missing = 0
+    if "liquidity_need" in levels.hard_rules:
+        quantity = config.raw["fund_detail"]["sell_valor_quantity"]
+        valor_missing = sum(1 for f in scoring.features       # listed funds only
+                            if f.option.kind == "fund" and quantity not in f.rows)
+    notes = build_notes(frozenset(used), universe, evidence, config, stopaj_missing,
+                        valor_missing)
     return DecisionResult(state=DecisionState.READY, options=options, rejected=scoring.rejected,
                           warnings=warnings, data_quality=notes, **common)
