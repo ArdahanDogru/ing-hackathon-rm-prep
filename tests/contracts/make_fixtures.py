@@ -8,8 +8,7 @@
 - evidence_medium.json: real rows of about 40 funds of every fund kind, plus
   funds with an unknown risk, FX funds, small funds, Serbest funds and one fund
   without entity info (docs/decision.md section 8).
-- entities: read here from the tefas_web payload with extract_funds until
-  ingest milestone I1 fills EvidenceSet.entities; then build_evidence gives them.
+- entities: from build_evidence (ingest milestone I1).
 - decision_*.json: ILLUSTRATIVE DecisionResults for the UI worker. The numbers
   are made up; their shape, ids and evidence ids are real.
 """
@@ -39,7 +38,6 @@ from rmprep.contracts import (
     RejectedOption,
     ScoredOption,
 )
-from rmprep.ingest.adapters.tefas_web import extract_funds
 from rmprep.ingest.pipeline import build_evidence
 
 PROTOTYPE = Path(__file__).resolve().parents[2]
@@ -51,12 +49,6 @@ CONFIG = yaml.safe_load((PROTOTYPE / "config" / "decision.yaml").read_text(encod
 
 def _dump(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n")
-
-
-def page_entities(snapshot_id: str) -> dict[str, EntityInfo]:
-    page = PROTOTYPE / "data" / "snapshots" / snapshot_id / "payloads" / "tefas_web" / "fon-getirileri.html"
-    return {f["fonKodu"]: EntityInfo(f["fonUnvan"], f["fonTurAciklama"], "tefas_web")
-            for f in extract_funds(page.read_text(encoding="utf-8"))}
 
 
 def _latest(ev: EvidenceSet) -> dict[tuple, object]:
@@ -290,7 +282,7 @@ def main() -> None:
         persona = Persona.from_dict(json.loads(p.read_text(encoding="utf-8")))
         personas[persona.persona_id] = persona
     full = build_evidence(PROTOTYPE / "data" / "snapshots", SNAPSHOT)
-    entities = page_entities(SNAPSHOT)
+    entities = dict(full.entities)
     small = small_evidence(full, entities)
     medium = medium_evidence(full, entities)
     _dump(OUT / "evidence_small.json", small.to_dict())
