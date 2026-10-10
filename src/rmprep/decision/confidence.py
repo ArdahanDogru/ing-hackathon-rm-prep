@@ -26,6 +26,8 @@ def confidence(f: Features, config: DecisionConfig) -> float:
         weakest *= c["risk_estimate"]
     if f.shorter_period:
         weakest *= c["shorter_period"]
+    if f.liquidity_proxy:           # D14: no sell valör row, liquidity from the kind table
+        weakest *= c.get("liquidity_proxy", 1.0)
     return weakest
 
 

@@ -3,11 +3,13 @@ sell valör, entry and exit fees in the net return (docs/decision.md section 2
 and the D12 row of section 8)."""
 
 import copy
+import dataclasses
 import math
 
 import pytest
 
 from rmprep.contracts import DecisionResult, DecisionState
+from rmprep.decision.confidence import confidence
 from rmprep.decision.config import ConfigError, parse_config
 from rmprep.decision.engine import decide
 from rmprep.decision.persona import read_persona
@@ -209,3 +211,46 @@ def test_kind_proxy_assumption_is_replaced(d12_config, raw_config):
     d10 = parse_config(add_d10(add_d9(copy.deepcopy(raw_config))))      # its own copy
     r10 = decide(_ev(), load_persona("P04"), d10, created_at=T0)
     assert a["kind_proxy"] in r10.assumptions
+
+
+# --- D14: confidence of a fund whose liquidity is the kind proxy --------------------------------
+
+@pytest.fixture
+def d14_config(d12_raw):
+    d12_raw["confidence"]["liquidity_proxy"] = 0.8
+    return parse_config(d12_raw)
+
+
+def test_liquidity_proxy_factor(d14_config):
+    f, _ = _features(d14_config)
+    # MMF: valör row (needs_check 0.9), no factor; NOS: no detail rows, unflagged rows
+    # (1.0), liquidity from the kind table -> x 0.8
+    assert confidence(f["fund:MMF"], d14_config) == pytest.approx(0.9)
+    assert confidence(f["fund:NOS"], d14_config) == pytest.approx(0.8)
+
+
+def test_liquidity_proxy_is_optional(d12_config):
+    f, _ = _features(d12_config)
+    assert confidence(f["fund:NOS"], d12_config) == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("value", [-0.1, 1.5, "x"])
+def test_bad_liquidity_proxy_is_an_error(d12_raw, value):
+    d12_raw["confidence"]["liquidity_proxy"] = value
+    with pytest.raises(ConfigError, match="confidence.liquidity_proxy"):
+        parse_config(d12_raw)
+
+
+@pytest.mark.parametrize("pid", PERSONA_IDS)
+def test_excluding_tefas_detail_never_raises_a_confidence(d14_config, pid):
+    ev = _ev()
+    full = decide(ev, load_persona(pid), d14_config, created_at=T0)
+    without = decide(dataclasses.replace(ev, excluded_sources=frozenset({"tefas_detail"})),
+                     load_persona(pid), d14_config, created_at=T0)
+    before = {o.option.option_id: o.confidence for o in full.options}
+    compared = 0
+    for o in without.options:
+        if o.option.option_id in before:
+            assert o.confidence <= before[o.option.option_id] + 1e-12, o.option.option_id
+            compared += 1
+    assert compared >= 3

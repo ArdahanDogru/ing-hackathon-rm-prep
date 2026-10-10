@@ -275,7 +275,8 @@ def _check_scoring(c: dict) -> None:
         raise ConfigError("display.pool: must be >= display.shortlist")
 
     conf = c["confidence"]
-    _keys(conf, "confidence", ("flags", "risk_estimate", "shorter_period"))
+    _keys(conf, "confidence", ("flags", "risk_estimate", "shorter_period"),
+          ("liquidity_proxy",))
     known = {f.value for f in Flag}
     for flag, v in conf["flags"].items():
         if flag not in known:
@@ -283,6 +284,7 @@ def _check_scoring(c: dict) -> None:
         _num(v, f"confidence.flags.{flag}", 0, 1)
     _num(conf["risk_estimate"], "confidence.risk_estimate", 0, 1)
     _num(conf["shorter_period"], "confidence.shorter_period", 0, 1)
+    _num(conf.get("liquidity_proxy", 1.0), "confidence.liquidity_proxy", 0, 1)
 
     _keys(c["stability"], "stability", ("step",), ("size",))
     _num(c["stability"]["step"], "stability.step", 0, 1)
