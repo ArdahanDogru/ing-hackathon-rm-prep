@@ -144,7 +144,10 @@ def to_markdown(result) -> str:
           f"{m['texts']['template']} template)",
           f"- Cost: narrator {_usd(m['cost']['narrator_usd'])}, judge {_usd(m['cost']['judge_usd'])}, "
           f"total {_usd(m['cost']['total_usd'])} of the {_usd(m['cost'].get('limit_usd'))} limit; "
-          f"per new text {_usd(m['cost']['per_text_usd'])}", ""]
+          f"per new text {_usd(m['cost']['per_text_usd'])}",
+          f"- Judge prompt cache: {m['cost']['judge_cache']['write_tokens']} tokens written, "
+          f"{m['cost']['judge_cache']['read_tokens']} read; judge errors: "
+          f"{m['cost']['judge_cache']['errors']}", ""]
 
     if m["judge"]:
         L += ["## Judge (LLM, only what code cannot check)", "",
