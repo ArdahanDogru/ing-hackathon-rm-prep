@@ -218,7 +218,9 @@ sources:
 
   tefas:
     adapter: tefas
-    enabled: true
+    # Disabled 2026-10-10 by the user: tefas_detail (I3) gives the same prices,
+    # sizes and investor counts automatically (770 of 770 pairs equal on 2026-10-09).
+    enabled: false
     on_failure: previous
     source_url: https://www.tefas.gov.tr/
     tos_note: >-
