@@ -7,7 +7,6 @@ from collections.abc import Sequence
 from rmprep.decision.config import CRITERIA, DecisionConfig
 from rmprep.decision.persona import Levels
 from rmprep.decision.scoring import (
-    PENALTY_RULES,
     Features,
     normalize_weights,
     penalty_maxima,
@@ -44,7 +43,7 @@ def stability(features: Sequence[Features], levels: Levels,
     for factor in (1 - step, 1 + step):
         for crit in CRITERIA:
             runs.append(({**raw, crit: raw[crit] * factor}, maxima))
-        for rule in PENALTY_RULES:
+        for rule in maxima:
             runs.append((raw, {**maxima, rule: maxima[rule] * factor}))
 
     hits = {f.option.option_id: 0 for f in features}

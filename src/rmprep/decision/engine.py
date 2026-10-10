@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
 from collections.abc import Mapping
 from datetime import datetime
 
@@ -20,10 +21,13 @@ from rmprep.decision.config import DecisionConfig
 from rmprep.decision.notes import build_notes, build_warnings, source_notes
 from rmprep.decision.persona import read_persona
 from rmprep.decision.scoring import score_options
-from rmprep.decision.universe import build_universe
+from rmprep.decision.universe import EvidenceIndex, build_universe
 
 _STANDARD_ASSUMPTIONS = ("past_returns", "pre_tax", "deposit_tier", "no_real_returns",
                          "kind_proxy")
+# with real_return (D9): pre_tax and no_real_returns are replaced (docs/decision.md 4.1b)
+_REAL_ASSUMPTIONS = ("past_returns", "real_return", "deposit_tier", "kind_proxy",
+                     "stopaj_equity", "time_deposit_renewal")
 
 
 def _canonical(obj) -> bytes:
@@ -41,10 +45,26 @@ def run_id(cfg_hash: str, persona: Persona, snapshot_id: str,
     return "R" + hashlib.sha1(_canonical(key), usedforsecurity=False).hexdigest()[:10]
 
 
-def standard_assumptions(config: DecisionConfig) -> tuple[str, ...]:
-    a = config.raw["texts"]["assumptions"]
-    tier = config.raw["deposit"]["tier"]
-    return tuple(a[k].format(tier=tier) for k in _STANDARD_ASSUMPTIONS)
+def standard_assumptions(config: DecisionConfig, evidence: EvidenceSet) -> tuple[str, ...]:
+    c = config.raw
+    a = c["texts"]["assumptions"]
+    tier = c["deposit"]["tier"]
+    rr = c.get("real_return")
+    if rr is None:
+        return tuple(a[k].format(tier=tier) for k in _STANDARD_ASSUMPTIONS)
+    out = []
+    for key in _REAL_ASSUMPTIONS:
+        if key == "real_return":
+            cpi = EvidenceIndex(evidence).get(rr["cpi"]["quantity"], rr["cpi"]["entity"])
+            out.append(a["real_return_no_cpi"] if cpi is None else
+                       a["real_return_cpi"].format(cpi=cpi.value, cpi_date=cpi.as_of.isoformat()))
+        elif key == "time_deposit_renewal":
+            days = c.get("time_deposit", {}).get("term_days")
+            if days:
+                out.append(a[key].format(term_days=days))
+        else:
+            out.append(a[key].format(tier=tier))
+    return tuple(out)
 
 
 def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
@@ -57,7 +77,7 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
         config_hash=cfg_hash, created_at=created_at, persona=persona,
         snapshot_id=evidence.snapshot_id, excluded_sources=evidence.excluded_sources,
         questions=reading.questions,
-        assumptions=standard_assumptions(config) + reading.assumptions,
+        assumptions=standard_assumptions(config, evidence) + reading.assumptions,
     )
     if reading.levels is None:
         return DecisionResult(state=DecisionState.NEEDS_RM_INPUT,
@@ -84,6 +104,7 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
             used.update(c.evidence_ids)
     for w in warnings:
         used.update(w.evidence_ids)
-    notes = build_notes(frozenset(used), universe, evidence, config)
+    stopaj_missing = Counter(f.stopaj_entity for f in scoring.features if f.stopaj_missing)
+    notes = build_notes(frozenset(used), universe, evidence, config, stopaj_missing)
     return DecisionResult(state=DecisionState.READY, options=options, rejected=scoring.rejected,
                           warnings=warnings, data_quality=notes, **common)

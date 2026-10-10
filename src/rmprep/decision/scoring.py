@@ -17,7 +17,7 @@ from typing import Any, Protocol
 from rmprep.contracts import ConstraintResult, DataPoint, ProductOption, RejectedOption
 from rmprep.decision.config import CRITERIA, DEPOSIT_KINDS, PENALTY_RULES, DecisionConfig
 from rmprep.decision.persona import LEVEL_ATTR, Levels
-from rmprep.decision.universe import Candidate, Universe, group_kind
+from rmprep.decision.universe import Candidate, Universe, group_kind, stopaj_entity
 
 RISK_MIN, RISK_MAX = 1, 7
 _RISK_Q = "fund_risk_level"
@@ -58,6 +58,10 @@ def raw_weights(levels: Levels, config: DecisionConfig) -> dict[str, float]:
         if crit == "liquidity" and levels.liquidity_weight is not None:
             raw = levels.liquidity_weight
         out[crit] = float(raw)
+    lh = c.get("long_horizon")
+    if lh is not None and levels.period == lh["period"]:
+        out["liquidity"] *= lh["liquidity_factor"]
+        out["return"] += lh["return_add"]
     return out
 
 
@@ -69,7 +73,24 @@ def normalize_weights(raw: Mapping[str, float]) -> dict[str, float]:
 
 
 def penalty_maxima(config: DecisionConfig) -> dict[str, float]:
-    return {r: float(config.raw["penalties"][r]) for r in PENALTY_RULES}
+    """Maximum per penalty rule; real_loss (D9) only if configured, before fund_size."""
+    p = config.raw["penalties"]
+    rules = [r for r in PENALTY_RULES if r != "fund_size"]
+    if "real_loss" in p:
+        rules.append("real_loss")
+    rules.append("fund_size")
+    return {r: float(p[r]) for r in rules}
+
+
+def _net(option: ProductOption, annual: float, stopaj: float, config: DecisionConfig) -> float:
+    """Return after stopaj; no tax on a loss. A time deposit is renewed every
+    term_days days (compounding); the deposit and funds do not compound."""
+    if annual <= 0:
+        return annual
+    days = config.raw.get("time_deposit", {}).get("term_days")
+    if option.kind == "time_deposit" and days:
+        return (1 + annual * (1 - stopaj) * days / 365) ** (365 / days) - 1
+    return annual * (1 - stopaj)
 
 
 # --- features ---------------------------------------------------------------------
@@ -88,6 +109,10 @@ class Features:
     shorter_period: bool                # a shorter period than the horizon was used
     annual_return: float | None
     rows: Mapping[str, DataPoint] = field(default_factory=dict)   # quantity -> row used
+    net_return: float | None = None     # after stopaj (real_return configured)
+    real_return: float | None = None    # after stopaj and CPI; None without CPI
+    stopaj_entity: str | None = None    # stopaj row the option needs
+    stopaj_missing: bool = False        # that row is missing: stopaj 0
 
 
 def _risk_of(cand: Candidate) -> int | None:
@@ -138,7 +163,28 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             known_by_kind[k] = max(known_by_kind.get(k, RISK_MIN), risk)
 
     returns = {cand.option.option_id: _return_of(cand, levels, config) for cand, _ in kept}
-    all_returns = [r[0] for r in returns.values() if r[0] is not None]
+    rr = c.get("real_return")
+    cpi = universe.cpi.value / 100 if rr is not None and universe.cpi is not None else None
+    after_tax: dict[str, tuple[float | None, float | None, str | None, DataPoint | None]] = {}
+    for cand, _ in kept:
+        annual = returns[cand.option.option_id][0]
+        if rr is None or annual is None:
+            after_tax[cand.option.option_id] = (None, None, None, None)
+            continue
+        entity = stopaj_entity(cand.option, config)
+        st_row = universe.stopaj.get(entity)
+        net = _net(cand.option, annual, st_row.value / 100 if st_row else 0.0, config)
+        real = (1 + net) / (1 + cpi) - 1 if cpi is not None else None
+        after_tax[cand.option.option_id] = (net, real, entity, st_row)
+
+    def ranked_return(oid: str) -> float | None:
+        """What the return criterion ranks: real, else net, else nominal return."""
+        net, real, _, _ = after_tax[oid]
+        if real is not None:
+            return real
+        return net if net is not None else returns[oid][0]
+
+    all_returns = [m for m in map(ranked_return, returns) if m is not None]
     funds = [cand for cand, _ in kept if cand.option.kind == "fund"]
     sizes = [f.values[_SIZE_Q].value for f in funds if _SIZE_Q in f.values]
     investors = [f.values[_INVESTORS_Q].value for f in funds if _INVESTORS_Q in f.values]
@@ -153,6 +199,8 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
         estimated = known is None
         risk = known_by_kind.get(opt.fund_kind, RISK_MAX) if estimated else known
         annual, period, ret_row = returns[opt.option_id]
+        net, real, st_entity, st_row = after_tax[opt.option_id]
+        ranked = ranked_return(opt.option_id)
 
         size_row = cand.values.get(_SIZE_Q)
         inv_row = cand.values.get(_INVESTORS_Q)
@@ -162,10 +210,11 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             quality = (q_size + q_inv) / 2
             principal = max(0.0, pv["fund_base"] - pv["fund_step"] * (risk - 1))
         else:
-            quality = 1.0
+            qv = c.get("quality_value", {})
+            quality = qv.get(opt.kind, qv.get("deposit", 1.0))
             principal = pv.get(opt.kind, pv["deposit"])
         values = {
-            "return": percentile_rank(annual, all_returns) if annual is not None else 0.0,
+            "return": percentile_rank(ranked, all_returns) if ranked is not None else 0.0,
             "low_risk": 1 - (_clamp(risk, RISK_MIN, RISK_MAX) - 1) / 6,
             "liquidity": kind_row["liquidity"],
             "income": kind_row["income"],
@@ -191,18 +240,27 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
                              else 1.0) if estimated else 0.0,
             "track_record": 1.0 if horizon_missing else 0.0,
             "fund_size": size_violation,
+            "real_loss": (levels.principal * _clamp(-real / rr["loss_scale"])
+                          if real is not None else 0.0),
         }
 
         rows = {q: d for q, d in cand.values.items()
                 if q in (_RISK_Q, _SIZE_Q, _INVESTORS_Q, "deposit_rate")}
         if ret_row is not None:
             rows[ret_row.quantity] = ret_row
+        if net is not None:
+            if st_row is not None:
+                rows[st_row.quantity] = st_row
+            if universe.cpi is not None:
+                rows[universe.cpi.quantity] = universe.cpi
         fields = {
             "risk": risk, "ceiling": levels.ceiling,
             "annual": (annual or 0.0) * 100, "period": period or levels.period,
             "horizon": levels.period,
             "size_m": size_row.value / 1e6 if size_row else 0.0,
             "investors": inv_row.value if inv_row else 0.0,
+            "nominal": (annual or 0.0) * 100, "net": (net or 0.0) * 100,
+            "real": (real or 0.0) * 100, "loss": -(real or 0.0) * 100,
         }
         if estimated:
             reason = texts["reasons"]["penalty:risk_unknown"].format(**fields)
@@ -217,7 +275,8 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
                                         evidence_ids=risk_ids),
             risk=risk, risk_estimated=estimated, period=period,
             shorter_period=is_fund and period is not None and period != levels.period,
-            annual_return=annual, rows=rows))
+            annual_return=annual, rows=rows, net_return=net, real_return=real,
+            stopaj_entity=st_entity, stopaj_missing=net is not None and st_row is None))
     return out, rejected
 
 
@@ -241,11 +300,14 @@ def _reasons(f: Features, parts: Mapping[str, float], config: DecisionConfig) ->
     tpl = config.raw["texts"]["reasons"]
     out = {}
     for key in parts:
+        v = f.values.get(key, 0.0)
         if key == "return" and f.annual_return is None:
             out[key] = tpl["return_missing"].format(**{**f.fields, "period": f.fields["horizon"]})
-            continue
-        v = f.values.get(key, 0.0)
-        out[key] = tpl[key].format(**f.fields, value=v, pct=v * 100)
+        elif key == "return" and f.net_return is not None:
+            name = "return_real" if f.real_return is not None else "return_net"
+            out[key] = tpl[name].format(**f.fields, value=v, pct=v * 100)
+        else:
+            out[key] = tpl[key].format(**f.fields, value=v, pct=v * 100)
     if "penalty:track_record" in out:
         out["penalty:track_record"] = tpl["penalty:track_record"].format(
             **{**f.fields, "period": f.fields["horizon"]})
@@ -258,8 +320,8 @@ def score_row(f: Features, weights: Mapping[str, float], maxima: Mapping[str, fl
     for crit in CRITERIA:
         if weights[crit] > 0:
             parts[crit] = weights[crit] * f.values[crit]
-    for rule in PENALTY_RULES:
-        p = maxima[rule] * f.factors[rule]
+    for rule, maximum in maxima.items():
+        p = maximum * f.factors.get(rule, 0.0)
         if p > 0:
             parts[f"penalty:{rule}"] = -p
     reasons = _reasons(f, parts, config) if config is not None else {}
