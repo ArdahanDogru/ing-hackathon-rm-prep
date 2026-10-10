@@ -166,6 +166,7 @@ texts:
     "penalty:fx_exposure": "Döviz fonu; müşteri sınırlı döviz maruziyeti istiyor."
     "penalty:risk_unknown": "Risk değeri yok; türündeki en yüksek risk ({risk}) varsayıldı."
     "penalty:track_record": "{period} getirisi yok; daha kısa dönem kullanıldı."
+    return_missing: "Getiri verisi yok ({period} ve daha kısa dönemler)."
     "penalty:fund_size": "Fon küçük ({size_m:.0f} milyon TL, {investors:.0f} yatırımcı)."
   constraint:
     passed: "Risk değeri {risk}, müşterinin tavanı {ceiling} içinde."

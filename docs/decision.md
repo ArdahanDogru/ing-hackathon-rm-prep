@@ -80,7 +80,8 @@ answer that is not one of the question's `choices` raises `ValueError`.
 
 **Evidence lookup.** For each (quantity, entity) the layer uses the row with
 the latest `as_of` whose source is not in `evidence.excluded_sources`. A row with
-`out_of_range` or `missing` counts as missing. `entities` whose `source` is
+`out_of_range` or `missing` counts as missing; an older row is then not used
+(confirmed 2026-10-10, D3). `entities` whose `source` is
 excluded count as absent. Each option records the ids of the rows it used
 (`evidence_ids`).
 
@@ -162,13 +163,13 @@ kontrollü" is not in the table → assumed Sınırlı).
 
 | Criterion | Value | Evidence |
 |---|---|---|
-| `return` | percentile rank of the annualized return among all scored options | fund: `fund_return_<period>`, annualized `(1+R/100)^(1/years) − 1`; if the period is missing, the next shorter one (3y → 1y → 6m → 3m). deposit: the rate. |
+| `return` | percentile rank of the annualized return among all scored options | fund: `fund_return_<period>`, annualized `(1+R/100)^(1/years) − 1`; if the period is missing, the next shorter one (3y → 1y → 6m → 3m); no return in any period → value 0, the option is left out of the percentile base, reason `return_missing`. deposit: the rate. |
 | `low_risk` | `1 − (risk − 1) / 6` (risk clamped to 1..7) | `fund_risk_level`; deposit 1 |
 | `liquidity` | kind table | proxy (no valör in evidence) |
 | `income` | kind table | proxy |
 | `principal` | deposit 1; fund `max(0, 0.8 − 0.15 × (risk − 1))` | `fund_risk_level` |
 | `simplicity` | kind table | — |
-| `quality` | mean of the percentile ranks of size and investors among funds; deposit 1 | `fund_total_value`, `fund_investor_count` |
+| `quality` | mean of the percentile ranks of size and investors among funds (a missing value gives 0 for its half); deposit 1 | `fund_total_value`, `fund_investor_count` |
 
 Percentile rank of x among n values: `(count below + 0.5 × count equal other) /
 (n − 1)`; n = 1 → 1.
@@ -223,7 +224,8 @@ The best possible score is 1, so a max of 0.3 = up to 30 % of it.
 Risk estimate for a fund with no risk level: the highest known risk among the
 scored funds of the same `fund_kind` in this evidence (7 if none). The estimate
 is used for `low_risk`, `principal` and the `principal` penalty. It is never used
-to reject.
+to reject: the `risk_ceiling` constraint of a fund without a risk level
+passes, and its reason is the `penalty:risk_unknown` text.
 
 ### 4.4 Score, parts, reasons
 
