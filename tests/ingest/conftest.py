@@ -182,6 +182,9 @@ def config_raw():
     raw = copy.deepcopy(load_raw(PROJECT / "config" / "sources.yaml"))
     raw["sources"]["evds"]["series"] = copy.deepcopy(TEST_EVDS_SERIES)
     raw["sources"]["tefas_web"]["min_funds"] = 2     # the fixture page has 3 funds
+    # The hand export source is off in the real config (2026-10-10; tefas_detail
+    # gives the same values), but its adapter stays usable: tests keep it on.
+    raw["sources"]["tefas"]["enabled"] = True
     for name, q in TEST_DETAIL_QUANTITIES.items():
         raw["quantities"].setdefault(name, copy.deepcopy(q))
     raw["sources"]["tefas_detail"] = copy.deepcopy(TEST_TEFAS_DETAIL)
