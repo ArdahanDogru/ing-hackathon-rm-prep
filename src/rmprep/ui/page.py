@@ -128,8 +128,30 @@ def _parts_chart(o: ScoredOption, lang: str) -> None:
     st.vega_lite_chart(spec)
 
 
-def _option_row(title: str, o: ScoredOption, lang: str) -> None:
+def _open_evidence(ids: tuple[str, ...], run_id: str, lang: str) -> None:
+    st.session_state["ev_filter"] = (run_id, ids)
+    st.session_state[f"tabs:{lang}"] = t("tab_evidence", lang)
+
+
+def _evidence_button(ids, key: str, r: DecisionResult, lang: str) -> None:
+    """One click target for a group of evidence ids: opens "Kanıt" filtered to them."""
+    ids = tuple(dict.fromkeys(ids))
+    if ids:
+        st.button(t("show_evidence", lang, n=len(ids)), key=key, on_click=_open_evidence,
+                  args=(ids, r.run_id, lang))
+
+
+def _open_warning(run_id: str, i: int) -> None:
+    st.session_state["warn_open"] = (run_id, i)
+
+
+def _option_row(title: str, o: ScoredOption, r: DecisionResult, lang: str) -> None:
+    oid = o.option.option_id
     with st.expander(title):
+        for i, w in enumerate(r.warnings):
+            if oid in w.option_ids:
+                st.button(f"⚠ {w.code}", key=f"warn:{oid}:{i}", on_click=_open_warning,
+                          args=(r.run_id, i))
         st.markdown(f"**{t('score_parts', lang)}**")
         _parts_chart(o, lang)
         for b in views.part_rows(o, lang):
@@ -138,8 +160,10 @@ def _option_row(title: str, o: ScoredOption, lang: str) -> None:
             st.markdown(f"**{t('constraints', lang)}**")
             for c in o.constraints:
                 st.markdown(f"- ✓ `{c.rule_id}`: {c.reason}")
-        if o.evidence_ids:
-            st.caption(f"{t('evidence_ids', lang)}: {', '.join(o.evidence_ids)}")
+        ids = (*o.evidence_ids, *(i for c in o.constraints for i in c.evidence_ids))
+        if ids:
+            st.caption(f"{t('evidence_ids', lang)}: {', '.join(dict.fromkeys(ids))}")
+            _evidence_button(ids, f"ev:opt:{oid}", r, lang)
 
 
 def _shown(run_id: str) -> int:
@@ -159,11 +183,11 @@ def _shortlist(r: DecisionResult, lang: str) -> None:
     base = views.baseline(r)
     if base is not None:
         _option_row(views.row_title(t("baseline", lang), base, base.option.option_id in w, lang),
-                    base, lang)
+                    base, r, lang)
     rest = views.ranked(r)
     shown = _shown(r.run_id)
     for pos, o in enumerate(rest[:shown], start=1):
-        _option_row(views.row_title(f"{pos}.", o, o.option.option_id in w, lang), o, lang)
+        _option_row(views.row_title(f"{pos}.", o, o.option.option_id in w, lang), o, r, lang)
     if shown < len(rest):
         st.button(t("more", lang), key="more", on_click=_more, args=(r.run_id,))
 
@@ -186,13 +210,40 @@ def _rejected(r: DecisionResult, lang: str) -> None:
             st.markdown(f"**{t('failed_rules', lang)}**")
             for c in rj.failed:
                 st.markdown(f"- ✗ `{c.rule_id}`: {c.reason}")
-                if c.evidence_ids:
-                    st.caption(f"{t('evidence_ids', lang)}: {', '.join(c.evidence_ids)}")
+            ids = tuple(i for c in rj.failed for i in c.evidence_ids)
+            if ids:
+                st.caption(f"{t('evidence_ids', lang)}: {', '.join(dict.fromkeys(ids))}")
+                _evidence_button(ids, f"ev:rej:{rj.option.option_id}", r, lang)
 
 
-def _tabs(r: DecisionResult, lang: str) -> None:
+def _clear_evidence_filter() -> None:
+    st.session_state.pop("ev_filter", None)
+
+
+def _evidence_tab(r: DecisionResult, ev: EvidenceSet, lang: str) -> None:
+    flt = st.session_state.get("ev_filter")
+    if flt and flt[0] == r.run_id:
+        ids = flt[1]
+        st.info(t("ev_filter", lang, n=len(ids)))
+        st.button(t("ev_all", lang), key="ev_all", on_click=_clear_evidence_filter)
+    elif st.toggle(t("ev_whole", lang), key="ev_whole"):
+        ids = None
+    else:
+        ids = r.evidence_ids()
+        st.caption(t("ev_used", lang, n=len(ids)))
+    rows = views.evidence_rows(ev, ids, lang)
+    if ids is not None and len(rows) < len(set(ids)):
+        st.caption(t("ev_missing", lang, n=len(set(ids)) - len(rows)))
+    st.dataframe(rows, hide_index=True, column_config={
+        t("col_url", lang): st.column_config.LinkColumn(),
+        t("col_flags", lang): st.column_config.MarkdownColumn(),
+    })
+
+
+def _tabs(r: DecisionResult, ev: EvidenceSet, lang: str) -> None:
     short, all_, rejected, evidence = st.tabs(
-        [t(k, lang) for k in ("tab_short", "tab_all", "tab_rejected", "tab_evidence")])
+        [t(k, lang) for k in ("tab_short", "tab_all", "tab_rejected", "tab_evidence")],
+        key=f"tabs:{lang}", on_change="rerun")
     if r.state == DecisionState.NEEDS_RM_INPUT:
         for tab in (short, all_, rejected):
             with tab:
@@ -205,7 +256,47 @@ def _tabs(r: DecisionResult, lang: str) -> None:
         with rejected:
             _rejected(r, lang)
     with evidence:
-        st.caption(t("coming_later", lang))
+        _evidence_tab(r, ev, lang)
+
+
+def _pane(r: DecisionResult, lang: str) -> None:
+    """"Olası sorunlar": warnings, data-quality notes, assumptions."""
+    st.subheader(t("issues", lang))
+    labels = {o.option.option_id: o.option.label for o in (*r.options, *r.rejected)}
+    opened = st.session_state.get("warn_open")
+    open_i = opened[1] if opened and opened[0] == r.run_id else None
+    st.markdown(f"**{t('warnings', lang)}**")
+    if not r.warnings:
+        st.caption(t("none", lang))
+    for i, w in enumerate(r.warnings):
+        with st.expander(f"⚠ {w.code}", expanded=i == open_i):
+            st.markdown(w.message)
+            names = ", ".join(labels[o] for o in w.option_ids) or t("whole_result", lang)
+            st.caption(f"{t('about_options', lang)}: {names}")
+            _evidence_button(w.evidence_ids, f"ev:warn:{i}", r, lang)
+    st.markdown(f"**{t('data_quality', lang)}**")
+    if not r.data_quality:
+        st.caption(t("none", lang))
+    for i, n in enumerate(r.data_quality):
+        st.markdown(f"ⓘ {n.message}")
+        meta = " ".join(filter(None, [views.flag_badges(n.flags), ", ".join(n.sources)]))
+        if meta:
+            st.caption(meta)
+        _evidence_button(n.evidence_ids, f"ev:dq:{i}", r, lang)
+    st.markdown(f"**{t('assumptions', lang)}**")
+    if not r.assumptions:
+        st.caption(t("none", lang))
+    for a in r.assumptions:
+        st.markdown(f"- {a}")
+
+
+def _evidence(backend: Backend, snapshot_id: str, excluded: frozenset[str]) -> EvidenceSet:
+    key = (snapshot_id, tuple(sorted(excluded)))
+    cached = st.session_state.get("evidence")
+    if cached is None or cached[0] != key:
+        cached = (key, backend.evidence(snapshot_id, excluded))
+        st.session_state["evidence"] = cached
+    return cached[1]
 
 
 def main() -> None:
@@ -215,10 +306,14 @@ def main() -> None:
     persona, snapshot_id, excluded = _sidebar(backend, lang)
     result = _current_result(backend, persona, snapshot_id, excluded)
 
+    ev = _evidence(backend, snapshot_id, excluded)
+
     main_col, pane = st.columns([3, 1])
     with main_col:
         _header(result, lang)
-        _tabs(result, lang)
+        _tabs(result, ev, lang)
+        st.divider()
+        for c in views.citations(result, ev, lang):
+            st.caption(c)
     with pane:
-        st.subheader(t("issues", lang))
-        st.caption(t("coming_later", lang))
+        _pane(result, lang)
