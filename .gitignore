@@ -11,3 +11,4 @@ data/inbox/**/*
 !data/inbox/**/.gitkeep
 data/runs/
 data/cards/
+data/narratives/

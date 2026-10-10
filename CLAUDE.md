@@ -33,6 +33,7 @@ prototype/
   .env                      EVDS_API_KEY=...   (gitignored, never logged)
   config/sources.yaml       sources, series, quantities, bounds
   config/decision.yaml      decision tables, weights, penalties, texts (docs/decision.md)
+  config/narrator.yaml      narrator model, cost limit, forbidden phrases (docs/narrator.md)
   config/manual_template.csv  example for data/inbox/manual/
   config/withholding_tax_template.csv  empty stopaj rows (brief rule 7: never
                             hard-code tax rates); fill from Resmî Gazete/GİB,
@@ -67,7 +68,7 @@ prototype/
 
 Dependencies: `httpx`, `pyyaml`, `python-dotenv`, `openpyxl`, `duckdb`; dev:
 `pytest`. Parquet is written by DuckDB (`COPY ... TO`), so no pyarrow/pandas.
-Optional extras `kap = ["docling"]`, `ui = ["streamlit"]`.
+Optional extras `kap = ["docling"]`, `ui = ["streamlit"]`, `narrator = ["anthropic>=1.0"]`.
 
 ## Multi-agent workflow
 

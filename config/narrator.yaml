@@ -1,0 +1,31 @@
+# Narrator config (docs/narrator.md). Lead-owned; the narrator worker asks for changes.
+version: 1
+
+llm:
+  model: claude-sonnet-5-5        # the user's choice 2026-10-10 ("sonnet for now")
+  effort: medium                  # output_config.effort; tune in eval
+  max_tokens: 16000
+  # USD per 1M tokens (Claude API, cached 2026-10-06), for the cost record and the daily limit.
+  price_input_per_mtok: 2.0
+  price_output_per_mtok: 10.0
+  api_key_env: ANTHROPIC_API_KEY  # read from .env; never logged
+
+max_cost_usd_per_day: 5.0         # the user's limit; over it -> template text + banner
+prompt_version: "n1"              # bump on any prompt change (part of the cache key)
+cache_dir: data/narratives
+
+langs: [TR, EN]
+sections: [ozet, oneriler, alternatifler, dikkat, sorular, teklif_metni, varsayimlar]
+
+# Rule 6 of the brief: no guarantee or certain return. Matched case-insensitively
+# after Turkish lower-casing; a hit fails the validator.
+forbidden_phrases:
+  TR: [garanti, garantili, "kesin getiri", "kesin kazanç", risksiz, "risk yok",
+       kaybetmezsiniz, "mutlaka kazandırır", "zarar etmezsiniz"]
+  EN: [guarantee, guaranteed, "certain return", "risk-free", "no risk",
+       "cannot lose", "will definitely", "sure profit"]
+
+# Every text must say this (rule 9): a preparation for the RM, not advice.
+disclaimer:
+  TR: "Bu metin RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir."
+  EN: "This text is meeting preparation for the RM; it is not investment advice."

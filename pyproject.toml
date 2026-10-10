@@ -23,6 +23,7 @@ rmprep = "rmprep.cli:main"
 dev = ["pytest>=8.0"]
 kap = ["docling"]
 ui = ["streamlit"]
+narrator = ["anthropic>=1.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
