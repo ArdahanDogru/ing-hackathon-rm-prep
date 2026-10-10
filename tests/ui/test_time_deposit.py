@@ -5,6 +5,7 @@ import dataclasses
 import json
 
 from rmprep.contracts import DecisionResult, ProductOption, RmStatus, ScoredOption
+from rmprep.grouping import group_key, groups
 from rmprep.ui import card, views
 from rmprep.ui.fake import FakeBackend
 from rmprep.ui.i18n import LABELS, LANGS, t
@@ -35,7 +36,7 @@ def _td(r):
 
 def test_time_deposit_has_its_own_kind_key_and_label():
     td = _td(_with_time_deposit())
-    assert views.kind_key(td) == "time_deposit"
+    assert group_key(td) == "time_deposit"
     assert views.kind_label(td) == "Vadeli mevduat"
     assert views.kind_label(td, "EN") == "Time deposit"
     assert set(LABELS["kind.time_deposit"]) == set(LANGS)
@@ -48,17 +49,17 @@ def test_time_deposit_is_ranked_not_the_baseline():
 
 
 def test_time_deposit_is_its_own_group():
-    groups = views.kind_groups(_with_time_deposit())
-    assert [g.kind for g in groups] == ["debt", "time_deposit", "money_market", "variable"]
-    td_group = groups[1]
-    assert td_group.head.option.option_id == TD_ID and td_group.count == 1
+    gs = groups(_with_time_deposit().options)
+    assert [g.key for g in gs] == ["debt", "time_deposit", "money_market", "variable"]
+    td_group = gs[1]
+    assert td_group.head.option.option_id == TD_ID and td_group.alternatives == ()
 
 
 def test_group_key_is_fund_kind_or_kind():
     r = _with_time_deposit()
-    for g in views.kind_groups(r):
+    for g in groups(r.options):
         for o in (g.head, *g.alternatives):
-            assert g.kind == (o.option.fund_kind or o.option.kind)
+            assert g.key == (o.option.fund_kind or o.option.kind)
 
 
 def test_all_scored_rows_have_no_fund_only_fields():
