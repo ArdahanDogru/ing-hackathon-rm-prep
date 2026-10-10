@@ -13,7 +13,7 @@ from rmprep.contracts import (
 )
 from rmprep.narrator.facts import build_facts
 from rmprep.narrator.prompt import facts_block, prompt_facts
-from rmprep.narrator.template import fmt_number, template_sections
+from rmprep.narrator.template import fmt_number, quantity_name, template_sections
 from rmprep.narrator.validator import validate
 from tests.narrator.conftest import approved, evidence
 
@@ -44,7 +44,8 @@ def big_result():
             score=sum(parts.values()), score_parts=parts,
             constraints=(ConstraintResult("risk_ceiling", True, "risk tavan içinde", (risk,)),),
             confidence=0.9, stability=1.0, evidence_ids=ids,
-            reasons={p: f"(örnek) {p} gerekçesi, fon {code}" for p in parts}))
+            reasons={p: f"(örnek) {p.replace('_', ' ')} gerekçesi, fon {code}"
+                     for p in parts}))
     heads = tuple(o.option.option_id for o in options[1:1 + len(KINDS)])
     all_ids = tuple(d.id for d in ev.datapoints)
     notes = (DataQualityNote(f"tefas_web: {len(all_ids)} değer \"needs_check\" işaretli.",
@@ -67,11 +68,11 @@ def test_facts_block_is_small():
     assert "\n" not in block                                            # compact JSON
 
 
-def test_pack_has_no_id_lists_for_data_quality():
-    f = build_facts(big_result(), evidence())
-    pack = prompt_facts(f)
-    assert pack["data_quality"][0] == {"message": f.data_quality[0].message,
-                                       "evidence_count": len(f.data_quality[0].evidence_ids)}
+def test_pack_has_no_data_quality_details():
+    """N7: only a flag; the text points to the "Olası sorunlar" pane."""
+    pack = prompt_facts(build_facts(big_result(), evidence()))
+    assert pack["data_quality_notes"] is True
+    assert "data_quality" not in pack and "rejected" not in pack
 
 
 def test_alternatives_are_short():
@@ -89,7 +90,9 @@ def test_number_shape():
     n = next(x for x in o.numbers if x.quantity == "fund_return_1y")
     assert packed["numbers"]["fund_return_1y"] == [n.value, n.unit, n.evidence_id]
     assert packed["as_of"] == n.as_of.isoformat()
-    assert len(packed["reasons"]) == 3
+    assert packed["reasons"] == [o.reasons[i][2] for i in range(len(o.reasons))
+                                 if o.reasons[i][0] in ("return", "low_risk")]
+    assert packed["fits"] == ["liquidity", "income", "principal"]
 
 
 def _cited(x, ids: set, options: set) -> None:
@@ -124,7 +127,8 @@ def test_pack_ids_come_from_the_full_facts():
 def _text_from_pack(pack: dict, disclaimer: str) -> tuple[NarrativeSection, ...]:
     """A good text written only from the small pack, as the LLM would."""
     def nums(o):
-        return "; ".join(f"{q} {fmt_number(n[0], n[1], 'TR')}" for q, n in o["numbers"].items())
+        return "; ".join(f"{quantity_name(q, 'TR')} {fmt_number(n[0], n[1], 'TR')}"
+                         for q, n in o["numbers"].items())
 
     def ids(o):
         return tuple(n[2] for n in o["numbers"].values())
@@ -137,8 +141,8 @@ def _text_from_pack(pack: dict, disclaimer: str) -> tuple[NarrativeSection, ...]
                      for o in pack["selected"]],
         "alternatifler": [NarrativeSentence(f"{a['label']}: {nums(a)}.", (a["option_id"],), ids(a))
                           for a in pack["alternatives"]],
-        "dikkat": [NarrativeSentence(f"{n['message']} ({n['evidence_count']} kayıt)", selected)
-                   for n in pack["data_quality"]]
+        "dikkat": [NarrativeSentence("Veri notları için \"Olası sorunlar\" bölümüne bakın.",
+                                     selected)]
                   + [NarrativeSentence(w["message"], tuple(w["option_ids"]) or selected)
                      for w in pack["warnings"]],
         "sorular": [NarrativeSentence(q) for q in pack["open_questions"]]

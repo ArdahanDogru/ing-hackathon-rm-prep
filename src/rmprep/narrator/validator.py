@@ -5,7 +5,9 @@
 Rules: number (every number and date comes from the facts), option (only the
 named options), phrase (no forbidden phrase), citation (cited sentences, known
 ids), disclaimer, section (all sections, in order, none empty), assumption
-(the assumptions verbatim)."""
+(the assumptions verbatim); N7: internal (no internal names or values outside
+varsayimlar), coverage (an oneriler sentence per selected option), pointer
+(dikkat points to the "Olası sorunlar" pane when there are data-quality notes)."""
 
 from __future__ import annotations
 
@@ -15,11 +17,16 @@ from datetime import date
 
 from rmprep.contracts import NARRATIVE_SECTIONS, DecisionResult, NarrativeSection
 from rmprep.narrator.config import NarratorConfig
-from rmprep.narrator.facts import Facts
-from rmprep.narrator.template import tr_lower
+from rmprep.narrator.facts import INTERNAL_PARTS, Facts
+from rmprep.narrator.template import INTERNAL_NAME, tr_lower
 
 CITED_SECTIONS = ("oneriler", "alternatifler", "dikkat")
-PERCENT_KEYS = ("confidence", "stability")     # 0..1 facts the text may write as a percent
+PERCENT_KEYS = ("confidence", "stability")     # 0..1 values that could be written as a percent
+# facts that are internal values (N7): never in the text
+INTERNAL_KEYS = ("score", "confidence", "stability", "data_quality", "rejected_count",
+                 "rejected_rules")
+VERBATIM_SECTIONS = ("varsayimlar",)            # engine text kept as it is
+PANES = {"TR": "Olası sorunlar", "EN": "Possible issues"}
 
 _IDS = re.compile(r"\bE[0-9a-f]{8}\b|\b(?:deposit|time_deposit|fund):\S+")
 _DATE_TR = re.compile(r"(?<![\w.])(\d{1,2})\.(\d{1,2})\.(\d{4})(?![\w])")
@@ -73,41 +80,50 @@ def _token_readings(text: str) -> list[tuple[str, set[tuple[float, int]]]]:
     return [(tok, _readings(tok)) for tok in _NUMBER.findall(text)]
 
 
-def _allowed(f: Facts) -> tuple[set[float], set[date]]:
-    """Numbers and dates the text may use: every number of the facts pack (and
-    in its texts), a few counts, and the percent form of confidence/stability."""
-    numbers: set[float] = set()
+def _allowed(f: Facts) -> tuple[set[float], set[float], set[date]]:
+    """(public, internal, dates). Public: the numbers the text may use (every
+    number of the facts and its texts, a few counts). Internal (N7): scores,
+    confidence, stability, the values in reason texts of INTERNAL_PARTS,
+    data-quality notes and their row counts, rejected counts."""
+    public: set[float] = set()
+    internal: set[float] = set()
     dates: set[date] = set()
 
-    def walk(x, key: str = "") -> None:
+    def walk(x, key: str, sink: set[float]) -> None:
         if isinstance(x, bool):
             return
         if isinstance(x, (int, float)):
-            numbers.add(abs(float(x)))
+            sink.add(abs(float(x)))
             if key in PERCENT_KEYS:
-                numbers.add(abs(float(x)) * 100)
+                sink.add(abs(float(x)) * 100)
         elif isinstance(x, str):
-            numbers.update(v for v, _ in numbers_in(x))
+            sink.update(v for v, _ in numbers_in(x))
             dates.update(dates_in(x))
             m = _PERIOD.search(x) if key == "quantity" else None
             if m:
-                numbers.add(float(m.group(1)))
+                sink.add(float(m.group(1)))
         elif isinstance(x, Mapping):
             for k, v in x.items():
-                walk(v, k)
+                if k == "reasons":                      # [[part, value, text], ...]
+                    for part, value, text in v:
+                        internal.add(abs(float(value)))
+                        walk(text, k, internal if part in INTERNAL_PARTS else public)
+                else:
+                    walk(v, k, internal if k in INTERNAL_KEYS else sink)
         elif isinstance(x, (list, tuple)):
             for v in x:
-                walk(v, key)
+                walk(v, key, sink)
 
-    walk(f.to_dict())
+    walk(f.to_dict(), "", public)
     c = f.client
-    numbers.update(float(n) for n in (
+    public.update(float(n) for n in (
         len(f.selected), len(f.alternatives), len(f.groups), len(f.warnings),
-        len(f.data_quality), len(f.open_questions), len(f.assumptions), len(f.named_options()),
-        len(c["oncelikler"]), len(c["acik_kisitlar"]),
-        *(len(n.evidence_ids) for n in f.data_quality)))     # evidence_count of the prompt pack
-    numbers.update(float(d.year) for d in dates)
-    return numbers, dates
+        len(f.open_questions), len(f.assumptions), len(f.named_options()),
+        len(c["oncelikler"]), len(c["acik_kisitlar"])))
+    internal.update(float(n) for n in (len(f.data_quality),
+                                       *(len(n.evidence_ids) for n in f.data_quality)))
+    public.update(float(d.year) for d in dates)
+    return public, internal, dates
 
 
 def _matches(readings: Iterable[tuple[float, int]], allowed: set[float]) -> bool:
@@ -135,12 +151,17 @@ def _check_sections(sections: Sequence[NarrativeSection]) -> list[str]:
 
 
 def _check_numbers(sections, f: Facts) -> list[str]:
-    numbers, dates = _allowed(f)
+    public, internal, dates = _allowed(f)
     out = []
     for sec in sections:
         for s in sec.sentences:
             for tok, readings in _token_readings(s.text):
-                if not _matches(readings, numbers):
+                if _matches(readings, public):
+                    continue
+                if _matches(readings, internal):
+                    out.append(f"internal: {sec.key}: {tok} is an internal value (a score, "
+                               f"a count or a data-quality detail): \"{_short(s.text)}\"")
+                else:
                     out.append(f"number: {sec.key}: {tok} is not in the facts: "
                                f"\"{_short(s.text)}\"")
             for d in sorted(dates_in(s.text) - dates):
@@ -214,6 +235,30 @@ def _check_citations(sections, f: Facts) -> list[str]:
     return out
 
 
+def _check_internal_names(sections) -> list[str]:
+    return [f"internal: {sec.key}: internal name \"{m}\": \"{_short(s.text)}\""
+            for sec in sections if sec.key not in VERBATIM_SECTIONS
+            for s in sec.sentences for m in INTERNAL_NAME.findall(s.text)]
+
+
+def _check_coverage(sections, f: Facts) -> list[str]:
+    cited = {i for sec in sections if sec.key == "oneriler" for s in sec.sentences
+             for i in s.option_ids}
+    return [f"coverage: oneriler: no sentence for the selected option {o.option_id} "
+            f"({o.label})" for o in f.selected if o.option_id not in cited]
+
+
+def _check_pointer(sections, f: Facts, lang: str) -> list[str]:
+    if not f.data_quality:
+        return []
+    dikkat = _norm(" ".join(s.text for sec in sections if sec.key == "dikkat"
+                            for s in sec.sentences))
+    if any(_norm(p) in dikkat for p in PANES.values()):
+        return []
+    return [f"pointer: dikkat: one sentence must point to the \"{PANES[lang]}\" pane for "
+            f"the data-quality notes"]
+
+
 def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
              config: NarratorConfig, lang: str) -> tuple[str, ...]:
     """All findings of the text; () means it passed. r is the result the facts
@@ -223,6 +268,9 @@ def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
     out += _check_options(sections, f, r)
     out += _check_phrases(sections, f, config)
     out += _check_citations(sections, f)
+    out += _check_internal_names(sections)
+    out += _check_coverage(sections, f)
+    out += _check_pointer(sections, f, lang)
     everything = _norm(" ".join(s.text for sec in sections for s in sec.sentences))
     if _norm(config.disclaimer[lang]) not in everything:
         out.append(f"disclaimer: the text must contain \"{config.disclaimer[lang]}\"")

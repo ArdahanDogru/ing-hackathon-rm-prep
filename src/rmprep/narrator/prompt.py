@@ -11,8 +11,9 @@ from collections.abc import Sequence
 
 from rmprep.contracts import NARRATIVE_SECTIONS, NarrativeSection, NarrativeSentence
 from rmprep.narrator.config import NarratorConfig
-from rmprep.narrator.facts import Facts, KeyNumber, OptionFacts
+from rmprep.narrator.facts import INTERNAL_PARTS, Facts, KeyNumber, OptionFacts
 from rmprep.narrator.llm import LlmRequest
+from rmprep.narrator.template import is_quotable
 
 _SENTENCE = {
     "type": "object",
@@ -33,8 +34,10 @@ SCHEMA = {
 }
 
 _LANGUAGE = {
-    "TR": ("Turkish", "formal \"siz\" form", "%52,51 and 1.054,64", "09.10.2026"),
-    "EN": ("English", "polite, plain form", "52.51% and 1,054.64", "2026-10-09"),
+    "TR": ("Turkish", "formal \"siz\" form", "%52,51 and 1.054,64", "09.10.2026",
+           "Olası sorunlar"),
+    "EN": ("English", "polite, plain form", "52.51% and 1,054.64", "2026-10-09",
+           "Possible issues"),
 }
 
 _SYSTEM = """\
@@ -49,23 +52,33 @@ texts in the facts are Turkish; quote them as they are.
 Input: the facts pack (JSON) in the first user block. It is the only source. \
 "baseline" is the comparison deposit, "selected" are the options the RM chose, \
 "alternatives" are the other options of the same groups, "groups" says which is \
-which. Rejected options appear only as a count per rule. Key numbers are "numbers": {{quantity: [value, unit, evidence_id]}}, with the date in "as_of" (a fourth item when a number has its own date); unit "pct" is a percent, "level" a risk level. A data-quality note has its message and the number of rows it concerns (evidence_count); cite the selected options for it.
+which. Key numbers are "numbers": {{quantity: [value, unit, evidence_id]}}, with \
+the date in "as_of" (a fourth item when a number has its own date); unit "pct" \
+is a percent, "level" a risk level. "reasons" are the engine's reasons for an \
+option; "fits" names the needs the engine found the option strong on (liquidity, \
+income, principal, simplicity), without values. "data_quality_notes" says if the \
+run has data-quality notes; the RM reads them in the "{pane}" pane.
 
 Output: JSON with exactly these sections, each a list of sentences; each sentence \
 has its text and its citations (option_ids: option_id values from the facts; \
-evidence_ids: evidence_id / evidence_ids values from the facts).
+evidence_ids: evidence_id values from the facts).
 - ozet: 3-5 sentences: the client situation and the aim of the meeting. The last \
 sentence is exactly: "{disclaimer}"
-- oneriler: for each selected option: what it is, why it fits this client (from \
-its reasons and the client context), its key numbers, what to watch.
+- oneriler: for each selected option: what it is and its key numbers; one \
+sentence that links it to a named need of this client (horizon, liquidity, \
+income, principal protection, an explicit constraint, or the RM note), quoting \
+the client's own words; and what to watch. Each option gets its own reasons; \
+the options must not read alike.
 - alternatifler: 1-2 sentences per group: the other options of the same kind; \
 and the baseline for comparison.
-- dikkat: the warnings, risks, data-quality notes and the rejected count, in \
-plain words.
+- dikkat: only the warnings that matter for this client and this meeting, in \
+plain words; if data_quality_notes is true, one short sentence that points the \
+RM to the "{pane}" pane; and once, that past returns do not show future returns.
 - sorular: questions for the RM to ask the client: the open questions and the \
 explicit constraints (acik_kisitlar) to confirm.
 - teklif_metni: a short script the RM may say or adapt in the meeting, spoken \
-to the client. It is not a letter.
+to the client and built on the client's own goal and situation (yatirim_amaci, \
+durum). It is not a letter. At most one short past-return reminder.
 - varsayimlar: each assumption of the facts as its own sentence, verbatim.
 
 Rules (a validator checks each one; a text that fails is replaced):
@@ -74,11 +87,13 @@ at most. Write numbers as {numbers} and dates as {date}. Do not compute new \
 numbers (no differences, sums, or averages) and do not write ids in the text.
 2. Name only the baseline, the selected options and the alternatives, by their \
 label or fund code. Never name or hint at a rejected option or any other product.
-3. Never promise a result. Do not use these phrases or their forms: {forbidden}. \
-Past returns do not show future returns; say so where you talk about returns.
+3. Never promise a result. Do not use these phrases or their forms: {forbidden}.
 4. Every sentence of oneriler, alternatifler and dikkat cites at least one \
 option_id or evidence_id of the facts; cite only ids that exist in the facts.
-5. Include the sentence "{disclaimer}" verbatim.
+5. No internal values outside varsayimlar: no field, flag or source names \
+(such as needs_check, tefas_web, penalty:...), no score or fit values, no row \
+counts, no counts of rejected options. Write sources as TEFAS or TCMB EVDS.
+6. Include the sentence "{disclaimer}" verbatim.
 This is decision support for the RM, not investment advice.
 """
 
@@ -95,15 +110,15 @@ Return the full corrected JSON. Change only what the findings need."""
 
 
 def system_prompt(lang: str, config: NarratorConfig) -> str:
-    language, form, numbers, day = _LANGUAGE[lang]
+    language, form, numbers, day, pane = _LANGUAGE[lang]
     forbidden = ", ".join(f'"{p}"' for p in config.forbidden_phrases[lang])
     return _SYSTEM.format(language=language, form=form, numbers=numbers, date=day,
-                          forbidden=forbidden, disclaimer=config.disclaimer[lang])
+                          pane=pane, forbidden=forbidden, disclaimer=config.disclaimer[lang])
 
 
 ALTERNATIVE_NUMBERS = 3     # key numbers per alternative in the prompt pack
 SELECTED_NUMBERS = 6        # key numbers per selected option and the baseline
-MAIN_REASONS = 3            # largest score parts per selected option
+MAIN_REASONS = 3            # reason texts per selected option (internal parts excluded)
 _ORDER = ("fund_return_1y", "deposit_rate", "fund_risk_level", "fund_return_3y",
           "fund_return_5y", "fund_return_6m", "fund_return_3m", "fund_return_ytd",
           "fund_return_1m")
@@ -130,7 +145,8 @@ def _numbers(o: OptionFacts, limit: int) -> dict:
 def _option(o: OptionFacts) -> dict:
     """A selected option or the baseline: what the text says about it."""
     out = {"option_id": o.option_id, "label": o.label, "kind": o.kind, "fx": o.fx,
-           "confidence": o.confidence, "reasons": [r for _, _, r in o.reasons[:MAIN_REASONS]],
+           "reasons": [x[2] for x in o.reasons if is_quotable(x)][:MAIN_REASONS],
+           "fits": [k for k, v, _ in o.reasons if k in INTERNAL_PARTS and v > 0],
            **_numbers(o, SELECTED_NUMBERS)}
     if o.warnings:
         out["warnings"] = list(o.warnings)
@@ -140,10 +156,11 @@ def _option(o: OptionFacts) -> dict:
 
 
 def prompt_facts(f: Facts) -> dict:
-    """The facts pack as the LLM sees it (N8): only what the text needs. Data-
-    quality notes as text and a count (no id lists), alternatives with label,
-    kind, id and ALTERNATIVE_NUMBERS key numbers. Every number and id in it is
-    in the full Facts, which the validator checks against."""
+    """The facts pack as the LLM sees it (N8, N7): only what the text needs.
+    Alternatives with label, kind, id and ALTERNATIVE_NUMBERS key numbers; no
+    internal values (scores, confidence, internal-part reason texts, data-quality
+    details, rejected counts). Every number and id in it is in the full Facts,
+    which the validator checks against."""
     return {
         "run_id": f.run_id,
         "client": {k: list(v) if isinstance(v, tuple) else v for k, v in f.client.items()},
@@ -158,12 +175,10 @@ def prompt_facts(f: Facts) -> dict:
                       "numbers": {n.quantity: [n.value, n.unit, n.evidence_id, n.as_of.isoformat()]
                                   for n in w.numbers[:ALTERNATIVE_NUMBERS]}}
                      for w in f.warnings],
-        "data_quality": [{"message": n.message, "evidence_count": len(n.evidence_ids)}
-                         for n in f.data_quality],
+        "data_quality_notes": bool(f.data_quality),
         "assumptions": list(f.assumptions),
         "open_questions": list(f.open_questions),
         "rm_note": f.rm_note,
-        "rejected": {"count": f.rejected_count, "rules": dict(f.rejected_rules)},
     }
 
 

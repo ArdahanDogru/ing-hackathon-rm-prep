@@ -19,7 +19,9 @@ def test_persona_context_and_rm_notes():
     assert f.client["yas"] == 48
     assert f.client["acik_kisitlar"] == ("döviz maruziyetini gerekçesiz artırmama",)
     assert set(f.client) == {"profil", "yas", "risk_profili", "durum", "yatirim_amaci",
-                             "yatirim_ufku", "oncelikler", "acik_kisitlar", "rm_notu"}
+                             "yatirim_ufku", "likidite_ihtiyaci", "doviz_maruz_kalma_tercihi",
+                             "gelir_nakit_akisi_ihtiyaci", "anapara_koruma_tercihi",
+                             "oncelikler", "acik_kisitlar", "rm_notu"}
     assert f.rm_note == "Şirket nakdini ayrıca konuşalım."
     assert f.selected[0].rm_note == "Vade ufkuna uygun."
 
