@@ -4,7 +4,13 @@ row titles and table rows."""
 
 from __future__ import annotations
 
-from rmprep.contracts import DecisionResult, DecisionWarning, RejectedOption, ScoredOption
+from rmprep.contracts import (
+    DecisionResult,
+    DecisionWarning,
+    EvidenceSet,
+    RejectedOption,
+    ScoredOption,
+)
 from rmprep.ui.i18n import LABELS, t
 
 FIRST_PAGE = 3
@@ -97,3 +103,62 @@ def table_rows(r: DecisionResult, kinds: list[str] = (), lang: str = "TR") -> li
             "⚠": "⚠" if o.option.option_id in w else "",
         })
     return rows
+
+
+# --- evidence (docs/ui.md section 5) and citations (section 4) -------------------
+
+_FLAG_COLORS = {"missing": "red", "out_of_range": "red", "conflict": "red", "stale": "orange",
+                "needs_check": "orange", "fallback_snapshot": "orange",
+                "unverified_series": "gray", "manual_entry": "blue"}
+
+
+def flag_badges(flags) -> str:
+    """Flags as streamlit badges, e.g. ":orange-badge[stale]"."""
+    return " ".join(f":{_FLAG_COLORS.get(f, 'gray')}-badge[{f}]" for f in sorted(flags))
+
+
+def _value(dp) -> str:
+    return "—" if dp.value is None else f"{dp.value:,.6g} {dp.unit}"
+
+
+def evidence_rows(ev: EvidenceSet, ids=None, lang: str = "TR") -> list[dict]:
+    """One row per DataPoint of ev, only those in ids if ids is given, sorted by id."""
+    keep = None if ids is None else set(ids)
+    rows = []
+    for dp in ev.datapoints:
+        if keep is not None and dp.id not in keep:
+            continue
+        info = ev.entities.get(dp.entity)
+        rows.append({
+            t("col_id", lang): dp.id,
+            t("col_quantity", lang): dp.quantity,
+            t("col_entity", lang): f"{dp.entity} · {info.name}" if info else dp.entity,
+            t("col_value", lang): _value(dp),
+            t("col_as_of", lang): dp.as_of.isoformat(),
+            t("col_source", lang): dp.source,
+            t("col_url", lang): dp.source_url,
+            t("col_flags", lang): flag_badges(f.value for f in dp.flags),
+            t("col_note", lang): dp.note,
+        })
+    return sorted(rows, key=lambda row: row[t("col_id", lang)])
+
+
+def citations(r: DecisionResult, ev: EvidenceSet, lang: str = "TR") -> list[str]:
+    """One citation per source of the evidence rows the result used, by source name."""
+    used = r.evidence_ids()
+    rows = [dp for dp in ev.datapoints if dp.id in used]
+    out: list[str] = []
+    for source in sorted({dp.source for dp in rows}):
+        if source == "evds":
+            text = t("cite_evds", lang)
+        elif source in ("tefas", "tefas_web"):
+            text = t("cite_tefas", lang)
+        elif source == "manual" and any(dp.entity.startswith("ING") for dp in rows
+                                        if dp.source == "manual"):
+            as_of = max(dp.as_of for dp in rows if dp.source == "manual")
+            text = t("cite_manual_ing", lang, as_of=as_of.isoformat())
+        else:
+            text = t("cite_other", lang, source=source)
+        if text not in out:
+            out.append(text)
+    return out
