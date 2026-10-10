@@ -289,7 +289,8 @@ and investor counts, and adds valör and fees (KAP is dropped for now: it blocks
 automated requests, and this page has the data we needed from it).
 
 - Funds: the funds of the `tefas_web` payload of the same snapshot, without the
-  categories in `exclude_categories` (start: `Serbest Şemsiye Fonu`), about 805.
+  categories in `exclude_categories` (start: `Serbest Şemsiye Fonu`), 818 on
+  2026-10-10.
   No `tefas_web` funds → the source fails (`on_failure`).
 - Requests: one GET per fund, `User-Agent` from config, at least
   `min_interval_s` (1.0) between requests (about 14 minutes), no redirects,
@@ -302,16 +303,24 @@ automated requests, and this page has the data we needed from it).
   flight data). Strict: a page without them, or with a non-numeric required
   value, is a rejected row with the reason; if more than `max_fail_share` (5 %)
   of the pages fail, the source fails (the page format changed).
-- DataPoints: `fund_price` (`sonFiyat`), `fund_total_value` (`portBuyukluk`),
-  `fund_investor_count` (`yatirimciSayi`), `fund_risk_level` (`riskDegeri`),
-  and the new quantities `fund_buy_valor_days` (`fonSatisValor`),
-  `fund_sell_valor_days` (`fonGeriAlisValor`), `fund_expense_ratio`
-  (`fonTopGiderKesoran`, %), `fund_entry_fee` and `fund_exit_fee`
-  (`girisKomisyonu`, `cikisKomisyonu`; null → no row). The same quantities as
-  `tefas` and `tefas_web` give the cross-source conflict check for free.
-- `as_of`: a date from the page if there is one (the worker checks); else the
+- DataPoints (as built, I3 2026-10-10): required (`value_fields`)
+  `fund_price` (`sonFiyat`), `fund_total_value` (`portBuyukluk`),
+  `fund_investor_count` (`yatirimciSayi`), `fund_buy_valor_days`
+  (`fonGeriAlisValor`, shown on the page as "Fon Alış Valörü") and
+  `fund_sell_valor_days` (`fonSatisValor`, "Fon Satış Valörü"; the design had
+  the two reversed). Optional (`optional_fields`; null, "" or "-" → no row):
+  `fund_risk_level` (`riskDegeri`; 52 of 818 funds have none), `fund_entry_fee`
+  and `fund_exit_fee` (`girisKomisyonu`, `cikisKomisyonu`; null on the 3 pages
+  checked). No `fund_expense_ratio`: `fonTopGiderKesoran` is only a label, the
+  value is not in the page. The same quantities as `tefas` and `tefas_web` give
+  the cross-source conflict check for free.
+- `as_of`: the page has **no date** (3 pages checked 2026-10-10), so the
   previous business day before the snapshot date, as for `tefas_web`. All rows
   `needs_check` until the source has a stable record.
+- Failed pages are stored (audit) but give no rows; when the failed share passes
+  `max_fail_share`, the fetch stops at once. The pipeline fetches
+  `tefas_detail` after `tefas_web`; `ingest()` takes `sleep=time.sleep` (tests
+  replace it).
 - Not now: asset allocation (`portfolioDistribution`), price history.
 - Tests: fixture pages for 3 funds (one with null fees), MockTransport, a page
   without data, the fail share, a disallowed path, replay identical, the

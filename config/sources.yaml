@@ -111,6 +111,22 @@ quantities:
     min: 1
     max: 7
     conflict_tolerance: 0.0
+  # Valör (settlement days) and entry/exit fees per fund, from the TEFAS fund
+  # detail page (source tefas_detail, I3). Fees: null on the page -> no row.
+  fund_buy_valor_days: &valor_days
+    unit: days
+    max_age_days: 5
+    min: 0
+    max: 30
+    conflict_tolerance: 0.0
+  fund_sell_valor_days: *valor_days
+  fund_entry_fee: &fund_fee
+    unit: pct
+    max_age_days: 5
+    min: 0
+    max: 20
+    conflict_tolerance: 0.0
+  fund_exit_fee: *fund_fee
 
 sources:
   evds:
@@ -258,6 +274,46 @@ sources:
       getiri3y: fund_return_3y
       getiri5y: fund_return_5y
       riskDegeri: fund_risk_level
+
+  tefas_detail:
+    adapter: tefas_detail
+    enabled: true
+    on_failure: previous
+    source_url: https://www.tefas.gov.tr/tr/fon-detayli-analiz
+    tos_note: >-
+      Organizers' rule 8: follow each source's terms; collecting public data
+      is in scope and TEFAS is recommended. tefas.gov.tr has no terms page;
+      robots.txt (checked 2026-10-10) allows "/" (so /tr/fon-detayli-analiz/)
+      but disallows /api/, /private/, /tefasbuild, /_next/ and /static/ for all
+      agents. This source makes ONE GET per fund per ingest of the allowed HTML
+      detail page below (about 820 funds, at least min_interval_s apart, about
+      14 minutes), no redirects, and never calls /api/ (config rejects
+      disallowed paths). The fund list comes from the tefas_web page of the
+      same snapshot. The site states that Takasbank does not guarantee the data.
+    url: https://www.tefas.gov.tr/tr/fon-detayli-analiz/{code}
+    user_agent: rmprep-hackathon-prototype/0.1 (ING hackathon; one request per fund per day)
+    timeout_seconds: 30
+    min_interval_s: 1.0      # seconds between requests
+    max_fail_share: 0.05     # more failed pages -> the page changed -> source fails
+    # max_funds: 20          # limit the fund list for trials
+    funds_from: tefas_web
+    exclude_categories: ["Serbest Şemsiye Fonu"]
+    flag_needs_check: true   # set to false once the source has a stable record
+    # "<page data object>.<field>" -> quantity. Required: a page without the
+    # value is a rejected row. Valör: the page shows fonGeriAlisValor as
+    # "Fon Alış Valörü" and fonSatisValor as "Fon Satış Valörü".
+    value_fields:
+      bilgiData.sonFiyat: fund_price
+      bilgiData.portBuyukluk: fund_total_value
+      bilgiData.yatirimciSayi: fund_investor_count
+      profilData.fonGeriAlisValor: fund_buy_valor_days
+      profilData.fonSatisValor: fund_sell_valor_days
+    # Optional: null, "" or "-" -> no row (6 % of these funds have no risk
+    # value on tefas_web, 2026-10-10; fees are null for most funds).
+    optional_fields:
+      profilData.riskDegeri: fund_risk_level
+      profilData.girisKomisyonu: fund_entry_fee
+      profilData.cikisKomisyonu: fund_exit_fee
 
   manual:
     adapter: manual
