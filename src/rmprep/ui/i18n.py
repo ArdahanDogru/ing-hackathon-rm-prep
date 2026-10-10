@@ -136,8 +136,9 @@ LABELS: dict[str, dict[str, str]] = {
     "p_principal": {"TR": "Anapara koruma", "EN": "Capital protection"},
     "p_simplicity": {"TR": "Sadelik", "EN": "Simplicity"},
     "p_quality": {"TR": "Kalite", "EN": "Quality"},
-    # option kinds: kind.<deposit | fund_kind of config/decision.yaml>
+    # option kinds: kind.<deposit | time_deposit | fund_kind of config/decision.yaml>
     "kind.deposit": {"TR": "Mevduat", "EN": "Deposit"},
+    "kind.time_deposit": {"TR": "Vadeli mevduat", "EN": "Time deposit"},
     "kind.money_market": {"TR": "Para Piyasası", "EN": "Money market"},
     "kind.debt": {"TR": "Borçlanma Araçları", "EN": "Debt instruments"},
     "kind.participation": {"TR": "Katılım", "EN": "Participation"},
