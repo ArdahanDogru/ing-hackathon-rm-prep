@@ -49,8 +49,20 @@ Main and the right pane are `st.columns([3, 1])`.
   - Tab "Kısa liste":
     - the deposit baseline (`options[0]` if its kind is `deposit`) is pinned
       above the list as "Karşılaştırma";
-    - then the next options in display order: 3 first, "Daha fazla" → 10, then
-      +10 each click;
+    - then the funds **grouped by `fund_kind`** (changed 2026-10-10 by the
+      user, milestone U6; the flat 3 → 10 → +10 list is replaced):
+      - the pool is the first 20 non-deposit options in display order;
+      - one group per `fund_kind` with an option in the pool, at most 5
+        groups, ordered by the score of their best option (ties: `option_id`);
+      - group header: the umbrella type name (i18n key `kind.<fund_kind>`,
+        e.g. "Para Piyasası" / "Money market"), the count of options in the
+        group;
+      - the group's best option is the recommendation row (all columns
+        below, expandable);
+      - the other pool options of the same kind are its alternatives, in
+        score order: 3 visible, the rest behind "Daha fazla" (per group);
+      - options outside the pool or the 5 groups appear only in "Tüm
+        puanlananlar";
     - columns: position, label, kind / `fund_kind`, FX badge, score, confidence,
       stability, ⚠ marker if a warning names the option;
     - an expanded row shows the score parts as horizontal bars (penalties
@@ -161,3 +173,4 @@ Tests use `streamlit.testing.v1.AppTest` (no browser, no network).
 | U3 | "Kanıt", "Olası sorunlar", ⚠ markers, citations | an evidence id filters the right rows; every warning appears in the pane |
 | U4 | RM loop: questions, approve / reject with selection, run history, persona edit | answer → new run; a test run cannot be approved; history cleared on persona pick |
 | U5 | summary card (Markdown, HTML) with notes; TR / EN | the card holds the selected options, notes and citations; every label exists in TR and EN |
+| U6 | "Kısa liste" grouped by `fund_kind` (section 1) | groups from the top-20 pool, ≤ 5, ordered by best score; head = best of kind; 3 alternatives then "Daha fazla"; selection and approval work on heads and alternatives; `kind.*` keys in TR and EN |

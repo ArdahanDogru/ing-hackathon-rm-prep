@@ -249,8 +249,9 @@ maruziyeti istiyor."
    `concentration` (section 6).
 5. After position 10: by score.
 
-Ties: higher score, then `option_id`. The UI shows 3, then 10, then 10 more each
-time.
+Ties: higher score, then `option_id`. The UI groups the first 20 options by
+`fund_kind` (docs/ui.md section 1, changed 2026-10-10); the order above stays
+the order inside and between the groups.
 
 ## 5. `confidence` and `stability`
 
@@ -344,6 +345,7 @@ funds, with `entities`).
 | D3 | criteria, weights, penalties, `risk_ceiling`, `score_parts` + `reasons`, display order | parts add up to the score; hand-computed cases match; risk above ceiling → rejected; caps of section 4.5 |
 | D4 | `confidence`, `stability` | exact values on small hand-made cases |
 | D5 | warnings, data-quality notes, `config_hash`, `run_id`, `decide()`; `rmprep.decision.report.render(result) -> str` (text: baseline + positions 1–10 with parts) | one trigger case per warning; valid `DecisionResult` for p01–p05 on `evidence_medium`; same inputs → same `run_id`; answer → new `run_id` |
+| D7 | `render` groups like the UI: baseline, then ≤ 5 `fund_kind` groups from the first 20 options (head + alternatives); rejected = count + the first 10 ids | group order and members on a hand-made result; long rejected list cut |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]
