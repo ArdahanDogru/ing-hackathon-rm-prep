@@ -49,7 +49,9 @@ In the main checkout: `git merge --no-ff <branch>`, full `pytest`.
 Green → keep it and tell the workers that are working now to rebase (an idle
 worker rebases at the start of its next milestone; waking an idle session costs
 a full context reread). Red → undo the merge and send the worker the failing
-tests. Never push.
+tests. Pushing: only the lead pushes `main`, to the private GitHub repo
+`ArdahanDogru/ing-hackathon-rm-prep`, and only when the user asks (decided by the user
+2026-10-11; the guard hook still blocks pushes from worker branches).
 
 ## Lead: pause, and after a restart
 
