@@ -266,3 +266,36 @@ def known_levels(raw_config: Mapping, personas) -> dict[str, list[str]]:
             if v not in values:
                 values.append(v)
     return out
+
+
+# --- hard rules of the rejected options (docs/decision.md section 2, D12/D13) ------
+
+RULE_ORDER = ("not_buyable", "risk_ceiling", "fx_limit", "liquidity_need")
+
+
+def rule_counts(r: DecisionResult) -> list[tuple[str, int]]:
+    """(rule_id, number of rejected options that fail it): each option counts once
+    per failed rule; known rules in RULE_ORDER, then the others by name."""
+    counts: dict[str, int] = {}
+    for rj in r.rejected:
+        for rule in dict.fromkeys(c.rule_id for c in rj.failed):
+            counts[rule] = counts.get(rule, 0) + 1
+    known = [k for k in RULE_ORDER if k in counts]
+    return [(k, counts[k]) for k in known + sorted(set(counts) - set(RULE_ORDER))]
+
+
+def rule_line(rule: str, n: int, lang: str = "TR") -> str:
+    k = "rule_count." + rule
+    return t(k, lang, n=n) if k in LABELS else t("rule_count_other", lang, rule=rule, n=n)
+
+
+def rule_label(rule: str, lang: str = "TR") -> str:
+    k = "rule." + rule
+    return t(k, lang) if k in LABELS else rule
+
+
+def rejected_with_rule(r: DecisionResult, rule: str | None) -> tuple[RejectedOption, ...]:
+    """The rejected options that fail rule (all of them for None)."""
+    if rule is None:
+        return r.rejected
+    return tuple(rj for rj in r.rejected if any(c.rule_id == rule for c in rj.failed))
