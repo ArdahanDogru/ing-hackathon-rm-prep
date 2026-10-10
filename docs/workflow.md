@@ -63,6 +63,23 @@ tests. Never push.
   then continue your milestone"). Messages sent while a session was down are
   lost: ask each resumed worker for its state once.
 
+## Stopped sessions (usage limits, API errors)
+
+Added 2026-10-10 after two workers stopped silently on a usage limit.
+
+- Hook `StopFailure` in `.claude/settings.json` (every session of the project,
+  lead and workers): `.claude/hooks/notify_stop_failure.py` pushes
+  "ing: <session> stopped (<error>); tell ing-lead to resume it" to the user's
+  phone and appends the event to `~/.claude/ing-session-failures.jsonl`. A
+  session loads hooks at start: a worker started before this change gets the
+  hook only after a restart.
+- The lead subscribes to an idle notice (`SendMessage` with
+  `notify_when_idle: true`) for each worker it gives a milestone. An idle notice
+  without a milestone or blocker message means the worker stopped: the lead
+  checks `git status` / `git log main..<m>` in its worktree, sends the task again
+  (a message wakes an idle session; `resume_session` only works on a stopped
+  one), and pushes one line to the user.
+
 ## Lead: starting and stopping workers
 
 At most 3 sessions work at the same time (the lead counts). Start a worker only
