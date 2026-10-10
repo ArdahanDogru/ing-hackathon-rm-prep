@@ -20,7 +20,7 @@ __all__ = ["Levels", "PersonaReading", "normalize", "read_persona"]
 
 _RANGE_RE = re.compile(r"^(\d+)\s*-\s*(\d+) yıl$")
 _PLUS_RE = re.compile(r"^(\d+)\+ yıl$")
-_LEVEL_ATTR = {"likidite_ihtiyaci": "liquidity", "gelir_nakit_akisi_ihtiyaci": "income",
+LEVEL_ATTR = {"likidite_ihtiyaci": "liquidity", "gelir_nakit_akisi_ihtiyaci": "income",
                "anapara_koruma_tercihi": "principal"}
 _FX = "doviz_maruz_kalma_tercihi"
 _HORIZON = "yatirim_ufku"
@@ -135,7 +135,7 @@ def read_persona(persona: Persona, config: DecisionConfig,
     for f in LEVEL_FIELDS:
         text = getattr(persona, f)
         key = _lookup(c["levels"], text) or safe(f, text, tuple(c["levels"]))
-        level_values[_LEVEL_ATTR[f]] = c["levels"][key]
+        level_values[LEVEL_ATTR[f]] = c["levels"][key]
 
     # doviz_maruz_kalma_tercihi
     fx_key = (_lookup(c["fx_levels"], persona.doviz_maruz_kalma_tercihi)
