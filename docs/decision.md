@@ -104,7 +104,7 @@ Every other rule is a penalty (section 4). A fund with no risk level is not
 rejected (penalty `risk_unknown`). The deposit counts as risk level 1.
 A scored option carries `ConstraintResult(rule_id="risk_ceiling", passed=True)`.
 
-D12 (proposed 2026-10-10, waits for the user): a second hard rule.
+D12 (approved by the user 2026-10-10, parts a, b, c): a second hard rule.
 
 - `not_buyable`: the fund's latest `fund_buyable` row (ingest I3b) is 0 — the
   fund does not trade on TEFAS or is closed for purchase, so an ING client cannot
@@ -112,6 +112,31 @@ D12 (proposed 2026-10-10, waits for the user): a second hard rule.
   passed=False, reason=..., evidence_ids=(status row,))`. The first live run
   (279 pages) had 65 such funds. A missing row → no rejection; one data-quality
   note with the count. Checked before `risk_ceiling`; a fund can fail both.
+
+D13 (approved by the user 2026-10-10): **explicit constraints are hard rules**
+(brief section 12 rule 5: a product that breaks an explicit constraint must not
+enter the recommendation list or the offer text). Each `acik_kisitlar` effect
+that can be tested on a product rejects the product, with the rule id = the
+effect id and the reason shown to the RM in "Elenenler":
+
+- `fx_limit` (P02 "döviz maruziyetini gerekçesiz artırmama"): a fund with the
+  `fx` tag is rejected. "gerekçesiz" lets the RM lift it: a non-blocking question
+  `q:override:fx_limit` (choices: "uygula" = default, "gerekçeyle kaldır"); with
+  "gerekçeyle kaldır" the FX funds come back with the old penalty, and an
+  assumption records the RM's override (the RM writes the reason in the note).
+- `liquidity_need` (P05 "uzun süre kilitli veya düşük likiditeli seçeneklerden
+  kaçınma"): a fund with a sell valör above `max_sell_valor_days` (3) and a time
+  deposit with a term above `max_lock_days` (91) are rejected. A fund without a
+  valör row is not rejected (data-quality note with the count). The 32-day
+  e-Vadeli stays.
+- `risk_cap` was already hard (ceiling). `concentration_limit` and
+  `no_liquidity_need` do not test a single product; they stay structural (caps,
+  weights).
+- An unknown constraint text stays a blocking question; the RM's answer picks an
+  effect id, and that effect is enforced the same way.
+- Order of the checks: `not_buyable`, `risk_ceiling`, then the constraint rules.
+  The soft preferences (the FX level of `doviz_maruz_kalma_tercihi`, the
+  liquidity level) stay penalties.
 
 ## 3. Persona text → levels
 
@@ -451,6 +476,7 @@ funds, with `entities`).
 | D10 | penalty `underperformance` (4.3) and the positions 11–20 cap with diversity (4.5); config OPTIONAL until the lead adds it: `penalties.underperformance` (0.3), `underperformance: {scale: 0.20}`, `display.pool` (20), `display.diversity_pool_cap` (4); texts `penalty:underperformance`, data-quality note for a missing benchmark | hand-computed penalty (fund 10 % for P03 → 0.3; P02 → 0.2; Muhafazakâr → 0); missing benchmark; with diversity no kind has more than 4 options in 1–20, without diversity the order does not change; stability counts the new penalty |
 | D11 | use `rmprep.grouping` (4.6): `report.render` groups with `grouping.groups`; the kind caps of 4.5 count by `grouping.group_key`; remove `report.fund_groups` and the local constants | report output unchanged on the real snapshot; tests import the shared rule |
 | D12 | (a) hard rule `not_buyable` (section 2); (b) `liquidity` of a fund from its sell valör (`fund_sell_valor_days`) through a config table (start: 0 days 1.0, 1 → 0.9, 2 → 0.8, 3 → 0.7, 4–5 → 0.6, 6–10 → 0.4, more → 0.2), the kind table only when the row is missing (reason says which); (c) entry and exit fees (`fund_entry_fee`, `fund_exit_fee`, %) reduce the net return N by (entry + exit) / horizon years (6m 0.5, 1y 1, 3y 3); reason texts for valör and fees; all config OPTIONAL until the lead adds it | rejected with the rule and the row id; missing status → note; valör table values and the kind fallback; fee effect hand-computed; P01–P05 valid |
+| D13 | explicit constraints as hard rules (section 2): `fx_limit` (with the RM override question), `liquidity_need` (`max_sell_valor_days` 3, `max_lock_days` 91); config OPTIONAL until the lead adds it | FX fund rejected for P02, back with the override; P05: valör 4 rejected, 3 kept, missing kept + note; time deposit 32 days kept, a 120-day one rejected; rejected options never in `options` |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]
