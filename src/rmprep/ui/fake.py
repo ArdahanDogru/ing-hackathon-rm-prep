@@ -7,7 +7,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -40,7 +40,9 @@ def _read(path: Path) -> dict:
 
 
 class FakeBackend:
-    def __init__(self, fixtures_dir: Path | str) -> None:
+    def __init__(self, fixtures_dir: Path | str,
+                 results: Iterable[DecisionResult] = ()) -> None:
+        """results: templates that replace the fixture result of their persona."""
         d = Path(fixtures_dir)
         self._personas = [Persona.from_dict(_read(p)) for p in sorted((d / "personas").glob("*.json"))]
         self._evidence: dict[str, EvidenceSet] = {}
@@ -50,7 +52,11 @@ class FakeBackend:
             # one EvidenceSet per snapshot: the largest (the results cite its ids)
             if old is None or len(ev.datapoints) > len(old.datapoints):
                 self._evidence[ev.snapshot_id] = ev
-        self._templates = [DecisionResult.from_dict(_read(p)) for p in sorted(d.glob("decision_*.json"))]
+        given = list(results)
+        ids = {r.persona_id for r in given}
+        self._templates = given + [t for t in (DecisionResult.from_dict(_read(p))
+                                               for p in sorted(d.glob("decision_*.json")))
+                                   if t.persona_id not in ids]
         self._runs: dict[str, tuple[DecisionResult, _Inputs]] = {}
         self.saved: dict[str, DecisionResult] = {}   # approved / rejected runs
         self.cards: dict[str, str] = {}

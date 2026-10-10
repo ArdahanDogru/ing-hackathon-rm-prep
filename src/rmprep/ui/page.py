@@ -10,7 +10,15 @@ from pathlib import Path
 
 import streamlit as st
 
-from rmprep.contracts import Backend, DecisionResult, DecisionState, EvidenceSet, Persona
+from rmprep.contracts import (
+    Backend,
+    DecisionResult,
+    DecisionState,
+    EvidenceSet,
+    Persona,
+    ScoredOption,
+)
+from rmprep.ui import views
 from rmprep.ui.i18n import t
 
 FIXTURES = Path(__file__).resolve().parents[3] / "tests" / "contracts" / "fixtures"
@@ -96,6 +104,110 @@ def _header(r: DecisionResult, lang: str) -> None:
     st.caption(line)
 
 
+_POS_COLOR = "#2a78d6"   # diverging pair (blue / red), validated light and dark
+_NEG_COLOR = "#e34948"
+
+
+def _parts_chart(o: ScoredOption, lang: str) -> None:
+    bars = views.part_rows(o, lang)
+    spec = {
+        "data": {"values": bars},
+        "height": 28 * len(bars),
+        "mark": {"type": "bar", "cornerRadiusEnd": 4, "height": {"band": 0.6}},
+        "encoding": {
+            "y": {"field": "part", "type": "nominal", "sort": None, "title": None},
+            "x": {"field": "value", "type": "quantitative", "title": t("score", lang),
+                  "axis": {"grid": False}},
+            "color": {"condition": {"test": "datum.value < 0", "value": _NEG_COLOR},
+                      "value": _POS_COLOR},
+            "tooltip": [{"field": "part", "title": t("col_part", lang)},
+                        {"field": "value", "title": t("col_value", lang), "format": "+.3f"},
+                        {"field": "reason", "title": ""}],
+        },
+    }
+    st.vega_lite_chart(spec)
+
+
+def _option_row(title: str, o: ScoredOption, lang: str) -> None:
+    with st.expander(title):
+        st.markdown(f"**{t('score_parts', lang)}**")
+        _parts_chart(o, lang)
+        for b in views.part_rows(o, lang):
+            st.markdown(f"- **{b['part']}** ({b['value']:+.3f}): {b['reason']}")
+        if o.constraints:
+            st.markdown(f"**{t('constraints', lang)}**")
+            for c in o.constraints:
+                st.markdown(f"- ✓ `{c.rule_id}`: {c.reason}")
+        if o.evidence_ids:
+            st.caption(f"{t('evidence_ids', lang)}: {', '.join(o.evidence_ids)}")
+
+
+def _shown(run_id: str) -> int:
+    shown = st.session_state.get("shown")
+    return shown[1] if shown and shown[0] == run_id else views.FIRST_PAGE
+
+
+def _more(run_id: str) -> None:
+    st.session_state["shown"] = (run_id, views.next_count(_shown(run_id)))
+
+
+def _shortlist(r: DecisionResult, lang: str) -> None:
+    if not r.options:
+        st.info(t("no_options", lang))
+        return
+    w = views.warned(r)
+    base = views.baseline(r)
+    if base is not None:
+        _option_row(views.row_title(t("baseline", lang), base, base.option.option_id in w, lang),
+                    base, lang)
+    rest = views.ranked(r)
+    shown = _shown(r.run_id)
+    for pos, o in enumerate(rest[:shown], start=1):
+        _option_row(views.row_title(f"{pos}.", o, o.option.option_id in w, lang), o, lang)
+    if shown < len(rest):
+        st.button(t("more", lang), key="more", on_click=_more, args=(r.run_id,))
+
+
+def _all_scored(r: DecisionResult, lang: str) -> None:
+    keys = views.kind_keys(r.options)
+    if "kind_filter" in st.session_state:   # drop kinds the new result does not have
+        st.session_state["kind_filter"] = [k for k in st.session_state["kind_filter"] if k in keys]
+    kinds = st.multiselect(t("kind_filter", lang), keys, key="kind_filter",
+                           format_func=lambda k: views.kind_name(k, lang))
+    st.dataframe(views.table_rows(r, kinds, lang), hide_index=True)
+
+
+def _rejected(r: DecisionResult, lang: str) -> None:
+    if not r.rejected:
+        st.info(t("no_rejected", lang))
+        return
+    for rj in r.rejected:
+        with st.expander(f"{rj.option.label} · {views.kind_label(rj, lang)}", expanded=True):
+            st.markdown(f"**{t('failed_rules', lang)}**")
+            for c in rj.failed:
+                st.markdown(f"- ✗ `{c.rule_id}`: {c.reason}")
+                if c.evidence_ids:
+                    st.caption(f"{t('evidence_ids', lang)}: {', '.join(c.evidence_ids)}")
+
+
+def _tabs(r: DecisionResult, lang: str) -> None:
+    short, all_, rejected, evidence = st.tabs(
+        [t(k, lang) for k in ("tab_short", "tab_all", "tab_rejected", "tab_evidence")])
+    if r.state == DecisionState.NEEDS_RM_INPUT:
+        for tab in (short, all_, rejected):
+            with tab:
+                st.info(t("answer_first", lang))
+    else:
+        with short:
+            _shortlist(r, lang)
+        with all_:
+            _all_scored(r, lang)
+        with rejected:
+            _rejected(r, lang)
+    with evidence:
+        st.caption(t("coming_later", lang))
+
+
 def main() -> None:
     lang = _lang()
     st.set_page_config(page_title=t("title", lang), layout="wide")
@@ -106,6 +218,7 @@ def main() -> None:
     main_col, pane = st.columns([3, 1])
     with main_col:
         _header(result, lang)
+        _tabs(result, lang)
     with pane:
         st.subheader(t("issues", lang))
         st.caption(t("coming_later", lang))

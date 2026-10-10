@@ -130,3 +130,19 @@ def test_annotate_and_save_card_need_an_approved_run(fake):
 def test_unknown_run_raises(fake):
     with pytest.raises(KeyError):
         fake.answer_question("Rnope", "q:x", "y")
+
+
+def test_given_results_replace_the_fixture_of_their_persona(fake):
+    import dataclasses
+
+    from rmprep.ui.fake import FakeBackend
+    from tests.ui.conftest import CONTRACT_FIX
+
+    p02 = fake.decide(_persona(fake, "P02"), SNAPSHOT)
+    named = {oid for w in p02.warnings for oid in w.option_ids}
+    keep = tuple(o for i, o in enumerate(p02.options) if i == 0 or o.option.option_id in named)
+    assert len(keep) < len(p02.options)
+    short = dataclasses.replace(p02, options=keep)
+    other = FakeBackend(CONTRACT_FIX, results=[short])
+    assert other.decide(_persona(other, "P02"), SNAPSHOT).options == keep
+    assert other.decide(_persona(other, "P03"), SNAPSHOT).persona_id == "P03"
