@@ -1,4 +1,6 @@
 import copy
+import functools
+import gzip
 import json
 import re
 from datetime import datetime
@@ -49,18 +51,55 @@ def tefas_web_page(funds=TEFAS_WEB_FUNDS, chunks=3) -> bytes:
     return f"<!DOCTYPE html><html><body>{scripts}</body></html>".encode("utf-8")
 
 
+DETAIL_PATH = "/tr/fon-detayli-analiz/"
+
+
+@functools.lru_cache(maxsize=None)
+def _real_detail_page(fixture: str) -> str:
+    return gzip.decompress((FIXTURES / "tefas_detail" / f"{fixture}.html.gz").read_bytes()).decode()
+
+
+def detail_page(fixture: str, code: str | None = None, **fields) -> bytes:
+    """A real TEFAS fund detail page (fixtures: ZBJ money market, MAC equity, IPB
+    variable; fetched 2026-10-10, all with null fees). `code` renames the fund;
+    `fields` set values in the page data (bilgiData/profilData), e.g.
+    girisKomisyonu=1.5. The data is JSON inside JS string literals, so quotes
+    in the page text are escaped as \\"."""
+    html = _real_detail_page(fixture)
+    if code:
+        html = html.replace(f'\\"fonKodu\\":\\"{fixture}\\"', f'\\"fonKodu\\":\\"{code}\\"')
+    for name, value in fields.items():
+        new = json.dumps(value, ensure_ascii=False).replace('"', '\\"')
+        html, n = re.subn(rf'(\\"{name}\\":)(null|-?[0-9.]+|\\"[^\\"]*\\")',
+                          lambda m: m[1] + new, html)
+        assert n, name
+    return html.encode("utf-8")
+
+
+def default_detail_pages() -> dict[str, bytes]:
+    """Detail pages for the three funds of the fixture tefas_web page."""
+    return {"AAL": detail_page("ZBJ", "AAL"), "IGL": detail_page("IPB", "IGL"),
+            "ZZZ": detail_page("MAC", "ZZZ")}
+
+
 class FakeEvds:
     """httpx transport that serves fixture files and records requests. Also
     serves the TEFAS web page (tefas_page=None -> HTTP 503 for it)."""
 
-    def __init__(self, status=200, body=None, error=None, tefas_page=b"default"):
+    def __init__(self, status=200, body=None, error=None, tefas_page=b"default",
+                 detail_pages=None):
         self.status, self.body, self.error = status, body, error
         self.tefas_page = tefas_web_page() if tefas_page == b"default" else tefas_page
+        # fund code -> detail page bytes; a code without a page gives HTTP 404
+        self.detail_pages = default_detail_pages() if detail_pages is None else detail_pages
         self.requests: list[httpx.Request] = []
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
         if request.url.host == "www.tefas.gov.tr":
+            if request.url.path.startswith(DETAIL_PATH):
+                page = self.detail_pages.get(request.url.path[len(DETAIL_PATH):])
+                return httpx.Response(404) if page is None else httpx.Response(200, content=page)
             if self.tefas_page is None:
                 return httpx.Response(503)
             return httpx.Response(200, content=self.tefas_page)
@@ -92,11 +131,50 @@ TEST_EVDS_SERIES = [
 ]
 
 
+# tefas_detail source and its quantities for tests, so tests do not depend on
+# whether (or how) config/sources.yaml has them.
+TEST_DETAIL_QUANTITIES = {
+    "fund_buy_valor_days": {"unit": "days", "max_age_days": 5, "min": 0, "max": 30,
+                            "conflict_tolerance": 0.0},
+    "fund_sell_valor_days": {"unit": "days", "max_age_days": 5, "min": 0, "max": 30,
+                             "conflict_tolerance": 0.0},
+    "fund_entry_fee": {"unit": "pct", "max_age_days": 5, "min": 0, "max": 20,
+                       "conflict_tolerance": 0.0},
+    "fund_exit_fee": {"unit": "pct", "max_age_days": 5, "min": 0, "max": 20,
+                      "conflict_tolerance": 0.0},
+}
+TEST_TEFAS_DETAIL = {
+    "adapter": "tefas_detail", "enabled": True, "on_failure": "previous",
+    "source_url": "https://www.tefas.gov.tr/tr/fon-detayli-analiz",
+    "tos_note": "test copy of the tefas_detail source",
+    "url": "https://www.tefas.gov.tr/tr/fon-detayli-analiz/{code}",
+    "user_agent": "rmprep-hackathon-prototype/0.1 (ING hackathon; test)",
+    "timeout_seconds": 30, "min_interval_s": 1.0, "max_fail_share": 0.05,
+    "funds_from": "tefas_web", "exclude_categories": ["Serbest Şemsiye Fonu"],
+    "flag_needs_check": True,
+    "value_fields": {
+        "bilgiData.sonFiyat": "fund_price",
+        "bilgiData.portBuyukluk": "fund_total_value",
+        "bilgiData.yatirimciSayi": "fund_investor_count",
+        "profilData.fonGeriAlisValor": "fund_buy_valor_days",
+        "profilData.fonSatisValor": "fund_sell_valor_days",
+    },
+    "optional_fields": {
+        "profilData.riskDegeri": "fund_risk_level",
+        "profilData.girisKomisyonu": "fund_entry_fee",
+        "profilData.cikisKomisyonu": "fund_exit_fee",
+    },
+}
+
+
 @pytest.fixture
 def config_raw():
     raw = copy.deepcopy(load_raw(PROJECT / "config" / "sources.yaml"))
     raw["sources"]["evds"]["series"] = copy.deepcopy(TEST_EVDS_SERIES)
     raw["sources"]["tefas_web"]["min_funds"] = 2     # the fixture page has 3 funds
+    for name, q in TEST_DETAIL_QUANTITIES.items():
+        raw["quantities"].setdefault(name, copy.deepcopy(q))
+    raw["sources"]["tefas_detail"] = copy.deepcopy(TEST_TEFAS_DETAIL)
     return raw
 
 

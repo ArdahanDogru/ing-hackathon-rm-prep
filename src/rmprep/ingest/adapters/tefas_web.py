@@ -53,9 +53,8 @@ def previous_business_day(d: date) -> date:
     return d
 
 
-def extract_funds(html: str) -> list[dict[str, Any]]:
-    """Fund objects from the page, one per fund code, sorted by code. The row of
-    column titles (string values in the return fields) is left out."""
+def flight_text(html: str) -> str:
+    """The joined `self.__next_f.push([1, "..."])` chunks of a Next.js page."""
     chunks = []
     for raw in _PUSH_RE.findall(html):
         try:
@@ -64,7 +63,13 @@ def extract_funds(html: str) -> list[dict[str, Any]]:
             continue
         if len(arr) > 1 and isinstance(arr[1], str):
             chunks.append(arr[1])
-    text = "".join(chunks)
+    return "".join(chunks)
+
+
+def extract_funds(html: str) -> list[dict[str, Any]]:
+    """Fund objects from the page, one per fund code, sorted by code. The row of
+    column titles (string values in the return fields) is left out."""
+    text = flight_text(html)
 
     decoder = json.JSONDecoder()
     funds: dict[str, dict[str, Any]] = {}

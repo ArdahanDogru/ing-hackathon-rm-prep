@@ -1,0 +1,211 @@
+"""TEFAS fund detail adapter: price, size, investors, risk, valör and fees per fund.
+
+Rules (organizers' rule 8 + tefas.gov.tr/robots.txt, checked 2026-10-10):
+- one GET per fund of `src.url` (/tr/fon-detayli-analiz/<code>), no redirects,
+  at least `min_interval_s` between requests;
+- never any request to /api/ or other robots-disallowed paths (config.py
+  rejects such URLs; `check_url_allowed` checks again before each request);
+- the raw pages are stored gzip-compressed in the snapshot and parsed from there.
+
+Fund list: the funds of the `funds_from` (tefas_web) payload of the same
+snapshot, without `exclude_categories`. The page is a Next.js page like the
+tefas_web page; the data objects `bilgiData` and `profilData` sit in its flight
+data. Strict: a page without them, for another fund, or with a required value
+that is missing or not a number is a rejected row; optional values (risk, fees)
+that are null, "" or "-" give no row. More than `max_fail_share` failed pages ->
+the source fails (the page format changed, or the site blocks us).
+
+The page has no date for its values (checked 2026-10-10 on 3 pages), so
+as_of = previous business day before the snapshot date, as for tefas_web.
+
+Valör: the page labels "Fon Alış Valörü" (buy) show `fonGeriAlisValor` and
+"Fon Satış Valörü" (sell) show `fonSatisValor` (MAC, 2026-10-10: 1 and 2).
+The field -> quantity mapping is in config.
+"""
+
+from __future__ import annotations
+
+import gzip
+import json
+import math
+import re
+import time
+from collections.abc import Callable
+from datetime import date, datetime
+from typing import Any
+
+import httpx
+
+from rmprep.contracts import TR_TZ, DataPoint, Flag
+from rmprep.ingest.adapters.tefas_web import (
+    check_url_allowed,
+    extract_funds,
+    flight_text,
+    previous_business_day,
+)
+from rmprep.ingest.config import DETAIL_OBJECTS, Config, TefasDetailSource
+from rmprep.ingest.snapshot import Snapshot, SnapshotWriter, SourceRecord, raw_ref
+
+_NO_VALUE = ("", "-")
+
+
+class PageError(ValueError):
+    """One fund page does not have the expected data. The message is the reason."""
+
+
+def fund_codes(src: TefasDetailSource, listing_html: str) -> list[str]:
+    """Fund codes of the tefas_web page without the excluded categories, sorted."""
+    codes = [f["fonKodu"] for f in extract_funds(listing_html)
+             if f.get("fonTurAciklama") not in src.exclude_categories]
+    return codes[:src.max_funds] if src.max_funds else codes
+
+
+def _find_object(text: str, name: str) -> dict[str, Any] | None:
+    decoder = json.JSONDecoder()
+    for m in re.finditer(rf'"{name}":\{{', text):
+        try:
+            obj, _ = decoder.raw_decode(text, m.end() - 1)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict) and "fonKodu" in obj:
+            return obj
+    return None
+
+
+def _number(field: str, raw: Any, required: bool) -> float | None:
+    if raw is None or (isinstance(raw, str) and raw.strip() in _NO_VALUE):
+        if required:
+            raise PageError(f"{field}: no value")
+        return None
+    x: float | None = None
+    if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+        x = float(raw)
+    elif isinstance(raw, str):
+        try:
+            x = float(raw.strip().replace(",", "."))
+        except ValueError:
+            x = None
+    if x is None or not math.isfinite(x):
+        raise PageError(f"{field}: not a number: {raw!r}")
+    return x
+
+
+def parse_page(src: TefasDetailSource, html: str, code: str) -> dict[str, float | None]:
+    """Configured field ("bilgiData.sonFiyat") -> value; None = optional, no value.
+    Raises PageError with the reason."""
+    text = flight_text(html)
+    objects = {}
+    for name in DETAIL_OBJECTS:
+        obj = _find_object(text, name)
+        if obj is None:
+            raise PageError(f"no {name} on the page")
+        if obj.get("fonKodu") != code:
+            raise PageError(f"page is for fund {obj.get('fonKodu')!r}")
+        objects[name] = obj
+
+    values: dict[str, float | None] = {}
+    for fields, required in ((src.value_fields, True), (src.optional_fields, False)):
+        for field in fields:
+            obj, _, key = field.partition(".")
+            values[field] = _number(field, objects[obj].get(key), required)
+    return values
+
+
+def _read_page(data: bytes) -> str:
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        raise PageError("page is not UTF-8") from None
+
+
+def fetch(
+    src: TefasDetailSource,
+    writer: SnapshotWriter,
+    *,
+    listing: bytes | None,
+    client: httpx.Client,
+    now: Callable[[], datetime] = lambda: datetime.now(TR_TZ),
+    monotonic: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
+) -> SourceRecord:
+    """`listing` = the bytes of the tefas_web page of this snapshot (None if that
+    source has no ok page)."""
+    request: dict[str, Any] = {
+        "method": "GET", "url": src.url, "user_agent": src.user_agent,
+        "min_interval_s": src.min_interval_s,
+        "robots": "robots.txt disallows /api/; only the fund detail HTML pages are requested"}
+
+    codes = fund_codes(src, listing.decode("utf-8")) if listing is not None else []
+    if not codes:
+        return SourceRecord(status="failed", on_failure=src.on_failure, request=request,
+                            error=f"no {src.funds_from} funds in this snapshot "
+                                  f"(the fund list comes from {src.funds_from})")
+    request["funds"] = len(codes)
+    for code in codes:
+        check_url_allowed(src.page_url(code))
+
+    payloads, rejected = [], []
+    last_start: float | None = None
+    for code in codes:
+        url = src.page_url(code)
+        if last_start is not None:
+            wait = last_start + src.min_interval_s - monotonic()
+            if wait > 0:
+                sleep(wait)
+        last_start = monotonic()
+        try:
+            resp = client.get(url, headers={"User-Agent": src.user_agent},
+                              timeout=src.timeout_seconds, follow_redirects=False)
+            if resp.status_code != 200:
+                raise PageError(f"HTTP {resp.status_code}")
+            payloads.append(writer.add_payload(src.name, f"{code}.html.gz",
+                                               gzip.compress(resp.content, mtime=0),
+                                               meta={"fund": code, "url": url}))
+            parse_page(src, _read_page(resp.content), code)
+        except httpx.HTTPError as e:
+            rejected.append({"fund": code, "reason": f"{type(e).__name__}: {e}"})
+        except PageError as e:
+            rejected.append({"fund": code, "reason": str(e)})
+        if len(rejected) > src.max_fail_share * len(codes):
+            return SourceRecord(
+                status="failed", on_failure=src.on_failure, request=request,
+                payloads=tuple(payloads), rejected_rows=tuple(rejected),
+                error=(f"{len(rejected)} of {len(codes)} pages failed (more than "
+                       f"{src.max_fail_share:.0%}; stopped); the page format may have changed"))
+    return SourceRecord(status="ok", on_failure=src.on_failure, fetched_at=now(),
+                        request=request, payloads=tuple(payloads),
+                        rejected_rows=tuple(rejected))
+
+
+def parse(cfg: Config, src: TefasDetailSource, snap: Snapshot, *,
+          out_snapshot_id: str | None = None, out_date: date | None = None) -> list[DataPoint]:
+    """`out_date` is ignored: as_of always comes from the snapshot that holds the
+    pages, also for fallback rows. Pages rejected at fetch give no rows."""
+    rec = snap.sources.get(src.name)
+    if rec is None or rec.status != "ok":
+        raise ValueError(f"{snap.snapshot_id}: source {src.name!r} has no ok record")
+    sid = out_snapshot_id or snap.snapshot_id
+    as_of = previous_business_day(snap.created_at.date())
+    flags = [Flag.NEEDS_CHECK] if src.flag_needs_check else []
+    quantities = {**src.value_fields, **src.optional_fields}
+
+    points = []
+    for payload in rec.payloads:
+        code = payload.meta["fund"]
+        try:
+            values = parse_page(src, _read_page(gzip.decompress(snap.read_payload(payload.path))),
+                                code)
+        except PageError:
+            continue
+        for field, value in values.items():
+            if value is None:
+                continue
+            quantity = quantities[field]
+            points.append(DataPoint.create(
+                quantity=quantity, entity=code, value=value,
+                unit=cfg.quantities[quantity].unit, as_of=as_of, source=src.name,
+                source_url=payload.meta["url"], fetched_at=rec.fetched_at, snapshot_id=sid,
+                raw_ref=raw_ref(snap.snapshot_id, payload.path, f"fonKodu={code};field={field}"),
+                flags=flags,
+                note="as_of assumed = previous business day (the page shows no date)"))
+    return points
