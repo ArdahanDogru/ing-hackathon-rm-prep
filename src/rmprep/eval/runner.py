@@ -79,6 +79,7 @@ class RunRecord:
     evidence: EvidenceSet
     result: DecisionResult                  # after the answers
     approved: DecisionResult | None         # with the RM selection; None if not ready
+    evidence_edits: tuple = ()              # the edits applied (placeholders resolved)
     narratives: dict[str, NarrativeDraft] = field(default_factory=dict)
     seconds_evidence: float = 0.0
     seconds_decide: float = 0.0             # decide + answers
@@ -117,6 +118,14 @@ class Runner:
 
     # --- public -----------------------------------------------------------------
 
+    def budget_left(self) -> float:
+        """USD left of the eval limit of this suite run (inf without a limit)."""
+        return float("inf") if self.max_cost_usd is None else self.max_cost_usd - self.spent_usd
+
+    def add_cost(self, usd: float) -> None:
+        """Count a cost outside the narrator (the judge) against the limit."""
+        self.spent_usd += usd
+
     def run(self, scenarios: Iterable[Scenario]) -> list[ScenarioRun]:
         return [self.run_one(s) for s in scenarios]
 
@@ -142,8 +151,8 @@ class Runner:
         snapshot = s.snapshot or self.snapshot_id
         if snapshot is None:
             raise ScenarioError(f"scenario {s.id}: no snapshot")
-        if s.evidence_edits:
-            edits = s.evidence_edits
+        edits = s.evidence_edits
+        if edits:
             if top_placeholders(edits):
                 clean = self._answered(b, b.decide(persona, snapshot, s.exclude_sources), s, [])
                 funds = [o.option.entity for o in clean.options if o.option.kind == "fund"]
@@ -160,7 +169,7 @@ class Runner:
         t_decide = time.perf_counter() - t
 
         rec = RunRecord(repeat=k, backend=b, persona=persona, evidence=ev, result=result,
-                        approved=None, seconds_evidence=t_ev, seconds_decide=t_decide,
+                        approved=None, evidence_edits=edits, seconds_evidence=t_ev, seconds_decide=t_decide,
                         errors=errors)
         if result.state != DecisionState.READY:
             return rec

@@ -6,11 +6,13 @@ scenarios:
     description: "add 'döviz maruziyeti istemiyor' -> blocking question"
     persona: P03
     add_constraints: ["döviz maruziyeti istemiyor"]
+    expect: {state: needs_rm_input}
   - id: con-p03-no-fx-answered
     group: constraint
     description: "the RM answers: limit FX exposure"
     persona: P03
     add_constraints: ["döviz maruziyeti istemiyor"]
+    expect: {fx_in_options: {equals: 0}}
     answers: {"q:acik_kisitlar[1]": "Döviz maruziyetini sınırla"}
     compare_to: base-p03
   - id: con-p03-no-high-risk-answered
@@ -20,8 +22,10 @@ scenarios:
     add_constraints: ["yüksek riskli ürün istemiyor"]
     answers: {"q:acik_kisitlar[1]": "Risk tavanını 4 ile sınırla"}
     compare_to: base-p03
+    expect: {avg_risk: lower, max_risk: {at_most: 4}}
   - id: con-p02-unknown-asks
     group: constraint
     description: "an unknown constraint text -> blocking question, nothing ranked"
     persona: P02
     add_constraints: ["kripto para içeren ürünlerden uzak durma"]
+    expect: {state: needs_rm_input}
