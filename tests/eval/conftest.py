@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -20,6 +21,16 @@ CONTRACT_FIX = PROJECT / "tests" / "contracts" / "fixtures"
 FIX = Path(__file__).resolve().parent / "fixtures"
 T0 = datetime(2026, 10, 10, 9, 0, tzinfo=TR_TZ)
 SNAP = "20261010-001233-6b20"
+
+
+def eval_yaml(snapshot: str | None = None) -> str:
+    """The project config/eval.yaml with the snapshot line set to `snapshot`
+    (null by default), so tests do not depend on the real frozen snapshot."""
+    text = (PROJECT / "config" / "eval.yaml").read_text(encoding="utf-8")
+    value = "null" if snapshot is None else f'"{snapshot}"'
+    new, n = re.subn(r"(?m)^snapshot:[^\n#]*", f"snapshot: {value} ", text)
+    assert n == 1, "config/eval.yaml has no top-level snapshot line"
+    return new
 
 
 def fixture_evidence() -> EvidenceSet:
@@ -80,8 +91,9 @@ def root(monkeypatch, tmp_path, builds, extra_rows, dropped_rows, renamed):
     monkeypatch.setattr(be, "build_evidence", fake_build)
     monkeypatch.setattr(be, "list_snapshots", lambda snapshots: [Snap()])
     (tmp_path / "config").mkdir()
-    for name in ("decision.yaml", "narrator.yaml", "eval.yaml"):
+    for name in ("decision.yaml", "narrator.yaml"):
         (tmp_path / "config" / name).write_bytes((PROJECT / "config" / name).read_bytes())
+    (tmp_path / "config" / "eval.yaml").write_text(eval_yaml(), encoding="utf-8")
     return tmp_path
 
 

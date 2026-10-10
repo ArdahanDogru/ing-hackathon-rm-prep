@@ -6,7 +6,7 @@ from datetime import datetime
 from rmprep.contracts import TR_TZ
 from rmprep.eval.suite import eval_narrator, run_suite
 from rmprep.eval.config import load_config
-from tests.eval.conftest import CONTRACT_FIX, SNAP, FakeNarrator
+from tests.eval.conftest import CONTRACT_FIX, SNAP, FakeNarrator, eval_yaml
 from tests.eval.test_judge import CountingJudge
 
 NOW = datetime(2026, 10, 10, 15, 30, 0, tzinfo=TR_TZ)
@@ -59,9 +59,7 @@ def test_only_keeps_ids_or_groups_and_their_compare_scenarios(root, tmp_path):
 
 
 def test_frozen_snapshot_from_the_config(root, tmp_path):
-    cfg = root / "config" / "eval.yaml"
-    cfg.write_text(cfg.read_text(encoding="utf-8").replace("snapshot: null", f"snapshot: {SNAP}"),
-                   encoding="utf-8")
+    (root / "config" / "eval.yaml").write_text(eval_yaml(SNAP), encoding="utf-8")
     res = run_suite(root, scenario_files=[write_suite(tmp_path)], only=["asks"],
                     personas_dir=CONTRACT_FIX / "personas", narrator=None, judge=None,
                     write=False, now=lambda: NOW)

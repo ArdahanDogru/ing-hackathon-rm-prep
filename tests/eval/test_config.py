@@ -3,7 +3,7 @@
 import pytest
 
 from rmprep.eval.config import ConfigError, load_config
-from tests.eval.conftest import PROJECT
+from tests.eval.conftest import PROJECT, eval_yaml
 
 
 def test_project_config_loads():
@@ -21,7 +21,7 @@ def _write(tmp_path, text):
     return f
 
 
-GOOD = (PROJECT / "config" / "eval.yaml").read_text(encoding="utf-8")
+GOOD = eval_yaml()     # the project config with snapshot: null
 
 
 @pytest.mark.parametrize("old, new, match", [
@@ -38,5 +38,6 @@ def test_bad_configs_are_rejected(tmp_path, old, new, match):
 
 
 def test_snapshot_may_be_set(tmp_path):
-    c = load_config(_write(tmp_path, GOOD.replace("snapshot: null", "snapshot: 20261010-001233-6b20")))
+    c = load_config(_write(tmp_path, eval_yaml("20261010-001233-6b20")))
     assert c.snapshot == "20261010-001233-6b20"
+    assert load_config(_write(tmp_path, GOOD)).snapshot is None
