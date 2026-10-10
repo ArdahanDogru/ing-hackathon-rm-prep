@@ -1,6 +1,9 @@
 # Decision layer — design
 
-Status: **designed 2026-10-10 (step D, the user with ing-lead).** Code:
+Status: **designed 2026-10-10 (step D, the user with ing-lead); D1–D5, D7–D10
+done; tuning on snapshot 20261010-144333-f348 accepted by the user 2026-10-10
+(P01/P05 stay similar: both careful, 1–3 years; accepted). D6 (Jev) later.
+Stopaj rows expire 31.12.2026.** Code:
 `src/rmprep/decision/`, tests: `tests/decision/`. Config:
 `config/decision.yaml` (lead-owned). Contracts: `src/rmprep/contracts.py`
 (lead-owned).

@@ -271,7 +271,8 @@ sources:
       read 2026-10-09): all rights reserved; site information is not legally
       binding and is for information only; no explicit rule on reuse or
       automated access. Show ING rates as "indicative, from ing.com.tr on
-      <as_of>" and confirm reuse with the organizers.
+      <as_of>". Reuse confirmed with the organizers (the user, 2026-10-10).
+      Stopaj rows (withholding_tax.csv) are valid to 31.12.2026: update them then.
     inbox: data/inbox/manual
     file_patterns: ["*.csv"]
     allowed_quantities: [deposit_rate, withholding_tax_rate, cpi_annual]
