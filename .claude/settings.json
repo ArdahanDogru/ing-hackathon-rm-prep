@@ -1,9 +1,4 @@
 {
-  "permissions": {
-    "deny": [
-      "Bash(git push:*)"
-    ]
-  },
   "hooks": {
     "PreToolUse": [
       {
