@@ -142,6 +142,9 @@ constraint_rules:                # D13: explicit constraints as hard rules (need
   liquidity_need:
     max_sell_valor_days: 3
     max_lock_days: 91
+short_history:                   # D15: a fund needs a return of min_period or longer
+  min_period: 3m
+  allow_appetite: 1.0            # appetite >= this (Agresif) keeps it, with the track_record penalty
 fund_detail:                     # D12: TEFAS fund detail rows (ingest I3/I3b)
   buyable_quantity: fund_buyable           # 0 -> hard rule not_buyable
   sell_valor_quantity: fund_sell_valor_days
@@ -229,6 +232,7 @@ texts:
     return_missing: "Getiri verisi yok ({period} ve daha kısa dönemler)."
     "penalty:fund_size": "Fon küçük ({size_m:.0f} milyon TL, {investors:.0f} yatırımcı)."
   constraint:
+    short_history: "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
     fx_limit: "Döviz fonu; müşterinin açık kısıtı: döviz maruziyetini gerekçesiz artırmama."
     liquidity_need_valor: "Satış valörü {valor:.0f} gün, üst sınır {max_days} gün (müşterinin açık kısıtı: düşük likiditeden kaçınma)."
     liquidity_need_lock: "Vade {days} gün, üst sınır {max_days} gün (müşterinin açık kısıtı: uzun süre kilitlenmekten kaçınma)."
@@ -278,6 +282,7 @@ texts:
     deposit_vs_market: "ING standart mevduat oranı (%{ing:.2f}) piyasa ortalamasının (%{market:.2f}) {diff:.1f} puan altında."
     no_fx_deposit_data: "Döviz mevduatı oranı kanıtlarda yok; döviz mevduatı karşılaştırılamadı."
   data_quality:
+    removed_no_data: "{count} fon, kullanılabilir veri satırı olmadığı için çıkarıldı."
     valor_missing: "{count} fonun satış valörü kanıtlarda yok; likidite kısıtı bu fonlara uygulanamadı."
     buyable_missing: "{count} fonun TEFAS alım durumu kanıtlarda yok; bu fonlar alıma açık sayıldı."
     benchmark_missing: "Piyasa mevduat ortalaması ({entity}) kanıtlarda yok; düşük getiri cezası hesaplanmadı."
