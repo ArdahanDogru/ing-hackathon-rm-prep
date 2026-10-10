@@ -7,11 +7,13 @@ widget gets both a default value and a session-state value."""
 from __future__ import annotations
 
 import dataclasses
+import os
 from pathlib import Path
 
 import streamlit as st
 import yaml
 
+from rmprep.backend import RealBackend
 from rmprep.contracts import (
     Backend,
     DecisionResult,
@@ -22,6 +24,7 @@ from rmprep.contracts import (
     ScoredOption,
 )
 from rmprep.ui import card, views
+from rmprep.ui.fake import FakeBackend
 from rmprep.ui.i18n import LANGS, t
 
 PROTOTYPE = Path(__file__).resolve().parents[3]
@@ -29,11 +32,15 @@ FIXTURES = PROTOTYPE / "tests" / "contracts" / "fixtures"
 DECISION_CONFIG = PROTOTYPE / "config" / "decision.yaml"
 _EDIT = "edit:"
 _TEXT_FIELDS = ("profil", "durum", "yatirim_amaci", "rm_notu")
+_OPEN_REJECTED = 10   # more rejected options than this start closed
 
 
 def default_backend() -> Backend:
-    from rmprep.ui.fake import FakeBackend
-
+    """RealBackend on $RMPREP_ROOT (the prototype folder) if it is set, else the
+    FakeBackend on the contract fixtures (docs/ui.md, "Real backend")."""
+    root = os.environ.get("RMPREP_ROOT")
+    if root:
+        return RealBackend(root)
     return FakeBackend(FIXTURES)
 
 
@@ -410,8 +417,9 @@ def _rejected(r: DecisionResult, lang: str) -> None:
     if not r.rejected:
         st.info(t("no_rejected", lang))
         return
+    expanded = len(r.rejected) <= _OPEN_REJECTED
     for rj in r.rejected:
-        with st.expander(f"{rj.option.label} · {views.kind_label(rj, lang)}", expanded=True):
+        with st.expander(f"{rj.option.label} · {views.kind_label(rj, lang)}", expanded=expanded):
             st.markdown(f"**{t('failed_rules', lang)}**")
             for c in rj.failed:
                 st.markdown(f"- ✗ `{c.rule_id}`: {c.reason}")

@@ -68,3 +68,21 @@ def test_rerun_without_change_does_not_call_decide():
     backend.decide = lambda *a, **k: calls.append(a) or orig(*a, **k)
     run(at)
     assert calls == []
+
+
+def test_default_backend_is_the_fake_without_rmprep_root(monkeypatch):
+    from rmprep.ui import page
+    from rmprep.ui.fake import FakeBackend
+
+    monkeypatch.delenv("RMPREP_ROOT", raising=False)
+    assert isinstance(page.default_backend(), FakeBackend)
+
+
+def test_default_backend_is_the_real_one_with_rmprep_root(monkeypatch):
+    from rmprep.ui import page
+
+    made = []
+    monkeypatch.setattr(page, "RealBackend", lambda root: made.append(root) or "real")
+    monkeypatch.setenv("RMPREP_ROOT", "C:/somewhere/prototype")
+    assert page.default_backend() == "real"
+    assert made == ["C:/somewhere/prototype"]
