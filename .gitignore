@@ -9,3 +9,5 @@ data/evidence.duckdb.wal
 data/export/
 data/inbox/**/*
 !data/inbox/**/.gitkeep
+data/runs/
+data/cards/
