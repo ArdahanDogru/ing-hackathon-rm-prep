@@ -1,6 +1,7 @@
 """The Anthropic adapter with a fake SDK object: no network."""
 
 import dataclasses
+import json
 
 import anthropic
 import httpx2
@@ -59,7 +60,7 @@ def test_request_shape(config):
                                   "format": {"type": "json_schema", "schema": REQ.schema}}
     assert k["betas"] == ["server-side-fallback-2026-07-01"] and k["fallbacks"] == "default"
     assert "thinking" not in k and "temperature" not in k     # adaptive thinking by default
-    assert k["system"] == "sys"
+    assert k["system"] == [{"type": "text", "text": "sys", "cache_control": {"type": "ephemeral"}}]
     (msg,) = k["messages"]
     assert msg["role"] == "user"
     facts, task = msg["content"]
@@ -149,3 +150,35 @@ def test_no_workspace_header_without_the_config_key(recorder, config):
     client = client_from_env(cfg, {"ANTHROPIC_API_KEY": "sk-test",
                                    "ANTHROPIC_WORKSPACE_ID": "wrkspc_test"})
     assert client._sdk.kwargs == {"api_key": "sk-test"}
+
+
+def _markers(x) -> int:
+    """Number of cache_control breakpoints in a request part."""
+    if isinstance(x, dict):
+        return ("cache_control" in x) + sum(_markers(v) for v in x.values())
+    if isinstance(x, list):
+        return sum(_markers(v) for v in x)
+    return 0
+
+
+def test_system_is_one_cached_prefix_for_every_client(config):
+    """N6: the same system bytes for two different results in one language,
+    a breakpoint after the system prompt and one after the facts pack."""
+    from rmprep.narrator.facts import build_facts
+    from rmprep.narrator.prompt import build_request
+    from tests.narrator.conftest import evidence, p02, p03
+
+    sent = []
+    for make in (p02, p03):
+        client, calls = _client(config, _message())
+        client.complete(build_request(build_facts(make(), evidence()), "TR", config))
+        sent.append(calls.kwargs)
+    a, b = sent
+    assert json.dumps(a["system"], sort_keys=True) == json.dumps(b["system"], sort_keys=True)
+    assert a["system"][-1]["cache_control"] == {"type": "ephemeral"}
+    assert a["messages"][0]["content"][0]["cache_control"] == {"type": "ephemeral"}
+    assert _markers(a) == 2
+    for r in (p02(), p03()):
+        assert r.run_id not in a["system"][0]["text"]
+        assert r.persona.profil not in a["system"][0]["text"]
+    assert a["messages"] != b["messages"]
