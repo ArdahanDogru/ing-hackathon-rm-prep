@@ -63,3 +63,15 @@ def test_bad_answer_is_an_error(evidence, capsys):
 def test_answer_needs_equals_sign(evidence, capsys):
     code, out, err = run(capsys, "--persona", "P01", "--answer", "novalue")
     assert code == 2
+
+
+def test_format_evidence_prints_rejected_rows_of_any_shape():
+    from types import SimpleNamespace
+    ev = EvidenceSet.from_dict(json.loads((FIX / "evidence_small.json").read_text(encoding="utf-8")))
+    rec = SimpleNamespace(status="failed", payloads=(), error="x", excluded=False, fallback_from=None,
+                          rejected_rows=[{"file": "a.csv", "row": 3, "reason": "bad"},
+                                         {"fund": "ABU", "reason": "no value"}])
+    ev = EvidenceSet(**{**ev.__dict__, "source_status": {"tefas_detail": rec}})
+    text = cli.format_evidence(ev)
+    assert "rejected a.csv row 3: bad" in text
+    assert "rejected ABU: no value" in text

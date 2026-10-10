@@ -63,7 +63,8 @@ def format_evidence(ev: EvidenceSet) -> str:
             detail.append(f"rejected rows={len(rec.rejected_rows)}")
         lines.append(f"  {name:<8} {rec.status:<8} {'  '.join(detail)}")
         for r in rec.rejected_rows:
-            lines.append(f"           rejected {r['file']} row {r['row']}: {r['reason']}")
+            where = f"{r['file']} row {r['row']}" if "file" in r else r.get("fund", "?")
+            lines.append(f"           rejected {where}: {r.get('reason', '')}")
 
     pts = ev.datapoints
     lines.append(f"\ndatapoints ({len(pts)}):")

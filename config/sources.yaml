@@ -306,11 +306,13 @@ sources:
       bilgiData.sonFiyat: fund_price
       bilgiData.portBuyukluk: fund_total_value
       bilgiData.yatirimciSayi: fund_investor_count
+    # Optional: null, "" or "-" -> no row (6 % of these funds have no risk
+    # value on tefas_web, 2026-10-10; fees are null for most funds; valör is
+    # null for funds that do not trade on TEFAS: 40 of 279 in the first live
+    # run, 2026-10-10, which made the source fail while valör was required).
+    optional_fields:
       profilData.fonGeriAlisValor: fund_buy_valor_days
       profilData.fonSatisValor: fund_sell_valor_days
-    # Optional: null, "" or "-" -> no row (6 % of these funds have no risk
-    # value on tefas_web, 2026-10-10; fees are null for most funds).
-    optional_fields:
       profilData.riskDegeri: fund_risk_level
       profilData.girisKomisyonu: fund_entry_fee
       profilData.cikisKomisyonu: fund_exit_fee
