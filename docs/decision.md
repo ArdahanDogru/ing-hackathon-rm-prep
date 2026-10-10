@@ -173,7 +173,7 @@ kontrollü" is not in the table → assumed Sınırlı).
 | `income` | kind table | proxy |
 | `principal` | deposit and time deposit 1; fund `max(0, 0.8 − 0.15 × (risk − 1))` | `fund_risk_level` |
 | `simplicity` | kind table | — |
-| `quality` | mean of the percentile ranks of size and investors among funds (a missing value gives 0 for its half); deposit and time deposit 1 | `fund_total_value`, `fund_investor_count` |
+| `quality` | mean of the percentile ranks of size and investors among funds (a missing value gives 0 for its half); deposit and time deposit 0.5 (neutral; was 1, changed 2026-10-10, D9) | `fund_total_value`, `fund_investor_count` |
 
 Percentile rank of x among n values: `(count below + 0.5 × count equal other) /
 (n − 1)`; n = 1 → 1.
@@ -193,6 +193,35 @@ Kind table:
 | mixed | 0.5 | 0.3 | 0.4 |
 | fund_of_funds | 0.5 | 0.2 | 0.3 |
 
+### 4.1b Real return after tax (D9, decided by the user 2026-10-10)
+
+Research (2026-10-10): annual CPI 29.73 % (TÜİK, Sep 2026); the Turuncu Hesap
+standard rate (23 %) is −8.3 % real after the 17.5 % stopaj. Suitability rules
+(MiFID II, SPK III-37.1) give no numeric weights; a low weight on a *nominal*
+return is hard to defend at this inflation. Thus the `return` criterion uses
+the real return after tax, and a negative real return is penalized.
+
+- Evidence (manual CSVs in `data/inbox/manual/`, config section `real_return`):
+  `cpi_annual` (entity `TÜFE yıllık değişim (TÜİK)`) and `withholding_tax_rate`
+  per product: deposit → `TL vadesiz mevduat ve günlük hesap (Turuncu Hesap
+  türü)`; time deposit → `TL vadeli mevduat, 6 aya kadar vadeli`; fund →
+  `Yatırım fonu, para piyasası fonu` for `money_market`, else `Yatırım fonu,
+  diğer fonlar (değişken, borçlanma araçları, fon sepeti)`. Equity-intensive
+  TEFAS funds have 0 % stopaj; the engine uses the "diğer fonlar" rate for all
+  other funds and says so in an assumption (conservative).
+- Nominal annual return `R` as in 4.1 (fund: annualized past return; deposit and
+  time deposit: the rate). Net `N = R × (1 − stopaj)`. Time deposit: renewed
+  every `time_deposit.term_days` (32) days: `N = (1 + R(1−t) × d/365)^(365/d) − 1`.
+  Deposit: no compounding (conservative). Real `r = (1 + N) / (1 + CPI) − 1`.
+- `return` value = percentile rank of `r` among the scored options. The reason
+  text shows R, N and r.
+- Missing CPI → nominal net return, no `real_loss` penalty, a data-quality note.
+  Missing stopaj for an option → stopaj 0 for it, a data-quality note.
+- New penalty `real_loss` (4.3). Assumptions: the old `pre_tax` and
+  `no_real_returns` texts are replaced by one text with the CPI value and date,
+  plus the stopaj assumption for equity funds and "32 günlük vade her ay
+  yenilenir; oranlar değişebilir".
+
 ### 4.2 Weights
 
 Raw weights from the levels of section 3, plus `priority_boost` (1) for each
@@ -200,7 +229,7 @@ matched priority; then divided by their sum (they add up to 1):
 
 | Criterion | Raw weight |
 |---|---|
-| `return` | 1 + appetite |
+| `return` | 2 + 2 × appetite (was 1 + appetite; changed 2026-10-10, D9) |
 | `low_risk` | 1 − appetite |
 | `liquidity` | 2 × liquidity level (0 with `no_liquidity_need`) |
 | `income` | 2 × income level |
@@ -211,6 +240,10 @@ matched priority; then divided by their sum (they add up to 1):
 Example P01 (Muhafazakâr, likidite Orta, gelir Yüksek, anapara Yüksek; priorities
 income, liquidity, low_risk): income 0.29, low_risk 0.19, liquidity 0.19,
 principal 0.19, return 0.10, quality 0.05.
+
+Long horizon (D9): if the horizon period is `3y` (horizon 3+ years), the
+`liquidity` raw weight × 0.5 and the `return` raw weight + 1 (config
+`long_horizon`), before the normalization.
 
 ### 4.3 Penalties
 
@@ -224,6 +257,7 @@ The best possible score is 1, so a max of 0.3 = up to 30 % of it.
 | `fx_exposure` | 0.3 | FX intensity | 1 if `fx` else 0 |
 | `risk_unknown` | 0.3 (× 2 if the estimate > ceiling) | 1 | 1 if the risk level is missing |
 | `track_record` | 0.2 | 1 | 1 if the horizon period return is missing |
+| `real_loss` (D9) | 0.3 | principal level | `clamp(−r / 0.10, 0, 1)` (r = real return after tax, 4.1b) |
 | `fund_size` | 0.1 | 1 | `max(1 − size / 100M TL, 1 − investors / 100)` clamped 0..1; missing → 1 |
 
 Risk estimate for a fund with no risk level: the highest known risk among the
@@ -306,7 +340,8 @@ evidence ids that caused it.
 - `out_of_range` values ignored (with ids);
 - funds removed: Serbest, no entity info, unknown umbrella type (counts).
 
-Assumptions (always, as plain strings): fund returns are past returns and the
+Assumptions (always, as plain strings; with D9 the before-tax and no-real-return
+texts are replaced as in 4.1b): fund returns are past returns and the
 deposit rate is a current rate; all values are before tax (withholding rates
 not filled); the deposit uses the standard rate of tier `<tier>` (the persona
 has no amount; the welcome rate is temporary); no real returns (CPI history too
@@ -353,6 +388,7 @@ funds, with `entities`).
 | D5 | warnings, data-quality notes, `config_hash`, `run_id`, `decide()`; `rmprep.decision.report.render(result) -> str` (text: baseline + positions 1–10 with parts) | one trigger case per warning; valid `DecisionResult` for p01–p05 on `evidence_medium`; same inputs → same `run_id`; answer → new `run_id` |
 | D7 | `render` groups like the UI: baseline, then ≤ 5 `fund_kind` groups from the first 20 options (head + alternatives); rejected = count + the first 10 ids | group order and members on a hand-made result; long rejected list cut |
 | D8 | `time_deposit` option (section 1): config section `time_deposit` (OPTIONAL in the checks until the lead adds it: option_id, label, source, quantity, entity_prefix, term, tier); scored like a deposit except the kind table; counts as its own kind (`time_deposit`) for the caps of 4.5 and the groups of the report; penalties as for any option | option from a hand-made row; missing row → no option + note; kind caps; group in `render`; P01–P05 valid on a hand-made evidence with the row |
+| D9 | real return after tax (4.1b): config section `real_return` (OPTIONAL in the checks until the lead adds it; without it the old nominal behaviour stays), `time_deposit.term_days`, penalty `real_loss`, `long_horizon`, deposit quality value from config (`quality_value.deposit`, `quality_value.time_deposit`), new texts (reason for `return` with R/N/r, `penalty:real_loss`, assumptions, data-quality notes for missing CPI / stopaj) | hand-computed N and r for deposit, time deposit (compounding), fund; Turuncu 23 % / stopaj 17.5 % / CPI 29.73 % → r = −8.3 % and penalty 0.3 × level × 0.83; missing CPI / stopaj cases; long-horizon weights; P01–P05 valid on hand-made evidence with the new rows |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]
