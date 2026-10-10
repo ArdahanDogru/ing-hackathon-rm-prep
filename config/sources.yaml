@@ -14,6 +14,12 @@ quantities:
     min: 1
     max: 500
     conflict_tolerance: 0.005
+  cpi_annual:              # TÜİK annual CPI change, manual (added 2026-10-10, decision D9)
+    unit: pct
+    max_age_days: 45
+    min: -50
+    max: 500
+    conflict_tolerance: 0.01
   cpi_index:
     unit: index
     max_age_days: 45
@@ -268,4 +274,4 @@ sources:
       <as_of>" and confirm reuse with the organizers.
     inbox: data/inbox/manual
     file_patterns: ["*.csv"]
-    allowed_quantities: [deposit_rate, withholding_tax_rate]
+    allowed_quantities: [deposit_rate, withholding_tax_rate, cpi_annual]
