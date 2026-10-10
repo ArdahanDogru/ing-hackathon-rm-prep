@@ -205,6 +205,21 @@ label, kind, option id and 2–3 key numbers with their evidence ids, compact
 JSON (no indentation); the validator still sees the full facts (numbers, ids).
 Target: under 10,000 characters for P01; cost per text about $0.05.
 
+## N7: lever 2 and client links (approved by the user 2026-10-10; prompt n3)
+
+From the judge's reasons in the eval runs of 2026-10-10:
+- `dikkat`: only warnings that matter for the client and the meeting; the
+  data-quality notes become one short sentence that points to the "Olası
+  sorunlar" pane; no internal values (flag names such as needs_check, row
+  counts, rejection counts, internal scores such as "gelir uygunluğu 0,6").
+- The past-return caveat once in `dikkat` and in short form in `teklif_metni`.
+- `oneriler`: per selected option one sentence that links it to a named client
+  need (horizon, income, liquidity, principal, constraint, RM note); the options
+  must not read alike.
+- `teklif_metni`: built on the client's own goal and situation, not generic.
+- `varsayimlar` unchanged (verbatim from the engine; the validator requires
+  them).
+
 ## Milestones (worker `ing-narrator`; each ends with green `pytest`)
 
 | # | Milestone | Tests show |
