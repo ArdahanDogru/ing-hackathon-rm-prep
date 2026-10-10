@@ -65,6 +65,10 @@ class AnthropicClient:
     def complete(self, request: LlmRequest) -> LlmReply:
         import anthropic
 
+        # Two cache breakpoints (docs/narrator.md, prompt caching): after the system
+        # prompt (the same for every call in one language) and after the facts pack
+        # (reused by the validator retry).
+        system = [{"type": "text", "text": request.system, "cache_control": {"type": "ephemeral"}}]
         first, *rest = request.user_blocks
         content = [{"type": "text", "text": first, "cache_control": {"type": "ephemeral"}}]
         content += [{"type": "text", "text": b} for b in rest]
@@ -72,7 +76,7 @@ class AnthropicClient:
             msg = self._sdk.beta.messages.create(
                 model=self._config.model,
                 max_tokens=self._config.max_tokens,
-                system=request.system,
+                system=system,
                 messages=[{"role": "user", "content": content}],
                 output_config={"effort": self._config.effort,
                                "format": {"type": "json_schema", "schema": dict(request.schema)}},
