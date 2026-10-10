@@ -50,6 +50,7 @@ def summarize(runs: list[ScenarioRun], checks: list[ScenarioChecks], targets: Ta
     phrase_hits = sum(len(c.details) for sc in checks for c in sc.all()
                       if c.check == "forbidden_phrases" and c.status == FAIL)
     narrator_rate = _rate(by_check["narrator_valid"]) if "narrator_valid" in by_check else None
+    narratives = [d for r in (r for sr in runs for r in sr.runs) for d in r.narratives.values()]
 
     grades = list(grades)
     judge_cache = {"write_tokens": sum(g.cache_write_tokens for g in grades),
@@ -65,13 +66,16 @@ def summarize(runs: list[ScenarioRun], checks: list[ScenarioChecks], targets: Ta
         j["score"] = (j["yes"] + 0.5 * j["partly"]) / n if n else None
 
     target_rows = {
+        # met None: not measured (no run of that kind), shown as n/a
         "rule_checks": {"value": _rate(rule), "target": targets.rule_checks,
-                        "met": _rate(rule) is not None and _rate(rule) >= targets.rule_checks},
+                        "met": None if _rate(rule) is None else _rate(rule) >= targets.rule_checks},
         "narrator_pass_rate": {"value": narrator_rate, "target": targets.narrator_pass_rate,
-                               "met": (narrator_rate is not None
-                                       and narrator_rate >= targets.narrator_pass_rate)},
-        "forbidden_phrases": {"value": phrase_hits, "target": targets.forbidden_phrases,
-                              "met": phrase_hits <= targets.forbidden_phrases},
+                               "met": (None if narrator_rate is None
+                                       else narrator_rate >= targets.narrator_pass_rate)},
+        "forbidden_phrases": {"value": None if not narratives else phrase_hits,
+                              "target": targets.forbidden_phrases,
+                              "met": None if not narratives
+                              else phrase_hits <= targets.forbidden_phrases},
     }
     return {
         "scenarios": len(runs),

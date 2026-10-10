@@ -109,7 +109,7 @@ def run_suite(root: Path | str, *, suite: str = "full",
                     snapshot=snapshot or config.snapshot, now=lambda: created,
                     max_cost_usd=config.max_cost_usd_per_run)
     runs = runner.run(scenarios)
-    checks = run_checks(runs, dcfg.raw, ncfg.forbidden_phrases)
+    checks = run_checks(runs, dcfg.raw, ncfg.forbidden_phrases, ncfg)
     grades = grade_texts(runs, judge, config.judge.rubric,
                          budget_left=runner.budget_left, spend=runner.add_cost)
     judge_cost = sum(g.grade.cost_usd for g in grades)

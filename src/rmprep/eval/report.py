@@ -29,7 +29,11 @@ RULE_LABELS = {
 
 
 def _pct(x: float | None) -> str:
-    return "-" if x is None else f"{100 * x:.0f} %"
+    return "n/a" if x is None else f"{100 * x:.0f} %"
+
+
+def _met(x: bool | None) -> str:
+    return "n/a" if x is None else ("yes" if x else "NO")
 
 
 def _usd(x: float | None) -> str:
@@ -115,14 +119,16 @@ def to_markdown(result) -> str:
 
     L += ["## Targets", "", "| Metric | Value | Target | Met |", "|---|---|---|---|"]
     t = m["targets"]
+    fp = t["forbidden_phrases"]
     L.append(f"| Rule checks pass rate | {_pct(t['rule_checks']['value'])} | "
-             f"{_pct(t['rule_checks']['target'])} | {'yes' if t['rule_checks']['met'] else 'NO'} |")
+             f"{_pct(t['rule_checks']['target'])} | {_met(t['rule_checks']['met'])} |")
     L.append(f"| Narrator validator pass rate | {_pct(t['narrator_pass_rate']['value'])} | "
              f"≥ {_pct(t['narrator_pass_rate']['target'])} | "
-             f"{'yes' if t['narrator_pass_rate']['met'] else 'NO'} |")
-    L.append(f"| Forbidden phrases | {t['forbidden_phrases']['value']} | "
-             f"{t['forbidden_phrases']['target']} | {'yes' if t['forbidden_phrases']['met'] else 'NO'} |")
-    L.append("")
+             f"{_met(t['narrator_pass_rate']['met'])} |")
+    L.append(f"| Forbidden phrases | {'n/a' if fp['value'] is None else fp['value']} | "
+             f"{fp['target']} | {_met(fp['met'])} |")
+    L += ["", "n/a: not measured in this run (e.g. no LLM text without an API key or with "
+          "--no-llm).", ""]
 
     L += ["## Checks", "", "| Check | Pass | Fail | n/a | Pass rate |", "|---|---|---|---|---|"]
     for name, c in m["checks"].items():
@@ -149,12 +155,15 @@ def to_markdown(result) -> str:
           f"{m['cost']['judge_cache']['read_tokens']} read; judge errors: "
           f"{m['cost']['judge_cache']['errors']}", ""]
 
+    L += ["## Judge (LLM, only what code cannot check)", ""]
     if m["judge"]:
-        L += ["## Judge (LLM, only what code cannot check)", "",
-              "| Rubric item | yes | partly | no | Score |", "|---|---|---|---|---|"]
+        L += ["| Rubric item | yes | partly | no | Score |", "|---|---|---|---|---|"]
         for item, j in m["judge"].items():
             L.append(f"| {item} | {j['yes']} | {j['partly']} | {j['no']} | {_pct(j['score'])} |")
         L += ["", "Score: yes = 1, partly = 0.5, no = 0.", ""]
+    else:
+        L += ["n/a: no graded text (the judge is off, has no API key, or there is no LLM "
+              "text).", ""]
 
     L += ["## Failures", ""]
     failures = 0
