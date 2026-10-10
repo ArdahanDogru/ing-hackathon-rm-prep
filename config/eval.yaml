@@ -17,7 +17,7 @@ judge:
     - id: tailored
       question: "Uses this client's situation, goal, horizon, priorities and RM note (not a generic offer)?"
     - id: clear_for_rm
-      question: "Clear and usable for the RM in the meeting (structure, length, plain language)?"
+      question: "Clear and usable for the RM in the meeting (structure, length, order)? Technical terms are fine: the RM is a licensed professional (SPK Düzey 3); do not mark the text down for terms such as valör, stopaj, reel getiri or TÜFE."
     - id: balanced
       question: "States risks and uncertainty fairly next to the benefits (no sales pressure)?"
 

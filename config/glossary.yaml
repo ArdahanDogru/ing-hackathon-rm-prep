@@ -1,0 +1,71 @@
+# Glossary: technical terms -> plain explanations for non-technical readers
+# (the user's idea, 2026-10-10; docs/ui.md U11). Static, lead-owned. Each term
+# lists its surface forms as they appear in the texts (matched case-insensitively
+# after Turkish lower-casing). Explanations are general, not advice.
+version: 1
+
+terms:
+  valor:
+    forms: {TR: ["valör"], EN: ["value date", "settlement"]}
+    TR: "Fonu sattıktan (veya aldıktan) sonra paranın hesaba geçmesi için geçen iş günü sayısı. Örneğin 2 gün valör: bugün satılan fonun parası 2 iş günü sonra hesapta olur."
+    EN: "The number of business days between selling (or buying) a fund and the money arriving. For example, a 2-day settlement means money from a sale today arrives two business days later."
+  stopaj:
+    forms: {TR: ["stopaj"], EN: ["withholding tax"]}
+    TR: "Faiz veya fon kazancından kaynağında kesilen vergi. Kazancın bir yüzdesi olarak kesilir; müşteriye kesinti sonrası tutar ödenir."
+    EN: "Tax withheld at source from interest or fund gains, as a percentage of the gain; the client receives the amount after the deduction."
+  reel_getiri:
+    forms: {TR: ["reel getiri", "reel", "enflasyon sonrası"], EN: ["real return", "after inflation"]}
+    TR: "Enflasyonun etkisi çıkarıldıktan sonra kalan getiri. Reel getiri eksi ise, paranın satın alma gücü azalmıştır."
+    EN: "The return left after removing the effect of inflation. A negative real return means the money buys less than before."
+  tufe:
+    forms: {TR: ["tüfe", "enflasyon"], EN: ["cpi", "inflation"]}
+    TR: "Tüketici Fiyat Endeksi: tüketicilerin satın aldığı mal ve hizmetlerin fiyatlarındaki ortalama değişim. Yıllık TÜFE, yıllık enflasyon oranıdır."
+    EN: "Consumer Price Index: the average change in the prices of goods and services that households buy. The annual CPI change is the inflation rate."
+  nominal_getiri:
+    forms: {TR: ["nominal", "brüt getiri"], EN: ["nominal return", "gross return"]}
+    TR: "Vergi ve enflasyon dikkate alınmadan, yayımlandığı haliyle getiri oranı."
+    EN: "The return as published, before tax and inflation are taken into account."
+  risk_degeri:
+    forms: {TR: ["risk değeri", "risk düzeyi"], EN: ["risk level", "risk value"]}
+    TR: "Fonun fiyat dalgalanmasına göre 1 (en düşük) ile 7 (en yüksek) arasında verilen risk sınıfı. Yüksek değer, değerin kısa sürede daha çok inip çıkabileceği anlamına gelir."
+    EN: "A risk class from 1 (lowest) to 7 (highest) based on how much the fund's price moves. A higher value means the value can rise and fall more over short periods."
+  semsiye_fon:
+    forms: {TR: ["şemsiye fon", "şemsiye"], EN: ["umbrella fund", "umbrella type"]}
+    TR: "Aynı türdeki fonları bir arada toplayan çatı yapı (örneğin para piyasası, borçlanma araçları, hisse senedi). Fonun ne tür varlıklara yatırım yaptığını gösterir."
+    EN: "The family a fund belongs to (for example money market, debt, equity). It shows what kind of assets the fund invests in."
+  para_piyasasi_fonu:
+    forms: {TR: ["para piyasası"], EN: ["money market"]}
+    TR: "Çok kısa vadeli, düşük riskli araçlara (repo, kısa vadeli mevduat ve bonolar) yatırım yapan fon. Genelde aynı gün paraya çevrilebilir."
+    EN: "A fund that invests in very short-term, low-risk instruments (repo, short deposits, bills). Usually it can be turned into cash the same day."
+  borclanma_araclari_fonu:
+    forms: {TR: ["borçlanma araçları"], EN: ["debt fund", "bond fund"]}
+    TR: "Devlet veya şirket tahvili ve bonolarına yatırım yapan fon. Faiz değişimlerine göre değeri dalgalanabilir."
+    EN: "A fund that invests in government or corporate bonds and bills. Its value can move when interest rates change."
+  katilim_fonu:
+    forms: {TR: ["katılım"], EN: ["participation fund"]}
+    TR: "Faizsiz finans ilkelerine uygun araçlara (örneğin kira sertifikası) yatırım yapan fon."
+    EN: "A fund that invests only in instruments that follow interest-free (participation) finance principles, such as lease certificates (sukuk)."
+  vadeli_mevduat:
+    forms: {TR: ["vadeli mevduat", "e-vadeli"], EN: ["time deposit"]}
+    TR: "Belirli bir süre (vade) bankada bekletilen ve bu süre için faiz alan para. Vade dolmadan çekilirse faiz kaybedilebilir."
+    EN: "Money kept at the bank for a fixed period (term) that earns interest for that period. Withdrawing before the term ends can lose the interest."
+  likidite:
+    forms: {TR: ["likidite"], EN: ["liquidity"]}
+    TR: "Bir yatırımın ne kadar hızlı ve kayıpsız nakde çevrilebildiği."
+    EN: "How quickly, and without loss, an investment can be turned into cash."
+  anapara:
+    forms: {TR: ["anapara"], EN: ["principal"]}
+    TR: "Yatırılan ilk tutar; getiri veya kayıp eklenmeden önceki para."
+    EN: "The amount first invested, before any gain or loss."
+  dovizli_fon:
+    forms: {TR: ["döviz", "eurobond"], EN: ["fx", "foreign currency", "eurobond"]}
+    TR: "Değeri yabancı paraya (örneğin dolar) bağlı varlıklara yatırım yapan fon. Kur değişince TL değeri de değişir."
+    EN: "A fund whose value depends on assets in a foreign currency (for example US dollars). When the exchange rate moves, its value in TL moves too."
+  getiri_yuzdeligi:
+    forms: {TR: ["adayların", "yüzdelik"], EN: ["percentile", "better than"]}
+    TR: "Bu seçeneğin getirisinin, değerlendirilen diğer seçeneklerin yüzde kaçından iyi olduğu."
+    EN: "The share of the other options considered whose return this option beats."
+  guven:
+    forms: {TR: ["güven"], EN: ["confidence"]}
+    TR: "Sistemin bu sonuca dayandığı verinin kalitesine göre verdiği 0–1 arası not; tahmin veya doğrulanmamış veri kullanıldıkça düşer."
+    EN: "A 0–1 score of how good the data behind this result is; it falls when estimates or unchecked data are used."

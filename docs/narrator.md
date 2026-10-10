@@ -187,6 +187,18 @@ stay in the narrator (they need the facts pack).
   `RMPREP_LIVE_NARRATOR=1` and a key, so a plain `pytest` never calls the API.
 - N4 (lead): `RealBackend.draft_narrative` / `approve_narrative`; ui: U9.
 
+## Cost finding (first full eval, 2026-10-10) and N8
+
+A real text cost $0.136 (fixture test: $0.04): the facts pack was 35,000–50,000
+tokens (P01: 62,000 characters; data-quality notes with every flagged row id
+21,500, alternatives with all fields 16,000), written to the cache at 1.25×;
+output with thinking 3,500–4,300 tokens; 6 of 24 texts needed a retry.
+N8 (approved by the user): the facts pack keeps only what the text needs —
+data-quality notes as their text and counts (no id lists), alternatives as
+label, kind, option id and 2–3 key numbers with their evidence ids, compact
+JSON (no indentation); the validator still sees the full facts (numbers, ids).
+Target: under 10,000 characters for P01; cost per text about $0.05.
+
 ## Milestones (worker `ing-narrator`; each ends with green `pytest`)
 
 | # | Milestone | Tests show |

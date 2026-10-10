@@ -34,6 +34,8 @@ prototype/
   config/sources.yaml       sources, series, quantities, bounds
   config/decision.yaml      decision tables, weights, penalties, texts (docs/decision.md)
   config/narrator.yaml      narrator model, cost limit, forbidden phrases (docs/narrator.md)
+  config/eval.yaml          eval snapshot, judge, budget, targets (docs/eval.md)
+  config/glossary.yaml      plain explanations of technical terms, TR/EN (docs/ui.md U11)
   config/manual_template.csv  example for data/inbox/manual/
   config/withholding_tax_template.csv  empty stopaj rows (brief rule 7: never
                             hard-code tax rates); fill from Resmî Gazete/GİB,
