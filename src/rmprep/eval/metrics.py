@@ -51,6 +51,10 @@ def summarize(runs: list[ScenarioRun], checks: list[ScenarioChecks], targets: Ta
                       if c.check == "forbidden_phrases" and c.status == FAIL)
     narrator_rate = _rate(by_check["narrator_valid"]) if "narrator_valid" in by_check else None
 
+    grades = list(grades)
+    judge_cache = {"write_tokens": sum(g.cache_write_tokens for g in grades),
+                   "read_tokens": sum(g.cache_read_tokens for g in grades),
+                   "errors": sum(1 for g in grades if g.error)}
     judge: dict[str, dict[str, Any]] = {}
     for g in grades:
         for item, (choice, _) in g.items.items():
@@ -85,6 +89,7 @@ def summarize(runs: list[ScenarioRun], checks: list[ScenarioChecks], targets: Ta
         "cost": {
             "narrator_usd": narrator_cost,
             "judge_usd": judge_cost_usd,
+            "judge_cache": judge_cache,
             "total_usd": narrator_cost + judge_cost_usd,
             "per_text_usd": narrator_cost / len(narratives) if narratives else None,
         },

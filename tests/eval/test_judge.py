@@ -9,7 +9,8 @@ from anthropic.types import Message
 
 from rmprep.eval.config import load_config
 from rmprep.eval.judge import (
-    CachedJudge, Grade, HaikuJudge, grade_texts, judge_from_env, schema, user_text,
+    DEFINITIONS, CachedJudge, Grade, HaikuJudge, grade_texts, judge_from_env, schema, system_text,
+    user_text,
 )
 from rmprep.eval.scenario import Scenario
 from tests.eval.conftest import PROJECT, FakeNarrator
@@ -64,9 +65,47 @@ def test_request_shape_and_grade(approved):
     assert k["output_config"] == {"effort": "low",
                                   "format": {"type": "json_schema", "schema": schema(RUBRIC)}}
     assert "thinking" not in k and "betas" not in k and "fallbacks" not in k
+    assert k["system"] == [{"type": "text", "text": system_text(RUBRIC),
+                            "cache_control": {"type": "ephemeral"}}]
     assert result.persona.profil in k["messages"][0]["content"]
     assert g.error is None and g.items["tailored"] == ("yes", "ok")
     assert g.cost_usd == pytest.approx((20000 * 0.10 + 400 * 0.50) / 1e6)
+
+
+def test_the_system_block_is_identical_for_two_texts(root):
+    out = runner(root, narrator=FakeNarrator()).run([
+        Scenario(id="a", group="base", persona="P01"), Scenario(id="b", group="base", persona="P03")])
+    sdk = FakeSdk(_message())
+    judge = HaikuJudge(CFG, sdk=sdk)
+    for sr in out:
+        judge.grade(sr.runs[0].approved, sr.runs[0].narratives["TR"], RUBRIC)
+    a, b = sdk.messages.calls
+    assert json.dumps(a["system"]).encode() == json.dumps(b["system"]).encode()
+    assert a["messages"] != b["messages"]
+    assert a["system"][-1]["cache_control"] == {"type": "ephemeral"}
+
+
+def test_the_system_block_holds_the_rubric_and_no_per_call_value(approved):
+    result, draft, _ = approved
+    t = system_text(RUBRIC)
+    assert all(r.question in t and DEFINITIONS[r.id] in t for r in RUBRIC)
+    assert result.run_id not in t and result.persona.profil not in t
+    # Haiku 5.5 caches a prefix of 512 tokens or more; English is about 1.3 tokens per word
+    assert len(t.split()) * 1.3 >= 512 * 1.15
+
+
+def test_cost_counts_cache_writes_and_reads(approved):
+    result, draft, _ = approved
+    usage = {"input_tokens": 3000, "output_tokens": 400,
+             "cache_creation_input_tokens": 800, "cache_read_input_tokens": 0}
+    g = HaikuJudge(CFG, sdk=FakeSdk(_message(usage=usage))).grade(result, draft, RUBRIC)
+    assert g.cache_write_tokens == 800 and g.cost_usd == pytest.approx(
+        ((3000 + 1.25 * 800) * 0.10 + 400 * 0.50) / 1e6)
+    usage |= {"cache_creation_input_tokens": 0, "cache_read_input_tokens": 800}
+    g = HaikuJudge(CFG, sdk=FakeSdk(_message(usage=usage))).grade(result, draft, RUBRIC)
+    assert g.cache_read_tokens == 800 and g.cost_usd == pytest.approx(
+        ((3000 + 0.1 * 800) * 0.10 + 400 * 0.50) / 1e6)
+    assert Grade.from_dict(g.to_dict()) == g
 
 
 def test_schema_has_every_rubric_item_and_fixed_choices():
@@ -75,11 +114,11 @@ def test_schema_has_every_rubric_item_and_fixed_choices():
     assert s["properties"]["balanced"]["properties"]["choice"]["enum"] == ["yes", "partly", "no"]
 
 
-def test_user_text_holds_client_selection_text_and_rubric(approved):
+def test_user_text_holds_client_selection_and_text_but_not_the_rubric(approved):
     result, draft, _ = approved
-    t = user_text(result, draft, RUBRIC)
+    t = user_text(result, draft)
     assert result.persona.rm_notu in t and "<meeting_text" in t
-    assert all(r.question in t for r in RUBRIC)
+    assert not any(r.question in t for r in RUBRIC)
     labels = {o.option.option_id: o.option.label for o in result.options}
     assert labels[result.rm_selected[0]] in t
 

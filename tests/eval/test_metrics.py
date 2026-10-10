@@ -18,7 +18,8 @@ def test_summary_of_a_small_suite(root):
         Scenario(id="c", group="constraint", persona="P02", add_constraints=("kripto istemiyor",)),
     ])
     checks = run_checks(runs, DCFG, PHRASES)
-    grades = [Grade("R1", "TR", "m", {"tailored": ("yes", ""), "balanced": ("no", "")}),
+    grades = [Grade("R1", "TR", "m", {"tailored": ("yes", ""), "balanced": ("no", "")},
+                    cache_write_tokens=700),
               Grade("R2", "TR", "m", {"tailored": ("partly", "")}),
               Grade("R3", "TR", "m", error="refusal")]
     m = summarize(runs, checks, TARGETS, grades, judge_cost_usd=0.002)
@@ -33,6 +34,7 @@ def test_summary_of_a_small_suite(root):
     assert m["time"]["decide_s"]["n"] == 3 and m["time"]["narrate_s"]["n"] == 2
     assert m["judge"]["tailored"] == {"yes": 1, "partly": 1, "no": 0, "score": 0.75}
     assert m["judge"]["balanced"]["score"] == 0.0
+    assert m["cost"]["judge_cache"] == {"write_tokens": 700, "read_tokens": 0, "errors": 1}
     assert set(m["groups"]) == {"base", "constraint"}
 
 
