@@ -64,6 +64,14 @@ def part_rows(o: ScoredOption, lang: str = "TR") -> list[dict]:
             for k, v in o.score_parts.items()]
 
 
+MAIN_PARTS = 3
+
+
+def main_parts(o: ScoredOption, lang: str = "TR") -> list[dict]:
+    """The MAIN_PARTS largest score parts by size (penalties count by their size)."""
+    return sorted(part_rows(o, lang), key=lambda b: -abs(b["value"]))[:MAIN_PARTS]
+
+
 def kind_key(o: ScoredOption | RejectedOption) -> str:
     return o.option.kind if o.option.kind == "deposit" else o.option.fund_kind
 

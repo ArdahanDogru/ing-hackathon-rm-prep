@@ -7,11 +7,13 @@ widget gets both a default value and a session-state value."""
 from __future__ import annotations
 
 import dataclasses
+import os
 from pathlib import Path
 
 import streamlit as st
 import yaml
 
+from rmprep.backend import RealBackend
 from rmprep.contracts import (
     Backend,
     DecisionResult,
@@ -21,19 +23,24 @@ from rmprep.contracts import (
     RmStatus,
     ScoredOption,
 )
-from rmprep.ui import views
-from rmprep.ui.i18n import t
+from rmprep.ui import card, views
+from rmprep.ui.fake import FakeBackend
+from rmprep.ui.i18n import LANGS, t
 
 PROTOTYPE = Path(__file__).resolve().parents[3]
 FIXTURES = PROTOTYPE / "tests" / "contracts" / "fixtures"
 DECISION_CONFIG = PROTOTYPE / "config" / "decision.yaml"
 _EDIT = "edit:"
 _TEXT_FIELDS = ("profil", "durum", "yatirim_amaci", "rm_notu")
+_OPEN_REJECTED = 10   # more rejected options than this start closed
 
 
 def default_backend() -> Backend:
-    from rmprep.ui.fake import FakeBackend
-
+    """RealBackend on $RMPREP_ROOT (the prototype folder) if it is set, else the
+    FakeBackend on the contract fixtures (docs/ui.md, "Real backend")."""
+    root = os.environ.get("RMPREP_ROOT")
+    if root:
+        return RealBackend(root)
     return FakeBackend(FIXTURES)
 
 
@@ -177,6 +184,8 @@ def _sidebar(backend: Backend, lang: str) -> tuple[Persona, views.RunInputs]:
         _edit_form(original, persona, levels, lang)
         snapshot_id = st.selectbox(t("snapshot", lang), backend.list_snapshots(), key="snapshot")
         excluded = _sources(backend.evidence(snapshot_id), lang)
+        _default("lang", "TR")
+        st.radio(t("lang", lang), LANGS, key="lang", horizontal=True)
     answers = tuple(sorted(st.session_state["answers"].items()))
     return original, views.RunInputs(persona, snapshot_id, excluded, answers)
 
@@ -408,8 +417,9 @@ def _rejected(r: DecisionResult, lang: str) -> None:
     if not r.rejected:
         st.info(t("no_rejected", lang))
         return
+    expanded = len(r.rejected) <= _OPEN_REJECTED
     for rj in r.rejected:
-        with st.expander(f"{rj.option.label} · {views.kind_label(rj, lang)}", expanded=True):
+        with st.expander(f"{rj.option.label} · {views.kind_label(rj, lang)}", expanded=expanded):
             st.markdown(f"**{t('failed_rules', lang)}**")
             for c in rj.failed:
                 st.markdown(f"- ✗ `{c.rule_id}`: {c.reason}")
@@ -470,8 +480,24 @@ def _approve(run_id: str, option_ids: tuple[str, ...]) -> None:
     if not selected:
         ss["rm_error"] = "need_selection"
         return
-    _set_result(ss["backend"].approve(run_id, RmStatus.APPROVED, ss.get(f"note:{run_id}", ""),
-                                      selected))
+    r = ss["backend"].approve(run_id, RmStatus.APPROVED, ss.get(f"note:{run_id}", ""), selected)
+    _set_result(r)
+    _save_card(r)
+
+
+def _save_card(r: DecisionResult) -> None:
+    ss = st.session_state
+    md = card.render_markdown(r, ss["evidence"][1], _lang())
+    ss["card_saved"] = (r.run_id, ss["backend"].save_card(r.run_id, md))
+
+
+def _save_notes(run_id: str, option_ids: tuple[str, ...]) -> None:
+    ss = st.session_state
+    notes = {o: ss.get(f"card_onote:{run_id}:{o}", "").strip() for o in option_ids}
+    r = ss["backend"].annotate(run_id, ss.get(f"card_note:{run_id}", "").strip(),
+                               {o: n for o, n in notes.items() if n})
+    _set_result(r)
+    _save_card(r)
 
 
 def _reject(run_id: str) -> None:
@@ -491,7 +517,9 @@ def _rm_bar(r: DecisionResult, original: Persona, lang: str) -> None:
     st.markdown(f"**{t('rm_bar', lang)}**")
     if r.rm_status != RmStatus.PENDING:
         st.success(t("rm_" + r.rm_status.value, lang))
-        if r.rm_note:
+        if r.rm_status == RmStatus.APPROVED:
+            _card(r, lang)
+        elif r.rm_note:
             st.caption(r.rm_note)
         return
     test = r.persona != original
@@ -509,6 +537,28 @@ def _rm_bar(r: DecisionResult, original: Persona, lang: str) -> None:
     st.button(t("reject", lang), key="reject", disabled=test, on_click=_reject, args=(r.run_id,))
     if test:
         st.caption(t("test_no_approve", lang))
+
+
+def _card(r: DecisionResult, lang: str) -> None:
+    """The summary card of an approved run, its downloads and its notes."""
+    ev = st.session_state["evidence"][1]
+    with st.container(border=True):
+        st.markdown(card.render_markdown(r, ev, lang))
+    st.download_button(t("dl_md", lang), card.render_markdown(r, ev, lang),
+                       file_name=f"{r.run_id}.md", mime="text/markdown", key="dl_md")
+    st.download_button(t("dl_html", lang), card.render_html(r, ev, lang),
+                       file_name=f"{r.run_id}.html", mime="text/html", key="dl_html")
+    _default(f"card_note:{r.run_id}", r.rm_note)
+    st.text_area(t("card_note", lang), key=f"card_note:{r.run_id}")
+    labels = {o.option.option_id: o.option.label for o in r.options}
+    for oid in r.rm_selected:
+        _default(f"card_onote:{r.run_id}:{oid}", r.rm_option_notes.get(oid, ""))
+        st.text_area(t("card_onote", lang, label=labels[oid]), key=f"card_onote:{r.run_id}:{oid}")
+    st.button(t("save_notes", lang), key="save_notes", on_click=_save_notes,
+              args=(r.run_id, r.rm_selected))
+    saved = st.session_state.get("card_saved")
+    if saved and saved[0] == r.run_id:
+        st.caption(t("card_saved", lang, where=saved[1]))
 
 
 # --- right pane ---------------------------------------------------------------------
@@ -572,5 +622,7 @@ def main() -> None:
         st.divider()
         for c in views.citations(result, ev, lang):
             st.caption(c)
+        if lang == "EN":
+            st.caption(t("en_footer", lang))
     with pane:
         _pane(result, lang)
