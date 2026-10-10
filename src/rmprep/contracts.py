@@ -219,6 +219,8 @@ class SourceStatus:
 # =============================================================================
 # Decision / UI contracts - FROZEN v1 (2026-10-10, after step D);
 # v1.1 (2026-10-10): option kind "time_deposit" (ING e-Vadeli Mevduat).
+# v1.2 (2026-10-10): narrator types + Backend.draft_narrative / approve_narrative
+# (docs/narrator.md).
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -472,6 +474,75 @@ class DecisionResult:
         return _from_json(cls, d)
 
 
+# --- narrator (v1.2, docs/narrator.md) ------------------------------------------
+
+NARRATIVE_LANGS = ("TR", "EN")
+NARRATIVE_SECTIONS = ("ozet", "oneriler", "alternatifler", "dikkat", "sorular",
+                      "teklif_metni", "varsayimlar")
+NARRATIVE_SOURCES = ("llm", "template")
+
+
+class NarrativeStatus(StrEnum):
+    DRAFT = "draft"
+    APPROVED = "approved"
+
+
+@dataclass(frozen=True)
+class NarrativeSentence:
+    text: str
+    option_ids: tuple[str, ...] = ()     # options the sentence talks about
+    evidence_ids: tuple[str, ...] = ()   # DataPoint ids it rests on
+
+
+@dataclass(frozen=True)
+class NarrativeSection:
+    key: str                             # one of NARRATIVE_SECTIONS
+    sentences: tuple[NarrativeSentence, ...]
+
+    def __post_init__(self) -> None:
+        if self.key not in NARRATIVE_SECTIONS:
+            raise ValueError(f"unknown section key {self.key!r}; known: {NARRATIVE_SECTIONS}")
+
+
+@dataclass(frozen=True)
+class NarrativeDraft:
+    """The meeting text for one approved run in one language."""
+
+    run_id: str
+    lang: str                            # "TR" | "EN"
+    sections: tuple[NarrativeSection, ...]
+    source: str                          # "llm" | "template"
+    model: str                           # "" for the template
+    prompt_version: str
+    checks: tuple[str, ...]              # validator findings; () = passed
+    created_at: datetime                 # timezone-aware
+    cost_usd: float = 0.0
+    status: NarrativeStatus = NarrativeStatus.DRAFT
+    rm_text: str = ""                    # the RM's edited text (Markdown); required when approved
+
+    def __post_init__(self) -> None:
+        if self.lang not in NARRATIVE_LANGS:
+            raise ValueError(f"lang must be one of {NARRATIVE_LANGS}, got {self.lang!r}")
+        if self.source not in NARRATIVE_SOURCES:
+            raise ValueError(f"source must be one of {NARRATIVE_SOURCES}, got {self.source!r}")
+        if (self.source == "template") != (self.model == ""):
+            raise ValueError("model must be empty exactly for a template draft")
+        if self.created_at.tzinfo is None:
+            raise ValueError("created_at must be timezone-aware")
+        if self.cost_usd < 0:
+            raise ValueError("cost_usd must be >= 0")
+        object.__setattr__(self, "status", NarrativeStatus(self.status))
+        if self.status == NarrativeStatus.APPROVED and not self.rm_text.strip():
+            raise ValueError("an approved narrative needs rm_text")
+
+    def to_dict(self) -> dict:
+        return _to_json(self)
+
+    @classmethod
+    def from_dict(cls, d: Mapping) -> NarrativeDraft:
+        return _from_json(cls, d)
+
+
 class Backend(Protocol):
     """What the UI calls (docs/ui.md). FakeBackend (ui worker) serves fixtures;
     the real backend (lead, on main) wires ingest + decision and keeps the runs
@@ -503,6 +574,15 @@ class Backend(Protocol):
 
     def save_card(self, run_id: str, markdown: str) -> str:
         """Store the summary card of an approved run; returns where (path or key)."""
+        ...
+
+    def draft_narrative(self, run_id: str, lang: str = "TR") -> NarrativeDraft:
+        """The meeting text of an approved run (v1.2); cached per (run_id, lang,
+        prompt_version, model)."""
+        ...
+
+    def approve_narrative(self, run_id: str, lang: str, text: str) -> NarrativeDraft:
+        """Store the RM's final text (status approved); the card uses it."""
         ...
 
 
