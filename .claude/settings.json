@@ -11,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/guard_paths.py",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_paths.py\"",
             "timeout": 10
           }
         ]

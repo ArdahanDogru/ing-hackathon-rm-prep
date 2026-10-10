@@ -360,7 +360,8 @@ the real snapshot with the user for tuning. Wired 2026-10-10; extra option
   `TextMapper` protocol with a fake for tests (no network in tests); answers
   cached and treated as inputs (its probabilities vary between calls, `run_id`
   must not); a check of the 15 real Turkish phrases first; KVKK review before
-  real client text leaves the bank. Decided 2026-10-10: optional, after the MVO.
+  real client text leaves the bank. Decided 2026-10-10: optional, after the MVO;
+  the user marked it "later" (2026-10-10, after D5).
 - A trained model on RM approvals / selections (`data/runs/`) to tune weights,
   once there are enough real runs.
 - A gold option from a manual ING gold-account row (spread, source URL).
