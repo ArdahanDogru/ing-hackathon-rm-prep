@@ -6,6 +6,7 @@ import pytest
 import yaml
 
 from rmprep.contracts import DecisionResult, DecisionState, RmStatus, ScoredOption
+from rmprep.grouping import DEFAULT_RULE, groups
 from rmprep.ui import views
 from rmprep.ui.fake import FakeBackend
 from rmprep.ui.i18n import LABELS, LANGS, t
@@ -51,37 +52,37 @@ def test_baseline_is_the_first_deposit():
 
 def test_groups_of_the_p02_fixture():
     r = _fixture("decision_p02_ready.json")
-    groups = views.kind_groups(r)
-    assert [g.kind for g in groups] == ["debt", "money_market", "variable"]
-    debt = groups[0]
+    gs = groups(r.options)
+    assert [g.key for g in gs] == ["debt", "money_market", "variable"]
+    debt = gs[0]
     assert debt.head.option.option_id == "fund:BBF"
-    assert _ids(debt.alternatives) == ["fund:AKE"] and debt.count == 2
+    assert _ids(debt.alternatives) == ["fund:AKE"] and len(debt.alternatives) == 1
 
 
 def test_pool_is_the_first_20_non_deposit_options():
-    spec = [("debt", 1.0 - i / 100) for i in range(views.POOL_SIZE)] + [("equity", 5.0)]
-    groups = views.kind_groups(_grouped(spec))
-    assert [g.kind for g in groups] == ["debt"]
-    assert groups[0].count == views.POOL_SIZE
+    spec = [("debt", 1.0 - i / 100) for i in range(DEFAULT_RULE.pool)] + [("equity", 5.0)]
+    gs = groups(_grouped(spec).options)
+    assert [g.key for g in gs] == ["debt"]
+    assert 1 + len(gs[0].alternatives) == DEFAULT_RULE.pool
 
 
 def test_at_most_5_groups_ordered_by_their_best_score():
     kinds = ["money_market", "debt", "participation", "precious_metals", "equity", "variable", "mixed"]
     spec = [(k, 0.1 * (i + 1)) for i, k in enumerate(kinds)]
-    groups = views.kind_groups(_grouped(spec))
-    assert len(groups) == views.MAX_GROUPS
-    assert [g.kind for g in groups] == ["mixed", "variable", "equity", "precious_metals",
+    gs = groups(_grouped(spec).options)
+    assert len(gs) == DEFAULT_RULE.max_groups
+    assert [g.key for g in gs] == ["mixed", "variable", "equity", "precious_metals",
                                         "participation"]
 
 
 def test_equal_best_scores_are_ordered_by_option_id():
-    groups = views.kind_groups(_grouped([("equity", 0.5), ("debt", 0.5)]))
-    assert [g.head.option.option_id for g in groups] == ["fund:K00", "fund:K01"]
+    gs = groups(_grouped([("equity", 0.5), ("debt", 0.5)]).options)
+    assert [g.head.option.option_id for g in gs] == ["fund:K00", "fund:K01"]
 
 
 def test_head_is_the_best_of_its_kind_and_alternatives_follow_by_score():
     r = _grouped([("debt", 0.3), ("debt", 0.5), ("debt", 0.1), ("debt", 0.4)])
-    g = views.kind_groups(r)[0]
+    g = groups(r.options)[0]
     assert g.head.option.option_id == "fund:K01"
     assert _ids(g.alternatives) == ["fund:K03", "fund:K00", "fund:K02"]
 
@@ -185,7 +186,7 @@ def test_more_shows_all_alternatives_of_one_kind_and_resets_on_a_new_run():
 
 
 def test_options_outside_the_pool_are_only_in_all_scored():
-    spec = [("debt", 1.0 - i / 100) for i in range(views.POOL_SIZE)] + [("equity", 5.0)]
+    spec = [("debt", 1.0 - i / 100) for i in range(DEFAULT_RULE.pool)] + [("equity", 5.0)]
     at = _app(_grouped(spec))
     assert not any("FON 20" in label for label in _rows(at))
     assert len(at.tabs[1].dataframe[0].value) == len(spec) + 1
@@ -259,3 +260,18 @@ def test_needs_input_tabs_ask_for_answers_first():
     for tab in at.tabs[:3]:
         assert not tab.expander and not tab.dataframe
         assert any("yanıtlayın" in i.value for i in tab.info)
+
+
+def test_the_ui_has_no_local_grouping_rule():
+    for name in ("kind_groups", "kind_key", "KindGroup", "POOL_SIZE", "MAX_GROUPS", "ALTERNATIVES",
+                 "visible_alternatives"):
+        assert not hasattr(views, name), name
+
+
+def test_shortlist_blocks_follow_the_shared_rule():
+    r = _grouped(BIG)
+    at = _app(r)
+    headers = [m.value for m in at.tabs[0].markdown if m.value.startswith("####")]
+    gs = groups(r.options)
+    assert headers == [f"#### {t('group_header', label=views.kind_name(g.key), n=1 + len(g.alternatives))}"
+                       for g in gs]

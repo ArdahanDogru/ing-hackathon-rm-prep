@@ -13,6 +13,7 @@ from pathlib import Path
 import streamlit as st
 import yaml
 
+from rmprep import grouping
 from rmprep.backend import RealBackend
 from rmprep.contracts import (
     Backend,
@@ -397,17 +398,18 @@ def _shortlist(r: DecisionResult, lang: str) -> None:
                     base, r, lang)
     pos = views.positions(r)
     opened = _opened(r.run_id)
-    for g in views.kind_groups(r):
-        st.markdown(f"#### {t('group_header', lang, label=views.kind_name(g.kind, lang), n=g.count)}")
+    for g in grouping.groups(r.options):
+        label = views.kind_name(g.key, lang)
+        st.markdown(f"#### {t('group_header', lang, label=label, n=1 + len(g.alternatives))}")
         head = g.head
         _option_row(views.row_title(f"{pos[head.option.option_id]}.", head,
                                     head.option.option_id in w, lang), head, r, lang)
-        alts = views.visible_alternatives(g, g.kind in opened)
+        alts = grouping.visible_alternatives(g, g.key in opened)
         for o in alts:
             oid = o.option.option_id
             _option_row(views.row_title(f"↳ {pos[oid]}.", o, oid in w, lang), o, r, lang)
         if len(alts) < len(g.alternatives):
-            st.button(t("more", lang), key=f"more:{g.kind}", on_click=_more, args=(r.run_id, g.kind))
+            st.button(t("more", lang), key=f"more:{g.key}", on_click=_more, args=(r.run_id, g.key))
 
 
 def _all_scored(r: DecisionResult, lang: str) -> None:

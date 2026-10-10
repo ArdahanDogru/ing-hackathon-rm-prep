@@ -1,5 +1,5 @@
 """What the page shows, as plain data (no streamlit), so tests can check it
-without a browser: the baseline and the fund_kind groups, the score bars, the
+without a browser: the baseline and the shown options, the score bars, the
 row titles and table rows, the evidence rows and citations, and the RM loop
 helpers (run inputs, change texts, persona diff)."""
 
@@ -9,6 +9,7 @@ import dataclasses
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from rmprep import grouping
 from rmprep.contracts import (
     ClarificationQuestion,
     DecisionResult,
@@ -20,9 +21,6 @@ from rmprep.contracts import (
 )
 from rmprep.ui.i18n import LABELS, t
 
-POOL_SIZE = 20      # the groups are made from the first 20 non-deposit options
-MAX_GROUPS = 5
-ALTERNATIVES = 3    # visible alternatives per group; the rest behind "Daha fazla"
 PENALTY = "penalty:"
 
 
@@ -43,49 +41,14 @@ def positions(r: DecisionResult) -> dict[str, int]:
     return {o.option.option_id: i for i, o in enumerate(ranked(r), start=1)}
 
 
-@dataclass(frozen=True)
-class KindGroup:
-    """One block of "Kısa liste": the best option of a fund_kind and its alternatives."""
-
-    kind: str
-    head: ScoredOption
-    alternatives: tuple[ScoredOption, ...]     # score order
-
-    @property
-    def count(self) -> int:
-        return 1 + len(self.alternatives)
-
-
-def _best_first(o: ScoredOption) -> tuple[float, str]:
-    return (-o.score, o.option.option_id)
-
-
-def kind_groups(r: DecisionResult) -> list[KindGroup]:
-    """Groups by kind_key of the first POOL_SIZE non-deposit options, at most
-    MAX_GROUPS, ordered by the score of their best option (ties: option_id)."""
-    pool = [o for o in r.options if o.option.kind != "deposit"][:POOL_SIZE]
-    by_kind: dict[str, list[ScoredOption]] = {}
-    for o in pool:
-        by_kind.setdefault(kind_key(o), []).append(o)
-    groups = []
-    for kind, opts in by_kind.items():
-        best = sorted(opts, key=_best_first)
-        groups.append(KindGroup(kind, best[0], tuple(best[1:])))
-    groups.sort(key=lambda g: _best_first(g.head))
-    return groups[:MAX_GROUPS]
-
-
-def visible_alternatives(g: KindGroup, opened: bool) -> tuple[ScoredOption, ...]:
-    return g.alternatives if opened else g.alternatives[:ALTERNATIVES]
-
-
 def shown_options(r: DecisionResult, opened: frozenset[str] = frozenset()) -> list[ScoredOption]:
-    """What "Kısa liste" shows: the baseline, then per group the head and its
-    visible alternatives (all of them for the kinds in opened)."""
+    """What "Kısa liste" shows: the baseline, then per group (rmprep.grouping,
+    docs/decision.md 4.6) the head and its visible alternatives (all of them for
+    the group keys in opened)."""
     base = baseline(r)
     out = [base] if base is not None else []
-    for g in kind_groups(r):
-        out += [g.head, *visible_alternatives(g, g.kind in opened)]
+    for g in grouping.groups(r.options):
+        out += [g.head, *grouping.visible_alternatives(g, g.key in opened)]
     return out
 
 
@@ -119,23 +82,17 @@ def main_parts(o: ScoredOption, lang: str = "TR") -> list[dict]:
     return sorted(part_rows(o, lang), key=lambda b: -abs(b["value"]))[:MAIN_PARTS]
 
 
-def kind_key(o: ScoredOption | RejectedOption) -> str:
-    """The group key: fund_kind, or kind for a non-fund option (deposit,
-    time_deposit; contract v1.1)."""
-    return o.option.fund_kind or o.option.kind
-
-
 def kind_name(key: str, lang: str = "TR") -> str:
     k = "kind." + key
     return t(k, lang) if k in LABELS else key
 
 
 def kind_label(o: ScoredOption | RejectedOption, lang: str = "TR") -> str:
-    return kind_name(kind_key(o), lang)
+    return kind_name(grouping.group_key(o), lang)
 
 
 def kind_keys(options) -> list[str]:
-    return sorted({kind_key(o) for o in options})
+    return sorted({grouping.group_key(o) for o in options})
 
 
 def row_title(prefix: str, o: ScoredOption, has_warning: bool, lang: str = "TR") -> str:
@@ -154,7 +111,7 @@ def table_rows(r: DecisionResult, kinds: list[str] = (), lang: str = "TR") -> li
     w = warned(r)
     rows = []
     for pos, o in enumerate(r.options, start=1):
-        if kinds and kind_key(o) not in kinds:
+        if kinds and grouping.group_key(o) not in kinds:
             continue
         rows.append({
             t("col_pos", lang): pos,
