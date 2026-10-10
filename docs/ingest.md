@@ -270,7 +270,7 @@ source's rows and the cross-source conflict it caused.
 8. `store.py` (DuckDB, is_latest, Parquet) + tests.
 9. `pipeline.py` (ingest, replay, fallback, `build_evidence` with exclusion) +
    `cli.py` + end-to-end replay test.
-10. *(Later)* KAP adapter.
+10. *(Dropped for now, 2026-10-10: KAP blocks automated requests; I3 gives valör and fees)* KAP adapter.
 
 I1 (added 2026-10-10 for the decision layer, `docs/decision.md`): fund name
 and umbrella type. The `tefas_web` parser also reads `fonUnvan` and
@@ -281,6 +281,43 @@ text verbatim. `build_evidence` fills `EvidenceSet.entities` (fund code →
 excluded or skipped `tefas_web` gives an empty mapping. No new DataPoints, no
 DuckDB table (`build_evidence` already re-parses the payloads). Tests: parse
 from a fixture page; replay gives identical `entities`; exclusion empties them.
+
+I3 (approved by the user 2026-10-10): source `tefas_detail`, the TEFAS fund
+detail page `https://www.tefas.gov.tr/tr/fon-detayli-analiz/<code>` (allowed by
+robots.txt; checked 2026-10-10). It replaces the hand export for prices, sizes
+and investor counts, and adds valör and fees (KAP is dropped for now: it blocks
+automated requests, and this page has the data we needed from it).
+
+- Funds: the funds of the `tefas_web` payload of the same snapshot, without the
+  categories in `exclude_categories` (start: `Serbest Şemsiye Fonu`), about 805.
+  No `tefas_web` funds → the source fails (`on_failure`).
+- Requests: one GET per fund, `User-Agent` from config, at least
+  `min_interval_s` (1.0) between requests (about 14 minutes), no redirects,
+  `check_url_allowed` before each request; `max_funds` (optional) limits the
+  list for tests and trials.
+- Payloads: the raw response bytes of each page, gzip-compressed
+  (`payloads/tefas_detail/<code>.html.gz`, about 30 MB per snapshot); replay
+  parses them like any other payload.
+- Parser: the embedded page data objects `bilgiData` and `profilData` (Next.js
+  flight data). Strict: a page without them, or with a non-numeric required
+  value, is a rejected row with the reason; if more than `max_fail_share` (5 %)
+  of the pages fail, the source fails (the page format changed).
+- DataPoints: `fund_price` (`sonFiyat`), `fund_total_value` (`portBuyukluk`),
+  `fund_investor_count` (`yatirimciSayi`), `fund_risk_level` (`riskDegeri`),
+  and the new quantities `fund_buy_valor_days` (`fonSatisValor`),
+  `fund_sell_valor_days` (`fonGeriAlisValor`), `fund_expense_ratio`
+  (`fonTopGiderKesoran`, %), `fund_entry_fee` and `fund_exit_fee`
+  (`girisKomisyonu`, `cikisKomisyonu`; null → no row). The same quantities as
+  `tefas` and `tefas_web` give the cross-source conflict check for free.
+- `as_of`: a date from the page if there is one (the worker checks); else the
+  previous business day before the snapshot date, as for `tefas_web`. All rows
+  `needs_check` until the source has a stable record.
+- Not now: asset allocation (`portfolioDistribution`), price history.
+- Tests: fixture pages for 3 funds (one with null fees), MockTransport, a page
+  without data, the fail share, a disallowed path, replay identical, the
+  interval (with a fake clock, no real sleep in tests).
+- Later (decision D12, after I3): liquidity from the sell valör instead of the
+  kind table; entry/exit fees in the net return.
 
 ## Noted for later (decided 2026-10-09, not to be done now)
 
