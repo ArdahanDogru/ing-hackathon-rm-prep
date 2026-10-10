@@ -1,14 +1,16 @@
 """The one page of the UI (docs/ui.md section 1). All backend calls go through
 the Backend in st.session_state["backend"]; a run is made only when its inputs
-change, so a plain rerun (any click) does not call the engine again."""
+(views.RunInputs) change, so a plain rerun (any click) does not call the engine
+again. Widget state is put in st.session_state before the widget is made, so no
+widget gets both a default value and a session-state value."""
 
 from __future__ import annotations
 
 import dataclasses
-import json
 from pathlib import Path
 
 import streamlit as st
+import yaml
 
 from rmprep.contracts import (
     Backend,
@@ -16,13 +18,17 @@ from rmprep.contracts import (
     DecisionState,
     EvidenceSet,
     Persona,
+    RmStatus,
     ScoredOption,
 )
 from rmprep.ui import views
 from rmprep.ui.i18n import t
 
-FIXTURES = Path(__file__).resolve().parents[3] / "tests" / "contracts" / "fixtures"
-_LIST_FIELDS = ("oncelikler", "acik_kisitlar")
+PROTOTYPE = Path(__file__).resolve().parents[3]
+FIXTURES = PROTOTYPE / "tests" / "contracts" / "fixtures"
+DECISION_CONFIG = PROTOTYPE / "config" / "decision.yaml"
+_EDIT = "edit:"
+_TEXT_FIELDS = ("profil", "durum", "yatirim_amaci", "rm_notu")
 
 
 def default_backend() -> Backend:
@@ -41,17 +47,106 @@ def _lang() -> str:
     return st.session_state.get("lang", "TR")
 
 
-# --- sidebar ------------------------------------------------------------------
+def _default(key: str, value) -> None:
+    if key not in st.session_state:
+        st.session_state[key] = value
+
+
+@st.cache_data
+def _config_raw() -> dict:
+    """config/decision.yaml as parsed, read only for the level pick lists."""
+    if not DECISION_CONFIG.exists():
+        return {}
+    return yaml.safe_load(DECISION_CONFIG.read_text(encoding="utf-8")) or {}
+
+
+# --- sidebar: persona, persona edit, snapshot, sources ------------------------
 
 def _persona_card(p: Persona, lang: str) -> None:
     with st.container(border=True):
         for f in dataclasses.fields(p):
             v = getattr(p, f.name)
-            if f.name in _LIST_FIELDS:
+            if f.name in views.LIST_FIELDS:
                 v = ", ".join(v) if v else "—"
             if v == "":
                 continue
             st.markdown(f"**{t('f_' + f.name, lang)}:** {v}")
+
+
+def _drop_edit_state() -> None:
+    for k in [k for k in st.session_state.keys() if str(k).startswith(_EDIT)]:
+        del st.session_state[k]
+
+
+def _reset_persona(pid: str) -> None:
+    """A persona pick: answers, the test persona and the run history start again."""
+    st.session_state["pid"] = pid
+    st.session_state["answers"] = {}
+    st.session_state["edited"] = None
+    st.session_state["history"] = []
+    _drop_edit_state()
+
+
+def _init_edit_state(p: Persona, levels: dict[str, list[str]]) -> None:
+    for f in dataclasses.fields(p):
+        key, v = _EDIT + f.name, getattr(p, f.name)
+        if f.name == "persona_id" or key in st.session_state:
+            continue
+        if f.name in views.LIST_FIELDS:
+            st.session_state[key] = "\n".join(v)
+        elif f.name in views.LEVEL_FIELDS:
+            known = v in levels[f.name]
+            st.session_state[key] = v if known else views.OTHER
+            st.session_state[key + ":other"] = "" if known else v
+        else:
+            st.session_state[key] = v
+
+
+def _apply_edit(original: Persona) -> None:
+    ss = st.session_state
+    d: dict = {"persona_id": original.persona_id, "yas": int(ss[_EDIT + "yas"])}
+    for name in _TEXT_FIELDS:
+        d[name] = ss[_EDIT + name]
+    for name in views.LEVEL_FIELDS:
+        v = ss[_EDIT + name]
+        d[name] = ss[_EDIT + name + ":other"].strip() if v == views.OTHER else v
+    for name in views.LIST_FIELDS:
+        d[name] = tuple(x.strip() for x in ss[_EDIT + name].splitlines() if x.strip())
+    try:
+        edited = Persona(**d)
+    except ValueError as e:
+        ss["edit_error"] = str(e)
+        return
+    ss["edited"] = None if edited == original else edited
+
+
+def _reset_edit() -> None:
+    st.session_state["edited"] = None
+    _drop_edit_state()
+
+
+def _edit_form(original: Persona, current: Persona, levels: dict[str, list[str]],
+               lang: str) -> None:
+    """ "Düzenle": every schema field; "Uygula" makes a test run (docs/ui.md section 2)."""
+    _init_edit_state(current, levels)
+    with st.expander(t("edit", lang), expanded=st.session_state["edited"] is not None):
+        with st.form("edit_form", border=False):
+            st.number_input(t("f_yas", lang), min_value=0, max_value=120, step=1, key=_EDIT + "yas")
+            for f in dataclasses.fields(Persona):
+                name, label = f.name, t("f_" + f.name, lang)
+                if name in _TEXT_FIELDS:
+                    st.text_input(label, key=_EDIT + name)
+                elif name in views.LEVEL_FIELDS:
+                    st.selectbox(label, [*levels[name], views.OTHER], key=_EDIT + name)
+                    st.text_input(t("other_text", lang, field=label), key=_EDIT + name + ":other")
+                elif name in views.LIST_FIELDS:
+                    st.text_area(t("one_per_line", lang, field=label), key=_EDIT + name)
+            st.form_submit_button(t("apply", lang), key="edit_apply", on_click=_apply_edit,
+                                  args=(original,))
+        st.button(t("reset", lang), key="edit_reset", on_click=_reset_edit)
+        err = st.session_state.pop("edit_error", None)
+        if err:
+            st.error(f"{t('edit_invalid', lang)}: {err}")
 
 
 def _sources(ev: EvidenceSet, lang: str) -> frozenset[str]:
@@ -61,48 +156,150 @@ def _sources(ev: EvidenceSet, lang: str) -> frozenset[str]:
         label = f"{name} ({status.status})"
         if status.fallback_from:
             label += " · " + t("fallback_from", lang, snapshot=status.fallback_from)
-        if not st.checkbox(label, value=True, key=f"src:{name}"):
+        _default(f"src:{name}", True)
+        if not st.checkbox(label, key=f"src:{name}"):
             excluded.add(name)
     return frozenset(excluded)
 
 
-def _sidebar(backend: Backend, lang: str) -> tuple[Persona, str, frozenset[str]]:
+def _sidebar(backend: Backend, lang: str) -> tuple[Persona, views.RunInputs]:
+    """Returns the original persona of the pick and the inputs of the run to show."""
     personas = {p.persona_id: p for p in backend.list_personas()}
     with st.sidebar:
         pid = st.selectbox(t("persona", lang), list(personas), key="persona",
                            format_func=lambda i: f"{i} · {personas[i].profil}")
-        persona = personas[pid]
+        original = personas[pid]
+        if st.session_state.get("pid") != pid:
+            _reset_persona(pid)
+        persona = st.session_state["edited"] or original
         _persona_card(persona, lang)
+        levels = views.known_levels(_config_raw(), personas.values())
+        _edit_form(original, persona, levels, lang)
         snapshot_id = st.selectbox(t("snapshot", lang), backend.list_snapshots(), key="snapshot")
         excluded = _sources(backend.evidence(snapshot_id), lang)
-    return persona, snapshot_id, excluded
+    answers = tuple(sorted(st.session_state["answers"].items()))
+    return original, views.RunInputs(persona, snapshot_id, excluded, answers)
 
 
-# --- runs ---------------------------------------------------------------------
+# --- runs and run history -----------------------------------------------------
 
-def _current_result(backend: Backend, persona: Persona, snapshot_id: str,
-                    excluded: frozenset[str]) -> DecisionResult:
-    inputs = json.dumps([persona.to_dict(), snapshot_id, sorted(excluded)], sort_keys=True)
-    if st.session_state.get("inputs") != inputs or "result" not in st.session_state:
-        st.session_state["result"] = backend.decide(persona, snapshot_id, excluded)
-        st.session_state["inputs"] = inputs
-    return st.session_state["result"]
+def _one_new_answer(prev: views.RunInputs, new: views.RunInputs) -> tuple[str, str] | None:
+    """The answer, if one new or changed answer is the only change from prev to new."""
+    if dataclasses.replace(prev, answers=new.answers) != new:
+        return None
+    old, now = dict(prev.answers), dict(new.answers)
+    changed = [(q, a) for q, a in new.answers if old.get(q) != a]
+    if len(changed) == 1 and set(old) <= set(now):
+        return changed[0]
+    return None
 
 
-# --- main ---------------------------------------------------------------------
+def _run(backend: Backend, prev: views.RunInputs | None, current: DecisionResult | None,
+         inputs: views.RunInputs) -> DecisionResult:
+    one = _one_new_answer(prev, inputs) if prev is not None and current is not None else None
+    if one is not None:
+        return backend.answer_question(current.run_id, *one)
+    r = backend.decide(inputs.persona, inputs.snapshot_id, inputs.excluded_sources)
+    for qid, answer in inputs.answers:      # answers stay while the persona stays
+        if qid in {q.question_id for q in r.questions}:
+            r = backend.answer_question(r.run_id, qid, answer)
+    return r
 
-def _header(r: DecisionResult, lang: str) -> None:
+
+def _set_result(r: DecisionResult) -> None:
+    st.session_state["result"] = r
+    for h in st.session_state.get("history", []):
+        if h["run_id"] == r.run_id:
+            h["result"], h["status"] = r, r.rm_status
+
+
+def _current_result(backend: Backend, inputs: views.RunInputs) -> DecisionResult:
+    prev = st.session_state.get("inputs")
+    if prev == inputs and "result" in st.session_state:
+        return st.session_state["result"]
+    history = st.session_state["history"]
+    r = _run(backend, prev, st.session_state.get("result"), inputs)
+    if r.run_id not in {h["run_id"] for h in history}:
+        history.append({"run_id": r.run_id, "status": r.rm_status, "result": r, "inputs": inputs,
+                        "edited": st.session_state["edited"] is not None,
+                        "change": views.describe_change(prev if history else None, inputs)})
+    st.session_state["inputs"] = inputs
+    _set_result(r)
+    return r
+
+
+def _restore(i: int) -> None:
+    """Show run i of the history again, with its inputs in the widgets."""
+    ss = st.session_state
+    h = ss["history"][i]
+    inputs: views.RunInputs = h["inputs"]
+    ss["snapshot"] = inputs.snapshot_id
+    for k in [k for k in ss.keys() if str(k).startswith("src:")]:
+        ss[k] = k[len("src:"):] not in inputs.excluded_sources
+    ss["answers"] = dict(inputs.answers)
+    ss["edited"] = inputs.persona if h["edited"] else None
+    _drop_edit_state()
+    ss["inputs"] = inputs
+    ss["result"] = h["result"]
+
+
+def _history_panel(r: DecisionResult, lang: str) -> None:
+    st.markdown(f"**{t('runs', lang)}**")
+    for i, h in enumerate(st.session_state["history"]):
+        mark = "▶ " if h["run_id"] == r.run_id else ""
+        st.button(f"{mark}{h['run_id']} · {h['change']} · {h['status'].value}", key=f"hist:{i}",
+                  on_click=_restore, args=(i,))
+
+
+# --- main: header, questions ----------------------------------------------------
+
+def _header(r: DecisionResult, original: Persona, lang: str) -> None:
     p = r.persona
     st.subheader(f"{p.persona_id} · {p.profil} · {p.risk_profili}")
     if r.state == DecisionState.READY:
         st.success(t("state_ready", lang))
     else:
         st.warning(t("state_needs_input", lang))
+    if p != original:
+        st.warning(t("test_banner", lang, pid=p.persona_id,
+                     diff=", ".join(views.persona_diff(original, p, lang))))
     line = f"{t('run', lang)} {r.run_id} · {t('rm_status', lang)}: {r.rm_status.value}"
     if r.excluded_sources:
         line += f" · {t('excluded', lang)}: {', '.join(sorted(r.excluded_sources))}"
     st.caption(line)
 
+
+def _answer(qid: str) -> None:
+    v = st.session_state.get(f"qv:{qid}")
+    if v is None or not str(v).strip():
+        st.session_state["q_error"] = qid
+        return
+    st.session_state["answers"] = {**st.session_state["answers"], qid: str(v).strip()}
+
+
+def _questions(r: DecisionResult, lang: str) -> None:
+    qs = views.open_questions(r)
+    if not qs:
+        return
+    st.markdown(f"**{t('questions', lang)}**")
+    err = st.session_state.pop("q_error", None)
+    for q in qs:
+        with st.container(border=True):
+            badge = (f":red-badge[{t('blocking', lang)}]" if q.blocking
+                     else f":gray-badge[{t('non_blocking', lang)}]")
+            st.markdown(f"{badge} {q.text}")
+            st.caption(q.reason)
+            if q.choices:
+                st.radio(t("answer", lang), q.choices, index=None, key=f"qv:{q.question_id}")
+            else:
+                st.text_input(t("answer", lang), key=f"qv:{q.question_id}")
+            st.button(t("apply", lang), key=f"qa:{q.question_id}", on_click=_answer,
+                      args=(q.question_id,))
+            if err == q.question_id:
+                st.error(t("need_answer", lang))
+
+
+# --- main: tabs -------------------------------------------------------------------
 
 _POS_COLOR = "#2a78d6"   # diverging pair (blue / red), validated light and dark
 _NEG_COLOR = "#e34948"
@@ -173,6 +370,12 @@ def _shown(run_id: str) -> int:
 
 def _more(run_id: str) -> None:
     st.session_state["shown"] = (run_id, views.next_count(_shown(run_id)))
+
+
+def _shown_options(r: DecisionResult) -> list[ScoredOption]:
+    """The baseline and the ranked options the shortlist shows now."""
+    base = views.baseline(r)
+    return ([base] if base is not None else []) + list(views.ranked(r)[:_shown(r.run_id)])
 
 
 def _shortlist(r: DecisionResult, lang: str) -> None:
@@ -259,6 +462,57 @@ def _tabs(r: DecisionResult, ev: EvidenceSet, lang: str) -> None:
         _evidence_tab(r, ev, lang)
 
 
+# --- main: RM bar -------------------------------------------------------------------
+
+def _approve(run_id: str, option_ids: tuple[str, ...]) -> None:
+    ss = st.session_state
+    selected = tuple(o for o in option_ids if ss.get(f"sel:{run_id}:{o}"))
+    if not selected:
+        ss["rm_error"] = "need_selection"
+        return
+    _set_result(ss["backend"].approve(run_id, RmStatus.APPROVED, ss.get(f"note:{run_id}", ""),
+                                      selected))
+
+
+def _reject(run_id: str) -> None:
+    ss = st.session_state
+    note = ss.get(f"note:{run_id}", "")
+    if not note.strip():
+        ss["rm_error"] = "need_note"
+        return
+    _set_result(ss["backend"].approve(run_id, RmStatus.REJECTED, note))
+
+
+def _rm_bar(r: DecisionResult, original: Persona, lang: str) -> None:
+    """Select the options to discuss, then approve or reject (docs/ui.md section 3)."""
+    if r.state != DecisionState.READY or not r.options:
+        return
+    st.divider()
+    st.markdown(f"**{t('rm_bar', lang)}**")
+    if r.rm_status != RmStatus.PENDING:
+        st.success(t("rm_" + r.rm_status.value, lang))
+        if r.rm_note:
+            st.caption(r.rm_note)
+        return
+    test = r.persona != original
+    shown = _shown_options(r)
+    for o in shown:
+        st.checkbox(t("discuss", lang, label=o.option.label),
+                    key=f"sel:{r.run_id}:{o.option.option_id}", disabled=test)
+    st.text_area(t("rm_note", lang), key=f"note:{r.run_id}", disabled=test)
+    err = st.session_state.pop("rm_error", None)
+    if err:
+        st.error(t(err, lang))
+    ids = tuple(o.option.option_id for o in shown)
+    st.button(t("approve", lang), key="approve", type="primary", disabled=test, on_click=_approve,
+              args=(r.run_id, ids))
+    st.button(t("reject", lang), key="reject", disabled=test, on_click=_reject, args=(r.run_id,))
+    if test:
+        st.caption(t("test_no_approve", lang))
+
+
+# --- right pane ---------------------------------------------------------------------
+
 def _pane(r: DecisionResult, lang: str) -> None:
     """"Olası sorunlar": warnings, data-quality notes, assumptions."""
     st.subheader(t("issues", lang))
@@ -303,15 +557,18 @@ def main() -> None:
     lang = _lang()
     st.set_page_config(page_title=t("title", lang), layout="wide")
     backend = _backend()
-    persona, snapshot_id, excluded = _sidebar(backend, lang)
-    result = _current_result(backend, persona, snapshot_id, excluded)
-
-    ev = _evidence(backend, snapshot_id, excluded)
+    original, inputs = _sidebar(backend, lang)
+    result = _current_result(backend, inputs)
+    with st.sidebar:
+        _history_panel(result, lang)
+    ev = _evidence(backend, inputs.snapshot_id, inputs.excluded_sources)
 
     main_col, pane = st.columns([3, 1])
     with main_col:
-        _header(result, lang)
+        _header(result, original, lang)
+        _questions(result, lang)
         _tabs(result, ev, lang)
+        _rm_bar(result, original, lang)
         st.divider()
         for c in views.citations(result, ev, lang):
             st.caption(c)

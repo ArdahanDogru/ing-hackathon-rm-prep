@@ -1,13 +1,20 @@
 """What the page shows, as plain data (no streamlit), so tests can check it
 without a browser: the shortlist split, the paging steps, the score bars, the
-row titles and table rows."""
+row titles and table rows, the evidence rows and citations, and the RM loop
+helpers (run inputs, change texts, persona diff)."""
 
 from __future__ import annotations
 
+import dataclasses
+from collections.abc import Mapping
+from dataclasses import dataclass
+
 from rmprep.contracts import (
+    ClarificationQuestion,
     DecisionResult,
     DecisionWarning,
     EvidenceSet,
+    Persona,
     RejectedOption,
     ScoredOption,
 )
@@ -161,4 +168,87 @@ def citations(r: DecisionResult, ev: EvidenceSet, lang: str = "TR") -> list[str]
             text = t("cite_other", lang, source=source)
         if text not in out:
             out.append(text)
+    return out
+
+
+# --- RM loop (docs/ui.md sections 2 and 3) ---------------------------------------
+
+OTHER = "diğer"
+LIST_FIELDS = ("oncelikler", "acik_kisitlar")
+LEVEL_FIELDS = ("risk_profili", "yatirim_ufku", "likidite_ihtiyaci", "doviz_maruz_kalma_tercihi",
+                "gelir_nakit_akisi_ihtiyaci", "anapara_koruma_tercihi")
+_QID_SHORT = 12
+
+
+@dataclass(frozen=True)
+class RunInputs:
+    """The inputs of one run: a change of any of them makes a new run."""
+
+    persona: Persona
+    snapshot_id: str
+    excluded_sources: frozenset[str]
+    answers: tuple[tuple[str, str], ...]     # sorted (question_id, answer)
+
+
+def open_questions(r: DecisionResult) -> list[ClarificationQuestion]:
+    """Unanswered questions, blocking ones first (else in engine order)."""
+    return sorted((q for q in r.questions if q.answer is None), key=lambda q: not q.blocking)
+
+
+def _field_text(p: Persona, name: str) -> str:
+    v = getattr(p, name)
+    return ", ".join(v) if name in LIST_FIELDS else str(v)
+
+
+def persona_diff(old: Persona, new: Persona, lang: str = "TR") -> list[str]:
+    """One "field old → new" text per changed field, e.g. "yaş 62 → 45"."""
+    out = []
+    for f in dataclasses.fields(Persona):
+        if getattr(old, f.name) != getattr(new, f.name):
+            out.append(f"{t('f_' + f.name, lang).lower()} {_field_text(old, f.name)} → "
+                       f"{_field_text(new, f.name)}")
+    return out
+
+
+def _short_qid(qid: str) -> str:
+    return qid if len(qid) <= _QID_SHORT else qid[:_QID_SHORT] + "…"
+
+
+def describe_change(prev: RunInputs | None, new: RunInputs, lang: str = "TR") -> str:
+    """What changed from the previous run, for the run history."""
+    if prev is None:
+        return t("ch_first", lang)
+    bits = []
+    if prev.persona != new.persona:
+        bits.append(t("ch_test", lang, diff=", ".join(persona_diff(prev.persona, new.persona, lang))))
+    if prev.snapshot_id != new.snapshot_id:
+        bits.append(t("ch_snapshot", lang, snapshot=new.snapshot_id))
+    for s in sorted(new.excluded_sources - prev.excluded_sources):
+        bits.append(t("ch_excluded", lang, source=s))
+    for s in sorted(prev.excluded_sources - new.excluded_sources):
+        bits.append(t("ch_included", lang, source=s))
+    old_answers = dict(prev.answers)
+    for qid, a in new.answers:
+        if old_answers.get(qid) != a:
+            bits.append(t("ch_answer", lang, question=_short_qid(qid), answer=a))
+    return "; ".join(bits) or t("ch_none", lang)
+
+
+def known_levels(raw_config: Mapping, personas) -> dict[str, list[str]]:
+    """Pick-list values per level field: the levels of config/decision.yaml, then
+    the values the personas use (so every persona can be shown unchanged)."""
+    levels = list(raw_config.get("levels", {}))
+    out = {
+        "risk_profili": list(raw_config.get("risk_profiles", {})),
+        "yatirim_ufku": [],
+        "likidite_ihtiyaci": list(levels),
+        "doviz_maruz_kalma_tercihi": list(raw_config.get("fx_levels", {})),
+        "gelir_nakit_akisi_ihtiyaci": list(levels),
+        "anapara_koruma_tercihi": list(levels),
+    }
+    for p in personas:
+        for name, values in out.items():
+            v = getattr(p, name)
+            if v not in values:
+                values.append(v)
     return out
