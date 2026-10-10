@@ -15,7 +15,8 @@ from rmprep.contracts import (
 )
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.persona import Levels
-from rmprep.decision.universe import EvidenceIndex, Universe, group_kind
+from rmprep.decision.universe import EvidenceIndex, Universe
+from rmprep.grouping import group_key
 
 # No source gives an FX deposit rate yet; a row of this quantity would.
 FX_DEPOSIT_QUANTITY = "fx_deposit_rate"
@@ -44,14 +45,14 @@ def build_warnings(options: Sequence[ScoredOption], levels: Levels,
         checks.append((d["pool"], funds[:d["pool"]], d["diversity_pool_cap"]))
     checks.append((d["first"], first, d["first_cap"]))
     for n, rows, limit in checks:
-        counts = Counter(group_kind(o.option) for o in rows)
+        counts = Counter(group_key(o) for o in rows)
         over = sorted((k, v) for k, v in counts.items() if v > limit)
         for kind, count in over:
             out.append(DecisionWarning(
                 code="concentration",
                 message=tpl["concentration"].format(n=n, kind=kind, count=count),
                 option_ids=tuple(o.option.option_id for o in rows
-                                 if group_kind(o.option) == kind)))
+                                 if group_key(o) == kind)))
         if over:
             break
 

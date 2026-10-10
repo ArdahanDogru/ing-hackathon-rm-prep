@@ -69,12 +69,6 @@ class Universe:
     by_id: Mapping[str, Candidate] = field(default_factory=dict)
 
 
-def group_kind(option: ProductOption) -> str:
-    """Kind for the caps of the display order and the report groups: the
-    fund_kind of a fund, else the option kind (time_deposit is its own kind)."""
-    return option.fund_kind or option.kind
-
-
 def stopaj_entity(option: ProductOption, config: DecisionConfig) -> str:
     """withholding_tax_rate entity of an option (real_return.stopaj)."""
     st = config.raw["real_return"]["stopaj"]

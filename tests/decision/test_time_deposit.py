@@ -11,7 +11,8 @@ from rmprep.decision.config import ConfigError, parse_config
 from rmprep.decision.confidence import confidence
 from rmprep.decision.engine import decide
 from rmprep.decision.persona import read_persona
-from rmprep.decision.report import fund_groups, render
+from rmprep import grouping
+from rmprep.decision.report import render
 from rmprep.decision.scoring import display_order, option_features, score_options
 from rmprep.decision.universe import build_universe
 from tests.decision.conftest import (
@@ -191,8 +192,9 @@ def test_time_deposit_is_ranked_and_not_the_baseline(td_config):
 def test_report_has_a_time_deposit_group(td_config):
     r = decide(make_evidence(FUNDS, time_deposit=35.0), load_persona("P04"), td_config,
                created_at=T0)
-    groups = dict(fund_groups(r))
-    assert [o.option.option_id for o in groups["time_deposit"]] == [TD_ID]
+    gs = {g.key: g for g in grouping.groups(r.options)}
+    assert gs["time_deposit"].head.option.option_id == TD_ID
+    assert gs["time_deposit"].alternatives == ()
     text = render(r)
     assert "time_deposit (1)" in text and "ING e-Vadeli Mevduat (32-45 gün)" in text
 
