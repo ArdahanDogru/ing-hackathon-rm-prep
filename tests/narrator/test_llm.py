@@ -1,5 +1,7 @@
 """The Anthropic adapter with a fake SDK object: no network."""
 
+import dataclasses
+
 import anthropic
 import httpx2
 import pytest
@@ -112,3 +114,38 @@ def test_client_from_env(config):
     assert client_from_env(config, {}) is None
     assert client_from_env(config, {"ANTHROPIC_API_KEY": ""}) is None
     assert isinstance(client_from_env(config, {"ANTHROPIC_API_KEY": "sk-test"}), AnthropicClient)
+
+
+class _SdkRecorder:
+    """Stands in for anthropic.Anthropic: records the constructor arguments."""
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+
+@pytest.fixture
+def recorder(monkeypatch):
+    monkeypatch.setattr(anthropic, "Anthropic", _SdkRecorder)
+
+
+def test_workspace_header_from_env(recorder, config):
+    cfg = dataclasses.replace(config, workspace_id_env="ANTHROPIC_WORKSPACE_ID")
+    client = client_from_env(cfg, {"ANTHROPIC_API_KEY": "sk-test",
+                                   "ANTHROPIC_WORKSPACE_ID": "wrkspc_test"})
+    assert client._sdk.kwargs == {"api_key": "sk-test",
+                                  "default_headers": {"anthropic-workspace-id": "wrkspc_test"}}
+
+
+@pytest.mark.parametrize("env", [{}, {"ANTHROPIC_WORKSPACE_ID": ""},
+                                 {"ANTHROPIC_WORKSPACE_ID": "  "}])
+def test_no_workspace_header_without_the_var(env, recorder, config):
+    cfg = dataclasses.replace(config, workspace_id_env="ANTHROPIC_WORKSPACE_ID")
+    client = client_from_env(cfg, {"ANTHROPIC_API_KEY": "sk-test", **env})
+    assert client._sdk.kwargs == {"api_key": "sk-test"}
+
+
+def test_no_workspace_header_without_the_config_key(recorder, config):
+    cfg = dataclasses.replace(config, workspace_id_env=None)
+    client = client_from_env(cfg, {"ANTHROPIC_API_KEY": "sk-test",
+                                   "ANTHROPIC_WORKSPACE_ID": "wrkspc_test"})
+    assert client._sdk.kwargs == {"api_key": "sk-test"}

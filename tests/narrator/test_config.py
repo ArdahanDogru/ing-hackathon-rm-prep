@@ -38,3 +38,14 @@ def test_bad_config_names_the_key(tmp_path, change, where):
     change(raw)
     with pytest.raises(ConfigError, match=where):
         load_config(_write(tmp_path, raw))
+
+
+def test_workspace_id_env_is_optional(tmp_path):
+    raw = _raw()
+    raw["llm"].pop("workspace_id_env", None)
+    assert load_config(_write(tmp_path, raw)).workspace_id_env is None
+    raw["llm"]["workspace_id_env"] = "ANTHROPIC_WORKSPACE_ID"
+    assert load_config(_write(tmp_path, raw)).workspace_id_env == "ANTHROPIC_WORKSPACE_ID"
+    raw["llm"]["workspace_id_env"] = ""
+    with pytest.raises(ConfigError, match="llm.workspace_id_env"):
+        load_config(_write(tmp_path, raw))

@@ -16,6 +16,7 @@ from typing import Any, Protocol
 from rmprep.narrator.config import NarratorConfig
 
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
+WORKSPACE_HEADER = "anthropic-workspace-id"   # needed by an API key that is not scoped to a workspace
 
 
 @dataclass(frozen=True)
@@ -51,11 +52,13 @@ class LlmClient(Protocol):
 
 
 class AnthropicClient:
-    def __init__(self, config: NarratorConfig, *, api_key: str | None = None, sdk=None):
+    def __init__(self, config: NarratorConfig, *, api_key: str | None = None,
+                 workspace_id: str | None = None, sdk=None):
         if sdk is None:
             import anthropic         # optional extra [narrator]
 
-            sdk = anthropic.Anthropic(api_key=api_key)
+            extra = {"default_headers": {WORKSPACE_HEADER: workspace_id}} if workspace_id else {}
+            sdk = anthropic.Anthropic(api_key=api_key, **extra)
         self._sdk = sdk
         self._config = config
 
@@ -103,7 +106,11 @@ class AnthropicClient:
 
 
 def client_from_env(config: NarratorConfig, env: Mapping[str, str]) -> AnthropicClient | None:
-    """A client if env holds the API key (config.api_key_env), else None. The key
-    is passed on, never logged."""
+    """A client if env holds the API key (config.api_key_env), else None. With
+    config.workspace_id_env set and that variable non-empty, every request
+    carries the workspace header. Key and workspace id are passed on, never logged."""
     key = env.get(config.api_key_env, "")
-    return AnthropicClient(config, api_key=key) if key.strip() else None
+    if not key.strip():
+        return None
+    workspace = env.get(config.workspace_id_env, "").strip() if config.workspace_id_env else ""
+    return AnthropicClient(config, api_key=key, workspace_id=workspace or None)
