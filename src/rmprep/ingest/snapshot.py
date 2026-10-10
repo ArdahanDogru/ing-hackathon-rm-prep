@@ -227,6 +227,17 @@ class SnapshotWriter:
                 raise SnapshotError(f"payload {p.path} was not added to this snapshot")
         self._sources[source] = record
 
+    def record(self, source: str) -> SourceRecord | None:
+        """The record set for `source` so far (a later source may depend on it)."""
+        return self._sources.get(source)
+
+    def read_payload(self, rel_path: str) -> bytes:
+        """Bytes of a payload added to this (not yet final) snapshot."""
+        self._check_open()
+        if rel_path not in self._payloads:
+            raise SnapshotError(f"payload {rel_path} was not added to this snapshot")
+        return (self._tmp / rel_path).read_bytes()
+
     def finalize(self) -> Snapshot:
         self._check_open()
         used = {p.path for r in self._sources.values() for p in r.payloads}

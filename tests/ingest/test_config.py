@@ -94,7 +94,7 @@ def test_bad_on_failure_rejected(raw):
 def test_disabled_source_not_in_enabled_list(raw):
     raw["sources"]["tefas"]["enabled"] = False
     names = [s.name for s in parse_config(raw).enabled_sources()]
-    assert names == ["evds", "tefas_web", "manual"]
+    assert names == [n for n in raw["sources"] if n != "tefas"]
 
 
 def test_source_name_with_separator_rejected(raw):

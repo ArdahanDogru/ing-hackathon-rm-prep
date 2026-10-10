@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import dataclasses
 import os
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
@@ -22,8 +23,15 @@ import httpx
 from dotenv import dotenv_values
 
 from rmprep.contracts import TR_TZ, DataPoint, EntityInfo, EvidenceSet, Flag
-from rmprep.ingest.adapters import evds, manual, tefas, tefas_web
-from rmprep.ingest.config import Config, EvdsSource, SourceConfig, load_raw, parse_config
+from rmprep.ingest.adapters import evds, manual, tefas, tefas_detail, tefas_web
+from rmprep.ingest.config import (
+    Config,
+    EvdsSource,
+    SourceConfig,
+    TefasDetailSource,
+    load_raw,
+    parse_config,
+)
 from rmprep.ingest.quality import run_checks
 from rmprep.ingest.snapshot import (
     Snapshot,
@@ -35,7 +43,7 @@ from rmprep.ingest.snapshot import (
 from rmprep.ingest.store import EvidenceStore
 
 _PARSERS = {"evds": evds.parse, "tefas": tefas.parse, "tefas_web": tefas_web.parse,
-            "manual": manual.parse}
+            "tefas_detail": tefas_detail.parse, "manual": manual.parse}
 # Adapters that also give EntityInfo (fund names and types) from their payloads.
 _ENTITY_READERS = {"tefas_web": tefas_web.entities}
 
@@ -86,7 +94,9 @@ def ingest(
     env: Mapping[str, str] | None = None,
     client: httpx.Client | None = None,
     now: Callable[[], datetime] | None = None,
+    sleep: Callable[[float], None] = time.sleep,
 ) -> EvidenceSet:
+    """`sleep` is for the wait between tefas_detail requests (tests pass a fake)."""
     now = now or (lambda: datetime.now(TR_TZ))
     raw = load_raw(paths.config)
     cfg = parse_config(raw)
@@ -100,11 +110,13 @@ def ingest(
     try:
         with SnapshotWriter(paths.snapshots, raw, created_at=created_at,
                             secrets=[s for s in secrets if s]) as w:
-            for name, src in sorted(cfg.sources.items()):
+            # tefas_detail reads the fund list from the tefas_web page: fetch it last.
+            for name, src in sorted(cfg.sources.items(),
+                                    key=lambda kv: (isinstance(kv[1], TefasDetailSource), kv[0])):
                 if not src.enabled:
                     rec = SourceRecord(status="skipped", on_failure=src.on_failure)
                 else:
-                    rec = _fetch(src, w, cfg, paths, env, client, created_at, now)
+                    rec = _fetch(src, w, cfg, paths, env, client, created_at, now, sleep)
                 if rec.status == "failed":
                     rec = _apply_failure_policy(rec, src, paths, created_at)
                 w.set_source(name, rec)
@@ -117,7 +129,7 @@ def ingest(
 
 def _fetch(src: SourceConfig, w: SnapshotWriter, cfg: Config, paths: Paths,
            env: Mapping[str, str], client: httpx.Client, created_at: datetime,
-           now: Callable[[], datetime]) -> SourceRecord:
+           now: Callable[[], datetime], sleep: Callable[[float], None]) -> SourceRecord:
     if src.adapter == "evds":
         return evds.fetch(src, w, api_key=evds.get_api_key(src, env), client=client,
                           today=created_at.date(), now=now)
@@ -125,9 +137,20 @@ def _fetch(src: SourceConfig, w: SnapshotWriter, cfg: Config, paths: Paths,
         return tefas.fetch(src, w, inbox=paths.inbox(src.inbox), now=now)
     if src.adapter == "tefas_web":
         return tefas_web.fetch(src, w, client=client, now=now)
+    if isinstance(src, TefasDetailSource):
+        return tefas_detail.fetch(src, w, listing=_ok_payload(w, src.funds_from), client=client,
+                                  now=now, sleep=sleep)
     if src.adapter == "manual":
         return manual.fetch(src, w, cfg, inbox=paths.inbox(src.inbox), now=now)
     raise AssertionError(f"no fetch for adapter {src.adapter!r}")
+
+
+def _ok_payload(w: SnapshotWriter, source: str) -> bytes | None:
+    """The single payload of `source` in this snapshot if its fetch was ok."""
+    rec = w.record(source)
+    if rec is None or rec.status != "ok" or len(rec.payloads) != 1:
+        return None
+    return w.read_payload(rec.payloads[0].path)
 
 
 def _apply_failure_policy(rec: SourceRecord, src: SourceConfig, paths: Paths,

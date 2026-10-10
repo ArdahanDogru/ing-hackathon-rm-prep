@@ -35,10 +35,11 @@ def make_project(root, config_raw, *, tefas=True, manual_text=None):
     return Paths(root)
 
 
-def run(paths, *, fake=None, key=KEY, at=T0):
+def run(paths, *, fake=None, key=KEY, at=T0, sleeps=None):
     fake = fake or FakeEvds()
+    sleeps = [] if sleeps is None else sleeps
     return ingest(paths, env={"EVDS_API_KEY": key} if key else {},
-                  client=fake.client(), now=lambda: at)
+                  client=fake.client(), now=lambda: at, sleep=sleeps.append)
 
 
 @pytest.fixture
@@ -62,10 +63,11 @@ def parquet_rows(path):
 def test_ingest_end_to_end(paths):
     ev = run(paths)
     assert {k: r.status for k, r in ev.source_status.items()} == \
-        {"evds": "ok", "manual": "ok", "tefas": "ok", "tefas_web": "ok"}
+        {"evds": "ok", "manual": "ok", "tefas": "ok", "tefas_detail": "ok", "tefas_web": "ok"}
     assert len(by(ev, source="evds", entity=USD)) == 3
     assert len(by(ev, source="tefas")) == 9
     assert len(by(ev, source="tefas_web")) == 8 + 2 + 8      # AAL, IGL (nulls skipped), ZZZ
+    assert len(by(ev, source="tefas_detail")) == 3 * 6        # 3 funds, fees null
     assert len(by(ev, source="manual")) == 2
     assert all(Flag.MANUAL_ENTRY in p.flags for p in by(ev, source="manual"))
     placeholders = [p for p in ev.datapoints if "placeholder" in p.note]
@@ -251,6 +253,31 @@ def test_skipped_tefas_web_gives_no_entities(tmp_path, config_raw):
     ev = run(make_project(tmp_path / "proj", config_raw))
     assert ev.source_status["tefas_web"].status == "skipped"
     assert ev.entities == {}
+
+
+def test_tefas_detail_fetched_after_tefas_web_with_interval(paths):
+    fake, sleeps = FakeEvds(), []
+    run(paths, fake=fake, sleeps=sleeps)
+    tefas = [r.url.path for r in fake.requests if r.url.host == "www.tefas.gov.tr"]
+    assert tefas == ["/tr/fon-getirileri", "/tr/fon-detayli-analiz/AAL",
+                     "/tr/fon-detayli-analiz/IGL", "/tr/fon-detayli-analiz/ZZZ"]
+    assert len(sleeps) == 2 and all(0 < s <= 1.0 for s in sleeps)
+
+
+def test_tefas_web_failure_fails_tefas_detail_and_both_fall_back(paths):
+    first = run(paths)
+    ev = run(paths, fake=FakeEvds(tefas_page=None), at=T0 + timedelta(days=3))
+    rec = ev.source_status["tefas_detail"]
+    assert rec.status == "failed" and "no tefas_web funds" in rec.error
+    assert rec.fallback_from == first.snapshot_id
+    rows = by(ev, source="tefas_detail")
+    assert len(rows) == 18 and all(Flag.FALLBACK_SNAPSHOT in p.flags for p in rows)
+
+
+def test_tefas_detail_rows_survive_replay_from_gzip(paths):
+    ev = run(paths)
+    again = build_evidence(paths.snapshots, ev.snapshot_id)
+    assert by(again, source="tefas_detail") == by(ev, source="tefas_detail")
 
 
 def test_disabled_source_skipped(tmp_path, config_raw):

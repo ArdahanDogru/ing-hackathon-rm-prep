@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 import yaml
 
 CONFIG_VERSION = 1
-ADAPTERS = ("evds", "tefas", "tefas_web", "manual")
+ADAPTERS = ("evds", "tefas", "tefas_web", "tefas_detail", "manual")
 TEFAS_WEB_HOST = "www.tefas.gov.tr"
 # tefas.gov.tr/robots.txt (2026-10-09) disallows these paths for all agents.
 TEFAS_DISALLOWED_PREFIXES = ("/api/", "/private/", "/tefasbuild", "/_next/", "/static/")
@@ -91,6 +91,27 @@ class TefasWebSource(SourceConfig):
     min_funds: int
     value_fields: dict[str, str]     # field in the page data -> quantity
     flag_needs_check: bool
+
+
+@dataclass(frozen=True)
+class TefasDetailSource(SourceConfig):
+    url: str                         # with "{code}" for the fund code
+    user_agent: str
+    timeout_seconds: float
+    min_interval_s: float            # at least this many seconds between requests
+    max_fail_share: float            # more failed pages -> the source fails
+    max_funds: int | None            # limit for tests and trials
+    funds_from: str                  # tefas_web source that gives the fund list
+    exclude_categories: tuple[str, ...]
+    value_fields: dict[str, str]     # "bilgiData.<field>" -> quantity; required
+    optional_fields: dict[str, str]  # same, but no value -> no row
+    flag_needs_check: bool
+
+    def page_url(self, code: str) -> str:
+        return self.url.replace("{code}", code)
+
+
+DETAIL_OBJECTS = ("bilgiData", "profilData")
 
 
 @dataclass(frozen=True)
@@ -216,6 +237,11 @@ def parse_config(raw: dict[str, Any]) -> Config:
         sources[name] = _PARSERS[adapter](name, s, path, quantities)
     if not sources:
         raise ConfigError("sources: at least one source is required")
+    for name, src in sources.items():
+        if isinstance(src, TefasDetailSource) and not isinstance(
+                sources.get(src.funds_from), TefasWebSource):
+            raise ConfigError(f"sources.{name}.funds_from: must name a tefas_web source, "
+                              f"got {src.funds_from!r}")
     return Config(quantities=quantities, sources=sources)
 
 
@@ -339,16 +365,21 @@ def _parse_tefas(name, s, path, quantities) -> TefasSource:
     )
 
 
+def _tefas_url(v: Any, path: str) -> str:
+    url = _str(v, path)
+    parts = urlsplit(url)
+    if parts.scheme != "https" or parts.netloc != TEFAS_WEB_HOST:
+        raise ConfigError(f"{path}: must be an https URL on {TEFAS_WEB_HOST}")
+    if parts.path.startswith(TEFAS_DISALLOWED_PREFIXES):
+        raise ConfigError(f"{path}: {parts.path!r} is disallowed by "
+                          f"tefas.gov.tr/robots.txt ({', '.join(TEFAS_DISALLOWED_PREFIXES)})")
+    return url
+
+
 def _parse_tefas_web(name, s, path, quantities) -> TefasWebSource:
     _check_keys(s, path, _COMMON_REQUIRED | {"url", "user_agent", "value_fields"},
                 _COMMON_OPTIONAL | {"timeout_seconds", "min_funds", "flag_needs_check"})
-    url = _str(s["url"], f"{path}.url")
-    parts = urlsplit(url)
-    if parts.scheme != "https" or parts.netloc != TEFAS_WEB_HOST:
-        raise ConfigError(f"{path}.url: must be an https URL on {TEFAS_WEB_HOST}")
-    if parts.path.startswith(TEFAS_DISALLOWED_PREFIXES):
-        raise ConfigError(f"{path}.url: {parts.path!r} is disallowed by "
-                          f"tefas.gov.tr/robots.txt ({', '.join(TEFAS_DISALLOWED_PREFIXES)})")
+    url = _tefas_url(s["url"], f"{path}.url")
     fields: dict[str, str] = {}
     for field, qty in _mapping(s["value_fields"], f"{path}.value_fields").items():
         fields[_str(field, f"{path}.value_fields")] = _quantity_ref(
@@ -369,6 +400,61 @@ def _parse_tefas_web(name, s, path, quantities) -> TefasWebSource:
     )
 
 
+def _detail_fields(v: Any, path: str, quantities: dict[str, Quantity]) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for field, qty in _mapping(v, path).items():
+        obj, _, key = _str(field, path).partition(".")
+        if obj not in DETAIL_OBJECTS or not key:
+            raise ConfigError(f"{path}: {field!r} must be bilgiData.<field> or profilData.<field>")
+        fields[field] = _quantity_ref(qty, f"{path}.{field}", quantities)
+    return fields
+
+
+def _parse_tefas_detail(name, s, path, quantities) -> TefasDetailSource:
+    _check_keys(s, path, _COMMON_REQUIRED | {"url", "user_agent", "value_fields"},
+                _COMMON_OPTIONAL | {"timeout_seconds", "min_interval_s", "max_fail_share",
+                                    "max_funds", "funds_from", "exclude_categories",
+                                    "optional_fields", "flag_needs_check"})
+    url = _tefas_url(s["url"], f"{path}.url")
+    if "{code}" not in url:
+        raise ConfigError(f"{path}.url: must contain {{code}} for the fund code")
+    value_fields = _detail_fields(s["value_fields"], f"{path}.value_fields", quantities)
+    if not value_fields:
+        raise ConfigError(f"{path}.value_fields: at least one field is required")
+    optional = _detail_fields(s.get("optional_fields", {}), f"{path}.optional_fields", quantities)
+    both = sorted(value_fields.keys() & optional.keys())
+    if both:
+        raise ConfigError(f"{path}.optional_fields: {both} also in value_fields")
+    timeout = _num(s.get("timeout_seconds", 30), f"{path}.timeout_seconds")
+    if timeout <= 0:
+        raise ConfigError(f"{path}.timeout_seconds: must be > 0")
+    interval = _num(s.get("min_interval_s", 1.0), f"{path}.min_interval_s")
+    if interval < 0:
+        raise ConfigError(f"{path}.min_interval_s: must be >= 0")
+    share = _num(s.get("max_fail_share", 0.05), f"{path}.max_fail_share")
+    if not 0 <= share < 1:
+        raise ConfigError(f"{path}.max_fail_share: must be between 0 and 1 (1 not included)")
+    max_funds = s.get("max_funds")
+    excluded = s.get("exclude_categories", [])
+    if not isinstance(excluded, list):
+        raise ConfigError(f"{path}.exclude_categories: must be a list")
+    return TefasDetailSource(
+        **_common(name, s, path),
+        url=url,
+        user_agent=_str(s["user_agent"], f"{path}.user_agent"),
+        timeout_seconds=timeout,
+        min_interval_s=interval,
+        max_fail_share=share,
+        max_funds=None if max_funds is None else _pos_int(max_funds, f"{path}.max_funds"),
+        funds_from=_str(s.get("funds_from", "tefas_web"), f"{path}.funds_from"),
+        exclude_categories=tuple(_str(x, f"{path}.exclude_categories[{i}]")
+                                 for i, x in enumerate(excluded)),
+        value_fields=value_fields,
+        optional_fields=optional,
+        flag_needs_check=_bool(s.get("flag_needs_check", True), f"{path}.flag_needs_check"),
+    )
+
+
 def _parse_manual(name, s, path, quantities) -> ManualSource:
     _check_keys(s, path, _COMMON_REQUIRED | {"inbox", "allowed_quantities"},
                 _COMMON_OPTIONAL | {"file_patterns"})
@@ -384,4 +470,4 @@ def _parse_manual(name, s, path, quantities) -> ManualSource:
 
 
 _PARSERS = {"evds": _parse_evds, "tefas": _parse_tefas, "tefas_web": _parse_tefas_web,
-            "manual": _parse_manual}
+            "tefas_detail": _parse_tefas_detail, "manual": _parse_manual}
