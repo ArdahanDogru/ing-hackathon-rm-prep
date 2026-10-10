@@ -127,6 +127,14 @@ quantities:
     max: 20
     conflict_tolerance: 0.0
   fund_exit_fee: *fund_fee
+  # 1 = the fund can be bought through TEFAS now, 0 = not on TEFAS or closed
+  # for purchase; from the trade status on the TEFAS fund detail page (I3b).
+  fund_buyable:
+    unit: flag
+    max_age_days: 5
+    min: 0
+    max: 1
+    conflict_tolerance: 0.0
 
 sources:
   evds:
@@ -316,6 +324,17 @@ sources:
       profilData.riskDegeri: fund_risk_level
       profilData.girisKomisyonu: fund_entry_fee
       profilData.cikisKomisyonu: fund_exit_fee
+    # Trade status text -> fund_buyable (0/1). Texts match after Turkish lower
+    # case and space collapsing. Unknown or empty text -> no row and a
+    # rejected-row note (the page does not fail). Texts seen in the first live
+    # run, 2026-10-10: 213 / 40 / 26 of 279 pages.
+    status:
+      field: profilData.tefasDurum
+      quantity: fund_buyable
+      map:
+        "TEFAS'ta işlem görüyor": 1
+        "TEFAS'ta işlem görmüyor": 0
+        "Fon Alımına Kapalı, Fon Bozumuna Kapalı": 0
 
   manual:
     adapter: manual
