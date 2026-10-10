@@ -32,6 +32,7 @@ class NarratorConfig:
     sections: tuple[str, ...]
     forbidden_phrases: Mapping[str, tuple[str, ...]]
     disclaimer: Mapping[str, str]
+    workspace_id_env: str | None = None  # env var of the workspace id (org-level keys)
 
 
 def _get(raw: Mapping, path: str):
@@ -95,6 +96,8 @@ def parse_config(raw: Mapping) -> NarratorConfig:
         sections=sections,
         forbidden_phrases={k: tuple(v) for k, v in forbidden.items()},
         disclaimer=disclaimer,
+        workspace_id_env=(_str(raw, "llm.workspace_id_env")
+                          if "workspace_id_env" in raw.get("llm", {}) else None),
     )
 
 
