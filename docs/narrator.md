@@ -1,7 +1,7 @@
 # Narrator — design (DRAFT for the session with the user)
 
-Status: **draft 2026-10-10 by ing-lead; the decisions marked OPEN are for the
-session with the user.** Code: `src/rmprep/narrator/`, tests: `tests/narrator/`.
+Status: **draft 2026-10-10 by ing-lead; decisions 1–5 taken by the user
+2026-10-10; decision 6 (contract) proposed, waiting for the user.** Code: `src/rmprep/narrator/`, tests: `tests/narrator/`.
 
 ## Why (brief)
 
@@ -103,15 +103,63 @@ the data is public, so sending them to the API is allowed (rule 1, rule 8). The
 jury looks at the split of LLM / deterministic logic / human roles (criterion
 "AI / Agentic mühendislik", 20 %): this design gives the LLM only the writing.
 
-## OPEN decisions for the session
+## Decisions (the user, 2026-10-10)
 
-1. Model: Opus 5.5 (recommended; the budget is enough) or Sonnet 5.5.
-2. When: only after approval (recommended), or also a preview before approval.
-3. Sections and length; tone ("siz" form, formal); TR only, or TR + EN.
-4. `teklif_metni`: a script for the RM (recommended) or a letter draft.
-5. Budget guard value.
-6. Contract: `NarrativeDraft` + `Backend.draft_narrative(run_id)` /
-   `approve_narrative(run_id, text)` (contract v1.2).
+1. Model: **Claude Sonnet 5.5** (`claude-sonnet-5-5`) for now; config value.
+2. The narrator runs **only for a result the RM approved**.
+3. Sections as above, formal "siz" form; **Turkish and English with a toggle**:
+   one draft per language, made when the RM first opens that language (cached).
+4. `teklif_metni` is **a script for the RM** to say or adapt in the meeting, not
+   a letter to the client.
+5. Daily cost limit **$5** (config `max_cost_usd_per_day`); over the limit → the
+   template text and a banner.
+6. Contract v1.2 (additive; proposed, see below).
+
+## Contract v1.2 (proposed)
+
+New types; no existing type changes.
+
+```python
+class NarrativeStatus(StrEnum): DRAFT = "draft"; APPROVED = "approved"
+
+@dataclass(frozen=True)
+class NarrativeSentence:
+    text: str
+    option_ids: tuple[str, ...] = ()     # options the sentence talks about
+    evidence_ids: tuple[str, ...] = ()   # DataPoint ids it rests on
+
+@dataclass(frozen=True)
+class NarrativeSection:
+    key: str                             # ozet | oneriler | alternatifler | dikkat | sorular | teklif_metni | varsayimlar
+    sentences: tuple[NarrativeSentence, ...]
+
+@dataclass(frozen=True)
+class NarrativeDraft:
+    run_id: str                          # the approved DecisionResult it is written for
+    lang: str                            # "TR" | "EN"
+    sections: tuple[NarrativeSection, ...]
+    source: str                          # "llm" | "template"
+    model: str                           # "" for the template
+    prompt_version: str
+    checks: tuple[str, ...]              # validator findings; () = passed
+    created_at: datetime                 # timezone-aware
+    cost_usd: float = 0.0
+    status: NarrativeStatus = NarrativeStatus.DRAFT
+    rm_text: str = ""                    # the RM's edited text (Markdown); required when approved
+```
+
+`Backend` gets two methods:
+
+```python
+def draft_narrative(self, run_id: str, lang: str = "TR") -> NarrativeDraft: ...
+    # only for an approved run; cached per (run_id, lang, prompt_version, model)
+def approve_narrative(self, run_id: str, lang: str, text: str) -> NarrativeDraft: ...
+    # stores the RM's text; the card uses it
+```
+
+Contract checks: `lang` in TR/EN; section keys known; `approved` needs a
+non-empty `rm_text`; `source == "template"` ⇔ `model == ""`. The validator rules
+stay in the narrator (they need the facts pack).
 
 ## Milestones (worker `ing-narrator`; each ends with green `pytest`)
 
