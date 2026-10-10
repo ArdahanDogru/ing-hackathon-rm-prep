@@ -41,6 +41,7 @@ class Levels:
     diversity: bool                 # diversity cap in positions 1-10
     boosts: Mapping[str, int] = field(default_factory=dict)  # criterion -> matched priorities
     effects: tuple[str, ...] = ()   # constraint effects applied, in order
+    hard_rules: tuple[str, ...] = ()  # effects enforced as hard rules (D13), in order
 
 
 @dataclass(frozen=True)
@@ -91,14 +92,15 @@ def read_persona(persona: Persona, config: DecisionConfig,
     used_answers: set[str] = set()
 
     def ask(qid: str, about: str, text: str, raw_text: str, choices: tuple[str, ...],
-            blocking: bool) -> str | None:
+            blocking: bool, reason: str | None = None) -> str | None:
         answer = answers.get(qid)
         if answer is not None:
             used_answers.add(qid)
             if answer not in choices:
                 raise ValueError(f"answer {answer!r} to {qid} is not one of the choices {choices}")
         questions.append(ClarificationQuestion(
-            question_id=qid, text=text, reason=q_texts["reason"].format(text=raw_text),
+            question_id=qid, text=text,
+            reason=reason if reason is not None else q_texts["reason"].format(text=raw_text),
             about=about, choices=choices, answer=answer, blocking=blocking))
         return answer
 
@@ -160,12 +162,14 @@ def read_persona(persona: Persona, config: DecisionConfig,
 
     # acik_kisitlar (blocking)
     effects: list[str] = []
+    effect_index: list[int] = []    # the acik_kisitlar index each effect comes from
     labels = texts["effect_labels"]
     by_label = {label: effect for effect, label in labels.items()}
     for i, text in enumerate(persona.acik_kisitlar):
         key = _lookup(c["constraints"], text)
         if key is not None:
             effects.append(c["constraints"][key])
+            effect_index.append(i)
             continue
         qid = f"q:acik_kisitlar[{i}]"
         answer = ask(qid, f"acik_kisitlar[{i}]", q_texts["acik_kisitlar"].format(text=text),
@@ -174,6 +178,25 @@ def read_persona(persona: Persona, config: DecisionConfig,
             blocked = True
         else:
             effects.append(by_label[answer])
+            effect_index.append(i)
+
+    # D13: effects that test a single product are hard rules; fx_limit says
+    # "gerekçesiz", so the RM may lift it with a reason (non-blocking question)
+    rules = c.get("constraint_rules", {})
+    hard: list[str] = []
+    for name, i in zip(effects, effect_index):
+        if name not in rules or name in hard:
+            continue
+        if name == "fx_limit":
+            fx = rules["fx_limit"]
+            answer = ask("q:override:fx_limit", f"acik_kisitlar[{i}]",
+                         q_texts["override_fx_limit"], persona.acik_kisitlar[i],
+                         tuple(fx["override_choices"]), blocking=False,
+                         reason=q_texts["override_reason"])
+            if answer == fx["override_lifts"]:
+                assumptions.append(texts["assumptions"]["fx_override"])
+                continue
+        hard.append(name)
 
     unknown = sorted(set(answers) - used_answers)
     if unknown:
@@ -209,5 +232,5 @@ def read_persona(persona: Persona, config: DecisionConfig,
         ceiling=ceiling, appetite=profiles[profile]["appetite"], period=period,
         fx_level=fx_key, fx_intensity=fx_intensity, liquidity_intensity=liquidity_intensity,
         liquidity_weight=liquidity_weight, diversity=diversity, boosts=boosts,
-        effects=tuple(applied), **level_values)
+        effects=tuple(applied), hard_rules=tuple(hard), **level_values)
     return PersonaReading(levels, tuple(questions), tuple(assumptions))

@@ -36,7 +36,7 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
 
 # optional sections of D9 (real return after tax); without them: nominal returns
 _D9_SECTIONS = ("real_return", "long_horizon", "quality_value", "underperformance",
-                "fund_detail")
+                "fund_detail", "constraint_rules")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
         "constraint_effects", "kinds", "principal_value", "weights", "penalties",
@@ -151,9 +151,11 @@ def _check(c: dict) -> None:
         raise ConfigError("texts.reasons: penalties.real_loss needs penalty:real_loss")
     _check_d9(c)
     _keys(c["texts"]["constraint"], "texts.constraint", ("passed", "failed"),
-          ("not_buyable", "buyable"))
+          ("not_buyable", "buyable", "fx_limit", "liquidity_need_valor",
+           "liquidity_need_lock"))
     _keys(c["texts"]["questions"], "texts.questions",
-          ("risk_profili", "acik_kisitlar", *SAFE_LEVEL_FIELDS, "reason"))
+          ("risk_profili", "acik_kisitlar", *SAFE_LEVEL_FIELDS, "reason"),
+          ("override_fx_limit", "override_reason"))
     _keys(c["texts"]["effect_labels"], "texts.effect_labels", tuple(c["constraint_effects"]))
     labels = list(c["texts"]["effect_labels"].values())
     if len(set(labels)) != len(labels):
@@ -372,6 +374,41 @@ def _check_d9(c: dict) -> None:
                              ("assumptions", "kind_proxy_valor"),
                              ("data_quality", "buyable_missing")):
             _text(c, section, key, why)
+
+    if "constraint_rules" in c:     # D13: explicit constraints as hard rules
+        cr = c["constraint_rules"]
+        _keys(cr, "constraint_rules", (), ("fx_limit", "liquidity_need"))
+        why = "constraint_rules"
+        if "fx_limit" in cr:
+            fx = cr["fx_limit"]
+            _keys(fx, "constraint_rules.fx_limit", ("override_choices", "override_lifts"))
+            choices = fx["override_choices"]
+            if (not isinstance(choices, list) or len(choices) < 2
+                    or len(set(choices)) != len(choices)
+                    or not all(isinstance(x, str) and x for x in choices)):
+                raise ConfigError("constraint_rules.fx_limit.override_choices: at least 2 "
+                                  "different non-empty strings")
+            if fx["override_lifts"] not in choices:
+                raise ConfigError("constraint_rules.fx_limit.override_lifts: must be one of "
+                                  "the override_choices")
+            for section, key in (("constraint", "fx_limit"), ("questions", "override_fx_limit"),
+                                 ("questions", "override_reason"),
+                                 ("assumptions", "fx_override")):
+                _text(c, section, key, why + ".fx_limit")
+        if "liquidity_need" in cr:
+            ln = cr["liquidity_need"]
+            path = "constraint_rules.liquidity_need"
+            _keys(ln, path, ("max_sell_valor_days", "max_lock_days"))
+            for key, low in (("max_sell_valor_days", 0), ("max_lock_days", 1)):
+                v = ln[key]
+                if not isinstance(v, int) or isinstance(v, bool) or v < low:
+                    raise ConfigError(f"{path}.{key}: must be an integer >= {low}")
+            if "fund_detail" not in c:
+                raise ConfigError(f"{path}: needs the fund_detail section (sell valör)")
+            for section, key in (("constraint", "liquidity_need_valor"),
+                                 ("constraint", "liquidity_need_lock"),
+                                 ("data_quality", "valor_missing")):
+                _text(c, section, key, why + ".liquidity_need")
 
     if "quality_value" in c:
         qv = c["quality_value"]
