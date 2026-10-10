@@ -1,0 +1,26 @@
+# Jury-style persona edits (brief section 9.3): one field changes, the result must follow.
+scenarios:
+  - id: edit-p03-muhafazakar
+    group: persona_edit
+    description: "risk Agresif -> Muhafazakâr"
+    persona: P03
+    edit: {risk_profili: "Muhafazakâr"}
+    compare_to: base-p03
+  - id: edit-p03-horizon-1y
+    group: persona_edit
+    description: "horizon 5+ yıl -> 1 yıl (not in the table: safe level + question)"
+    persona: P03
+    edit: {yatirim_ufku: "1 yıl"}
+    compare_to: base-p03
+  - id: edit-p04-liquidity-high
+    group: persona_edit
+    description: "liquidity Orta -> Yüksek"
+    persona: P04
+    edit: {likidite_ihtiyaci: "Yüksek"}
+    compare_to: base-p04
+  - id: edit-p01-fx-unknown
+    group: persona_edit
+    description: "FX text unknown -> question + safe level"
+    persona: P01
+    edit: {doviz_maruz_kalma_tercihi: "Henüz karar vermedi, görüşmede konuşulacak"}
+    compare_to: base-p01

@@ -1,0 +1,7 @@
+# Base: P01-P05 as given, on the frozen eval snapshot; each twice (consistency).
+scenarios:
+  - {id: base-p01, group: base, persona: P01, repeat: 2}
+  - {id: base-p02, group: base, persona: P02, repeat: 2}
+  - {id: base-p03, group: base, persona: P03, repeat: 2}
+  - {id: base-p04, group: base, persona: P04, repeat: 2}
+  - {id: base-p05, group: base, persona: P05, repeat: 2}
