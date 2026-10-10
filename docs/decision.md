@@ -321,9 +321,26 @@ maruziyeti istiyor."
    `concentration` (section 6).
 6. After position 10 (without diversity) or 20 (with it): by score.
 
-Ties: higher score, then `option_id`. The UI groups the first 20 options by
-`fund_kind` (docs/ui.md section 1, changed 2026-10-10); the order above stays
-the order inside and between the groups.
+Ties: higher score, then `option_id`. The short list shows these options in
+groups (4.6); the order above stays the order inside and between the groups.
+
+### 4.6 Grouping rule (ground truth, 2026-10-10)
+
+This section is the only description of the rule. One implementation,
+`src/rmprep/grouping.py` (lead-owned), serves the UI ("Kısa liste"), the text
+report (`render`) and the kind caps of 4.5. Change the rule here first.
+
+- Group key (`group_key`): `fund_kind` for a fund, else the option `kind`
+  (`time_deposit`). The kind caps of 4.5 count by the same key.
+- Pool: the first 20 non-deposit options in display order. The deposit baseline
+  is not in a group; it is pinned above the list.
+- One group per key in the pool; at most 5 groups, ordered by the score of
+  their best option (ties: `option_id`).
+- Head: the best option of the group (the recommendation row).
+- Alternatives: the other pool options of the group, best first; 3 visible, the
+  rest behind "Daha fazla".
+- Options outside the pool or the 5 groups appear only in the full list.
+- Values: `GroupingRule(pool=20, max_groups=5, visible_alternatives=3)`.
 
 ## 5. `confidence` and `stability`
 
@@ -423,6 +440,7 @@ funds, with `entities`).
 | D8 | `time_deposit` option (section 1): config section `time_deposit` (OPTIONAL in the checks until the lead adds it: option_id, label, source, quantity, entity_prefix, term, tier); scored like a deposit except the kind table; counts as its own kind (`time_deposit`) for the caps of 4.5 and the groups of the report; penalties as for any option | option from a hand-made row; missing row → no option + note; kind caps; group in `render`; P01–P05 valid on a hand-made evidence with the row |
 | D9 | real return after tax (4.1b): config section `real_return` (OPTIONAL in the checks until the lead adds it; without it the old nominal behaviour stays), `time_deposit.term_days`, penalty `real_loss`, `long_horizon`, deposit quality value from config (`quality_value.deposit`, `quality_value.time_deposit`), new texts (reason for `return` with R/N/r, `penalty:real_loss`, assumptions, data-quality notes for missing CPI / stopaj) | hand-computed N and r for deposit, time deposit (compounding), fund; Turuncu 23 % / stopaj 17.5 % / CPI 29.73 % → r = −8.3 % and penalty 0.3 × level × 0.83; missing CPI / stopaj cases; long-horizon weights; P01–P05 valid on hand-made evidence with the new rows |
 | D10 | penalty `underperformance` (4.3) and the positions 11–20 cap with diversity (4.5); config OPTIONAL until the lead adds it: `penalties.underperformance` (0.3), `underperformance: {scale: 0.20}`, `display.pool` (20), `display.diversity_pool_cap` (4); texts `penalty:underperformance`, data-quality note for a missing benchmark | hand-computed penalty (fund 10 % for P03 → 0.3; P02 → 0.2; Muhafazakâr → 0); missing benchmark; with diversity no kind has more than 4 options in 1–20, without diversity the order does not change; stability counts the new penalty |
+| D11 | use `rmprep.grouping` (4.6): `report.render` groups with `grouping.groups`; the kind caps of 4.5 count by `grouping.group_key`; remove `report.fund_groups` and the local constants | report output unchanged on the real snapshot; tests import the shared rule |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]

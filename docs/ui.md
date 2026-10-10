@@ -49,23 +49,12 @@ Main and the right pane are `st.columns([3, 1])`.
   - Tab "Kısa liste":
     - the deposit baseline (`options[0]` if its kind is `deposit`) is pinned
       above the list as "Karşılaştırma";
-    - then the funds **grouped by `fund_kind`** (changed 2026-10-10 by the
-      user, milestone U6; the flat 3 → 10 → +10 list is replaced):
-      - the pool is the first 20 non-deposit options in display order;
-      - the group key is `fund_kind`, or `kind` for a non-fund option (the
-        `time_deposit` "ING e-Vadeli Mevduat" is its own group, key
-        `time_deposit`, contract v1.1);
-      - one group per key with an option in the pool, at most 5
-        groups, ordered by the score of their best option (ties: `option_id`);
-      - group header: the umbrella type name (i18n key `kind.<fund_kind>`,
-        e.g. "Para Piyasası" / "Money market"), the count of options in the
-        group;
-      - the group's best option is the recommendation row (all columns
-        below, expandable);
-      - the other pool options of the same kind are its alternatives, in
-        score order: 3 visible, the rest behind "Daha fazla" (per group);
-      - options outside the pool or the 5 groups appear only in "Tüm
-        puanlananlar";
+    - then the options in groups by the **grouping rule, docs/decision.md
+      section 4.6 (ground truth)**, from `rmprep.grouping` (`groups`,
+      `visible_alternatives`); group header: the name of the key (i18n key
+      `kind.<key>`, e.g. "Para Piyasası" / "Money market") and the count of
+      options in the group; the head is the recommendation row (all columns
+      below, expandable); "Daha fazla" per group;
     - columns: position, label, kind / `fund_kind`, FX badge, score, confidence,
       stability, ⚠ marker if a warning names the option;
     - an expanded row shows the score parts as horizontal bars (penalties
@@ -178,3 +167,4 @@ Tests use `streamlit.testing.v1.AppTest` (no browser, no network).
 | U5 | summary card (Markdown, HTML) with notes; TR / EN | the card holds the selected options, notes and citations; every label exists in TR and EN |
 | U6 | "Kısa liste" grouped by `fund_kind` (section 1) | groups from the top-20 pool, ≤ 5, ordered by best score; head = best of kind; 3 alternatives then "Daha fazla"; selection and approval work on heads and alternatives; `kind.*` keys in TR and EN |
 | U7 | `time_deposit` (contract v1.1): own group in "Kısa liste", kind label `kind.time_deposit` (TR "Vadeli mevduat", EN "Time deposit") in all tabs and the card | a result with a time deposit (hand-made template for the FakeBackend) shows it as a group; no fund-only field (FX badge, fund code) for it |
+| U8 | use `rmprep.grouping` (docs/decision.md 4.6) in "Kısa liste" and for the kind filter; remove `views.kind_groups`, `kind_key`, `KindGroup` and the local constants | page output unchanged; tests import the shared rule |
