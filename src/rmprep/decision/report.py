@@ -1,41 +1,21 @@
 """Plain-text report of a DecisionResult for tuning (`python -m rmprep decide`).
 
-Grouped like the UI "Kısa liste" (docs/ui.md section 1): the deposit baseline,
-then at most 5 kind groups (fund_kind; the time deposit is its own kind) from
-the first 20 ranked options of the display order,
-ordered by the score of their best option; each group is its best option (with
-score parts) and its alternatives in score order.
+Grouped like the UI "Kısa liste" with the shared rule `rmprep.grouping`
+(docs/decision.md 4.6): the deposit baseline, then each group as its head (with
+score parts) and all its alternatives.
 """
 
 from __future__ import annotations
 
+from rmprep import grouping
 from rmprep.contracts import DecisionResult, ScoredOption
-from rmprep.decision.universe import group_kind
 
-POOL = 20
-MAX_GROUPS = 5
 REJECTED_SHOWN = 10
-
-
-def _by_score(o: ScoredOption) -> tuple[float, str]:
-    return (-o.score, o.option.option_id)
-
-
-def fund_groups(result: DecisionResult) -> list[tuple[str, list[ScoredOption]]]:
-    """[(group_kind, options best first)], at most MAX_GROUPS, from the first POOL
-    ranked options (funds and the time deposit)."""
-    pool = [o for o in result.options if o.option.kind != "deposit"][:POOL]
-    groups: dict[str, list[ScoredOption]] = {}
-    for o in pool:
-        groups.setdefault(group_kind(o.option), []).append(o)
-    ordered = [(kind, sorted(members, key=_by_score)) for kind, members in groups.items()]
-    ordered.sort(key=lambda g: _by_score(g[1][0]))
-    return ordered[:MAX_GROUPS]
 
 
 def _head(prefix: str, o: ScoredOption) -> str:
     opt = o.option
-    kind = group_kind(opt)
+    kind = grouping.group_key(opt)
     fx = " FX" if opt.fx else ""
     return (f"{prefix}{opt.label} ({opt.option_id}, {kind}{fx})  score {o.score:+.3f}  "
             f"confidence {o.confidence:.2f}  stability {o.stability:.2f}")
@@ -57,13 +37,12 @@ def render(result: DecisionResult) -> str:
 
     funds = [o for o in r.options if o.option.kind != "deposit"]
     position = {o.option.option_id: i for i, o in enumerate(funds, start=1)}
-    groups = fund_groups(r)
-    for kind, members in groups:
-        head, *alternatives = members
-        lines += ["", f"{kind} ({len(members)})",
-                  _head(f"{position[head.option.option_id]:>4}. ", head), _parts(head)]
-        lines += [_head(f"      - {position[o.option.option_id]}. ", o) for o in alternatives]
-    shown = sum(len(m) for _, m in groups)
+    groups = grouping.groups(r.options)
+    for g in groups:
+        lines += ["", f"{g.key} ({1 + len(g.alternatives)})",
+                  _head(f"{position[g.head.option.option_id]:>4}. ", g.head), _parts(g.head)]
+        lines += [_head(f"      - {position[o.option.option_id]}. ", o) for o in g.alternatives]
+    shown = sum(1 + len(g.alternatives) for g in groups)
     if len(funds) > shown:
         lines.append(f"\n{len(funds) - shown} more scored options outside the groups")
 

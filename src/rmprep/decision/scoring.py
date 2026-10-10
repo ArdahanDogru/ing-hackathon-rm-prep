@@ -17,7 +17,8 @@ from typing import Any, Protocol
 from rmprep.contracts import ConstraintResult, DataPoint, ProductOption, RejectedOption
 from rmprep.decision.config import CRITERIA, DEPOSIT_KINDS, PENALTY_RULES, DecisionConfig
 from rmprep.decision.persona import LEVEL_ATTR, Levels
-from rmprep.decision.universe import Candidate, Universe, group_kind, stopaj_entity
+from rmprep.decision.universe import Candidate, Universe, stopaj_entity
+from rmprep.grouping import group_key
 
 RISK_MIN, RISK_MAX = 1, 7
 _RISK_Q = "fund_risk_level"
@@ -206,7 +207,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
     for cand, known in kept:
         opt = cand.option
         is_fund = opt.kind == "fund"
-        kind_row = c["kinds"][group_kind(opt)]
+        kind_row = c["kinds"][group_key(opt)]
         estimated = known is None
         risk = known_by_kind.get(opt.fund_kind, RISK_MAX) if estimated else known
         annual, period, ret_row = returns[opt.option_id]
@@ -358,7 +359,7 @@ class _Ranked(Protocol):
 @dataclass(frozen=True)
 class DisplayOrder:
     rows: tuple[Any, ...]                       # deposit first, then funds in display order
-    concentration: tuple[tuple[str, int], ...] = ()   # (group_kind, count) over the cap
+    concentration: tuple[tuple[str, int], ...] = ()   # (group_key, count) over the cap
     concentration_n: int = 0                    # 3 or 10: the range the counts are about
 
 
@@ -377,14 +378,14 @@ def display_order(rows: Sequence[_Ranked], *, diversity: bool,
         for r in list(remaining):
             if len(chosen) >= limit:
                 return
-            if counts[group_kind(r.option)] < per_kind:
+            if counts[group_key(r)] < per_kind:
                 chosen.append(r)
-                counts[group_kind(r.option)] += 1
+                counts[group_key(r)] += 1
                 remaining.remove(r)
         while remaining and len(chosen) < limit:     # caps leave places empty
             r = remaining.pop(0)
             chosen.append(r)
-            counts[group_kind(r.option)] += 1
+            counts[group_key(r)] += 1
             filled[phase] = True
 
     take(d["first"], d["first_cap"], "first")
@@ -403,7 +404,7 @@ def display_order(rows: Sequence[_Ranked], *, diversity: bool,
             checks.append((d["pool"], d["diversity_pool_cap"]))
         checks.append((d["first"], d["first_cap"]))
         for size, limit in checks:
-            counts_n = Counter(group_kind(r.option) for r in chosen[:size])
+            counts_n = Counter(group_key(r) for r in chosen[:size])
             concentration = sorted((k, v) for k, v in counts_n.items() if v > limit)
             if concentration:
                 n = size

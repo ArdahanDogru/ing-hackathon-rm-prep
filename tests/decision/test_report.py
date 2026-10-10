@@ -14,7 +14,9 @@ from rmprep.contracts import (
     ScoredOption,
 )
 from rmprep.decision.engine import decide
-from rmprep.decision.report import fund_groups, render
+from rmprep import grouping
+from rmprep.decision import report, universe
+from rmprep.decision.report import render
 from tests.decision.conftest import T0, load_evidence, load_persona
 
 
@@ -56,35 +58,41 @@ SIX_KINDS = [
 ]
 
 
-def _ids(group):
-    return [o.option.option_id for o in group[1]]
+def _members(g):
+    return [o.option.option_id for o in (g.head, *g.alternatives)]
 
 
-def test_groups_are_ordered_by_their_best_score_and_at_most_5():
-    groups = fund_groups(_result(SIX_KINDS))
-    assert [g[0] for g in groups] == ["debt", "equity", "mixed", "variable", "fund_of_funds"]
-    assert _ids(groups[0]) == ["fund:debt1", "fund:debt2", "fund:debt3"]
-    assert _ids(groups[2]) == ["fund:mix1", "fund:mix2"]
-    assert "participation" not in [g[0] for g in groups]
+def test_no_local_copy_of_the_grouping_rule():
+    for name in ("fund_groups", "POOL", "MAX_GROUPS"):
+        assert not hasattr(report, name)
+    assert not hasattr(universe, "group_kind")
 
 
-def test_group_members_are_in_score_order():
-    options = [_opt("fund:a", "debt", 0.5), _opt("fund:b", "equity", 0.4),
-               _opt("fund:c", "debt", 0.7)]
-    [debt, _] = fund_groups(_result(options))
-    assert _ids(debt) == ["fund:c", "fund:a"]
+def test_render_shows_the_groups_of_the_shared_rule():
+    r = _result(SIX_KINDS)
+    gs = grouping.groups(r.options)
+    assert [g.key for g in gs] == ["debt", "equity", "mixed", "variable", "fund_of_funds"]
+    text = render(r)
+    headers = [ln for ln in text.splitlines() if ln and not ln.startswith(" ")
+               and ln.endswith(")") and "(" in ln and ln.split(" (")[0] in
+               {g.key for g in gs}]
+    assert headers == [f"{g.key} ({1 + len(g.alternatives)})" for g in gs]
+    ids = [oid for g in gs for oid in _members(g)]
+    positions = [text.index(f"({oid},") for oid in ids]
+    assert positions == sorted(positions)
 
 
-def test_tie_of_the_best_score_breaks_by_option_id():
-    options = [_opt("fund:z", "debt", 0.5), _opt("fund:a", "equity", 0.5)]
-    assert [g[0] for g in fund_groups(_result(options))] == ["equity", "debt"]
+def test_render_shows_all_alternatives_not_only_the_visible_ones():
+    options = [_opt(f"fund:d{i:02d}", "debt", 1 - i / 100) for i in range(6)]
+    text = render(_result(options))
+    assert all(f"(fund:d{i:02d}," in text for i in range(6))     # 1 head + 5 alternatives
 
 
 def test_pool_is_the_first_20_funds():
     options = [_opt("deposit:d", "deposit", 0.1)]
     options += [_opt(f"fund:d{i:02d}", "debt", 1 - i / 100) for i in range(25)]
-    [debt] = fund_groups(_result(options))
-    assert _ids(debt) == [f"fund:d{i:02d}" for i in range(20)]
+    [debt] = grouping.groups(_result(options).options)
+    assert _members(debt) == [f"fund:d{i:02d}" for i in range(20)]
     text = render(_result(options))
     assert "fund:d19" in text and "fund:d20" not in text
     assert "5 more scored options outside the groups" in text
@@ -134,9 +142,9 @@ def test_report_on_real_rows(config, medium):
     assert r.run_id in text and "P04" in text
     assert "ING Turuncu Hesap (standart)" in text
     assert r.options[1].option.label in text          # best fund heads the first group
-    groups = fund_groups(r)
-    assert 1 <= len(groups) <= 5
-    assert groups[0][1][0] == r.options[1]
+    gs = grouping.groups(r.options)
+    assert 1 <= len(gs) <= 5
+    assert gs[0].head == r.options[1]
     for w in r.warnings:
         assert w.code in text
 
