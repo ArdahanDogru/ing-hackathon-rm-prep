@@ -49,6 +49,7 @@ answer that is not one of the question's `choices` raises `ValueError`.
 | `kind` | Source | Notes |
 |---|---|---|
 | `deposit` | manual `deposit_rate`, entity `ING Turuncu Hesap standart, <tier>` | tier from config (`deposit.tier`, default `100.000-249.999 TL`); the persona has no amount. The welcome rate is temporary → only an assumption text. |
+| `time_deposit` | manual `deposit_rate`, entity `ING e-Vadeli Mevduat, <term>, <tier>` (`data/inbox/manual/ing_e_vadeli.csv`) | added 2026-10-10 (contract v1.1, milestone D8). One option, ranked like a fund (not a baseline). Term and tier from config (`time_deposit.term`, default `32-45 gün`; `time_deposit.tier`, default `99.999,99-250.000 TL`, the column that holds 100.000–249.999 TL). Missing row → no option + a data-quality note. |
 | `fund` | `tefas` + `tefas_web` DataPoints, `EvidenceSet.entities` | `fund_kind` from the umbrella type (table below) |
 
 `fund_kind` table (umbrella type text → `fund_kind`):
@@ -65,8 +66,11 @@ answer that is not one of the question's `choices` raises `ValueError`.
 | Fon Sepeti Şemsiye Fonu | `fund_of_funds` |
 | Serbest Şemsiye Fonu | not in the universe (qualified investors only) |
 
-- `ProductOption.option_id`: `deposit:ing_turuncu` | `fund:<code>`.
-  `label`: deposit → "ING Turuncu Hesap (standart)"; fund → its name.
+- `ProductOption.option_id`: `deposit:ing_turuncu` | `time_deposit:ing_e_vadeli` |
+  `fund:<code>`. `label`: deposit → "ING Turuncu Hesap (standart)"; time
+  deposit → "ING e-Vadeli Mevduat (<term>)"; fund → its name.
+- ING clients can buy the funds of other companies through ING; the list does
+  not prefer ING funds (decided by the user 2026-10-10).
 - `fx` tag: true if the upper-case fund name contains one of
   `fx_name_words` (start: `DÖVİZ`, `EUROBOND`, `DOLAR`).
 - Removed and counted in a data-quality note: Serbest funds; funds with no
@@ -163,13 +167,13 @@ kontrollü" is not in the table → assumed Sınırlı).
 
 | Criterion | Value | Evidence |
 |---|---|---|
-| `return` | percentile rank of the annualized return among all scored options | fund: `fund_return_<period>`, annualized `(1+R/100)^(1/years) − 1`; if the period is missing, the next shorter one (3y → 1y → 6m → 3m); no return in any period → value 0, the option is left out of the percentile base, reason `return_missing`. deposit: the rate. |
-| `low_risk` | `1 − (risk − 1) / 6` (risk clamped to 1..7) | `fund_risk_level`; deposit 1 |
+| `return` | percentile rank of the annualized return among all scored options | fund: `fund_return_<period>`, annualized `(1+R/100)^(1/years) − 1`; if the period is missing, the next shorter one (3y → 1y → 6m → 3m); no return in any period → value 0, the option is left out of the percentile base, reason `return_missing`. deposit and time deposit: the rate (nominal annual, as published). |
+| `low_risk` | `1 − (risk − 1) / 6` (risk clamped to 1..7) | `fund_risk_level`; deposit and time deposit 1 |
 | `liquidity` | kind table | proxy (no valör in evidence) |
 | `income` | kind table | proxy |
-| `principal` | deposit 1; fund `max(0, 0.8 − 0.15 × (risk − 1))` | `fund_risk_level` |
+| `principal` | deposit and time deposit 1; fund `max(0, 0.8 − 0.15 × (risk − 1))` | `fund_risk_level` |
 | `simplicity` | kind table | — |
-| `quality` | mean of the percentile ranks of size and investors among funds (a missing value gives 0 for its half); deposit 1 | `fund_total_value`, `fund_investor_count` |
+| `quality` | mean of the percentile ranks of size and investors among funds (a missing value gives 0 for its half); deposit and time deposit 1 | `fund_total_value`, `fund_investor_count` |
 
 Percentile rank of x among n values: `(count below + 0.5 × count equal other) /
 (n − 1)`; n = 1 → 1.
@@ -179,6 +183,7 @@ Kind table:
 | kind | liquidity | income | simplicity |
 |---|---|---|---|
 | deposit | 1.0 | 1.0 | 1.0 |
+| time_deposit | 0.6 | 0.9 | 1.0 |
 | money_market | 0.9 | 0.6 | 1.0 |
 | debt | 0.7 | 0.5 | 0.7 |
 | participation | 0.6 | 0.4 | 0.6 |
@@ -347,6 +352,7 @@ funds, with `entities`).
 | D4 | `confidence`, `stability` | exact values on small hand-made cases |
 | D5 | warnings, data-quality notes, `config_hash`, `run_id`, `decide()`; `rmprep.decision.report.render(result) -> str` (text: baseline + positions 1–10 with parts) | one trigger case per warning; valid `DecisionResult` for p01–p05 on `evidence_medium`; same inputs → same `run_id`; answer → new `run_id` |
 | D7 | `render` groups like the UI: baseline, then ≤ 5 `fund_kind` groups from the first 20 options (head + alternatives); rejected = count + the first 10 ids | group order and members on a hand-made result; long rejected list cut |
+| D8 | `time_deposit` option (section 1): config section `time_deposit` (OPTIONAL in the checks until the lead adds it: option_id, label, source, quantity, entity_prefix, term, tier); scored like a deposit except the kind table; counts as its own kind (`time_deposit`) for the caps of 4.5 and the groups of the report; penalties as for any option | option from a hand-made row; missing row → no option + note; kind caps; group in `render`; P01–P05 valid on a hand-made evidence with the row |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]

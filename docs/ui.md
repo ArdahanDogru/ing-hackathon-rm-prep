@@ -52,7 +52,10 @@ Main and the right pane are `st.columns([3, 1])`.
     - then the funds **grouped by `fund_kind`** (changed 2026-10-10 by the
       user, milestone U6; the flat 3 → 10 → +10 list is replaced):
       - the pool is the first 20 non-deposit options in display order;
-      - one group per `fund_kind` with an option in the pool, at most 5
+      - the group key is `fund_kind`, or `kind` for a non-fund option (the
+        `time_deposit` "ING e-Vadeli Mevduat" is its own group, key
+        `time_deposit`, contract v1.1);
+      - one group per key with an option in the pool, at most 5
         groups, ordered by the score of their best option (ties: `option_id`);
       - group header: the umbrella type name (i18n key `kind.<fund_kind>`,
         e.g. "Para Piyasası" / "Money market"), the count of options in the
@@ -174,3 +177,4 @@ Tests use `streamlit.testing.v1.AppTest` (no browser, no network).
 | U4 | RM loop: questions, approve / reject with selection, run history, persona edit | answer → new run; a test run cannot be approved; history cleared on persona pick |
 | U5 | summary card (Markdown, HTML) with notes; TR / EN | the card holds the selected options, notes and citations; every label exists in TR and EN |
 | U6 | "Kısa liste" grouped by `fund_kind` (section 1) | groups from the top-20 pool, ≤ 5, ordered by best score; head = best of kind; 3 alternatives then "Daha fazla"; selection and approval work on heads and alternatives; `kind.*` keys in TR and EN |
+| U7 | `time_deposit` (contract v1.1): own group in "Kısa liste", kind label `kind.time_deposit` (TR "Vadeli mevduat", EN "Time deposit") in all tabs and the card | a result with a time deposit (hand-made template for the FakeBackend) shows it as a group; no fund-only field (FX badge, fund code) for it |

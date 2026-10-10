@@ -205,3 +205,14 @@ def test_backend_protocol_has_the_rm_loop():
     names = {n for n in dir(Backend) if not n.startswith("_")}
     assert {"list_personas", "list_snapshots", "evidence", "decide", "answer_question",
             "approve", "annotate", "save_card"} <= names
+
+
+def test_time_deposit_kind_v1_1():
+    td = ProductOption("time_deposit:ing_e_vadeli", "time_deposit", "ING e-Vadeli Mevduat (32-45 gün)")
+    assert td.kind == "time_deposit"
+    with pytest.raises(ValueError, match="time_deposit option"):
+        ProductOption("time_deposit:x", "time_deposit", "T", fund_kind="debt")
+    with pytest.raises(ValueError, match="time_deposit option"):
+        ProductOption("time_deposit:x", "time_deposit", "T", fx=True)
+    # a time deposit is ranked like a fund: it may stand anywhere after the baseline
+    ScoredOption(td, 0.5, {"a": 0.5}, (), 1, 1, reasons={"a": "r"})

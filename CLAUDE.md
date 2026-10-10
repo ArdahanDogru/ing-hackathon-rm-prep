@@ -79,7 +79,8 @@ and message formats: `docs/workflow.md`.
 - A worker edits only `src/rmprep/<module>/` and `tests/<module>/`. Everything
   else (`contracts.py`, `pyproject.toml`, `config/`, `docs/`, this file, main)
   belongs to ing-lead; a hook enforces it. Ask ing-lead for changes.
-- The decision/UI contracts in `contracts.py` are frozen (v1, 2026-10-10);
+- The decision/UI contracts in `contracts.py` are frozen (v1, 2026-10-10;
+  v1.1 adds option kind `time_deposit`);
   their design is `docs/decision.md` and `docs/ui.md`.
 
 ## Commands

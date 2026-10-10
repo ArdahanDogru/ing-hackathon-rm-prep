@@ -217,7 +217,8 @@ class SourceStatus:
 
 
 # =============================================================================
-# Decision / UI contracts - FROZEN v1 (2026-10-10, after step D).
+# Decision / UI contracts - FROZEN v1 (2026-10-10, after step D);
+# v1.1 (2026-10-10): option kind "time_deposit" (ING e-Vadeli Mevduat).
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -289,13 +290,13 @@ class RmStatus(StrEnum):
     REJECTED = "rejected"
 
 
-OPTION_KINDS = ("deposit", "fund")
+OPTION_KINDS = ("deposit", "time_deposit", "fund")
 
 
 @dataclass(frozen=True)
 class ProductOption:
-    option_id: str          # "deposit:ing_turuncu" | "fund:<code>"
-    kind: str               # "deposit" | "fund"
+    option_id: str          # "deposit:ing_turuncu" | "time_deposit:ing_e_vadeli" | "fund:<code>"
+    kind: str               # "deposit" (the baseline) | "time_deposit" (ranked) | "fund"
     label: str              # what the RM reads (deposit name, fund name)
     entity: str = ""        # DataPoint.entity it is measured by, e.g. a fund code
     fund_kind: str = ""     # funds only: money_market | debt | ... (config/decision.yaml)
@@ -306,8 +307,8 @@ class ProductOption:
             raise ValueError(f"kind must be one of {OPTION_KINDS}, got {self.kind!r}")
         if self.kind == "fund" and not self.fund_kind:
             raise ValueError("a fund option needs a fund_kind")
-        if self.kind == "deposit" and (self.fund_kind or self.fx):
-            raise ValueError("a deposit option has no fund_kind and no fx tag")
+        if self.kind in ("deposit", "time_deposit") and (self.fund_kind or self.fx):
+            raise ValueError(f"a {self.kind} option has no fund_kind and no fx tag")
 
 
 @dataclass(frozen=True)
