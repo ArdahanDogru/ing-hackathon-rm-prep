@@ -34,6 +34,7 @@ class Levels:
     liquidity: float                # levels 0..1 of the three level fields
     income: float
     principal: float
+    fx_level: str                   # doviz_maruz_kalma_tercihi key (matched, answered or safe)
     fx_intensity: float             # 0..1, intensity of the fx_exposure penalty
     liquidity_intensity: float      # 0..1, intensity of the liquidity penalty
     liquidity_weight: float | None  # raw liquidity weight override (no_liquidity_need)
@@ -206,7 +207,7 @@ def read_persona(persona: Persona, config: DecisionConfig,
 
     levels = Levels(
         ceiling=ceiling, appetite=profiles[profile]["appetite"], period=period,
-        fx_intensity=fx_intensity, liquidity_intensity=liquidity_intensity,
+        fx_level=fx_key, fx_intensity=fx_intensity, liquidity_intensity=liquidity_intensity,
         liquidity_weight=liquidity_weight, diversity=diversity, boosts=boosts,
         effects=tuple(applied), **level_values)
     return PersonaReading(levels, tuple(questions), tuple(assumptions))
