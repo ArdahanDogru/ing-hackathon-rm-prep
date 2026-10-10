@@ -167,6 +167,14 @@ def test_p05_120_day_time_deposit_is_rejected(d13_raw):
     assert c.reason.startswith("Vade 120 gün, üst sınır 91 gün")
 
 
+def test_valor_note_counts_only_listed_funds(d13_config):
+    funds = {**FUNDS, "NB": dict(kind="debt", risk=2, returns={"1y": 30.0}, size=2e8,
+                                 investors=500, buyable=0)}       # rejected, no valör
+    r = _decide(d13_config, "P05", funds=funds)
+    msg = D13_TEXTS["data_quality"]["valor_missing"].format(count=1)
+    assert msg in [n.message for n in r.data_quality]
+
+
 def test_liquidity_need_only_for_its_persona(d13_config):
     r = _decide(d13_config, "P04")
     assert "fund:V4" in _ids(r)
