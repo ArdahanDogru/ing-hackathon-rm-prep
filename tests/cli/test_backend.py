@@ -92,3 +92,46 @@ def test_reject_needs_a_note_and_a_test_run_cannot_be_approved(backend):
     t = backend.decide(edited, snap)
     with pytest.raises(ValueError, match="test run"):
         backend.approve(t.run_id, RmStatus.REJECTED, "no")
+
+
+class FakeNarrator:
+    def __init__(self):
+        self.calls = []
+
+    def draft(self, r, ev, lang):
+        from rmprep.contracts import NarrativeDraft, NarrativeSection, NarrativeSentence
+        self.calls.append((r.run_id, lang, ev.snapshot_id))
+        return NarrativeDraft(r.run_id, lang, (NarrativeSection("ozet", (NarrativeSentence("x"),)),),
+                              "template", "", "fake", (), T0)
+
+
+def _approved(backend):
+    snap = backend.list_snapshots()[0]
+    r = next(x for x in (backend.decide(p, snap) for p in backend.list_personas())
+             if x.state == DecisionState.READY)
+    return backend.approve(r.run_id, RmStatus.APPROVED, "ok", (r.options[0].option.option_id,))
+
+
+def test_narrative_needs_an_approved_run(backend):
+    backend._narrator_obj = FakeNarrator()
+    snap = backend.list_snapshots()[0]
+    r = backend.decide(persona(backend, "P02"), snap)
+    with pytest.raises(ValueError, match="approved"):
+        backend.draft_narrative(r.run_id, "TR")
+
+
+def test_draft_and_approve_narrative(backend, tmp_path):
+    fake = FakeNarrator()
+    backend._narrator_obj = fake
+    r = _approved(backend)
+    d = backend.draft_narrative(r.run_id, "EN")
+    assert (d.run_id, d.lang) == (r.run_id, "EN") and fake.calls[0][1] == "EN"
+    with pytest.raises(ValueError):
+        backend.approve_narrative(r.run_id, "EN", "  ")
+    a = backend.approve_narrative(r.run_id, "EN", "# Final\ntext")
+    assert a.status.value == "approved" and a.rm_text == "# Final\ntext"
+    saved = tmp_path / "data" / "narratives" / f"{r.run_id}-EN-approved.json"
+    assert json.loads(saved.read_text(encoding="utf-8"))["rm_text"] == "# Final\ntext"
+    calls = len(fake.calls)
+    assert backend.draft_narrative(r.run_id, "EN") == a       # the approved text wins
+    assert len(fake.calls) == calls                            # without a new draft

@@ -79,8 +79,12 @@ doğrulanamadı".
 
 ## Determinism, cost, tests
 
-- Cache: `data/narratives/<run_id>-<prompt_version>-<model>.json`; the same run
-  gives the same text without a new call (replay, eval consistency).
+- Cache: `data/narratives/<run_id>-<lang>-<prompt_version>-<model>.json` (one
+  draft per language); the same run gives the same text without a new call
+  (replay, eval consistency). The cache keeps LLM texts and validator
+  fallbacks, not API errors or budget stops. Cost ledger:
+  `data/narratives/costs.jsonl`. Approved texts:
+  `data/narratives/<run_id>-<lang>-approved.json` (RealBackend).
 - Budget guard: config `max_cost_usd` per day; token usage and cost recorded per
   call.
 - Tests: a fake LLM (no network); the validator on hand-made texts; the
@@ -160,6 +164,21 @@ def approve_narrative(self, run_id: str, lang: str, text: str) -> NarrativeDraft
 Contract checks: `lang` in TR/EN; section keys known; `approved` needs a
 non-empty `rm_text`; `source == "template"` ⇔ `model == ""`. The validator rules
 stay in the narrator (they need the facts pack).
+
+## As built (N1–N3, 2026-10-10)
+
+- Entry point: `rmprep.narrator.service.narrator_from_root(root).draft(result,
+  evidence, lang) -> NarrativeDraft`; the key comes from the environment or
+  `root/.env`. Without a key: the template text.
+- `template.to_markdown(draft)` is the start text for the RM edit;
+  `template.banner(draft)` the banner (template after failed checks).
+- Refusal fallback on (server-side, `fallbacks="default"`): `draft.model` is the
+  model that served the text (can be another model after a fallback).
+- `prompt_version` "n1" covers the first LLM prompt; bump it on any change of
+  `prompt.py`.
+- Live smoke test (about $0.05): `tests/narrator/test_live.py`, runs only with
+  `RMPREP_LIVE_NARRATOR=1` and a key, so a plain `pytest` never calls the API.
+- N4 (lead): `RealBackend.draft_narrative` / `approve_narrative`; ui: U9.
 
 ## Milestones (worker `ing-narrator`; each ends with green `pytest`)
 

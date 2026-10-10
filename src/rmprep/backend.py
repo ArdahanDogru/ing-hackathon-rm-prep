@@ -3,7 +3,8 @@
 Reads snapshots from <root>/data/snapshots, the decision config from
 <root>/config/decision.yaml and the personas from the folder above <root>
 (../p0*.json). Runs of the session stay in memory; approved and rejected runs
-are saved to data/runs/<run_id>.json, cards to data/cards/<run_id>.md."""
+are saved to data/runs/<run_id>.json, cards to data/cards/<run_id>.md, approved
+meeting texts to data/narratives/<run_id>-<lang>-approved.json (docs/narrator.md)."""
 
 from __future__ import annotations
 
@@ -15,7 +16,9 @@ from datetime import datetime
 from pathlib import Path
 
 from rmprep import decision
-from rmprep.contracts import TR_TZ, DecisionResult, EvidenceSet, Persona, RmStatus
+from rmprep.contracts import (
+    TR_TZ, DecisionResult, EvidenceSet, NarrativeDraft, NarrativeStatus, Persona, RmStatus,
+)
 from rmprep.ingest.pipeline import Paths, build_evidence
 from rmprep.ingest.snapshot import list_snapshots
 
@@ -37,6 +40,8 @@ class RealBackend:
         self._config = decision.load_config(self._paths.root / "config" / "decision.yaml")
         self._evidence: dict[tuple[str, frozenset[str]], EvidenceSet] = {}
         self._runs: dict[str, tuple[DecisionResult, _Inputs]] = {}
+        self._narrator_obj = None          # made on first use (imports the LLM SDK)
+        self._narratives: dict[tuple[str, str], NarrativeDraft] = {}   # approved texts
 
     # --- reading --------------------------------------------------------------
 
@@ -100,6 +105,36 @@ class RealBackend:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(markdown, encoding="utf-8", newline="\n")
         return str(path)
+
+    # --- meeting text (contract v1.2) --------------------------------------------
+
+    def draft_narrative(self, run_id: str, lang: str = "TR") -> NarrativeDraft:
+        result, inputs = self._runs[run_id]
+        if result.rm_status != RmStatus.APPROVED:
+            raise ValueError("a meeting text needs an approved run")
+        approved = self._narratives.get((run_id, lang))
+        if approved is not None:
+            return approved
+        ev = self.evidence(inputs.snapshot_id, inputs.excluded_sources)
+        return self._narrator().draft(result, ev, lang)
+
+    def approve_narrative(self, run_id: str, lang: str, text: str) -> NarrativeDraft:
+        if not text.strip():
+            raise ValueError("the approved meeting text is empty")
+        d = dataclasses.replace(self.draft_narrative(run_id, lang),
+                                status=NarrativeStatus.APPROVED, rm_text=text)
+        path = self._paths.root / "data" / "narratives" / f"{run_id}-{lang}-approved.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(d.to_dict(), ensure_ascii=False, indent=1) + "\n",
+                        encoding="utf-8", newline="\n")
+        self._narratives[(run_id, lang)] = d
+        return d
+
+    def _narrator(self):
+        if self._narrator_obj is None:
+            from rmprep.narrator.service import narrator_from_root
+            self._narrator_obj = narrator_from_root(self._paths.root)
+        return self._narrator_obj
 
     # --- internal -------------------------------------------------------------
 
