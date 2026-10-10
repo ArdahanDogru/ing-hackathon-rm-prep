@@ -34,9 +34,10 @@ def stability(features: Sequence[Features], levels: Levels,
               config: DecisionConfig) -> dict[str, float]:
     """Share of the perturbed display orders (each raw weight and each penalty
     maximum x (1 - step) and x (1 + step), one at a time) in which the option is
-    in positions 1..shortlist. The deposit baseline counts as always in."""
+    in positions 1..stability.size (default: display.shortlist). The deposit
+    baseline counts as always in."""
     step = config.raw["stability"]["step"]
-    size = config.raw["display"]["shortlist"]
+    size = config.raw["stability"].get("size", config.raw["display"]["shortlist"])
     raw = raw_weights(levels, config)
     maxima = penalty_maxima(config)
     runs: list[tuple[dict[str, float], dict[str, float]]] = []

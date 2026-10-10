@@ -8,7 +8,15 @@ from rmprep.contracts import ConstraintResult, ProductOption
 from rmprep.decision.config import parse_config
 from rmprep.decision.confidence import confidence, stability
 from rmprep.decision.persona import read_persona
-from rmprep.decision.scoring import PENALTY_RULES, Features, option_features
+from rmprep.decision.scoring import (
+    PENALTY_RULES,
+    Features,
+    normalize_weights,
+    option_features,
+    penalty_maxima,
+    rank,
+    raw_weights,
+)
 from rmprep.decision.universe import build_universe
 from tests.decision.conftest import load_evidence, load_persona, make_evidence
 
@@ -138,3 +146,42 @@ def test_all_options_in_a_short_universe_are_stable(config):
                                     "B": dict(kind="equity", **FULL)}).values())
     s = stability(feats, _levels(config), config)
     assert set(s.values()) == {1.0}
+
+
+def _xy(cfg):
+    lv = _levels(cfg, appetite=0.0, liquidity=0.0, income=0.0, principal=0.0, boosts={},
+                 liquidity_weight=None)
+    x = _hand("fund:X", "debt", {"return": 1.0})
+    y = _hand("fund:Y", "equity", {"low_risk": 1.0, "quality": 0.1})
+    z = _hand("fund:Z", "mixed", {"quality": 0.1})
+    return stability([x, y, z], lv, cfg)
+
+
+def test_stability_size_defaults_to_the_shortlist(raw):
+    raw["display"].update(first=1, shortlist=1)
+    raw["stability"].pop("size", None)
+    s = _xy(parse_config(raw))
+    assert s["fund:X"] == pytest.approx(2 / 26) and s["fund:Z"] == 0.0
+
+
+def test_stability_size_counts_more_positions_than_the_shortlist(raw):
+    raw["display"].update(first=1, shortlist=1)
+    raw["stability"]["size"] = 2
+    s = _xy(parse_config(raw))
+    # X and Y always fill positions 1-2; Z (0.02) never does
+    assert s["fund:X"] == 1.0 and s["fund:Y"] == 1.0 and s["fund:Z"] == 0.0
+
+
+def test_stability_size_20_on_real_rows(raw):
+    cfg = parse_config(raw)
+    lv = read_persona(load_persona("P03"), cfg).levels
+    feats, _ = option_features(build_universe(load_evidence(), cfg), lv, cfg)
+    order = rank(feats, normalize_weights(raw_weights(lv, cfg)), penalty_maxima(cfg), lv, cfg)
+    funds = [r.option.option_id for r in order.rows if r.option.kind != "deposit"]
+    raw["stability"].pop("size", None)
+    default = stability(feats, lv, parse_config(raw))
+    raw["stability"]["size"] = 20
+    wide = stability(feats, lv, parse_config(raw))
+    assert any(default[oid] == 0.0 for oid in funds[10:20])
+    assert all(wide[oid] > 0.0 for oid in funds[10:20])
+    assert all(wide[oid] >= default[oid] for oid in funds)

@@ -254,8 +254,11 @@ def _check_scoring(c: dict) -> None:
     _num(conf["risk_estimate"], "confidence.risk_estimate", 0, 1)
     _num(conf["shorter_period"], "confidence.shorter_period", 0, 1)
 
-    _keys(c["stability"], "stability", ("step",))
+    _keys(c["stability"], "stability", ("step",), ("size",))
     _num(c["stability"]["step"], "stability.step", 0, 1)
+    size = c["stability"].get("size", d["shortlist"])     # optional; default display.shortlist
+    if not isinstance(size, int) or isinstance(size, bool) or size < 1:
+        raise ConfigError(f"stability.size: must be an integer >= 1, got {size!r}")
     _keys(c["warnings"], "warnings", ("low_stability_below", "deposit_vs_market_points"))
     _num(c["warnings"]["low_stability_below"], "warnings.low_stability_below", 0, 1)
     _num(c["warnings"]["deposit_vs_market_points"], "warnings.deposit_vs_market_points", 0)

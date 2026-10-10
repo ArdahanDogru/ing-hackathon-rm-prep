@@ -142,3 +142,17 @@ def test_missing_constraint_text_is_an_error(raw):
     del raw["texts"]["constraint"]["failed"]
     with pytest.raises(ConfigError, match="texts.constraint"):
         parse_config(raw)
+
+
+def test_stability_size_is_optional(raw):
+    raw["stability"].pop("size", None)
+    parse_config(raw)
+    raw["stability"]["size"] = 20
+    assert parse_config(raw).raw["stability"]["size"] == 20
+
+
+@pytest.mark.parametrize("value", [0, -1, 2.5, True, "20"])
+def test_bad_stability_size_is_an_error(raw, value):
+    raw["stability"]["size"] = value
+    with pytest.raises(ConfigError, match="stability.size"):
+        parse_config(raw)
