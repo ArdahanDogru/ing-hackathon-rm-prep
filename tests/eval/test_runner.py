@@ -208,3 +208,11 @@ def test_the_packaged_suite_runs_on_the_fixture(root):
         assert by_id[sid].runs[0].result.state == DecisionState.NEEDS_RM_INPUT
     for sid in ("con-p03-no-fx-answered", "con-p03-no-high-risk-answered"):
         assert by_id[sid].runs[0].result.state == DecisionState.READY
+
+
+def test_budget_left_counts_texts_and_other_costs(root):
+    r = runner(root, narrator=FakeNarrator(cost=0.5), max_cost_usd=5.0)
+    r.run([Scenario(id="b", group="base", persona="P01")])
+    r.add_cost(0.25)
+    assert r.budget_left() == 4.25
+    assert runner(root).budget_left() == float("inf")
