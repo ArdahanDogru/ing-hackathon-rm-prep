@@ -61,7 +61,7 @@ def _best_first(o: ScoredOption) -> tuple[float, str]:
 
 
 def kind_groups(r: DecisionResult) -> list[KindGroup]:
-    """Groups by fund_kind of the first POOL_SIZE non-deposit options, at most
+    """Groups by kind_key of the first POOL_SIZE non-deposit options, at most
     MAX_GROUPS, ordered by the score of their best option (ties: option_id)."""
     pool = [o for o in r.options if o.option.kind != "deposit"][:POOL_SIZE]
     by_kind: dict[str, list[ScoredOption]] = {}
@@ -120,7 +120,9 @@ def main_parts(o: ScoredOption, lang: str = "TR") -> list[dict]:
 
 
 def kind_key(o: ScoredOption | RejectedOption) -> str:
-    return o.option.kind if o.option.kind == "deposit" else o.option.fund_kind
+    """The group key: fund_kind, or kind for a non-fund option (deposit,
+    time_deposit; contract v1.1)."""
+    return o.option.fund_kind or o.option.kind
 
 
 def kind_name(key: str, lang: str = "TR") -> str:
