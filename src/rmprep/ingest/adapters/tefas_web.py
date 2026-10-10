@@ -27,8 +27,8 @@ from urllib.parse import urlsplit
 import httpx
 
 from rmprep.ingest.config import TEFAS_DISALLOWED_PREFIXES, Config, TefasWebSource
-from rmprep.contracts import TR_TZ, DataPoint, Flag
-from rmprep.ingest.snapshot import Snapshot, SnapshotWriter, SourceRecord, raw_ref
+from rmprep.contracts import TR_TZ, DataPoint, EntityInfo, Flag
+from rmprep.ingest.snapshot import PayloadRef, Snapshot, SnapshotWriter, SourceRecord, raw_ref
 
 PAYLOAD_NAME = "fon-getirileri.html"
 _PUSH_RE = re.compile(r"self\.__next_f\.push\((\[.*?\])\)</script>", re.S)
@@ -135,16 +135,13 @@ def parse(cfg: Config, src: TefasWebSource, snap: Snapshot, *,
           out_snapshot_id: str | None = None, out_date: date | None = None) -> list[DataPoint]:
     """`out_date` is ignored: as_of always comes from the snapshot that holds the
     page, also for fallback rows."""
-    rec = snap.sources.get(src.name)
-    if rec is None or rec.status != "ok":
-        raise ValueError(f"{snap.snapshot_id}: source {src.name!r} has no ok record")
+    rec, payload, funds = _read_page(src, snap)
     sid = out_snapshot_id or snap.snapshot_id
     as_of = previous_business_day(snap.created_at.date())
     flags = [Flag.NEEDS_CHECK] if src.flag_needs_check else []
-    [payload] = rec.payloads
 
     points = []
-    for fund in extract_funds(snap.read_payload(payload.path).decode("utf-8")):
+    for fund in funds:
         code = fund["fonKodu"]
         note = (f"{fund.get('fonUnvan') or ''}; {fund.get('fonTurAciklama') or ''}; "
                 "as_of assumed = previous business day")
@@ -159,3 +156,24 @@ def parse(cfg: Config, src: TefasWebSource, snap: Snapshot, *,
                 raw_ref=raw_ref(snap.snapshot_id, payload.path, f"fonKodu={code};field={field}"),
                 flags=flags, note=note))
     return points
+
+
+def entities(src: TefasWebSource, snap: Snapshot) -> dict[str, EntityInfo]:
+    """Fund code -> name (fonUnvan) and umbrella type (fonTurAciklama), text
+    verbatim, from the stored page. Funds without both texts are left out."""
+    _, _, funds = _read_page(src, snap)
+    out = {}
+    for fund in funds:
+        name, category = fund.get("fonUnvan"), fund.get("fonTurAciklama")
+        if isinstance(name, str) and name and isinstance(category, str) and category:
+            out[fund["fonKodu"]] = EntityInfo(name, category, src.name)
+    return out
+
+
+def _read_page(src: TefasWebSource,
+               snap: Snapshot) -> tuple[SourceRecord, PayloadRef, list[dict[str, Any]]]:
+    rec = snap.sources.get(src.name)
+    if rec is None or rec.status != "ok":
+        raise ValueError(f"{snap.snapshot_id}: source {src.name!r} has no ok record")
+    [payload] = rec.payloads
+    return rec, payload, extract_funds(snap.read_payload(payload.path).decode("utf-8"))
