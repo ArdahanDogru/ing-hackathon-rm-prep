@@ -252,3 +252,17 @@ def test_a_real_garanti_next_to_the_label_still_fails(config):
                                                         ("fund:AAL",)))
     findings = _check(bad, f, r, config)
     assert _codes(findings) == {"phrase"} and "garanti" in findings[0]
+
+
+def test_a_data_quality_row_count_may_be_written(config):
+    """N8: the prompt pack gives evidence_count; the text may say it."""
+    from rmprep.contracts import DataQualityNote
+
+    r = p02()
+    ids = tuple(sorted(build_facts(r, evidence()).evidence_ids()))[:11]
+    r = dataclasses.replace(r, data_quality=(DataQualityNote("Bazı değerler eski.",
+                                                             evidence_ids=ids),))
+    f = build_facts(r, evidence())
+    sections = list(template_sections(f, "TR", config.disclaimer["TR"]))
+    ok = _with(sections, "dikkat", NarrativeSentence("11 kayıt eski.", ("fund:BBF",)))
+    assert validate(ok, f, r, config, "TR") == ()
