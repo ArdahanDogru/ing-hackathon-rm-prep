@@ -424,16 +424,46 @@ def _all_scored(r: DecisionResult, lang: str) -> None:
     st.dataframe(views.table_rows(r, kinds, lang), hide_index=True)
 
 
+def _open_rule(run_id: str, rule: str, lang: str) -> None:
+    st.session_state["rej_filter"] = (run_id, rule)
+    st.session_state[f"tabs:{lang}"] = t("tab_rejected", lang)
+
+
+def _clear_rule_filter() -> None:
+    st.session_state.pop("rej_filter", None)
+
+
+def _rule_filter(run_id: str) -> str | None:
+    flt = st.session_state.get("rej_filter")
+    return flt[1] if flt and flt[0] == run_id else None
+
+
+def _rule_lines(r: DecisionResult, lang: str) -> None:
+    """One line per hard rule with its count; a click opens "Elenenler" filtered."""
+    for rule, n in views.rule_counts(r):
+        st.button(views.rule_line(rule, n, lang), key=f"rule:{rule}", type="tertiary",
+                  icon=":material/block:", on_click=_open_rule, args=(r.run_id, rule, lang))
+
+
 def _rejected(r: DecisionResult, lang: str) -> None:
     if not r.rejected:
         st.info(t("no_rejected", lang))
         return
-    expanded = len(r.rejected) <= _OPEN_REJECTED
-    for rj in r.rejected:
-        with st.expander(f"{rj.option.label} · {views.kind_label(rj, lang)}", expanded=expanded):
+    rule = _rule_filter(r.run_id)
+    shown = views.rejected_with_rule(r, rule)
+    if rule is not None:
+        st.info(t("rej_filter", lang, rule=views.rule_label(rule, lang), n=len(shown)))
+        st.button(t("rej_all", lang), key="rej_all", on_click=_clear_rule_filter)
+    expanded = len(shown) <= _OPEN_REJECTED
+    for rj in shown:
+        rules = " · ".join(views.rule_label(x, lang)
+                           for x in dict.fromkeys(c.rule_id for c in rj.failed))
+        with st.expander(f"{rj.option.label} · {views.kind_label(rj, lang)} · {rules}",
+                         expanded=expanded):
             st.markdown(f"**{t('failed_rules', lang)}**")
             for c in rj.failed:
-                st.markdown(f"- ✗ `{c.rule_id}`: {c.reason}")
+                label = views.rule_label(c.rule_id, lang)
+                st.markdown(f"- ✗ **{label}** (`{c.rule_id}`): {c.reason}")
             ids = tuple(i for c in rj.failed for i in c.evidence_ids)
             if ids:
                 st.caption(f"{t('evidence_ids', lang)}: {', '.join(dict.fromkeys(ids))}")
@@ -474,6 +504,7 @@ def _tabs(r: DecisionResult, ev: EvidenceSet, lang: str) -> None:
                 st.info(t("answer_first", lang))
     else:
         with short:
+            _rule_lines(r, lang)
             _shortlist(r, lang)
         with all_:
             _all_scored(r, lang)
