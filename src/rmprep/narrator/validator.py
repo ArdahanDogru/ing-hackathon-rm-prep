@@ -148,17 +148,29 @@ def _check_numbers(sections, f: Facts) -> list[str]:
     return out
 
 
+def _named_labels(f: Facts) -> list[str]:
+    """Normalized labels of the named options, longest first."""
+    return sorted({_norm(o.label) for o in f.named_options().values()}, key=len, reverse=True)
+
+
+def _without_labels(text: str, labels: Sequence[str]) -> str:
+    """Normalized text with the named labels taken out (a label may hold another
+    label's words, or a word such as "garanti" in GARANTİ PORTFÖY ...)."""
+    text = _norm(text)
+    for lbl in labels:
+        text = text.replace(lbl, " ")
+    return text
+
+
 def _check_options(sections, f: Facts, r: DecisionResult) -> list[str]:
     named = f.named_options()
-    named_labels = sorted({_norm(o.label) for o in named.values()}, key=len, reverse=True)
+    named_labels = _named_labels(f)
     others = [o.option for o in r.options if o.option.option_id not in named]
     others += [x.option for x in r.rejected]
     out = []
     for sec in sections:
         for s in sec.sentences:
-            text = _norm(s.text)
-            for lbl in named_labels:           # a named label may hold another one's words
-                text = text.replace(lbl, " ")
+            text = _without_labels(s.text, named_labels)
             raw = s.text
             for o in named.values():
                 raw = raw.replace(o.label, " ")
@@ -172,12 +184,15 @@ def _check_options(sections, f: Facts, r: DecisionResult) -> list[str]:
     return out
 
 
-def _check_phrases(sections, config: NarratorConfig) -> list[str]:
+def _check_phrases(sections, f: Facts, config: NarratorConfig) -> list[str]:
+    """Forbidden phrases outside the option labels (a fund of Garanti Portföy is
+    not a guarantee)."""
     phrases = list(dict.fromkeys(p for ps in config.forbidden_phrases.values() for p in ps))
+    labels = _named_labels(f)
     out = []
     for sec in sections:
         for s in sec.sentences:
-            text = _norm(s.text)
+            text = _without_labels(s.text, labels)
             out += [f"phrase: {sec.key}: forbidden phrase \"{p}\": \"{_short(s.text)}\""
                     for p in phrases if _norm(p) in text]
     return out
@@ -205,7 +220,7 @@ def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
     out = _check_sections(sections)
     out += _check_numbers(sections, f)
     out += _check_options(sections, f, r)
-    out += _check_phrases(sections, config)
+    out += _check_phrases(sections, f, config)
     out += _check_citations(sections, f)
     everything = _norm(" ".join(s.text for sec in sections for s in sec.sentences))
     if _norm(config.disclaimer[lang]) not in everything:

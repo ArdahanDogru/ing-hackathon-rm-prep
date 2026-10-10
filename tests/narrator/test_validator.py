@@ -212,3 +212,43 @@ def test_template_passes_for_every_single_selection(name, lang, config):
         f = build_facts(r, evidence())
         sections = template_sections(f, lang, config.disclaimer[lang])
         assert validate(sections, f, r, config, lang) == (), o.option.option_id
+
+
+# --- N5: a fund label is not a forbidden phrase ---------------------------------------
+
+GARANTI = "GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU"
+
+
+def _garanti():
+    """P02 with the selected fund AAL renamed to a Garanti Portföy fund."""
+    r = p02()
+    options = tuple(dataclasses.replace(o, option=dataclasses.replace(o.option, label=GARANTI))
+                    if o.option.option_id == "fund:AAL" else o for o in r.options)
+    r = dataclasses.replace(r, options=options)
+    return r, build_facts(r, evidence())
+
+
+@pytest.mark.parametrize("lang", ["TR", "EN"])
+def test_template_naming_a_garanti_fund_passes(lang, config):
+    r, f = _garanti()
+    sections = template_sections(f, lang, config.disclaimer[lang])
+    assert validate(sections, f, r, config, lang) == ()
+
+
+@pytest.mark.parametrize("name", [GARANTI, "Garanti Portföy Para Piyasası Katılım (TL) Fonu",
+                                  "garanti portföy para piyasası katılım (tl) fonu"])
+def test_a_garanti_fund_label_in_any_case_passes(name, config):
+    r, f = _garanti()
+    sections = list(template_sections(f, "TR", config.disclaimer["TR"]))
+    ok = _with(sections, "oneriler", NarrativeSentence(f"{name} likiditesi yüksek bir fondur.",
+                                                       ("fund:AAL",)))
+    assert _check(ok, f, r, config) == ()
+
+
+def test_a_real_garanti_next_to_the_label_still_fails(config):
+    r, f = _garanti()
+    sections = list(template_sections(f, "TR", config.disclaimer["TR"]))
+    bad = _with(sections, "oneriler", NarrativeSentence(f"{GARANTI} ile getiri garantilidir.",
+                                                        ("fund:AAL",)))
+    findings = _check(bad, f, r, config)
+    assert _codes(findings) == {"phrase"} and "garanti" in findings[0]
