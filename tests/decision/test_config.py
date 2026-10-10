@@ -5,7 +5,8 @@ import pytest
 from rmprep.decision.config import ConfigError, parse_config
 
 
-def test_project_config_is_valid(config):
+def test_project_config_is_valid(project_raw, config):
+    parse_config(project_raw)                   # config/decision.yaml as it is
     assert config.raw["deposit"]["option_id"] == "deposit:ing_turuncu"
     assert config.fund_kind("Serbest Şemsiye Fonu") is None
     assert config.fund_kind("Para Piyasası Şemsiye Fonu") == "money_market"

@@ -34,6 +34,8 @@ EFFECT_KEYS = ("max_ceiling", "min_fx_intensity", "liquidity_weight", "liquidity
 TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumptions",
                  "warnings", "data_quality")
 
+# optional sections of D9 (real return after tax); without them: nominal returns
+_D9_SECTIONS = ("real_return", "long_horizon", "quality_value")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
         "constraint_effects", "kinds", "principal_value", "weights", "penalties",
@@ -102,7 +104,7 @@ def _table_keys(d: Mapping, path: str) -> None:
 
 
 def _check(c: dict) -> None:
-    _keys(c, "config", _TOP, ("time_deposit",))
+    _keys(c, "config", _TOP, ("time_deposit", *_D9_SECTIONS))
     if c["version"] != CONFIG_VERSION:
         raise ConfigError(f"version: expected {CONFIG_VERSION}, got {c['version']!r}")
 
@@ -122,7 +124,11 @@ def _check(c: dict) -> None:
             raise ConfigError(f"fund_kinds.{category}: kind {kind!r} has no row in kinds")
     if "time_deposit" in c:      # optional section (D8)
         _keys(c["time_deposit"], "time_deposit", ("option_id", "label", "source", "quantity",
-                                                  "entity_prefix", "term", "tier"))
+                                                  "entity_prefix", "term", "tier"),
+              ("term_days",))
+        days = c["time_deposit"].get("term_days", 1)
+        if not isinstance(days, int) or isinstance(days, bool) or days < 1:
+            raise ConfigError(f"time_deposit.term_days: must be an integer >= 1, got {days!r}")
         if "time_deposit" not in kinds:
             raise ConfigError("kinds: the time_deposit section needs a time_deposit row")
         if "time_deposit_missing" not in c["texts"]["data_quality"]:
@@ -137,7 +143,11 @@ def _check(c: dict) -> None:
 
     _keys(c["texts"], "texts", TEXT_SECTIONS)
     _keys(c["texts"]["reasons"], "texts.reasons",
-          (*CRITERIA, *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"))
+          (*CRITERIA, *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"),
+          ("return_real", "return_net", "penalty:real_loss"))
+    if "real_loss" in c["penalties"] and "penalty:real_loss" not in c["texts"]["reasons"]:
+        raise ConfigError("texts.reasons: penalties.real_loss needs penalty:real_loss")
+    _check_d9(c)
     _keys(c["texts"]["constraint"], "texts.constraint", ("passed", "failed"))
     _keys(c["texts"]["questions"], "texts.questions",
           ("risk_profili", "acik_kisitlar", *SAFE_LEVEL_FIELDS, "reason"))
@@ -237,7 +247,7 @@ def _check_scoring(c: dict) -> None:
         if base + min(0.0, appetite) < 0:
             raise ConfigError(f"{path}: the raw weight is < 0 for some appetite")
 
-    _keys(c["penalties"], "penalties", PENALTIES)
+    _keys(c["penalties"], "penalties", PENALTIES, ("real_loss",))
     for k, v in c["penalties"].items():
         _num(v, f"penalties.{k}", 0)
     _keys(c["fund_size_min"], "fund_size_min", ("total_value_try", "investors"))
@@ -272,3 +282,56 @@ def _check_scoring(c: dict) -> None:
     _keys(c["warnings"], "warnings", ("low_stability_below", "deposit_vs_market_points"))
     _num(c["warnings"]["low_stability_below"], "warnings.low_stability_below", 0, 1)
     _num(c["warnings"]["deposit_vs_market_points"], "warnings.deposit_vs_market_points", 0)
+
+
+def _text(c: dict, section: str, key: str, why: str) -> None:
+    if key not in c["texts"][section]:
+        raise ConfigError(f"texts.{section}: {why} needs {key}")
+
+
+def _check_d9(c: dict) -> None:
+    """Optional D9 sections: real_return, long_horizon, quality_value."""
+    if "real_return" in c:
+        rr = c["real_return"]
+        _keys(rr, "real_return", ("cpi", "stopaj", "loss_scale"))
+        _keys(rr["cpi"], "real_return.cpi", ("source", "quantity", "entity"))
+        st = rr["stopaj"]
+        _keys(st, "real_return.stopaj", ("source", "quantity", "deposit", "time_deposit",
+                                         "fund_default"), ("fund_by_kind",))
+        for path, d in (("real_return.cpi", rr["cpi"]), ("real_return.stopaj", st)):
+            for k, v in d.items():
+                if k != "fund_by_kind" and (not isinstance(v, str) or not v):
+                    raise ConfigError(f"{path}.{k}: must be a non-empty string")
+        by_kind = st.get("fund_by_kind", {})
+        if not isinstance(by_kind, Mapping):
+            raise ConfigError("real_return.stopaj.fund_by_kind: must be a mapping")
+        fund_kinds = {k for k in c["fund_kinds"].values() if k is not None}
+        for kind, entity in by_kind.items():
+            if kind not in fund_kinds or not isinstance(entity, str) or not entity:
+                raise ConfigError(f"real_return.stopaj.fund_by_kind.{kind}: unknown fund kind "
+                                  "or empty entity")
+        if _num(rr["loss_scale"], "real_return.loss_scale", 0) <= 0:
+            raise ConfigError("real_return.loss_scale: must be > 0")
+        why = "the real_return section"
+        for key in ("return_real", "return_net"):
+            _text(c, "reasons", key, why)
+        for key in ("real_return_cpi", "real_return_no_cpi", "stopaj_equity",
+                    "time_deposit_renewal"):
+            _text(c, "assumptions", key, why)
+        for key in ("cpi_missing", "stopaj_missing"):
+            _text(c, "data_quality", key, why)
+
+    if "long_horizon" in c:
+        lh = c["long_horizon"]
+        _keys(lh, "long_horizon", ("period", "liquidity_factor", "return_add"))
+        periods = {p["period"] for p in c["horizon"]["periods"]}
+        if lh["period"] not in periods:
+            raise ConfigError(f"long_horizon.period: {lh['period']!r} is not a horizon period")
+        _num(lh["liquidity_factor"], "long_horizon.liquidity_factor", 0)
+        _num(lh["return_add"], "long_horizon.return_add", 0)
+
+    if "quality_value" in c:
+        qv = c["quality_value"]
+        _keys(qv, "quality_value", ("deposit",), ("time_deposit",))
+        for k, v in qv.items():
+            _num(v, f"quality_value.{k}", 0, 1)

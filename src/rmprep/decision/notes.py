@@ -107,7 +107,9 @@ def source_notes(evidence: EvidenceSet, config: DecisionConfig) -> list[DataQual
 
 
 def build_notes(used_ids: frozenset[str], universe: Universe, evidence: EvidenceSet,
-                config: DecisionConfig) -> tuple[DataQualityNote, ...]:
+                config: DecisionConfig, stopaj_missing: Mapping[str, int] = {},
+                ) -> tuple[DataQualityNote, ...]:
+    """stopaj_missing: stopaj entity -> count of options scored with stopaj 0."""
     tpl = config.raw["texts"]["data_quality"]
     by_flag: dict[tuple[str, str], list[str]] = defaultdict(list)
     for row in evidence.datapoints:
@@ -122,6 +124,15 @@ def build_notes(used_ids: frozenset[str], universe: Universe, evidence: Evidence
         out.append(DataQualityNote(
             message=tpl["out_of_range"].format(count=len(universe.out_of_range)),
             flags=(Flag.OUT_OF_RANGE.value,), evidence_ids=universe.out_of_range))
+    rr = config.raw.get("real_return")
+    if rr is not None and universe.cpi is None:
+        out.append(DataQualityNote(
+            message=tpl["cpi_missing"].format(entity=rr["cpi"]["entity"]),
+            sources=(rr["cpi"]["source"],)))
+    for entity, count in sorted(stopaj_missing.items()):
+        out.append(DataQualityNote(
+            message=tpl["stopaj_missing"].format(entity=entity, count=count),
+            sources=(rr["stopaj"]["source"],)))
     if universe.missing_time_deposit is not None:
         td = config.raw["time_deposit"]
         out.append(DataQualityNote(

@@ -64,6 +64,8 @@ class Universe:
     out_of_range: tuple[str, ...] = ()          # ids of out_of_range rows ignored, sorted
     market_rate: DataPoint | None = None        # EVDS deposit rate (benchmark only)
     missing_time_deposit: str | None = None     # entity of a configured time deposit w/o row
+    cpi: DataPoint | None = None                # annual CPI row (real_return configured)
+    stopaj: Mapping[str, DataPoint] = field(default_factory=dict)   # entity -> stopaj row
     by_id: Mapping[str, Candidate] = field(default_factory=dict)
 
 
@@ -71,6 +73,20 @@ def group_kind(option: ProductOption) -> str:
     """Kind for the caps of the display order and the report groups: the
     fund_kind of a fund, else the option kind (time_deposit is its own kind)."""
     return option.fund_kind or option.kind
+
+
+def stopaj_entity(option: ProductOption, config: DecisionConfig) -> str:
+    """withholding_tax_rate entity of an option (real_return.stopaj)."""
+    st = config.raw["real_return"]["stopaj"]
+    if option.kind in ("deposit", "time_deposit"):
+        return st[option.kind]
+    return st.get("fund_by_kind", {}).get(option.fund_kind, st["fund_default"])
+
+
+def stopaj_entities(config: DecisionConfig) -> list[str]:
+    st = config.raw["real_return"]["stopaj"]
+    return [st["deposit"], st["time_deposit"], st["fund_default"],
+            *st.get("fund_by_kind", {}).values()]
 
 
 def _tr_upper(s: str) -> str:
@@ -100,6 +116,15 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
             option = ProductOption(option_id=td["option_id"], kind="time_deposit",
                                    label=f"{td['label']} ({td['term']})", entity=entity)
             candidates.append(Candidate(option, {td["quantity"]: rate}))
+
+    cpi, stopaj = None, {}
+    rr = c.get("real_return")
+    if rr is not None:
+        cpi = idx.get(rr["cpi"]["quantity"], rr["cpi"]["entity"])
+        for entity in stopaj_entities(config):
+            row = idx.get(rr["stopaj"]["quantity"], entity)
+            if row is not None:
+                stopaj[entity] = row
 
     entities = {k: v for k, v in evidence.entities.items()
                 if v.source not in evidence.excluded_sources}
@@ -133,5 +158,7 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
         out_of_range=tuple(sorted(d.id for d in idx.rows if Flag.OUT_OF_RANGE in d.flags)),
         market_rate=idx.get("deposit_rate", dep["market_entity"]),
         missing_time_deposit=missing_td,
+        cpi=cpi,
+        stopaj=stopaj,
         by_id={cand.option.option_id: cand for cand in candidates},
     )
