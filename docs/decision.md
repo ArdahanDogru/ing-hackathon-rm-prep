@@ -306,6 +306,16 @@ has no amount; the welcome rate is temporary); no real returns (CPI history too
 short); liquidity and income come from the fund kind (no valör data); plus the
 assumptions of section 3.
 
+Details fixed in D5 (2026-10-10):
+
+- `no_fx_deposit_data` turns off when the evidence has a row with quantity
+  `fx_deposit_rate` (code constant `notes.FX_DEPOSIT_QUANTITY`; no source
+  gives one yet).
+- A `needs_rm_input` result has the source notes (excluded, failed, fallback)
+  and the assumptions, but no warnings.
+- Flag-count notes count only the rows the result references (options,
+  rejected, warnings).
+
 ## 7. Identity and config
 
 - `config/decision.yaml`: all tables, weights, penalties, thresholds and Turkish
@@ -338,7 +348,8 @@ funds, with `entities`).
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]
 [--exclude SRC ...] [--answer QID=VALUE ...]` in `cli.py` and runs the report on
-the real snapshot with the user for tuning.
+the real snapshot with the user for tuning. Wired 2026-10-10; extra option
+`--personas DIR` (default: the folder above the project, `../p0*.json`).
 
 ## Later / optional
 

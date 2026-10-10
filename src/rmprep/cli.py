@@ -1,14 +1,18 @@
-"""Command line: python -m rmprep {ingest, replay, show, list}."""
+"""Command line: python -m rmprep {ingest, replay, show, list, decide}."""
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 
 import httpx
 
+from rmprep import decision
+from rmprep.contracts import TR_TZ, Persona
 from rmprep.ingest.adapters import evds
 from rmprep.ingest.adapters.evds import EvdsParseError
 from rmprep.ingest.config import ConfigError, EvdsSource, load_config
@@ -113,6 +117,35 @@ def _evds_meta(paths: Paths, args: argparse.Namespace,
     return 0
 
 
+def _persona(folder: Path, persona_id: str) -> Persona:
+    for f in sorted(folder.glob("*.json")):
+        d = json.loads(f.read_text(encoding="utf-8"))
+        if isinstance(d, dict) and str(d.get("persona_id", "")).upper() == persona_id.upper():
+            return Persona.from_dict(d)
+    raise ValueError(f"no persona {persona_id!r} in {folder}")
+
+
+def _decide(paths: Paths, args: argparse.Namespace) -> int:
+    answers = {}
+    for a in args.answer:
+        qid, sep, value = a.partition("=")
+        if not sep or not qid:
+            raise ValueError(f"--answer needs QID=VALUE, got {a!r}")
+        answers[qid] = value
+    persona = _persona(args.personas or paths.root.parent, args.persona)
+    snapshot_id = args.snapshot
+    if snapshot_id is None:
+        snaps = list_snapshots(paths.snapshots)
+        if not snaps:
+            raise ValueError(f"no snapshot in {paths.snapshots}; run ingest first")
+        snapshot_id = snaps[-1].snapshot_id
+    ev = build_evidence(paths.snapshots, snapshot_id, frozenset(args.exclude))
+    config = decision.load_config(paths.root / "config" / "decision.yaml")
+    result = decision.decide(ev, persona, config, answers, created_at=datetime.now(TR_TZ))
+    print(decision.render(result))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -129,6 +162,15 @@ def main(argv: list[str] | None = None) -> int:
     p_show.add_argument("--exclude", action="append", default=[], metavar="SOURCE",
                         help="leave out a source (repeatable); checks run again without it")
     sub.add_parser("list", help="list snapshots")
+    p_dec = sub.add_parser("decide", help="score the options of a snapshot for a persona")
+    p_dec.add_argument("--persona", required=True, help="persona id, e.g. P01")
+    p_dec.add_argument("--snapshot", help="snapshot id (default: the latest)")
+    p_dec.add_argument("--exclude", action="append", default=[], metavar="SOURCE",
+                       help="leave out a source (repeatable)")
+    p_dec.add_argument("--answer", action="append", default=[], metavar="QID=VALUE",
+                       help="answer to an RM question (repeatable)")
+    p_dec.add_argument("--personas", type=Path,
+                       help="folder with the persona JSONs (default: the folder above --root)")
     p_find = sub.add_parser("evds-find", help="search EVDS data groups by name; list their series")
     p_find.add_argument("text", help='e.g. "mevduat" or "politika faizi"')
     p_info = sub.add_parser("evds-info", help="show EVDS metadata for a series or data group code")
@@ -150,9 +192,11 @@ def main(argv: list[str] | None = None) -> int:
             for s in list_snapshots(paths.snapshots):
                 status = " ".join(f"{k}={v.status}" for k, v in sorted(s.sources.items()))
                 print(f"{s.snapshot_id}  {s.created_at.isoformat()}  {status}")
+        elif args.command == "decide":
+            return _decide(paths, args)
         elif args.command in ("evds-find", "evds-info"):
             return _evds_meta(paths, args)
-    except (ConfigError, SnapshotError, ExclusionError, EvdsParseError) as e:
+    except (ConfigError, SnapshotError, ExclusionError, EvdsParseError, ValueError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
     return 0
