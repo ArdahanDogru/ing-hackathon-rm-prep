@@ -90,9 +90,27 @@ tools, device `laptop-a`:
    worktree is missing (else rebase it on main first).
 2. `list_sessions` — no running session may already be named `ing-<m>`.
 3. `start_session(device="laptop-a", cwd="C:/Users/yardang/dev/ing-wt/<m>",
-   name="ing-<m>", prompt=<template below>)`.
+   name="ing-<m>", prompt=<template below>, effort=<level below>)`.
 4. When its work is merged and no milestone is left: `stop_session`. To bring a
    stopped worker back with its history: `resume_session` with a message.
+
+Model and effort (set 2026-10-11 with the user). Every session runs on the
+user's default model (Opus 5.5, 1M context); `start_session` and
+`resume_session` take `effort` (and `model`, normally left out). Opus 5.5
+defaults to `medium`; higher levels test more edge cases and verify more, at
+more tokens and time.
+
+| Session | Effort | Why |
+|---|---|---|
+| `ing-lead` | `high` | merges, red tests, contract requests, choices while the user is away |
+| `ing-ingest`, `ing-decision`, `ing-eval` | `high` | parsing, scoring rules, determinism: edge cases matter |
+| `ing-narrator` | `high` | output guard and claims must hold |
+| `ing-ui` | `medium` | clear scope; the user reviews it on screen |
+
+Do not use `xhigh` or `max` as a worker default; for one hard task, ask the
+user first or put `ultrathink` in that one message. To change a running
+worker's effort: `stop_session` at a safe point, then `resume_session` with the
+new `effort` (it is kept for later starts).
 
 Worker prompt template (fill `<m>`, `<design doc>` and the first milestone):
 
