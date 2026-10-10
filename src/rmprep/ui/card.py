@@ -17,7 +17,7 @@ from rmprep.contracts import (
     NarrativeStatus,
     RmStatus,
 )
-from rmprep.ui import views
+from rmprep.ui import glossary, views
 from rmprep.ui.i18n import t
 
 
@@ -98,8 +98,26 @@ def _demoted(markdown: str) -> str:
     return "\n".join("##" + x if x.startswith("#") else x for x in markdown.splitlines())
 
 
+def _terms(body: str, glossary_terms: tuple[glossary.Term, ...],
+           lang: str) -> list[glossary.Found]:
+    """The glossary terms of the card text (docs/ui.md U11), first appearance first."""
+    return glossary.find_terms(body, glossary_terms, lang)
+
+
 def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
-                    narrative: NarrativeDraft | None = None) -> str:
+                    narrative: NarrativeDraft | None = None,
+                    glossary_terms: tuple[glossary.Term, ...] = ()) -> str:
+    body = _markdown_body(r, evidence, lang, narrative)
+    found = _terms(body, glossary_terms, lang)
+    if not found:
+        return body
+    lines = ["", f"## {t('terms', lang)}", ""]
+    lines += [f"- **{f.form}**: {f.explanation}" for f in found]
+    return body + "\n".join(lines) + "\n"
+
+
+def _markdown_body(r: DecisionResult, evidence: EvidenceSet, lang: str,
+                   narrative: NarrativeDraft | None) -> str:
     lines = [f"# {_title(r, lang)}", "", _meta(r, lang)]
     for s in _sections(r, evidence, lang):
         lines += ["", f"## {s.heading}", ""]
@@ -120,7 +138,8 @@ border-bottom:1px solid #d6d5d0}.meta{color:#5c5b56}li{margin:.15rem 0}
 
 
 def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
-                narrative: NarrativeDraft | None = None) -> str:
+                narrative: NarrativeDraft | None = None,
+                glossary_terms: tuple[glossary.Term, ...] = ()) -> str:
     e = html.escape
     parts = ["<!DOCTYPE html>", f'<html lang="{lang.lower()}"><head><meta charset="utf-8">',
              f"<title>{e(_title(r, lang))}</title><style>{_CSS}</style></head><body>",
@@ -135,5 +154,10 @@ def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
     text = _narrative_text(r, narrative, lang)
     if text is not None:   # the RM's Markdown as written (no converter: no new dependency)
         parts.append(f'<h2>{e(t("nar_title", lang))}</h2><pre class="narrative">{e(text)}</pre>')
+    found = _terms(_markdown_body(r, evidence, lang, narrative), glossary_terms, lang)
+    if found:      # the same terms as the Markdown card
+        items = "".join(f"<li><strong>{e(f.form)}</strong>: {e(f.explanation)}</li>"
+                        for f in found)
+        parts.append(f"<h2>{e(t('terms', lang))}</h2><ul>{items}</ul>")
     parts.append("</body></html>")
     return "\n".join(parts) + "\n"

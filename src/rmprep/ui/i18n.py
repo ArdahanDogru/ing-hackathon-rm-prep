@@ -146,6 +146,7 @@ LABELS: dict[str, dict[str, str]] = {
     "rule.liquidity_need": {"TR": "Likidite kısıtı", "EN": "Liquidity constraint"},
     "rej_filter": {"TR": "Filtre: {rule} ({n})", "EN": "Filter: {rule} ({n})"},
     "rej_all": {"TR": "Tümü", "EN": "All"},
+    "terms": {"TR": "Terimler", "EN": "Terms"},
     # meeting text (narrator, contract v1.2)
     "nar_title": {"TR": "Görüşme metni", "EN": "Meeting text"},
     "nar_wait": {"TR": "Görüşme metni hazırlanıyor…", "EN": "Preparing the meeting text…"},

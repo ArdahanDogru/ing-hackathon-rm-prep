@@ -27,13 +27,14 @@ from rmprep.contracts import (
     ScoredOption,
 )
 from rmprep.narrator import template
-from rmprep.ui import card, views
+from rmprep.ui import card, glossary, views
 from rmprep.ui.fake import FakeBackend
 from rmprep.ui.i18n import LANGS, t
 
 PROTOTYPE = Path(__file__).resolve().parents[3]
 FIXTURES = PROTOTYPE / "tests" / "contracts" / "fixtures"
 DECISION_CONFIG = PROTOTYPE / "config" / "decision.yaml"
+GLOSSARY = PROTOTYPE / "config" / "glossary.yaml"     # static, lead-owned (U11)
 _EDIT = "edit:"
 _TEXT_FIELDS = ("profil", "durum", "yatirim_amaci", "rm_notu")
 _OPEN_REJECTED = 10   # more rejected options than this start closed
@@ -530,7 +531,8 @@ def _approve(run_id: str, option_ids: tuple[str, ...]) -> None:
 def _save_card(r: DecisionResult) -> None:
     ss = st.session_state
     lang = _lang()
-    md = card.render_markdown(r, ss["evidence"][1], lang, _approved_narrative(r.run_id, lang))
+    md = card.render_markdown(r, ss["evidence"][1], lang, _approved_narrative(r.run_id, lang),
+                              _glossary())
     ss["card_saved"] = (r.run_id, ss["backend"].save_card(r.run_id, md))
 
 
@@ -586,12 +588,12 @@ def _card(r: DecisionResult, lang: str) -> None:
     """The summary card of an approved run, its downloads and its notes."""
     ev = st.session_state["evidence"][1]
     narrative = _approved_narrative(r.run_id, lang)
-    md = card.render_markdown(r, ev, lang, narrative)
+    md = card.render_markdown(r, ev, lang, narrative, _glossary())
     with st.container(border=True):
         st.markdown(md)
     st.download_button(t("dl_md", lang), md, file_name=f"{r.run_id}.md", mime="text/markdown",
                        key="dl_md")
-    st.download_button(t("dl_html", lang), card.render_html(r, ev, lang, narrative),
+    st.download_button(t("dl_html", lang), card.render_html(r, ev, lang, narrative, _glossary()),
                        file_name=f"{r.run_id}.html", mime="text/html", key="dl_html")
     _default(f"card_note:{r.run_id}", r.rm_note)
     st.text_area(t("card_note", lang), key=f"card_note:{r.run_id}")
@@ -672,6 +674,22 @@ def _meeting_text(backend: Backend, r: DecisionResult, original: Persona, lang: 
         st.success(t("nar_approved", lang))
     st.caption(t("nar_meta", lang, source=d.source, model=d.model or "—", cost=f"{d.cost_usd:.4f}",
                  version=d.prompt_version, status=t("nar_status_" + d.status.value, lang)))
+    _terms_section(st.session_state[_text_key(r.run_id, lang)], lang)
+
+
+def _glossary() -> tuple[glossary.Term, ...]:
+    """config/glossary.yaml, loaded once (glossary.load caches by path)."""
+    return glossary.load(GLOSSARY)
+
+
+def _terms_section(text: str, lang: str) -> None:
+    """ "Terimler": the glossary terms of the shown meeting text (docs/ui.md U11)."""
+    found = glossary.find_terms(text, _glossary(), lang)
+    if not found:
+        return
+    st.markdown(f"**{t('terms', lang)}**")
+    for f in found:
+        st.markdown(f"- **{f.form}**: {f.explanation}")
 
 
 # --- right pane ---------------------------------------------------------------------
