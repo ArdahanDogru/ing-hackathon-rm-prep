@@ -16,6 +16,17 @@ deposit:
   # EVDS market average, for the deposit_vs_market warning.
   market_entity: "TRY savings deposit rate up to 3M, weighted average (new deposits)"
 
+# ING e-Vadeli Mevduat: one ranked option (contract v1.1, docs/decision.md section 1).
+# entity = "<entity_prefix>, <term>, <tier>" (data/inbox/manual/ing_e_vadeli.csv).
+time_deposit:
+  option_id: "time_deposit:ing_e_vadeli"
+  label: "ING e-Vadeli Mevduat"
+  source: manual
+  quantity: deposit_rate
+  entity_prefix: "ING e-Vadeli Mevduat"
+  term: "32-45 gün"
+  tier: "99.999,99-250.000 TL"   # the column that holds 100.000-249.999 TL
+
 # EntityInfo.category (TEFAS umbrella type) -> fund_kind; null = not in the universe.
 fund_kinds:
   "Para Piyasası Şemsiye Fonu": money_market
@@ -99,6 +110,7 @@ constraint_effects:
 # --- 4. Scoring ----------------------------------------------------------------------
 kinds:   # liquidity / income / simplicity values (0..1)
   deposit:         {liquidity: 1.0, income: 1.0, simplicity: 1.0}
+  time_deposit:    {liquidity: 0.6, income: 0.9, simplicity: 1.0}
   money_market:    {liquidity: 0.9, income: 0.6, simplicity: 1.0}
   debt:            {liquidity: 0.7, income: 0.5, simplicity: 0.7}
   participation:   {liquidity: 0.6, income: 0.4, simplicity: 0.6}
@@ -108,7 +120,7 @@ kinds:   # liquidity / income / simplicity values (0..1)
   mixed:           {liquidity: 0.5, income: 0.3, simplicity: 0.4}
   fund_of_funds:   {liquidity: 0.5, income: 0.2, simplicity: 0.3}
 
-principal_value: {deposit: 1.0, fund_base: 0.8, fund_step: 0.15}   # fund: max(0, base - step*(risk-1))
+principal_value: {deposit: 1.0, time_deposit: 1.0, fund_base: 0.8, fund_step: 0.15}   # fund: max(0, base - step*(risk-1))
 
 # Raw weight = base + per_level * level (+ appetite terms), then normalized.
 weights:
@@ -206,6 +218,7 @@ texts:
     deposit_vs_market: "ING standart mevduat oranı (%{ing:.2f}) piyasa ortalamasının (%{market:.2f}) {diff:.1f} puan altında."
     no_fx_deposit_data: "Döviz mevduatı oranı kanıtlarda yok; döviz mevduatı karşılaştırılamadı."
   data_quality:
+    time_deposit_missing: "ING e-Vadeli Mevduat oranı ({entity}) kanıtlarda yok; vadeli mevduat seçeneği eklenmedi."
     flag_count: "{source}: {count} değer \"{flag}\" işaretli."
     excluded: "Sonuç {source} kaynağı olmadan hesaplandı (RM tarafından hariç tutuldu)."
     failed: "{source} alınamadı: {error}"
