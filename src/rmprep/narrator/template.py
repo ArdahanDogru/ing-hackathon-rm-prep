@@ -318,12 +318,25 @@ def template_draft(f: Facts, lang: str, config: NarratorConfig, *, created_at: d
         created_at=created_at)
 
 
+# shown over a template text that replaces an LLM text (validator, budget, API error)
+BANNER = {
+    "TR": "Otomatik metin doğrulanamadı; şablon metin gösteriliyor.",
+    "EN": "The automatic text could not be verified; the template text is shown.",
+}
+
+
+def banner(d: NarrativeDraft) -> str | None:
+    return BANNER[d.lang] if d.source == "template" and d.checks else None
+
+
 _PARAGRAPHS = ("ozet", "teklif_metni")    # prose; the other sections are lists
 
 
 def to_markdown(d: NarrativeDraft) -> str:
     """The draft as Markdown: the text the RM edits and approves (rm_text)."""
     lines = [f"# {TEXTS[d.lang]['title']} · {d.run_id}"]
+    if banner(d):
+        lines += ["", f"> ⚠ {banner(d)}"]
     for sec in d.sections:
         lines += ["", f"## {HEADINGS[sec.key][d.lang]}", ""]
         if sec.key in _PARAGRAPHS:

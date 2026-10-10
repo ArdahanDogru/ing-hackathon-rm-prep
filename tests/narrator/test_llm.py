@@ -1,0 +1,114 @@
+"""The Anthropic adapter with a fake SDK object: no network."""
+
+import anthropic
+import httpx2
+import pytest
+from anthropic.types.beta import BetaMessage
+
+from rmprep.narrator.llm import AnthropicClient, LlmError, LlmRequest, client_from_env
+
+REQ = LlmRequest(system="sys", user_blocks=("facts", "task"),
+                 schema={"type": "object", "properties": {}, "required": [],
+                         "additionalProperties": False})
+
+
+def _message(**over) -> BetaMessage:
+    data = {
+        "id": "msg_1", "type": "message", "role": "assistant", "model": "claude-sonnet-5-5",
+        "content": [{"type": "thinking", "thinking": "", "signature": "s"},
+                    {"type": "text", "text": '{"ozet": []}'}],
+        "stop_reason": "end_turn", "stop_sequence": None,
+        "usage": {"input_tokens": 8000, "output_tokens": 1500,
+                  "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0},
+    }
+    data.update(over)
+    return BetaMessage.model_validate(data)
+
+
+class _Messages:
+    def __init__(self, result):
+        self.result, self.kwargs = result, None
+
+    def create(self, **kwargs):
+        self.kwargs = kwargs
+        if isinstance(self.result, Exception):
+            raise self.result
+        return self.result
+
+
+class FakeSdk:
+    def __init__(self, result):
+        self.messages = _Messages(result)
+        self.beta = self
+
+
+def _client(config, result):
+    sdk = FakeSdk(result)
+    return AnthropicClient(config, sdk=sdk), sdk.messages
+
+
+def test_request_shape(config):
+    client, calls = _client(config, _message())
+    client.complete(REQ)
+    k = calls.kwargs
+    assert k["model"] == "claude-sonnet-5-5"
+    assert k["max_tokens"] == config.max_tokens
+    assert k["output_config"] == {"effort": config.effort,
+                                  "format": {"type": "json_schema", "schema": REQ.schema}}
+    assert k["betas"] == ["server-side-fallback-2026-07-01"] and k["fallbacks"] == "default"
+    assert "thinking" not in k and "temperature" not in k     # adaptive thinking by default
+    assert k["system"] == "sys"
+    (msg,) = k["messages"]
+    assert msg["role"] == "user"
+    facts, task = msg["content"]
+    assert facts == {"type": "text", "text": "facts", "cache_control": {"type": "ephemeral"}}
+    assert task == {"type": "text", "text": "task"}
+
+
+def test_reply_fields(config):
+    client, _ = _client(config, _message(
+        model="claude-sonnet-5",
+        usage={"input_tokens": 100, "output_tokens": 50, "cache_creation_input_tokens": 7000,
+               "cache_read_input_tokens": 900}))
+    r = client.complete(REQ)
+    assert r.text == '{"ozet": []}'
+    assert r.model == "claude-sonnet-5"          # served by the fallback model
+    assert (r.input_tokens, r.output_tokens, r.cache_write_tokens, r.cache_read_tokens) == \
+        (100, 50, 7000, 900)
+    assert r.stop_reason == "end_turn" and r.refusal_category is None
+
+
+def test_refusal_reply(config):
+    client, _ = _client(config, _message(
+        content=[], stop_reason="refusal",
+        stop_details={"type": "refusal", "category": "general_harms", "explanation": None}))
+    r = client.complete(REQ)
+    assert r.stop_reason == "refusal" and r.refusal_category == "general_harms"
+    assert r.text is None
+
+
+_REQ = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+
+
+@pytest.mark.parametrize("error, kind", [
+    (anthropic.AuthenticationError("bad key", response=httpx2.Response(401, request=_REQ),
+                                   body=None), "auth"),
+    (anthropic.BadRequestError("bad", response=httpx2.Response(400, request=_REQ), body=None),
+     "request"),
+    (anthropic.RateLimitError("slow", response=httpx2.Response(429, request=_REQ), body=None),
+     "rate_limit"),
+    (anthropic.InternalServerError("down", response=httpx2.Response(529, request=_REQ),
+                                   body=None), "server"),
+    (anthropic.APIConnectionError(request=_REQ), "connection"),
+])
+def test_sdk_errors_become_llm_errors(error, kind, config):
+    client, _ = _client(config, error)
+    with pytest.raises(LlmError) as e:
+        client.complete(REQ)
+    assert e.value.kind == kind
+
+
+def test_client_from_env(config):
+    assert client_from_env(config, {}) is None
+    assert client_from_env(config, {"ANTHROPIC_API_KEY": ""}) is None
+    assert isinstance(client_from_env(config, {"ANTHROPIC_API_KEY": "sk-test"}), AnthropicClient)
