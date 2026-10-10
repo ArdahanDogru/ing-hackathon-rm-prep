@@ -29,6 +29,8 @@ ui = `docs/ui.md`.
 - All worktrees share `prototype/.venv`. pytest puts `src` first
   (`pythonpath = ["src"]`), so each worktree tests its own code. Python:
   `C:/Users/yardang/dev/ing-hackathon/prototype/.venv/Scripts/python`.
+- Files keep LF line endings (`* -text`: git does not convert them);
+  `tests/workflow/test_line_endings.py` fails on CRLF in `.py` files.
 - Data (`data/`, `.env`) exists only in the main checkout. A live ingest from a
   worktree uses `python -m rmprep --root C:/Users/yardang/dev/ing-hackathon/prototype ...`.
 
