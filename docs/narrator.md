@@ -178,6 +178,11 @@ stay in the narrator (they need the facts pack).
   model that served the text (can be another model after a fallback).
 - `prompt_version` "n1" covers the first LLM prompt; bump it on any change of
   `prompt.py`.
+- Prompt caching (the user, 2026-10-10; N6): two cache marks — at the end of the
+  system prompt (rules, sections, phrases, format; about 1,700 tokens, the same
+  for every call in one language, so calls for different clients within 5
+  minutes read it from the cache) and after the facts pack (reused on a
+  validator retry). Nothing that changes per call may be in the system prompt.
 - Live smoke test (about $0.05): `tests/narrator/test_live.py`, runs only with
   `RMPREP_LIVE_NARRATOR=1` and a key, so a plain `pytest` never calls the API.
 - N4 (lead): `RealBackend.draft_narrative` / `approve_narrative`; ui: U9.

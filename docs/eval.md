@@ -62,7 +62,8 @@ checks. One run of the full suite is a command: `python -m rmprep eval`.
 | Time | seconds per decide; seconds per narrator text | report only |
 | Cost | USD per narrator text and per suite run | report only |
 
-LLM judge (decided): Claude Haiku 5.5 (`claude-haiku-5-5`, about $0.003 per
+LLM judge (decided; the rubric and instructions in a cached system block, the user
+2026-10-10): Claude Haiku 5.5 (`claude-haiku-5-5`, about $0.003 per
 text) grades only what code cannot: is the text tailored to this client (brief
 section 3, "genel teklif"), is it clear for the RM. Fixed choices per rubric item
 (e.g. yes / partly / no) and a one-line reason, through structured output. The
