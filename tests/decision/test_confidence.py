@@ -110,7 +110,9 @@ def _hand(oid, kind, values, factors=None):
 
 @pytest.fixture
 def top1(raw):
+    """Stability counts position 1 only, whatever the real config sets."""
     raw["display"].update(first=1, shortlist=1)
+    raw["stability"]["size"] = 1
     return parse_config(raw)
 
 
