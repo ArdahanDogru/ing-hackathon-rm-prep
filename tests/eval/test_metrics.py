@@ -48,3 +48,18 @@ def test_a_failed_rule_check_misses_the_target(root):
     assert not m["targets"]["rule_checks"]["met"]
     assert m["targets"]["forbidden_phrases"]["value"] == 1
     assert m["checks"]["rule5"][PASS] == 1 and m["checks"]["rule5"][FAIL] == 1
+
+
+def test_without_llm_texts_the_text_targets_are_not_measured(root):
+    from rmprep.eval.report import to_markdown
+    from rmprep.eval.suite import run_suite
+    from tests.eval.conftest import CONTRACT_FIX
+    res = run_suite(root, only=["base-p01"], personas_dir=CONTRACT_FIX / "personas",
+                    narrator=None, judge=None, write=False)
+    t = res.metrics["targets"]
+    assert t["narrator_pass_rate"] == {"value": None, "target": 0.95, "met": None}
+    assert t["forbidden_phrases"]["met"] is None and t["rule_checks"]["met"] is True
+    md = to_markdown(res)
+    assert "| Narrator validator pass rate | n/a | ≥ 95 % | n/a |" in md
+    assert "| Forbidden phrases | n/a | 0 | n/a |" in md
+    assert "n/a: no graded text" in md

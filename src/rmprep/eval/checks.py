@@ -318,11 +318,17 @@ def check_questions(c: Context) -> CheckResult:
     return CheckResult.of("questions", problems)
 
 
+NOT_MEASURED = ("llm: no API key", "budget:")   # template without an LLM try: not a finding
+
+
 def check_narrator_valid(c: Context) -> CheckResult:
-    if not c.run.narratives:
-        return CheckResult.of("narrator_valid", [], na="no meeting text")
+    texts = {lang: d for lang, d in c.run.narratives.items()
+             if not (d.source == "template" and d.checks
+                     and all(x.startswith(NOT_MEASURED) for x in d.checks))}
+    if not texts:
+        return CheckResult.of("narrator_valid", [], na="no LLM meeting text")
     problems = []
-    for lang, d in sorted(c.run.narratives.items()):
+    for lang, d in sorted(texts.items()):
         if d.source != "llm":
             problems.append(f"{lang}: template text ({'; '.join(d.checks[:3]) or 'no reason'})")
         elif d.checks:
@@ -420,9 +426,25 @@ def _mean(xs):
     return statistics.fmean(xs) if xs else None
 
 
-def metric_values(run: RunRecord, decision_config: Mapping[str, Any]) -> dict[str, Any]:
+def phrase_findings(run: RunRecord, narrator_config) -> int | None:
+    """The phrase findings of the current narrator validator on the texts of the
+    run (the template text included, so no LLM call is needed)."""
+    if narrator_config is None or run.approved is None or not run.narratives:
+        return None
+    from rmprep.narrator.facts import build_facts
+    from rmprep.narrator.validator import validate
+
+    facts = build_facts(run.approved, run.evidence)
+    return sum(1 for lang, d in run.narratives.items()
+               for f in validate(d.sections, facts, run.approved, narrator_config, lang)
+               if f.startswith("phrase:"))
+
+
+def metric_values(run: RunRecord, decision_config: Mapping[str, Any],
+                  narrator_config=None) -> dict[str, Any]:
     """The metrics `expect` can name, of one run."""
     r = run.result
+    ev = run.evidence
     o = Oracle(r, run.evidence, decision_config)
     top = [x for x in r.options if x.option.kind != "deposit"][:SENSITIVITY_TOP]
     risks = [o.risk(x.option) for x in top]
@@ -442,6 +464,12 @@ def metric_values(run: RunRecord, decision_config: Mapping[str, Any]) -> dict[st
         "baseline_below_best_fund": (None if deposit is None or best_fund is None
                                      else deposit < best_fund),
         "options": len(r.options),
+        "max_sell_valor": max((v for v in (o.sell_valor(x.option) for x in r.options)
+                               if v is not None), default=None),
+        "evidence_rows": dict(Counter(d.source for d in ev.datapoints
+                                      if d.source not in ev.excluded_sources)),
+        "failed_sources": sorted(k for k, v in ev.source_status.items() if v.status == "failed"),
+        "validator_phrase_findings": phrase_findings(run, narrator_config),
     }
 
 
@@ -449,7 +477,8 @@ DIRECTIONS = ("lower", "higher", "not_higher", "not_lower", "same", "changed")
 ABSOLUTE = ("at_most", "at_least", "equals")
 METRICS = ("state", "avg_risk", "max_risk", "fx_count", "fx_in_options", "avg_sell_valor",
            "shortlist", "not_buyable_in_options", "baseline_below_best_fund", "options",
-           "rejected")
+           "rejected", "max_sell_valor", "evidence_rows", "failed_sources",
+           "validator_phrase_findings")
 
 
 def expect_errors(s: Scenario) -> list[str]:
@@ -477,16 +506,16 @@ def _compare(key: str, want: str, now, base) -> str | None:
 
 
 def check_sensitivity(sr: ScenarioRun, compare: ScenarioRun | None,
-                      decision_config: Mapping[str, Any]) -> CheckResult:
+                      decision_config: Mapping[str, Any], narrator_config=None) -> CheckResult:
     s = sr.scenario
     if not s.expect:
         return CheckResult.of("sensitivity", [], na="no expectation")
     if not sr.runs:
         return CheckResult.of("sensitivity", [f"the scenario did not run: {sr.error}"])
-    now = metric_values(sr.runs[0], decision_config)
+    now = metric_values(sr.runs[0], decision_config, narrator_config)
     base = None
     if compare is not None and compare.runs:
-        base = metric_values(compare.runs[0], decision_config)
+        base = metric_values(compare.runs[0], decision_config, narrator_config)
     problems = list(expect_errors(s))
     undecided: list[str] = []
     for key, want in s.expect.items():
@@ -538,7 +567,10 @@ class ScenarioChecks:
 
 
 def run_checks(runs: list[ScenarioRun], decision_config: Mapping[str, Any],
-               forbidden_phrases: Mapping[str, tuple[str, ...]]) -> list[ScenarioChecks]:
+               forbidden_phrases: Mapping[str, tuple[str, ...]],
+               narrator_config=None) -> list[ScenarioChecks]:
+    """All checks of all scenarios; narrator_config (NarratorConfig) enables the
+    metric validator_phrase_findings."""
     by_id = {sr.scenario.id: sr for sr in runs}
     out = []
     for sr in runs:
@@ -546,7 +578,8 @@ def run_checks(runs: list[ScenarioRun], decision_config: Mapping[str, Any],
         base_run = compare.runs[0] if compare is not None and compare.runs else None
         per_run = [[chk(Context(sr.scenario, run, decision_config, forbidden_phrases, base_run))
                     for chk in RUN_CHECKS] for run in sr.runs]
-        sc = [check_consistency(sr), check_sensitivity(sr, compare, decision_config)]
+        sc = [check_consistency(sr),
+              check_sensitivity(sr, compare, decision_config, narrator_config)]
         if sr.error:
             sc.insert(0, CheckResult("scenario_runs", FAIL, (sr.error,)))
         out.append(ScenarioChecks(sr.scenario, per_run, sc, sr.error))

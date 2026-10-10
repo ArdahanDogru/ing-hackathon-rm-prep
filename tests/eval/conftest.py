@@ -12,7 +12,7 @@ import pytest
 
 from rmprep import backend as be
 from rmprep.contracts import (
-    TR_TZ, EvidenceSet, NarrativeDraft, NarrativeSection, NarrativeSentence,
+    TR_TZ, EvidenceSet, NarrativeDraft, NarrativeSection, NarrativeSentence, SourceStatus,
 )
 
 PROJECT = Path(__file__).resolve().parents[2]
@@ -33,12 +33,39 @@ def builds() -> list:
 
 
 @pytest.fixture
-def root(monkeypatch, tmp_path, builds):
+def extra_rows() -> list:
+    """DataPoints a test adds to the fixture evidence (before the backend builds it)."""
+    return []
+
+
+@pytest.fixture
+def dropped_rows() -> list:
+    """Predicates on DataPoints: matching fixture rows are removed."""
+    return []
+
+
+@pytest.fixture
+def renamed() -> dict:
+    """entity -> new fund name in EvidenceSet.entities."""
+    return {}
+
+
+@pytest.fixture
+def root(monkeypatch, tmp_path, builds, extra_rows, dropped_rows, renamed):
     """A project root with config/ copied; build_evidence serves the fixture
-    evidence and records its calls in `builds`."""
-    ev = fixture_evidence()
+    evidence (minus `dropped_rows`, plus `extra_rows` - a new source gets status
+    ok -, entities renamed by `renamed`) and records its calls in `builds`."""
+    base = fixture_evidence()
 
     def fake_build(snapshots, snapshot_id, exclude=frozenset()):
+        status = dict(base.source_status)
+        for d in extra_rows:
+            status.setdefault(d.source, SourceStatus("ok"))
+        rows = tuple(d for d in base.datapoints if not any(f(d) for f in dropped_rows))
+        entities = {k: dataclasses.replace(v, name=renamed.get(k, v.name))
+                    for k, v in base.entities.items()}
+        ev = dataclasses.replace(base, source_status=status, entities=entities,
+                                 datapoints=rows + tuple(extra_rows))
         if snapshot_id != ev.snapshot_id:
             raise ValueError(f"no snapshot {snapshot_id}")
         unknown = set(exclude) - set(ev.source_status)
@@ -48,7 +75,7 @@ def root(monkeypatch, tmp_path, builds):
         return dataclasses.replace(ev, excluded_sources=frozenset(exclude))
 
     class Snap:
-        snapshot_id = ev.snapshot_id
+        snapshot_id = base.snapshot_id
 
     monkeypatch.setattr(be, "build_evidence", fake_build)
     monkeypatch.setattr(be, "list_snapshots", lambda snapshots: [Snap()])

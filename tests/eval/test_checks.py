@@ -65,7 +65,8 @@ def p01(root):
 def test_clean_runs_pass_or_are_na(root):
     from rmprep.eval.scenario import load_scenarios, packaged_scenario_files
     runs = runner(root).run([s for s in load_scenarios(packaged_scenario_files())
-                             if "tefas_detail" not in s.exclude_sources])
+                             if "tefas_detail" not in s.exclude_sources
+                             and s.group != "regression"])   # test_regression.py adds their rows
     for sc in run_checks(runs, DCFG, PHRASES):
         for c in sc.all():
             assert c.status in (PASS, NA), (sc.scenario.id, c)
@@ -309,3 +310,12 @@ def test_packaged_expectations_are_valid():
     for s in load_scenarios(packaged_scenario_files()):
         assert expect_errors(s) == [], s.id
     assert DecisionState.READY  # import used
+
+
+def test_a_template_without_an_llm_try_is_not_a_narrator_finding(p01):
+    run = p01.runs[0]
+    for checks in (("llm: no API key (ANTHROPIC_API_KEY)",), ("budget: daily limit $5.00 reached",)):
+        d = text(run, NarrativeSentence("x"), source="template", checks=checks)
+        c = check_narrator_valid(Context(p01.scenario, dataclasses.replace(
+            run, narratives={"TR": d}), DCFG, PHRASES))
+        assert c.status == NA

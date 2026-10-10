@@ -1,0 +1,83 @@
+# Error-analysis cases (docs/eval.md "Error analysis and improvements"), kept
+# as regression scenarios: each passes after its fix. Before/after values are
+# from snapshot 20261010-163440-dd5d (after) and the case record (before).
+scenarios:
+  - id: reg-d9-deposit-baseline
+    group: regression
+    description: >-
+      Case 1, D9 real return after tax: the deposit baseline was above every fund
+      (P01 baseline 0.912, nominal score). After D9: baseline 0.568 < best fund 0.837.
+    persona: P01
+    needs: [D9]
+    narrate: false
+    expect: {baseline_below_best_fund: true}
+
+  - id: reg-d12-not-buyable-p01
+    group: regression
+    description: >-
+      Case 2, I3b + D12 not_buyable: 189 of 809 funds cannot be bought; 1-4 of them
+      were in each persona's top 20. After D12: 0 listed, 189 rejected (P01).
+    persona: P01
+    needs: [D12]
+    narrate: false
+    expect: {not_buyable_in_options: {equals: 0}, rejected: {at_least: {not_buyable: 1}}}
+  - id: reg-d12-not-buyable-p03
+    group: regression
+    description: >-
+      Case 2 for P03 (Agresif: no risk rejects, so not_buyable is the only filter).
+      After D12: 0 listed, 189 rejected.
+    persona: P03
+    needs: [D12]
+    narrate: false
+    expect: {not_buyable_in_options: {equals: 0}, rejected: {at_least: {not_buyable: 1}}}
+
+  - id: reg-d13-fx-limit-p02
+    group: regression
+    description: >-
+      Case 3, D13 explicit constraints as hard rules: fx_limit (P02) was only a
+      penalty; 8 FX funds stayed in the full list. After D13: 0 listed, 14 rejected.
+    persona: P02
+    needs: [D13]
+    narrate: false
+    expect: {fx_in_options: {equals: 0}, rejected: {at_least: {fx_limit: 1}}}
+  - id: reg-d13-liquidity-need-p05
+    group: regression
+    description: >-
+      Case 3, D13 liquidity_need (P05): funds with a sell valör above 3 days were
+      listed with a penalty. After D13: none listed (max valör 3), 2 rejected.
+    persona: P05
+    needs: [D13]
+    narrate: false
+    expect: {max_sell_valor: {at_most: 3}, rejected: {at_least: {liquidity_need: 1}}}
+
+  - id: reg-i3-tefas-detail-source
+    group: regression
+    description: >-
+      Case 4, TEFAS detail source failed on its first live run (valör required but
+      null for funds not on TEFAS). Fix: optional fields. After: source ok, 5,384 rows.
+    persona: P01
+    needs: [I3b]
+    narrate: false
+    expect: {evidence_rows: {at_least: {tefas_detail: 1}}, failed_sources: {equals: []}}
+
+  - id: reg-n5-garanti-fund-name
+    group: regression
+    description: >-
+      Case 5 (found by this eval), N5: the narrator validator read "GARANTİ PORTFÖY ..."
+      fund names as the forbidden phrase "garanti"; a text naming such a fund failed and
+      fell back to the template. P01 text before N5: 1 phrase finding. After N5: 0.
+    persona: P01
+    needs: [N5]
+    expect: {validator_phrase_findings: {equals: 0}}
+
+  - id: reg-d14-liquidity-proxy-confidence
+    group: regression
+    description: >-
+      Case 6 (found by this eval), D14: without tefas_detail the liquidity falls back to
+      the kind table, but the confidence rose (P05 ZPO/ZND/ZTV 0.63 -> 0.70). After D14
+      (factor 0.8 for the proxy): 0.56; check missing_data_shown passes.
+    persona: P05
+    needs: [D14]
+    exclude_sources: [tefas_detail]
+    narrate: false
+    compare_to: base-p05
