@@ -93,6 +93,24 @@ class TefasWebSource(SourceConfig):
     flag_needs_check: bool
 
 
+_TR_LOWER = str.maketrans("İI", "iı")
+
+
+def normalize_status(text: str) -> str:
+    """Status text key: Turkish lower case ("İ" -> "i", "I" -> "ı"), spaces
+    collapsed, trimmed."""
+    return " ".join(text.translate(_TR_LOWER).lower().split())
+
+
+@dataclass(frozen=True)
+class StatusMap:
+    """A text field of the page mapped to a 0/1 quantity (I3b: tefasDurum ->
+    fund_buyable). Keys are normalize_status() of the texts."""
+    field: str                       # "profilData.tefasDurum"
+    quantity: str
+    map: dict[str, float]
+
+
 @dataclass(frozen=True)
 class TefasDetailSource(SourceConfig):
     url: str                         # with "{code}" for the fund code
@@ -106,6 +124,7 @@ class TefasDetailSource(SourceConfig):
     value_fields: dict[str, str]     # "bilgiData.<field>" -> quantity; required
     optional_fields: dict[str, str]  # same, but no value -> no row
     flag_needs_check: bool
+    status: StatusMap | None = None
 
     def page_url(self, code: str) -> str:
         return self.url.replace("{code}", code)
@@ -400,21 +419,46 @@ def _parse_tefas_web(name, s, path, quantities) -> TefasWebSource:
     )
 
 
+def _detail_field(v: Any, path: str) -> str:
+    field = _str(v, path)
+    obj, _, key = field.partition(".")
+    if obj not in DETAIL_OBJECTS or not key:
+        raise ConfigError(f"{path}: {field!r} must be bilgiData.<field> or profilData.<field>")
+    return field
+
+
 def _detail_fields(v: Any, path: str, quantities: dict[str, Quantity]) -> dict[str, str]:
     fields: dict[str, str] = {}
     for field, qty in _mapping(v, path).items():
-        obj, _, key = _str(field, path).partition(".")
-        if obj not in DETAIL_OBJECTS or not key:
-            raise ConfigError(f"{path}: {field!r} must be bilgiData.<field> or profilData.<field>")
-        fields[field] = _quantity_ref(qty, f"{path}.{field}", quantities)
+        fields[_detail_field(field, path)] = _quantity_ref(qty, f"{path}.{field}", quantities)
     return fields
+
+
+def _status_map(v: Any, path: str, quantities: dict[str, Quantity]) -> StatusMap:
+    v = _mapping(v, path)
+    _check_keys(v, path, {"field", "quantity", "map"}, set())
+    texts = _mapping(v["map"], f"{path}.map")
+    if not texts:
+        raise ConfigError(f"{path}.map: must not be empty")
+    out: dict[str, float] = {}
+    for text, flag in texts.items():
+        p = f"{path}.map.{text}"
+        if _num(flag, p) not in (0, 1):
+            raise ConfigError(f"{p}: must be 0 or 1")
+        key = normalize_status(_str(text, p))
+        if key in out:
+            raise ConfigError(f"{p}: same text after normalization as another entry ({key!r})")
+        out[key] = float(flag)
+    return StatusMap(field=_detail_field(v["field"], f"{path}.field"),
+                     quantity=_quantity_ref(v["quantity"], f"{path}.quantity", quantities),
+                     map=out)
 
 
 def _parse_tefas_detail(name, s, path, quantities) -> TefasDetailSource:
     _check_keys(s, path, _COMMON_REQUIRED | {"url", "user_agent", "value_fields"},
                 _COMMON_OPTIONAL | {"timeout_seconds", "min_interval_s", "max_fail_share",
                                     "max_funds", "funds_from", "exclude_categories",
-                                    "optional_fields", "flag_needs_check"})
+                                    "optional_fields", "flag_needs_check", "status"})
     url = _tefas_url(s["url"], f"{path}.url")
     if "{code}" not in url:
         raise ConfigError(f"{path}.url: must contain {{code}} for the fund code")
@@ -452,6 +496,7 @@ def _parse_tefas_detail(name, s, path, quantities) -> TefasDetailSource:
         value_fields=value_fields,
         optional_fields=optional,
         flag_needs_check=_bool(s.get("flag_needs_check", True), f"{path}.flag_needs_check"),
+        status=_status_map(s["status"], f"{path}.status", quantities) if "status" in s else None,
     )
 
 

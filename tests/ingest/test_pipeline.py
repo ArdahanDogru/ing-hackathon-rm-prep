@@ -67,7 +67,7 @@ def test_ingest_end_to_end(paths):
     assert len(by(ev, source="evds", entity=USD)) == 3
     assert len(by(ev, source="tefas")) == 9
     assert len(by(ev, source="tefas_web")) == 8 + 2 + 8      # AAL, IGL (nulls skipped), ZZZ
-    assert len(by(ev, source="tefas_detail")) == 3 * 6        # 3 funds, fees null
+    assert len(by(ev, source="tefas_detail")) == 3 * 7        # 3 funds, fees null
     assert len(by(ev, source="manual")) == 2
     assert all(Flag.MANUAL_ENTRY in p.flags for p in by(ev, source="manual"))
     placeholders = [p for p in ev.datapoints if "placeholder" in p.note]
@@ -271,7 +271,7 @@ def test_tefas_web_failure_fails_tefas_detail_and_both_fall_back(paths):
     assert rec.status == "failed" and "no tefas_web funds" in rec.error
     assert rec.fallback_from == first.snapshot_id
     rows = by(ev, source="tefas_detail")
-    assert len(rows) == 18 and all(Flag.FALLBACK_SNAPSHOT in p.flags for p in rows)
+    assert len(rows) == 21 and all(Flag.FALLBACK_SNAPSHOT in p.flags for p in rows)
 
 
 def test_tefas_detail_rows_survive_replay_from_gzip(paths):
