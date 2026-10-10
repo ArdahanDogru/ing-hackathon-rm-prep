@@ -1,0 +1,27 @@
+# Eval config (docs/eval.md). Lead-owned; the eval worker asks for changes.
+version: 1
+
+snapshot: null                 # the frozen eval snapshot id; set by the lead after D12/D13
+max_cost_usd_per_run: 5.0      # the eval's own limit (the user, 2026-10-10)
+report_dir: data/eval
+
+judge:
+  model: claude-haiku-5-5      # the user, 2026-10-10; Jev possible later
+  effort: low
+  max_tokens: 2000
+  price_input_per_mtok: 0.10   # Claude API, cached 2026-10-06
+  price_output_per_mtok: 0.50
+  api_key_env: ANTHROPIC_API_KEY
+  workspace_id_env: ANTHROPIC_WORKSPACE_ID
+  rubric:                      # fixed choices per item: yes | partly | no
+    - id: tailored
+      question: "Uses this client's situation, goal, horizon, priorities and RM note (not a generic offer)?"
+    - id: clear_for_rm
+      question: "Clear and usable for the RM in the meeting (structure, length, plain language)?"
+    - id: balanced
+      question: "States risks and uncertainty fairly next to the benefits (no sales pressure)?"
+
+targets:                       # docs/eval.md table
+  rule_checks: 1.0
+  narrator_pass_rate: 0.95
+  forbidden_phrases: 0

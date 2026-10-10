@@ -1,7 +1,7 @@
 # Eval — design (DRAFT for the session with the user)
 
-Status: **draft 2026-10-10 by ing-lead; the decisions marked OPEN are for the
-session with the user.** Code: `src/rmprep/eval/`, tests: `tests/eval/`.
+Status: **designed 2026-10-10 (the user with ing-lead); scope: the prototype
+(MVP).** Code: `src/rmprep/eval/`, tests: `tests/eval/`.
 
 ## Why (brief)
 
@@ -62,9 +62,13 @@ checks. One run of the full suite is a command: `python -m rmprep eval`.
 | Time | seconds per decide; seconds per narrator text | report only |
 | Cost | USD per narrator text and per suite run | report only |
 
-OPEN: an LLM judge (Claude Haiku 5.5, about $0.003 per text) for "is the text
-tailored to this client" (brief section 3, "genel teklif") — or the RM's own
-review only.
+LLM judge (decided): Claude Haiku 5.5 (`claude-haiku-5-5`, about $0.003 per
+text) grades only what code cannot: is the text tailored to this client (brief
+section 3, "genel teklif"), is it clear for the RM. Fixed choices per rubric item
+(e.g. yes / partly / no) and a one-line reason, through structured output. The
+rule checks stay in code. The judge sits behind a small `Judge` protocol, so Jev
+(TypeSafe AI, decision-only, independent of Claude) can replace it or grade the
+same texts later for an agreement check (later; Jev is marked "later").
 
 ## Error analysis and improvements (for deliverable 5)
 
@@ -84,14 +88,21 @@ regression scenarios):
    required but null for funds not on TEFAS. Fix: optional fields. Effect: 815
    pages ok, 9 rejected rows.
 
-## OPEN decisions for the session
+## Decisions (the user, 2026-10-10)
 
-1. The scenario list (above) — add or remove.
-2. The targets.
-3. LLM judge: yes (Haiku 5.5) or no.
-4. The frozen eval snapshot: the latest full snapshot after D12.
-5. Budget per suite run (narrator texts: about 25 scenarios × 2 languages ×
-   $0.05 ≈ $2.50 with Sonnet 5.5; cached after the first run).
+1. Scenarios as above. TODO (after the MVP): more Jury-Challenge-style
+   scenarios that the user expects from the jury.
+2. Targets as in the table.
+3. LLM judge: yes, Claude Haiku 5.5 (Jev possible later, see above).
+4. A frozen eval snapshot: the first full snapshot after D12 and D13
+   (`config/eval.yaml`, set by the lead).
+5. Budget: the eval has its own limit, $5 per suite run, separate from the RM's
+   daily narrator limit (about $2.50 for texts + $0.15 for the judge on the
+   first run; cached after that).
+
+Config: `config/eval.yaml` (lead-owned). Scenario files:
+`src/rmprep/eval/scenarios/*.yaml` (eval-owned). Reports: `data/eval/<date>-<suite>/`
+(git-ignored).
 
 ## Milestones (worker `ing-eval`; each ends with green `pytest`)
 
