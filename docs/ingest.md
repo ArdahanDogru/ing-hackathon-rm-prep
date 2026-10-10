@@ -328,6 +328,22 @@ automated requests, and this page has the data we needed from it).
 - Later (decision D12, after I3): liquidity from the sell valör instead of the
   kind table; entry/exit fees in the net return.
 
+I3b (2026-10-10, after the first live run): the trade status of each fund.
+The first live run fetched 279 pages: 213 "TEFAS'ta işlem görüyor", 40
+"TEFAS'ta İşlem Görmüyor" (no valör on the page) and 26 "Fon Alımına Kapalı,
+Fon Bozumuna Kapalı". A fund that does not trade on TEFAS or is closed for
+purchase cannot be bought by an ING client through TEFAS, so the decision layer
+must see it.
+
+- New quantity `fund_buyable` (unit `flag`, 0 or 1) from `profilData.tefasDurum`
+  through a config table `status_map` (text → 0/1, matched after Turkish
+  lower-casing and space collapsing). Start: "TEFAS'ta işlem görüyor" → 1;
+  "TEFAS'ta işlem görmüyor" → 0; "Fon Alımına Kapalı, Fon Bozumuna Kapalı" → 0.
+- Unknown status text → no `fund_buyable` row and a rejected-row entry with the
+  text (it does not fail the page, so it does not count for `max_fail_share`).
+- Later (decision D12): `fund_buyable = 0` → rejected (new hard rule
+  `not_buyable`); a missing row → a data-quality note, not a rejection.
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **Scheduled ingest**: Windows Task Scheduler job running `python -m rmprep
