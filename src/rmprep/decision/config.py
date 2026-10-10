@@ -35,7 +35,7 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
                  "warnings", "data_quality")
 
 # optional sections of D9 (real return after tax); without them: nominal returns
-_D9_SECTIONS = ("real_return", "long_horizon", "quality_value")
+_D9_SECTIONS = ("real_return", "long_horizon", "quality_value", "underperformance")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
         "constraint_effects", "kinds", "principal_value", "weights", "penalties",
@@ -144,7 +144,7 @@ def _check(c: dict) -> None:
     _keys(c["texts"], "texts", TEXT_SECTIONS)
     _keys(c["texts"]["reasons"], "texts.reasons",
           (*CRITERIA, *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"),
-          ("return_real", "return_net", "penalty:real_loss"))
+          ("return_real", "return_net", "penalty:real_loss", "penalty:underperformance"))
     if "real_loss" in c["penalties"] and "penalty:real_loss" not in c["texts"]["reasons"]:
         raise ConfigError("texts.reasons: penalties.real_loss needs penalty:real_loss")
     _check_d9(c)
@@ -247,7 +247,7 @@ def _check_scoring(c: dict) -> None:
         if base + min(0.0, appetite) < 0:
             raise ConfigError(f"{path}: the raw weight is < 0 for some appetite")
 
-    _keys(c["penalties"], "penalties", PENALTIES, ("real_loss",))
+    _keys(c["penalties"], "penalties", PENALTIES, ("real_loss", "underperformance"))
     for k, v in c["penalties"].items():
         _num(v, f"penalties.{k}", 0)
     _keys(c["fund_size_min"], "fund_size_min", ("total_value_try", "investors"))
@@ -257,12 +257,17 @@ def _check_scoring(c: dict) -> None:
             raise ConfigError(f"fund_size_min.{k}: must be > 0")
 
     d = c["display"]
-    _keys(d, "display", ("first", "first_cap", "shortlist", "cap", "diversity_cap"))
+    _keys(d, "display", ("first", "first_cap", "shortlist", "cap", "diversity_cap"),
+          ("pool", "diversity_pool_cap"))
+    if ("pool" in d) != ("diversity_pool_cap" in d):
+        raise ConfigError("display: pool and diversity_pool_cap go together")
     for k, v in d.items():
         if not isinstance(v, int) or isinstance(v, bool) or v < 1:
             raise ConfigError(f"display.{k}: must be an integer >= 1")
     if d["first"] > d["shortlist"]:
         raise ConfigError("display.first: must be <= display.shortlist")
+    if d.get("pool", d["shortlist"]) < d["shortlist"]:
+        raise ConfigError("display.pool: must be >= display.shortlist")
 
     conf = c["confidence"]
     _keys(conf, "confidence", ("flags", "risk_estimate", "shorter_period"))
@@ -329,6 +334,17 @@ def _check_d9(c: dict) -> None:
             raise ConfigError(f"long_horizon.period: {lh['period']!r} is not a horizon period")
         _num(lh["liquidity_factor"], "long_horizon.liquidity_factor", 0)
         _num(lh["return_add"], "long_horizon.return_add", 0)
+
+    if "underperformance" in c:
+        _keys(c["underperformance"], "underperformance", ("scale",))
+        if _num(c["underperformance"]["scale"], "underperformance.scale", 0) <= 0:
+            raise ConfigError("underperformance.scale: must be > 0")
+    if "underperformance" in c["penalties"]:
+        why = "penalties.underperformance"
+        if "underperformance" not in c:
+            raise ConfigError(f"underperformance: {why} needs the underperformance section")
+        _text(c, "reasons", "penalty:underperformance", why)
+        _text(c, "data_quality", "benchmark_missing", why)
 
     if "quality_value" in c:
         qv = c["quality_value"]

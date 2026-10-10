@@ -73,11 +73,11 @@ def normalize_weights(raw: Mapping[str, float]) -> dict[str, float]:
 
 
 def penalty_maxima(config: DecisionConfig) -> dict[str, float]:
-    """Maximum per penalty rule; real_loss (D9) only if configured, before fund_size."""
+    """Maximum per penalty rule; real_loss (D9) and underperformance (D10) only if
+    configured, in this order before fund_size."""
     p = config.raw["penalties"]
     rules = [r for r in PENALTY_RULES if r != "fund_size"]
-    if "real_loss" in p:
-        rules.append("real_loss")
+    rules += [r for r in ("real_loss", "underperformance") if r in p]
     rules.append("fund_size")
     return {r: float(p[r]) for r in rules}
 
@@ -185,6 +185,17 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
         return net if net is not None else returns[oid][0]
 
     all_returns = [m for m in map(ranked_return, returns) if m is not None]
+
+    # underperformance (D10): benchmark = market deposit rate net of the deposit stopaj
+    bench, bench_rows = None, {}
+    if "underperformance" in c["penalties"] and universe.market_rate is not None:
+        dep_stopaj = (universe.stopaj.get(c["real_return"]["stopaj"]["deposit"])
+                      if rr is not None else None)
+        t = dep_stopaj.value / 100 if dep_stopaj is not None else 0.0
+        bench = universe.market_rate.value / 100 * (1 - t)
+        bench_rows = {"benchmark": universe.market_rate}
+        if dep_stopaj is not None:
+            bench_rows["benchmark_stopaj"] = dep_stopaj
     funds = [cand for cand, _ in kept if cand.option.kind == "fund"]
     sizes = [f.values[_SIZE_Q].value for f in funds if _SIZE_Q in f.values]
     investors = [f.values[_INVESTORS_Q].value for f in funds if _INVESTORS_Q in f.values]
@@ -201,6 +212,11 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
         annual, period, ret_row = returns[opt.option_id]
         net, real, st_entity, st_row = after_tax[opt.option_id]
         ranked = ranked_return(opt.option_id)
+        net_or_gross = net if net is not None else annual
+        under = 0.0
+        if bench is not None and net_or_gross is not None:
+            scale = c["underperformance"]["scale"]
+            under = levels.appetite * _clamp((bench - net_or_gross) / scale)
 
         size_row = cand.values.get(_SIZE_Q)
         inv_row = cand.values.get(_INVESTORS_Q)
@@ -242,6 +258,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             "fund_size": size_violation,
             "real_loss": (levels.principal * _clamp(-real / rr["loss_scale"])
                           if real is not None else 0.0),
+            "underperformance": under,
         }
 
         rows = {q: d for q, d in cand.values.items()
@@ -253,13 +270,16 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
                 rows[st_row.quantity] = st_row
             if universe.cpi is not None:
                 rows[universe.cpi.quantity] = universe.cpi
+        if net_or_gross is not None:
+            rows.update(bench_rows)          # keyed by role: the deposit has its own rate row
         fields = {
             "risk": risk, "ceiling": levels.ceiling,
             "annual": (annual or 0.0) * 100, "period": period or levels.period,
             "horizon": levels.period,
             "size_m": size_row.value / 1e6 if size_row else 0.0,
             "investors": inv_row.value if inv_row else 0.0,
-            "nominal": (annual or 0.0) * 100, "net": (net or 0.0) * 100,
+            "nominal": (annual or 0.0) * 100, "net": (net_or_gross or 0.0) * 100,
+            "benchmark": (bench or 0.0) * 100,
             "real": (real or 0.0) * 100, "loss": -(real or 0.0) * 100,
         }
         if estimated:
@@ -270,7 +290,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             risk_ids = (rows[_RISK_Q].id,) if _RISK_Q in rows else ()
         out.append(Features(
             option=opt, values=values, factors=factors, fields=fields,
-            evidence_ids=tuple(sorted(d.id for d in rows.values())),
+            evidence_ids=tuple(sorted({d.id for d in rows.values()})),
             constraint=ConstraintResult(rule_id="risk_ceiling", passed=True, reason=reason,
                                         evidence_ids=risk_ids),
             risk=risk, risk_estimated=estimated, period=period,
@@ -351,7 +371,7 @@ def display_order(rows: Sequence[_Ranked], *, diversity: bool,
     remaining = [r for r in ranked if r.option.kind != "deposit"]
     chosen: list[Any] = []
     counts: Counter[str] = Counter()
-    filled = {"first": False, "shortlist": False}
+    filled = {"first": False, "shortlist": False, "pool": False}
 
     def take(limit: int, per_kind: int, phase: str) -> None:
         for r in list(remaining):
@@ -368,17 +388,26 @@ def display_order(rows: Sequence[_Ranked], *, diversity: bool,
             filled[phase] = True
 
     take(d["first"], d["first_cap"], "first")
-    first_counts = Counter(group_kind(r.option) for r in chosen)
     take(d["shortlist"], cap, "shortlist")
+    # positions shortlist+1..pool (D10): only with diversity and the pool configured
+    pool = "pool" in d and diversity
+    if pool:
+        take(d["pool"], d["diversity_pool_cap"], "pool")
 
+    # the ranges whose cap could not be met: report the first one that is over its cap
     concentration: list[tuple[str, int]] = []
     n = 0
-    if filled["first"] or filled["shortlist"]:
-        concentration = sorted((k, v) for k, v in counts.items() if v > cap)
-        n = d["shortlist"]
-        if not concentration:
-            concentration = sorted((k, v) for k, v in first_counts.items() if v > d["first_cap"])
-            n = d["first"]
+    if any(filled.values()):
+        checks = [(d["shortlist"], cap)]
+        if pool:
+            checks.append((d["pool"], d["diversity_pool_cap"]))
+        checks.append((d["first"], d["first_cap"]))
+        for size, limit in checks:
+            counts_n = Counter(group_kind(r.option) for r in chosen[:size])
+            concentration = sorted((k, v) for k, v in counts_n.items() if v > limit)
+            if concentration:
+                n = size
+                break
     return DisplayOrder(tuple(deposits[:1] + chosen + remaining + deposits[1:]),
                         tuple(concentration), n)
 

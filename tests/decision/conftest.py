@@ -41,13 +41,17 @@ def load_evidence(name: str = "evidence_medium.json") -> EvidenceSet:
 
 
 def strip_d9(raw: dict) -> dict:
-    """The config without the D9 additions (real return, real_loss, long horizon,
-    deposit quality, return weight 1 + appetite), so the hand-computed values of
-    the D1-D8 tests do not change when the lead adds D9 to config/decision.yaml."""
+    """The config without the D9 and D10 additions (real return, real_loss, long
+    horizon, deposit quality, return weight 1 + appetite; underperformance, the
+    diversity pool), so the hand-computed values of the D1-D8 tests do not change
+    when the lead adds them to config/decision.yaml."""
     raw = copy.deepcopy(raw)
-    for key in ("real_return", "long_horizon", "quality_value"):
+    for key in ("real_return", "long_horizon", "quality_value", "underperformance"):
         raw.pop(key, None)
-    raw["penalties"].pop("real_loss", None)
+    for key in ("real_loss", "underperformance"):
+        raw["penalties"].pop(key, None)
+    for key in ("pool", "diversity_pool_cap"):
+        raw["display"].pop(key, None)
     if "time_deposit" in raw:
         raw["time_deposit"].pop("term_days", None)
     raw["weights"]["return"] = {"base": 1.0, "appetite": 1.0}
@@ -171,6 +175,47 @@ def d9_raw(raw) -> dict:
 @pytest.fixture
 def d9_config(d9_raw):
     return parse_config(d9_raw)
+
+
+# --- D10: underperformance and the diversity pool ----------------------------------------
+
+MARKET = "TRY savings deposit rate up to 3M, weighted average (new deposits)"
+D10_TEXTS = {
+    "reasons": {
+        "penalty:underperformance": "Stopaj sonrası getiri %{net:.1f}, piyasa mevduat "
+                                    "ortalamasının (stopaj sonrası %{benchmark:.1f}) altında; "
+                                    "müşteri getiri bekliyor.",
+    },
+    "data_quality": {
+        "benchmark_missing": "Piyasa mevduat ortalaması ({entity}) kanıtlarda yok; düşük "
+                             "getiri cezası hesaplanmadı.",
+    },
+}
+
+
+def add_d10(raw: dict, *, pool: bool = True) -> dict:
+    """Add the D10 config (the lead's values) and texts, in place."""
+    raw["penalties"]["underperformance"] = 0.3
+    raw["underperformance"] = {"scale": 0.20}
+    if pool:
+        raw["display"].update(pool=20, diversity_pool_cap=4)
+    for section, texts in D10_TEXTS.items():
+        raw["texts"][section].update(texts)
+    return raw
+
+
+@pytest.fixture
+def d10_raw(raw) -> dict:
+    return add_d10(add_d9(raw))
+
+
+@pytest.fixture
+def d10_config(d10_raw):
+    return parse_config(d10_raw)
+
+
+def market_row(value=43.82):
+    return dp("deposit_rate", MARKET, value, source="evds", as_of=date(2026, 10, 2))
 
 
 def d9_rows(cpi=29.73, deposit=17.5, time_deposit=15.0, fund_default=10.0, money_market=17.5):

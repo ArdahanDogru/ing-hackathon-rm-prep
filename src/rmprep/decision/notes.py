@@ -39,7 +39,11 @@ def build_warnings(options: Sequence[ScoredOption], levels: Levels,
 
     # concentration: with the greedy order a cap is broken only when it could not be met
     cap = d["diversity_cap"] if levels.diversity else d["cap"]
-    for n, rows, limit in ((d["shortlist"], short, cap), (d["first"], first, d["first_cap"])):
+    checks = [(d["shortlist"], short, cap)]
+    if levels.diversity and "pool" in d:
+        checks.append((d["pool"], funds[:d["pool"]], d["diversity_pool_cap"]))
+    checks.append((d["first"], first, d["first_cap"]))
+    for n, rows, limit in checks:
         counts = Counter(group_kind(o.option) for o in rows)
         over = sorted((k, v) for k, v in counts.items() if v > limit)
         for kind, count in over:
@@ -133,6 +137,9 @@ def build_notes(used_ids: frozenset[str], universe: Universe, evidence: Evidence
         out.append(DataQualityNote(
             message=tpl["stopaj_missing"].format(entity=entity, count=count),
             sources=(rr["stopaj"]["source"],)))
+    if "underperformance" in config.raw["penalties"] and universe.market_rate is None:
+        out.append(DataQualityNote(message=tpl["benchmark_missing"].format(
+            entity=config.raw["deposit"]["market_entity"])))
     if universe.missing_time_deposit is not None:
         td = config.raw["time_deposit"]
         out.append(DataQualityNote(
