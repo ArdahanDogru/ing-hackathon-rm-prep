@@ -1,6 +1,8 @@
 """FakeBackend: the Backend protocol on the fixtures of tests/contracts/fixtures/
 (docs/ui.md section 6). Results are the illustrative fixture results with the
-inputs of the call put in; runs, approvals and cards stay in memory."""
+inputs of the call put in; runs, approvals, cards and narratives stay in memory.
+draft_narrative returns a template draft built from the run (contract v1.2,
+docs/narrator.md); the real narrator is not called."""
 
 from __future__ import annotations
 
@@ -12,12 +14,42 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rmprep.contracts import (
+    NARRATIVE_SECTIONS,
     DecisionResult,
     DecisionState,
     EvidenceSet,
+    NarrativeDraft,
+    NarrativeSection,
+    NarrativeSentence,
+    NarrativeStatus,
     Persona,
     RmStatus,
 )
+
+_PROMPT_VERSION = "fake"
+_ALTERNATIVES = 3      # non-selected options named in "alternatifler"
+_TEXTS = {             # one sentence template per narrative section
+    "TR": {
+        "ozet": "{pid} · {profil}: {amac}.",
+        "oneriler": "Görüşmede konuşulacak: {labels}.",
+        "alternatifler": "Diğer seçenekler: {labels}.",
+        "no_alternatives": "Başka seçenek yok.",
+        "no_warnings": "Uyarı yok.",
+        "sorular": "Müşteriye öncelikleri sorun: {priorities}.",
+        "teklif_metni": "Sizin için {labels} seçeneklerini konuşmak istiyoruz.",
+        "no_assumptions": "Varsayım yok.",
+    },
+    "EN": {
+        "ozet": "{pid} · {profil}: {amac}.",
+        "oneriler": "To discuss in the meeting: {labels}.",
+        "alternatifler": "Other options: {labels}.",
+        "no_alternatives": "No other options.",
+        "no_warnings": "No warnings.",
+        "sorular": "Ask the client about the priorities: {priorities}.",
+        "teklif_metni": "We would like to discuss {labels} with you.",
+        "no_assumptions": "No assumptions.",
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -60,6 +92,7 @@ class FakeBackend:
         self._runs: dict[str, tuple[DecisionResult, _Inputs]] = {}
         self.saved: dict[str, DecisionResult] = {}   # approved / rejected runs
         self.cards: dict[str, str] = {}
+        self._narratives: dict[tuple[str, str], NarrativeDraft] = {}   # (run_id, lang)
 
     # --- reading --------------------------------------------------------------
 
@@ -134,6 +167,30 @@ class FakeBackend:
         self.cards[run_id] = markdown
         return f"memory:cards/{run_id}.md"
 
+    # --- narrator (v1.2) -------------------------------------------------------
+
+    def draft_narrative(self, run_id: str, lang: str = "TR") -> NarrativeDraft:
+        result, _ = self._runs[run_id]
+        if result.rm_status != RmStatus.APPROVED:
+            raise ValueError("only an approved run has a narrative")
+        key = (run_id, lang)
+        if key not in self._narratives:
+            if lang not in _TEXTS:
+                raise ValueError(f"unknown narrative language {lang!r}")
+            self._narratives[key] = NarrativeDraft(
+                run_id=run_id, lang=lang, sections=_template_sections(result, _TEXTS[lang]),
+                source="template", model="", prompt_version=_PROMPT_VERSION, checks=(),
+                created_at=result.created_at)
+        return self._narratives[key]
+
+    def approve_narrative(self, run_id: str, lang: str, text: str) -> NarrativeDraft:
+        if not text.strip():
+            raise ValueError("an approved narrative needs a text")
+        draft = self.draft_narrative(run_id, lang)
+        approved = dataclasses.replace(draft, status=NarrativeStatus.APPROVED, rm_text=text)
+        self._narratives[(run_id, lang)] = approved
+        return approved
+
     def _keep(self, result: DecisionResult, inputs: _Inputs) -> DecisionResult:
         old = self._runs.get(result.run_id)
         if old is not None:          # same inputs: the run exists, keep its RM status
@@ -144,3 +201,43 @@ class FakeBackend:
     def _replace(self, result: DecisionResult) -> DecisionResult:
         self._runs[result.run_id] = (result, self._runs[result.run_id][1])
         return result
+
+
+def _template_sections(r: DecisionResult, texts: Mapping[str, str]) -> tuple[NarrativeSection, ...]:
+    """One sentence per section; option and evidence ids are the citations."""
+    def sentence(text, options=(), evidence=()):
+        return (NarrativeSentence(text, tuple(o.option.option_id for o in options),
+                                  tuple(dict.fromkeys(evidence))),)
+
+    def labels(options):
+        return ", ".join(o.option.label for o in options)
+
+    def ev(options):
+        return [i for o in options for i in o.evidence_ids]
+
+    p = r.persona
+    selected = [o for o in r.options if o.option.option_id in r.rm_selected]
+    others = [o for o in r.options if o.option.option_id not in r.rm_selected][:_ALTERNATIVES]
+    by_id = {o.option.option_id: o for o in r.options}
+    if r.warnings:
+        named = [by_id[i] for w in r.warnings for i in w.option_ids if i in by_id]
+        dikkat = (NarrativeSentence(" ".join(w.message for w in r.warnings),
+                                    tuple(dict.fromkeys(o.option.option_id for o in named)),
+                                    tuple(dict.fromkeys(i for w in r.warnings
+                                                        for i in w.evidence_ids))),)
+    else:
+        dikkat = sentence(texts["no_warnings"])
+    sections = {
+        "ozet": sentence(texts["ozet"].format(pid=p.persona_id, profil=p.profil,
+                                              amac=p.yatirim_amaci)),
+        "oneriler": sentence(texts["oneriler"].format(labels=labels(selected)), selected,
+                             ev(selected)),
+        "alternatifler": (sentence(texts["alternatifler"].format(labels=labels(others)), others,
+                                   ev(others))
+                          if others else sentence(texts["no_alternatives"])),
+        "dikkat": dikkat,
+        "sorular": sentence(texts["sorular"].format(priorities=", ".join(p.oncelikler) or "—")),
+        "teklif_metni": sentence(texts["teklif_metni"].format(labels=labels(selected)), selected),
+        "varsayimlar": sentence(" ".join(r.assumptions) or texts["no_assumptions"]),
+    }
+    return tuple(NarrativeSection(k, sections[k]) for k in NARRATIVE_SECTIONS)
