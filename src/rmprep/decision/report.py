@@ -1,21 +1,45 @@
-"""Plain-text report of a DecisionResult: the baseline and positions 1-10 with
-their score parts (for tuning with `python -m rmprep decide`)."""
+"""Plain-text report of a DecisionResult for tuning (`python -m rmprep decide`).
+
+Grouped like the UI "Kısa liste" (docs/ui.md section 1): the deposit baseline,
+then at most 5 fund_kind groups from the first 20 funds of the display order,
+ordered by the score of their best option; each group is its best option (with
+score parts) and its alternatives in score order.
+"""
 
 from __future__ import annotations
 
 from rmprep.contracts import DecisionResult, ScoredOption
 
-SHOWN = 10
+POOL = 20
+MAX_GROUPS = 5
+REJECTED_SHOWN = 10
 
 
-def _option_lines(prefix: str, o: ScoredOption) -> list[str]:
+def _by_score(o: ScoredOption) -> tuple[float, str]:
+    return (-o.score, o.option.option_id)
+
+
+def fund_groups(result: DecisionResult) -> list[tuple[str, list[ScoredOption]]]:
+    """[(fund_kind, options best first)], at most MAX_GROUPS, from the first POOL funds."""
+    pool = [o for o in result.options if o.option.kind != "deposit"][:POOL]
+    groups: dict[str, list[ScoredOption]] = {}
+    for o in pool:
+        groups.setdefault(o.option.fund_kind, []).append(o)
+    ordered = [(kind, sorted(members, key=_by_score)) for kind, members in groups.items()]
+    ordered.sort(key=lambda g: _by_score(g[1][0]))
+    return ordered[:MAX_GROUPS]
+
+
+def _head(prefix: str, o: ScoredOption) -> str:
     opt = o.option
     kind = opt.fund_kind or opt.kind
     fx = " FX" if opt.fx else ""
-    head = (f"{prefix}{opt.label} ({opt.option_id}, {kind}{fx})  score {o.score:+.3f}  "
+    return (f"{prefix}{opt.label} ({opt.option_id}, {kind}{fx})  score {o.score:+.3f}  "
             f"confidence {o.confidence:.2f}  stability {o.stability:.2f}")
-    parts = "  ".join(f"{k} {v:+.3f}" for k, v in o.score_parts.items())
-    return [head, f"      {parts}"]
+
+
+def _parts(o: ScoredOption) -> str:
+    return "      " + "  ".join(f"{k} {v:+.3f}" for k, v in o.score_parts.items())
 
 
 def render(result: DecisionResult) -> str:
@@ -25,19 +49,25 @@ def render(result: DecisionResult) -> str:
     if r.excluded_sources:
         lines.append(f"excluded: {', '.join(sorted(r.excluded_sources))}")
 
-    options = list(r.options)
-    if options and options[0].option.kind == "deposit":
-        lines.append("")
-        lines += _option_lines("baseline: ", options.pop(0))
-    if options:
-        lines.append("")
-        for i, o in enumerate(options[:SHOWN], start=1):
-            lines += _option_lines(f"{i:>3}. ", o)
-        if len(options) > SHOWN:
-            lines.append(f"     ... {len(options) - SHOWN} more")
+    if r.options and r.options[0].option.kind == "deposit":
+        lines += ["", _head("baseline: ", r.options[0]), _parts(r.options[0])]
+
+    funds = [o for o in r.options if o.option.kind != "deposit"]
+    position = {o.option.option_id: i for i, o in enumerate(funds, start=1)}
+    groups = fund_groups(r)
+    for kind, members in groups:
+        head, *alternatives = members
+        lines += ["", f"{kind} ({len(members)})",
+                  _head(f"{position[head.option.option_id]:>4}. ", head), _parts(head)]
+        lines += [_head(f"      - {position[o.option.option_id]}. ", o) for o in alternatives]
+    shown = sum(len(m) for _, m in groups)
+    if len(funds) > shown:
+        lines.append(f"\n{len(funds) - shown} more scored options outside the groups")
+
     if r.rejected:
-        lines.append(f"\nrejected: {len(r.rejected)} "
-                     f"({', '.join(x.option.option_id for x in r.rejected)})")
+        ids = [x.option.option_id for x in r.rejected]
+        more = ", ..." if len(ids) > REJECTED_SHOWN else ""
+        lines.append(f"\nrejected: {len(ids)} ({', '.join(ids[:REJECTED_SHOWN])}{more})")
 
     if r.questions:
         lines.append("\nquestions:")
