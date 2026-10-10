@@ -1,7 +1,7 @@
 # Eval config (docs/eval.md). Lead-owned; the eval worker asks for changes.
 version: 1
 
-snapshot: "20261010-183835-6813"   # frozen eval snapshot (2026-10-10, after D12-D14; tefas hand export off)
+snapshot: null                 # the frozen eval snapshot id; set by the lead after D12/D13
 max_cost_usd_per_run: 5.0      # the eval's own limit (the user, 2026-10-10)
 report_dir: data/eval
 
