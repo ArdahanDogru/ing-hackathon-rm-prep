@@ -19,7 +19,7 @@ from rmprep.contracts import (
     NarrativeSentence,
 )
 from rmprep.narrator.config import NarratorConfig
-from rmprep.narrator.facts import Facts, KeyNumber, OptionFacts
+from rmprep.narrator.facts import INTERNAL_PARTS, Facts, KeyNumber, OptionFacts
 
 MAIN_REASONS = 3        # largest score parts quoted per selected option
 
@@ -47,7 +47,33 @@ QUANTITY_NAMES = {
 _PERIOD = re.compile(r"fund_return_(\d+)([my])$")
 _PERIOD_WORDS = {"m": {"TR": "aylık", "EN": "month"}, "y": {"TR": "yıllık", "EN": "year"}}
 
-RULE_NAMES = {"risk_ceiling": {"TR": "risk tavanı", "EN": "risk ceiling"}}
+SOURCE_NAMES = {"tefas": "TEFAS", "tefas_web": "TEFAS", "tefas_detail": "TEFAS",
+                "evds": "TCMB EVDS", "manual": {"TR": "manuel giriş", "EN": "manual entry"}}
+
+# N7: the client need a score part speaks to (persona field), and the part's name
+PART_NEEDS = {"return": "yatirim_amaci", "low_risk": "risk_profili",
+              "liquidity": "likidite_ihtiyaci", "income": "gelir_nakit_akisi_ihtiyaci",
+              "principal": "anapara_koruma_tercihi", "simplicity": "risk_profili",
+              "quality": "yatirim_ufku"}
+PART_NAMES = {
+    "return": {"TR": "getiri", "EN": "return"},
+    "low_risk": {"TR": "düşük risk", "EN": "low risk"},
+    "liquidity": {"TR": "likidite", "EN": "liquidity"},
+    "income": {"TR": "düzenli gelir", "EN": "regular income"},
+    "principal": {"TR": "anapara koruma", "EN": "capital protection"},
+    "simplicity": {"TR": "sadelik", "EN": "simplicity"},
+    "quality": {"TR": "fon büyüklüğü ve yatırımcı tabanı", "EN": "fund size and investor base"},
+}
+NEED_NAMES = {
+    "yatirim_amaci": {"TR": "yatırım amacı", "EN": "investment goal"},
+    "risk_profili": {"TR": "risk profili", "EN": "risk profile"},
+    "likidite_ihtiyaci": {"TR": "likidite ihtiyacı", "EN": "liquidity need"},
+    "gelir_nakit_akisi_ihtiyaci": {"TR": "gelir / nakit akışı ihtiyacı",
+                                   "EN": "income / cash-flow need"},
+    "anapara_koruma_tercihi": {"TR": "anapara koruma tercihi",
+                               "EN": "capital protection preference"},
+    "yatirim_ufku": {"TR": "yatırım ufku", "EN": "investment horizon"},
+}
 
 HEADINGS = {
     "ozet": {"TR": "Özet", "EN": "Summary"},
@@ -71,6 +97,8 @@ TEXTS = {
         "meeting_baseline": "Görüşmede RM'in seçtiği {n} seçenek konuşulacak; "
                             "karşılaştırma ölçütü {baseline}.",
         "option": "{label} ({kind}{fx}): {reasons}.",
+        "option_bare": "{label} ({kind}{fx}).",
+        "link": "{label}, müşterinin {need} (\"{value}\") açısından {part} ile öne çıkıyor.",
         "fx": ", döviz içerir",
         "numbers": "Ana rakamlar: {items}.",
         "number": "{name} {value} ({source}, {as_of})",
@@ -81,16 +109,16 @@ TEXTS = {
         "no_groups": "Seçilen seçenekler için aynı türde başka seçenek yok.",
         "baseline": "Karşılaştırma ölçütü: {label}.",
         "baseline_numbers": "Karşılaştırma ölçütü: {label}; {items}.",
-        "rejected": "{n} seçenek {rules} kuralı nedeniyle elendi; bu metinde adları yok.",
-        "no_warnings": "Bu çalıştırmada uyarı yok.",
+        "dq_pointer": "Veri kalitesi notları için \"Olası sorunlar\" bölümüne bakın.",
+        "past": "Fon getirileri geçmiş getirilerdir; gelecekteki getiriyi göstermez ve "
+                "değerleri dalgalanabilir.",
         "constraint": "Kısıtı müşteriyle teyit edin: \"{item}\".",
         "ask_priorities": "Öncelikler hâlâ bu sırada mı: {items}?",
-        "pitch_goal": "Bugün \"{amac}\" hedefiniz için birkaç seçeneği birlikte "
-                      "değerlendirmek istiyorum.",
+        "pitch_goal": "Bugün \"{durum}\" durumunuzu ve \"{amac}\" hedefinizi dikkate "
+                      "alarak birkaç seçeneği birlikte değerlendirmek istiyorum.",
         "pitch_baseline": "Karşılaştırma için {baseline} ile başlayalım.",
         "pitch_options": "Sizin için öne çıkan seçenekler: {labels}.",
-        "pitch_past": "Fon getirileri geçmiş getirilerdir ve gelecekteki getiriyi göstermez; "
-                      "değerleri dalgalanabilir.",
+        "pitch_past": "Konuştuğumuz getiriler geçmiş getirilerdir.",
         "pitch_close": "Kararı sizin önceliklerinize göre birlikte verelim; "
                        "sorularınızı memnuniyetle yanıtlarım.",
         "no_assumptions": "Varsayım yok.",
@@ -106,6 +134,8 @@ TEXTS = {
         "meeting_baseline": "The meeting will discuss the {n} options that the RM selected; "
                             "the baseline for comparison is {baseline}.",
         "option": "{label} ({kind}{fx}): {reasons}.",
+        "option_bare": "{label} ({kind}{fx}).",
+        "link": "{label} stands out on {part} for the client's {need} (\"{value}\").",
         "fx": ", FX exposure",
         "numbers": "Key numbers: {items}.",
         "number": "{name} {value} ({source}, {as_of})",
@@ -116,22 +146,32 @@ TEXTS = {
         "no_groups": "The selected options have no other options of the same kind.",
         "baseline": "Baseline for comparison: {label}.",
         "baseline_numbers": "Baseline for comparison: {label}; {items}.",
-        "rejected": "{n} option(s) were rejected by the {rules} rule; this text does not "
-                    "name them.",
-        "no_warnings": "This run has no warnings.",
+        "dq_pointer": "For the data-quality notes, see the \"Possible issues\" pane.",
+        "past": "Fund returns are past returns; they do not show future returns, and "
+                "values can go up and down.",
         "constraint": "Confirm the constraint with the client: \"{item}\".",
         "ask_priorities": "Are the priorities still in this order: {items}?",
-        "pitch_goal": "Today I would like to look at a few options with you for your goal: "
-                      "\"{amac}\".",
+        "pitch_goal": "Today I would like to look at a few options with you, based on your "
+                      "situation (\"{durum}\") and your goal (\"{amac}\").",
         "pitch_baseline": "For comparison, let us start with {baseline}.",
         "pitch_options": "The options that stand out for you: {labels}.",
-        "pitch_past": "Fund returns are past returns and do not show future returns; "
-                      "their values can go up and down.",
+        "pitch_past": "The returns we talk about are past returns.",
         "pitch_close": "We will decide together, based on your priorities; I am glad to "
                        "answer your questions.",
         "no_assumptions": "No assumptions.",
     },
 }
+
+
+# snake_case field, flag, source or quantity names, and score keys such as
+# penalty:principal: internal names that the text must not show (N7)
+INTERNAL_NAME = re.compile(r"(?<![\w:])(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)+|penalty:[a-z_]+)(?![\w])")
+
+
+def is_quotable(reason: tuple[str, float, str]) -> bool:
+    """A reason text the text may quote: not an internal part, no internal name."""
+    part, _, text = reason
+    return part not in INTERNAL_PARTS and not INTERNAL_NAME.search(text)
 
 
 def tr_lower(text: str) -> str:
@@ -208,20 +248,43 @@ def _ozet(f: Facts, tx: dict, disclaimer: str) -> list[NarrativeSentence]:
     return out
 
 
+def source_name(source: str, lang: str) -> str:
+    """A source as the RM reads it (TEFAS, TCMB EVDS), never an internal name."""
+    name = SOURCE_NAMES.get(source, source.replace("_", " "))
+    return name[lang] if isinstance(name, dict) else name
+
+
 def _number(n: KeyNumber, tx: dict, lang: str) -> str:
     return tx["number"].format(name=quantity_name(n.quantity, lang),
                                value=fmt_number(n.value, n.unit, lang),
-                               source=n.source, as_of=fmt_date(n.as_of, lang))
+                               source=source_name(n.source, lang), as_of=fmt_date(n.as_of, lang))
+
+
+def _link(o: OptionFacts, used: set[str], f: Facts, tx: dict, lang: str) -> str | None:
+    """One sentence that ties the option to a named client need: its largest
+    positive score part with a need, one not used by an earlier option if possible."""
+    parts = [k for k, v, _ in o.reasons if v > 0 and k in PART_NEEDS and f.client[PART_NEEDS[k]]]
+    if not parts:
+        return None
+    part = next((k for k in parts if k not in used), parts[0])
+    used.add(part)
+    need = PART_NEEDS[part]
+    return tx["link"].format(label=o.label, need=NEED_NAMES[need][lang],
+                             value=f.client[need], part=PART_NAMES[part][lang])
 
 
 def _oneriler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
-    out = []
+    out, used = [], set()
     for o in f.selected:
         oid = [o.option_id]
-        reasons = "; ".join(r for _, _, r in o.reasons[:MAIN_REASONS])
-        out.append(_sentence(tx["option"].format(label=o.label, kind=kind_name(o.kind, lang),
-                                                 fx=tx["fx"] if o.fx else "", reasons=reasons),
-                             oid, o.evidence_ids))
+        public = [x[2] for x in o.reasons if is_quotable(x)][:MAIN_REASONS]
+        head = dict(label=o.label, kind=kind_name(o.kind, lang), fx=tx["fx"] if o.fx else "")
+        text = (tx["option"].format(**head, reasons="; ".join(public)) if public
+                else tx["option_bare"].format(**head))
+        out.append(_sentence(text, oid, o.evidence_ids))
+        link = _link(o, used, f, tx, lang)
+        if link:
+            out.append(_sentence(link, oid))
         if o.numbers:
             items = "; ".join(_number(n, tx, lang) for n in o.numbers)
             out.append(_sentence(tx["numbers"].format(items=items), oid,
@@ -262,12 +325,10 @@ def _dikkat(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
     for w in f.warnings:
         out.append(_sentence(_end(w.message), w.option_ids or ([] if w.evidence_ids else whole),
                              w.evidence_ids))
-    for n in f.data_quality:
-        out.append(_sentence(_end(n.message), [] if n.evidence_ids else whole, n.evidence_ids))
-    if f.rejected_count:
-        rules = ", ".join(RULE_NAMES.get(k, {}).get(lang, k) for k in f.rejected_rules)
-        out.append(_sentence(tx["rejected"].format(n=f.rejected_count, rules=rules), whole))
-    return out or [_sentence(tx["no_warnings"], whole)]
+    if f.data_quality:
+        out.append(_sentence(tx["dq_pointer"], whole))
+    out.append(_sentence(tx["past"], whole))
+    return out
 
 
 def _sorular(f: Facts, tx: dict) -> list[NarrativeSentence]:
@@ -279,7 +340,8 @@ def _sorular(f: Facts, tx: dict) -> list[NarrativeSentence]:
 
 
 def _teklif(f: Facts, tx: dict) -> list[NarrativeSentence]:
-    out = [_sentence(tx["pitch_goal"].format(amac=f.client["yatirim_amaci"]))]
+    out = [_sentence(tx["pitch_goal"].format(durum=f.client["durum"],
+                                             amac=f.client["yatirim_amaci"]))]
     if f.baseline is not None:
         out.append(_sentence(tx["pitch_baseline"].format(baseline=f.baseline.label),
                              [f.baseline.option_id]))

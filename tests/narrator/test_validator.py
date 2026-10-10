@@ -254,8 +254,8 @@ def test_a_real_garanti_next_to_the_label_still_fails(config):
     assert _codes(findings) == {"phrase"} and "garanti" in findings[0]
 
 
-def test_a_data_quality_row_count_may_be_written(config):
-    """N8: the prompt pack gives evidence_count; the text may say it."""
+def test_a_data_quality_row_count_is_internal(config):
+    """N7: row counts of data-quality notes are internal values."""
     from rmprep.contracts import DataQualityNote
 
     r = p02()
@@ -264,5 +264,5 @@ def test_a_data_quality_row_count_may_be_written(config):
                                                              evidence_ids=ids),))
     f = build_facts(r, evidence())
     sections = list(template_sections(f, "TR", config.disclaimer["TR"]))
-    ok = _with(sections, "dikkat", NarrativeSentence("11 kayıt eski.", ("fund:BBF",)))
-    assert validate(ok, f, r, config, "TR") == ()
+    bad = _with(sections, "dikkat", NarrativeSentence("11 kayıt eski.", ("fund:BBF",)))
+    assert _codes(validate(bad, f, r, config, "TR")) == {"internal"}

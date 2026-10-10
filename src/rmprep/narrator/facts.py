@@ -23,7 +23,12 @@ from rmprep.contracts import (
 
 # persona fields the text may use (not scored; the narrator is where they matter)
 CLIENT_FIELDS = ("profil", "yas", "risk_profili", "durum", "yatirim_amaci", "yatirim_ufku",
-                 "oncelikler", "acik_kisitlar", "rm_notu")
+                 "likidite_ihtiyaci", "doviz_maruz_kalma_tercihi", "gelir_nakit_akisi_ihtiyaci",
+                 "anapara_koruma_tercihi", "oncelikler", "acik_kisitlar", "rm_notu")
+
+# Score parts whose reason text carries an internal 0..1 value ("Düzenli gelir
+# uygunluğu (ürün türüne göre): 0.6."): the text names them, never their values (N7).
+INTERNAL_PARTS = ("liquidity", "income", "principal", "simplicity")
 
 
 @dataclass(frozen=True)

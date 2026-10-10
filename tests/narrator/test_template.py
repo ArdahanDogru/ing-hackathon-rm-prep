@@ -89,13 +89,16 @@ def test_alternatifler_names_the_group_alternatives(config):
     assert base and "%23,00" in base[0].text and base[0].evidence_ids == ("E42b47116",)
 
 
-def test_dikkat_has_warnings_data_quality_and_rejected_count(config):
+def test_dikkat_has_warnings_a_pane_pointer_and_the_past_return_caveat(config):
+    """N7: client warnings, one data-quality pointer, no internal values."""
     r, _, d = _draft(p02, "TR", config)
     text = " ".join(s.text for s in _section(d, "dikkat").sentences)
     for w in r.warnings:
         assert w.message in text
-    assert r.data_quality[0].message in text
-    assert "1 seçenek" in text and "risk tavanı" in text
+    assert r.data_quality[0].message not in text and "needs_check" not in text
+    assert text.count("Olası sorunlar") == 1
+    assert "geçmiş getiri" in text
+    assert "elendi" not in text and "risk tavanı" not in text
 
 
 def test_sorular_and_varsayimlar_from_the_result(config):
