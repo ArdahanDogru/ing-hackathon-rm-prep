@@ -12,7 +12,7 @@ llm:
   workspace_id_env: ANTHROPIC_WORKSPACE_ID  # the key is org-level: send header anthropic-workspace-id
 
 max_cost_usd_per_day: 5.0         # the user's limit; over it -> template text + banner
-prompt_version: "n1"              # bump on any prompt change (part of the cache key)
+prompt_version: "n2"              # bump on any prompt change (part of the cache key); n2 = N8 small facts pack
 cache_dir: data/narratives
 
 langs: [TR, EN]
