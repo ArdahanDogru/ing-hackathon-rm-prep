@@ -1,5 +1,5 @@
 """What the page shows, as plain data (no streamlit), so tests can check it
-without a browser: the shortlist split, the paging steps, the score bars, the
+without a browser: the baseline and the fund_kind groups, the score bars, the
 row titles and table rows, the evidence rows and citations, and the RM loop
 helpers (run inputs, change texts, persona diff)."""
 
@@ -20,9 +20,9 @@ from rmprep.contracts import (
 )
 from rmprep.ui.i18n import LABELS, t
 
-FIRST_PAGE = 3
-SECOND_PAGE = 10
-PAGE_STEP = 10
+POOL_SIZE = 20      # the groups are made from the first 20 non-deposit options
+MAX_GROUPS = 5
+ALTERNATIVES = 3    # visible alternatives per group; the rest behind "Daha fazla"
 PENALTY = "penalty:"
 
 
@@ -38,8 +38,55 @@ def ranked(r: DecisionResult) -> tuple[ScoredOption, ...]:
     return r.options[1:] if baseline(r) is not None else r.options
 
 
-def next_count(shown: int) -> int:
-    return SECOND_PAGE if shown < SECOND_PAGE else shown + PAGE_STEP
+def positions(r: DecisionResult) -> dict[str, int]:
+    """option_id -> position in the ranked options (1 = first after the baseline)."""
+    return {o.option.option_id: i for i, o in enumerate(ranked(r), start=1)}
+
+
+@dataclass(frozen=True)
+class KindGroup:
+    """One block of "Kısa liste": the best option of a fund_kind and its alternatives."""
+
+    kind: str
+    head: ScoredOption
+    alternatives: tuple[ScoredOption, ...]     # score order
+
+    @property
+    def count(self) -> int:
+        return 1 + len(self.alternatives)
+
+
+def _best_first(o: ScoredOption) -> tuple[float, str]:
+    return (-o.score, o.option.option_id)
+
+
+def kind_groups(r: DecisionResult) -> list[KindGroup]:
+    """Groups by fund_kind of the first POOL_SIZE non-deposit options, at most
+    MAX_GROUPS, ordered by the score of their best option (ties: option_id)."""
+    pool = [o for o in r.options if o.option.kind != "deposit"][:POOL_SIZE]
+    by_kind: dict[str, list[ScoredOption]] = {}
+    for o in pool:
+        by_kind.setdefault(kind_key(o), []).append(o)
+    groups = []
+    for kind, opts in by_kind.items():
+        best = sorted(opts, key=_best_first)
+        groups.append(KindGroup(kind, best[0], tuple(best[1:])))
+    groups.sort(key=lambda g: _best_first(g.head))
+    return groups[:MAX_GROUPS]
+
+
+def visible_alternatives(g: KindGroup, opened: bool) -> tuple[ScoredOption, ...]:
+    return g.alternatives if opened else g.alternatives[:ALTERNATIVES]
+
+
+def shown_options(r: DecisionResult, opened: frozenset[str] = frozenset()) -> list[ScoredOption]:
+    """What "Kısa liste" shows: the baseline, then per group the head and its
+    visible alternatives (all of them for the kinds in opened)."""
+    base = baseline(r)
+    out = [base] if base is not None else []
+    for g in kind_groups(r):
+        out += [g.head, *visible_alternatives(g, g.kind in opened)]
+    return out
 
 
 def warned(r: DecisionResult) -> dict[str, list[DecisionWarning]]:
@@ -77,7 +124,7 @@ def kind_key(o: ScoredOption | RejectedOption) -> str:
 
 
 def kind_name(key: str, lang: str = "TR") -> str:
-    k = "fk_" + key
+    k = "kind." + key
     return t(k, lang) if k in LABELS else key
 
 

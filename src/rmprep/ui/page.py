@@ -372,19 +372,18 @@ def _option_row(title: str, o: ScoredOption, r: DecisionResult, lang: str) -> No
             _evidence_button(ids, f"ev:opt:{oid}", r, lang)
 
 
-def _shown(run_id: str) -> int:
-    shown = st.session_state.get("shown")
-    return shown[1] if shown and shown[0] == run_id else views.FIRST_PAGE
+def _opened(run_id: str) -> frozenset[str]:
+    """The kinds whose alternatives are all shown ("Daha fazla"), for this run."""
+    opened = st.session_state.get("opened")
+    return opened[1] if opened and opened[0] == run_id else frozenset()
 
 
-def _more(run_id: str) -> None:
-    st.session_state["shown"] = (run_id, views.next_count(_shown(run_id)))
+def _more(run_id: str, kind: str) -> None:
+    st.session_state["opened"] = (run_id, _opened(run_id) | {kind})
 
 
 def _shown_options(r: DecisionResult) -> list[ScoredOption]:
-    """The baseline and the ranked options the shortlist shows now."""
-    base = views.baseline(r)
-    return ([base] if base is not None else []) + list(views.ranked(r)[:_shown(r.run_id)])
+    return views.shown_options(r, _opened(r.run_id))
 
 
 def _shortlist(r: DecisionResult, lang: str) -> None:
@@ -396,12 +395,19 @@ def _shortlist(r: DecisionResult, lang: str) -> None:
     if base is not None:
         _option_row(views.row_title(t("baseline", lang), base, base.option.option_id in w, lang),
                     base, r, lang)
-    rest = views.ranked(r)
-    shown = _shown(r.run_id)
-    for pos, o in enumerate(rest[:shown], start=1):
-        _option_row(views.row_title(f"{pos}.", o, o.option.option_id in w, lang), o, r, lang)
-    if shown < len(rest):
-        st.button(t("more", lang), key="more", on_click=_more, args=(r.run_id,))
+    pos = views.positions(r)
+    opened = _opened(r.run_id)
+    for g in views.kind_groups(r):
+        st.markdown(f"#### {t('group_header', lang, label=views.kind_name(g.kind, lang), n=g.count)}")
+        head = g.head
+        _option_row(views.row_title(f"{pos[head.option.option_id]}.", head,
+                                    head.option.option_id in w, lang), head, r, lang)
+        alts = views.visible_alternatives(g, g.kind in opened)
+        for o in alts:
+            oid = o.option.option_id
+            _option_row(views.row_title(f"↳ {pos[oid]}.", o, oid in w, lang), o, r, lang)
+        if len(alts) < len(g.alternatives):
+            st.button(t("more", lang), key=f"more:{g.kind}", on_click=_more, args=(r.run_id, g.kind))
 
 
 def _all_scored(r: DecisionResult, lang: str) -> None:

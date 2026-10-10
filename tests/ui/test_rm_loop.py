@@ -152,7 +152,7 @@ def test_one_checkbox_per_shown_option():
     at = _p("P02")
     r = at.session_state["result"]
     keys = [c.key for c in at.checkbox if c.key.startswith("sel:")]
-    shown = [r.options[0], *views.ranked(r)[:views.FIRST_PAGE]]
+    shown = views.shown_options(r)
     assert keys == [f"sel:{r.run_id}:{o.option.option_id}" for o in shown]
 
 
