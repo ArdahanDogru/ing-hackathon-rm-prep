@@ -156,3 +156,17 @@ web app (ing-web) in parallel against fixed sample data.
 - From earlier, still open: eval E7 (pairwise judge + UI context for the
   judge) — not yet answered; the gold account (waits for the EVDS gold series
   verification); more Jury-Challenge scenarios (after the MVP).
+
+## Later / optional (after the MVP)
+
+- **RM research assistant with Claude Managed Agents** (Anthropic beta API:
+  a hosted agent loop in a cloud or self-hosted sandbox with web search,
+  sessions and scheduled runs). Noted by the user 2026-10-11 as an optional
+  feature for later. Idea: the RM asks, e.g., "what is new about this fund
+  company?", the agent searches and answers with citations. Conditions: a
+  clearly separate, labeled panel; every claim cited; it never changes the
+  scores, the rules or the meeting text; no automated access to sources that
+  forbid it (KAP blocks bots, rule 8); unverifiable web content marked as such
+  (rule 3); its own cost limit; tested before any demo (beta product). Not
+  used for ingest, the narrator or the eval: those stay deterministic or
+  single-call by design.
