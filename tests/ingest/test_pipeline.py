@@ -10,7 +10,7 @@ import yaml
 
 from tests.ingest.conftest import FIXTURES, KEY, T0, FakeEvds
 from rmprep.cli import main
-from rmprep.contracts import Flag
+from rmprep.contracts import EntityInfo, Flag
 from rmprep.ingest.pipeline import ExclusionError, Paths, build_evidence, ingest, replay
 from rmprep.ingest.snapshot import MANIFEST, SnapshotIntegrityError, open_snapshot
 from rmprep.ingest.store import EvidenceStore
@@ -203,6 +203,54 @@ def test_tefas_web_failure_falls_back(paths):
     rows = by(ev, source="tefas_web")
     assert rows and all(Flag.FALLBACK_SNAPSHOT in p.flags for p in rows)
     assert {p.as_of for p in rows} == {T0.date() - timedelta(days=1)}   # from the old page
+
+
+def test_entities_from_tefas_web(paths):
+    ev = run(paths)
+    assert list(ev.entities) == ["AAL", "IGL", "ZZZ"]
+    assert ev.entities["AAL"] == EntityInfo("ATA PORTFÖY PARA PİYASASI (TL) FONU",
+                                            "Para Piyasası Şemsiye Fonu", "tefas_web")
+
+
+def test_replay_gives_identical_entities(paths):
+    ev = run(paths)
+    assert replay(paths, ev.snapshot_id).entities == ev.entities
+    assert build_evidence(paths.snapshots, ev.snapshot_id).to_dict()["entities"] ==         ev.to_dict()["entities"]
+
+
+def test_tefas_web_failure_falls_back_for_entities(paths):
+    first = run(paths)
+    ev = run(paths, fake=FakeEvds(tefas_page=None), at=T0 + timedelta(days=3))
+    assert ev.entities == first.entities and ev.entities
+
+
+def test_tefas_web_failure_without_previous_gives_no_entities(paths):
+    ev = run(paths, fake=FakeEvds(tefas_page=None))
+    assert ev.source_status["tefas_web"].fallback_from is None
+    assert ev.entities == {}
+
+
+def test_tefas_web_on_failure_exclude_gives_no_entities(tmp_path, config_raw):
+    config_raw["sources"]["tefas_web"]["on_failure"] = "exclude"
+    paths = make_project(tmp_path / "proj", config_raw)
+    run(paths)
+    ev = run(paths, fake=FakeEvds(tefas_page=None), at=T0 + timedelta(days=1))
+    assert ev.source_status["tefas_web"].excluded is True
+    assert ev.entities == {}
+
+
+def test_read_time_exclusion_of_tefas_web_empties_entities(paths):
+    ev = run(paths)
+    view = build_evidence(paths.snapshots, ev.snapshot_id, {"tefas_web"})
+    assert view.entities == {}
+    assert build_evidence(paths.snapshots, ev.snapshot_id, {"manual"}).entities == ev.entities
+
+
+def test_skipped_tefas_web_gives_no_entities(tmp_path, config_raw):
+    config_raw["sources"]["tefas_web"]["enabled"] = False
+    ev = run(make_project(tmp_path / "proj", config_raw))
+    assert ev.source_status["tefas_web"].status == "skipped"
+    assert ev.entities == {}
 
 
 def test_disabled_source_skipped(tmp_path, config_raw):

@@ -6,7 +6,7 @@ import pytest
 from tests.ingest.conftest import T0, TEFAS_WEB_FUNDS, FakeEvds, tefas_web_page
 from rmprep.ingest.adapters import tefas_web
 from rmprep.ingest.config import ConfigError, parse_config
-from rmprep.contracts import TR_TZ, Flag
+from rmprep.contracts import TR_TZ, EntityInfo, Flag
 from rmprep.ingest.quality import run_checks
 from rmprep.ingest.snapshot import SnapshotWriter
 
@@ -168,3 +168,28 @@ def test_parse_is_deterministic(tmp_path, cfg):
     _, snap = _fetch(tmp_path, cfg, FakeEvds())
     src = cfg.sources["tefas_web"]
     assert tefas_web.parse(cfg, src, snap) == tefas_web.parse(cfg, src, snap)
+
+
+# --- entities (milestone I1) --------------------------------------------------------------
+
+def test_entities_from_page_verbatim(tmp_path, cfg):
+    _, snap = _fetch(tmp_path, cfg, FakeEvds())
+    ents = tefas_web.entities(cfg.sources["tefas_web"], snap)
+    assert list(ents) == ["AAL", "IGL", "ZZZ"]
+    assert ents["ZZZ"] == EntityInfo('ÖRNEK HİSSE "YOĞUN" FONU', "Hisse Senedi Şemsiye Fonu",
+                                     "tefas_web")
+    assert ents["IGL"].name == "TEB PORTFÖY ING BANK PARA PİYASASI (TL) FONU"
+
+
+def test_entities_skip_fund_without_name_or_type(tmp_path, cfg):
+    funds = [dict(TEFAS_WEB_FUNDS[0], fonUnvan=None),
+             {k: v for k, v in TEFAS_WEB_FUNDS[1].items() if k != "fonTurAciklama"},
+             TEFAS_WEB_FUNDS[2]]
+    _, snap = _fetch(tmp_path, cfg, FakeEvds(tefas_page=tefas_web_page(funds)))
+    assert list(tefas_web.entities(cfg.sources["tefas_web"], snap)) == ["ZZZ"]
+
+
+def test_entities_need_ok_record(tmp_path, cfg):
+    _, snap = _fetch(tmp_path, cfg, FakeEvds(tefas_page=None))
+    with pytest.raises(ValueError, match="no ok record"):
+        tefas_web.entities(cfg.sources["tefas_web"], snap)

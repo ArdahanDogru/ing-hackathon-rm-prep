@@ -3,6 +3,7 @@
 ingest  = fetch every enabled source -> snapshot -> build_evidence -> DuckDB + Parquet
 replay  = build_evidence from an existing snapshot -> DuckDB + Parquet (offline)
 build_evidence(snapshot, exclude_sources) = parse -> drop excluded sources -> checks
+                                            (+ entities from the same payloads)
 
 Only `ingest` reads the clock, the network, .env, the inbox and the current
 sources.yaml. Everything after the snapshot is written reads the snapshot only.
@@ -20,7 +21,7 @@ from pathlib import Path
 import httpx
 from dotenv import dotenv_values
 
-from rmprep.contracts import TR_TZ, DataPoint, EvidenceSet, Flag
+from rmprep.contracts import TR_TZ, DataPoint, EntityInfo, EvidenceSet, Flag
 from rmprep.ingest.adapters import evds, manual, tefas, tefas_web
 from rmprep.ingest.config import Config, EvdsSource, SourceConfig, load_raw, parse_config
 from rmprep.ingest.quality import run_checks
@@ -35,6 +36,8 @@ from rmprep.ingest.store import EvidenceStore
 
 _PARSERS = {"evds": evds.parse, "tefas": tefas.parse, "tefas_web": tefas_web.parse,
             "manual": manual.parse}
+# Adapters that also give EntityInfo (fund names and types) from their payloads.
+_ENTITY_READERS = {"tefas_web": tefas_web.entities}
 
 
 class ExclusionError(ValueError):
@@ -163,16 +166,20 @@ def build_evidence(snapshots_root: str | Path, snapshot_id: str,
                              f"snapshot has {sorted(snap.sources)}")
 
     points: list[DataPoint] = []
+    entities: dict[str, EntityInfo] = {}
     for name in sorted(snap.sources):
         if name in exclude or name not in cfg.sources:
             continue
         points.extend(_source_points(snapshots_root, snap, cfg, cfg.sources[name],
                                      snap.sources[name]))
+        entities.update(_source_entities(snapshots_root, snap, cfg.sources[name],
+                                         snap.sources[name]))
 
     checked = run_checks(points, cfg, snap.created_at.date())
     return EvidenceSet(snapshot_id=snap.snapshot_id, created_at=snap.created_at,
                        excluded_sources=exclude, source_status=dict(snap.sources),
-                       datapoints=tuple(checked))
+                       datapoints=tuple(checked),
+                       entities=dict(sorted(entities.items())))
 
 
 def _source_points(root: str | Path, snap: Snapshot, cfg: Config, src: SourceConfig,
@@ -196,3 +203,18 @@ def _source_points(root: str | Path, snap: Snapshot, cfg: Config, src: SourceCon
             cfg, src, snap.snapshot_id, snap.created_at,
             note=f"{src.name} failed ({rec.error}); no earlier snapshot to fall back to")
     return []
+
+
+def _source_entities(root: str | Path, snap: Snapshot, src: SourceConfig,
+                     rec: SourceRecord) -> dict[str, EntityInfo]:
+    """Same source choice as _source_points: own payload if ok, the fallback
+    snapshot's payload if failed with fallback, else nothing."""
+    reader = _ENTITY_READERS.get(src.adapter)
+    if reader is None or rec.status == "skipped" or rec.excluded:
+        return {}
+    if rec.status == "ok":
+        return reader(src, snap)
+    if rec.fallback_from:
+        old = open_snapshot(root, rec.fallback_from)
+        return reader(parse_config(old.config_raw).sources[src.name], old)
+    return {}
