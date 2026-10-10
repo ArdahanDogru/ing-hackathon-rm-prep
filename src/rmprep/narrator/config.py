@@ -1,0 +1,106 @@
+"""Load and check config/narrator.yaml (docs/narrator.md)."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
+
+from rmprep.contracts import NARRATIVE_LANGS, NARRATIVE_SECTIONS
+
+DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "narrator.yaml"
+
+
+class ConfigError(ValueError):
+    """Invalid narrator config. The message starts with the path of the bad key."""
+
+
+@dataclass(frozen=True)
+class NarratorConfig:
+    model: str
+    effort: str
+    max_tokens: int
+    price_input_per_mtok: float
+    price_output_per_mtok: float
+    api_key_env: str
+    max_cost_usd_per_day: float
+    prompt_version: str
+    cache_dir: str
+    langs: tuple[str, ...]
+    sections: tuple[str, ...]
+    forbidden_phrases: Mapping[str, tuple[str, ...]]
+    disclaimer: Mapping[str, str]
+
+
+def _get(raw: Mapping, path: str):
+    node = raw
+    for part in path.split("."):
+        if not isinstance(node, Mapping) or part not in node:
+            raise ConfigError(f"{path}: missing")
+        node = node[part]
+    return node
+
+
+def _str(raw: Mapping, path: str) -> str:
+    v = _get(raw, path)
+    if not isinstance(v, str) or not v.strip():
+        raise ConfigError(f"{path}: must be a non-empty string, got {v!r}")
+    return v
+
+
+def _num(raw: Mapping, path: str) -> float:
+    v = _get(raw, path)
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or v < 0:
+        raise ConfigError(f"{path}: must be a number >= 0, got {v!r}")
+    return float(v)
+
+
+def _per_lang(raw: Mapping, path: str) -> dict:
+    v = _get(raw, path)
+    if not isinstance(v, Mapping) or set(v) != set(NARRATIVE_LANGS):
+        raise ConfigError(f"{path}: needs exactly the languages {NARRATIVE_LANGS}")
+    return dict(v)
+
+
+def parse_config(raw: Mapping) -> NarratorConfig:
+    langs = tuple(_get(raw, "langs"))
+    if langs != NARRATIVE_LANGS:
+        raise ConfigError(f"langs: must be {list(NARRATIVE_LANGS)}, got {list(langs)}")
+    sections = tuple(_get(raw, "sections"))
+    if sections != NARRATIVE_SECTIONS:
+        raise ConfigError(f"sections: must be {list(NARRATIVE_SECTIONS)}, got {list(sections)}")
+    forbidden = _per_lang(raw, "forbidden_phrases")
+    for lang, phrases in forbidden.items():
+        if not phrases or not all(isinstance(p, str) and p.strip() for p in phrases):
+            raise ConfigError(f"forbidden_phrases.{lang}: must be a list of non-empty strings")
+    disclaimer = _per_lang(raw, "disclaimer")
+    for lang in disclaimer:
+        _str(raw, f"disclaimer.{lang}")
+    max_tokens = _get(raw, "llm.max_tokens")
+    if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or max_tokens <= 0:
+        raise ConfigError(f"llm.max_tokens: must be a positive integer, got {max_tokens!r}")
+    return NarratorConfig(
+        model=_str(raw, "llm.model"),
+        effort=_str(raw, "llm.effort"),
+        max_tokens=max_tokens,
+        price_input_per_mtok=_num(raw, "llm.price_input_per_mtok"),
+        price_output_per_mtok=_num(raw, "llm.price_output_per_mtok"),
+        api_key_env=_str(raw, "llm.api_key_env"),
+        max_cost_usd_per_day=_num(raw, "max_cost_usd_per_day"),
+        prompt_version=_str(raw, "prompt_version"),
+        cache_dir=_str(raw, "cache_dir"),
+        langs=langs,
+        sections=sections,
+        forbidden_phrases={k: tuple(v) for k, v in forbidden.items()},
+        disclaimer=disclaimer,
+    )
+
+
+def load_config(path: Path | str = DEFAULT_PATH) -> NarratorConfig:
+    with open(path, encoding="utf-8") as f:
+        raw = yaml.safe_load(f)
+    if not isinstance(raw, Mapping):
+        raise ConfigError("(root): must be a mapping")
+    return parse_config(raw)
