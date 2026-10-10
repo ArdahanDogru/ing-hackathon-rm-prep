@@ -133,6 +133,7 @@ kinds:   # liquidity / income / simplicity values (0..1)
   mixed:           {liquidity: 0.5, income: 0.3, simplicity: 0.4}
   fund_of_funds:   {liquidity: 0.5, income: 0.2, simplicity: 0.3}
 
+underperformance: {scale: 0.20}   # D10: B = EVDS market deposit rate net of the deposit stopaj
 long_horizon: {period: 3y, liquidity_factor: 0.5, return_add: 1.0}   # D9: horizon 3+ years
 quality_value: {deposit: 0.5, time_deposit: 0.5}                      # D9: neutral (was 1)
 principal_value: {deposit: 1.0, time_deposit: 1.0, fund_base: 0.8, fund_step: 0.15}   # fund: max(0, base - step*(risk-1))
@@ -156,6 +157,7 @@ penalties:   # max; penalty = max * intensity * violation
   track_record: 0.2
   fund_size: 0.1
   real_loss: 0.3        # D9: x principal level x clamp(-real / loss_scale, 0, 1)
+  underperformance: 0.3 # D10: x appetite x clamp((B - N) / underperformance.scale, 0, 1)
 fund_size_min: {total_value_try: 100000000, investors: 100}
 
 display:
@@ -164,6 +166,8 @@ display:
   shortlist: 10         # positions 1-10: at most cap per fund_kind
   cap: 3
   diversity_cap: 2      # with concentration_limit or the çeşitlendirme priority
+  pool: 20              # D10: with diversity, positions 1-20 ...
+  diversity_pool_cap: 4 # ... at most 4 per kind
 
 # --- 5. confidence / stability -------------------------------------------------------
 confidence:
@@ -185,6 +189,7 @@ texts:
   reasons:
     return_real: "Yıllık getiri %{nominal:.1f}, stopaj sonrası %{net:.1f}, enflasyon sonrası reel %{real:+.1f} ({period}); adayların %{pct:.0f}'inden iyi."
     return_net: "Yıllık getiri %{nominal:.1f}, stopaj sonrası %{net:.1f} ({period}); reel getiri hesaplanmadı (TÜFE yok); adayların %{pct:.0f}'inden iyi."
+    "penalty:underperformance": "Stopaj sonrası getiri %{net:.1f}, piyasa mevduat ortalamasının (stopaj sonrası %{benchmark:.1f}) altında; müşteri getiri bekliyor."
     "penalty:real_loss": "Enflasyon sonrası reel kayıp %{loss:.1f}; müşteri anaparanın korunmasını istiyor."
     return: "Yıllıklandırılmış getiri {annual:.1f}% ({period}); adayların %{pct:.0f}'inden iyi."
     low_risk: "Risk değeri {risk}/7."
@@ -241,6 +246,7 @@ texts:
     deposit_vs_market: "ING standart mevduat oranı (%{ing:.2f}) piyasa ortalamasının (%{market:.2f}) {diff:.1f} puan altında."
     no_fx_deposit_data: "Döviz mevduatı oranı kanıtlarda yok; döviz mevduatı karşılaştırılamadı."
   data_quality:
+    benchmark_missing: "Piyasa mevduat ortalaması ({entity}) kanıtlarda yok; düşük getiri cezası hesaplanmadı."
     cpi_missing: "Yıllık TÜFE ({entity}) kanıtlarda yok; reel getiri ve reel kayıp cezası hesaplanmadı."
     stopaj_missing: "Stopaj oranı kanıtlarda yok: \"{entity}\"; {count} seçenek için stopaj %0 alındı."
     time_deposit_missing: "ING e-Vadeli Mevduat oranı ({entity}) kanıtlarda yok; vadeli mevduat seçeneği eklenmedi."

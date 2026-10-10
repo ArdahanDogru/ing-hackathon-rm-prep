@@ -258,6 +258,18 @@ Long horizon (D9): if the horizon period is `3y` (horizon 3+ years), the
 `liquidity` raw weight × 0.5 and the `return` raw weight + 1 (config
 `long_horizon`), before the normalization.
 
+Details fixed in D10 (2026-10-10):
+
+- `underperformance`: N is the net return (4.1b); without `real_return`, N and B
+  are nominal (B = the gross market rate). A missing deposit stopaj row gives
+  B = the gross market rate. An option with no return gets no
+  `underperformance` penalty (`track_record` covers it). The market row and the
+  deposit stopaj row are in each option's `evidence_ids` when the penalty is
+  configured and the option has a return.
+- Stability: 30 runs with `real_loss` and `underperformance` (2 × (7 + 8)).
+- Concentration with the pool: ranges checked in the order 1–10, 1–20 (only with
+  diversity), 1–3; the first range over its cap is reported.
+
 ### 4.3 Penalties
 
 `penalty = max (rule) × intensity (persona, 0..1) × violation (option, 0..1)`.
