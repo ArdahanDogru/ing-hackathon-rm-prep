@@ -75,6 +75,12 @@ doğrulanamadı".
 ## Human control
 
 - The narrator runs only for a result that the RM approved (selection known).
+- Lever 1 (the user, 2026-10-10): the approval starts the TR text in the
+  background (`RealBackend`, a thread pool of 2); opening the text waits for that
+  job instead of making a second call; a failed background draft is made again
+  on request; EN is made when first opened. Speed test 2026-10-10 (4 texts):
+  effort medium 23.9 s / $0.049, low 22.1 s / $0.036, same checker and judge
+  results — effort stays medium; time is mostly the output itself.
 - The draft has its own status: `draft` → `approved` by the RM (edits kept).
 - The card and the evidence record hold the approved text, the model id, the
   prompt version and the validator result.

@@ -125,7 +125,7 @@ def test_draft_and_approve_narrative(backend, tmp_path):
     backend._narrator_obj = fake
     r = _approved(backend)
     d = backend.draft_narrative(r.run_id, "EN")
-    assert (d.run_id, d.lang) == (r.run_id, "EN") and fake.calls[0][1] == "EN"
+    assert (d.run_id, d.lang) == (r.run_id, "EN") and fake.calls[-1][1] == "EN"
     with pytest.raises(ValueError):
         backend.approve_narrative(r.run_id, "EN", "  ")
     a = backend.approve_narrative(r.run_id, "EN", "# Final\ntext")
@@ -135,3 +135,49 @@ def test_draft_and_approve_narrative(backend, tmp_path):
     calls = len(fake.calls)
     assert backend.draft_narrative(r.run_id, "EN") == a       # the approved text wins
     assert len(fake.calls) == calls                            # without a new draft
+
+
+class SlowNarrator(FakeNarrator):
+    def __init__(self):
+        super().__init__()
+        import threading
+        self.release = threading.Event()
+
+    def draft(self, r, ev, lang):
+        self.release.wait(10)
+        return super().draft(r, ev, lang)
+
+
+def test_approval_starts_the_tr_text_and_opening_it_waits_for_that_job(backend):
+    slow = SlowNarrator()
+    backend._narrator_obj = slow
+    r = _approved(backend)                      # returns at once; the TR draft runs in the background
+    assert slow.calls == []
+    slow.release.set()
+    d = backend.draft_narrative(r.run_id, "TR")
+    assert d.lang == "TR"
+    assert [c[1] for c in slow.calls] == ["TR"]      # one call: the background job, not a second one
+
+
+def test_a_failed_background_draft_is_made_again_on_request(backend):
+    class Flaky(FakeNarrator):
+        def draft(self, r, ev, lang):
+            if not self.calls:
+                self.calls.append(("boom", lang, None))
+                raise RuntimeError("network")
+            return super().draft(r, ev, lang)
+    flaky = Flaky()
+    backend._narrator_obj = flaky
+    r = _approved(backend)
+    assert backend.draft_narrative(r.run_id, "TR").lang == "TR"
+    assert len(flaky.calls) == 2
+
+
+def test_a_rejection_starts_no_text(backend):
+    fake = FakeNarrator()
+    backend._narrator_obj = fake
+    snap = backend.list_snapshots()[0]
+    r = backend.decide(persona(backend, "P02"), snap)
+    backend.approve(r.run_id, RmStatus.REJECTED, "not now")
+    backend.wait_for_background()
+    assert fake.calls == []

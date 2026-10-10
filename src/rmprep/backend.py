@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import threading
+from concurrent.futures import Future, ThreadPoolExecutor
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
@@ -42,6 +44,11 @@ class RealBackend:
         self._runs: dict[str, tuple[DecisionResult, _Inputs]] = {}
         self._narrator_obj = None          # made on first use (imports the LLM SDK)
         self._narratives: dict[tuple[str, str], NarrativeDraft] = {}   # approved texts
+        # Lever 1 (2026-10-10): an approval starts the TR meeting text in the background,
+        # so the RM usually finds it ready; opening it waits for that job.
+        self._pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="narrator")
+        self._pending: dict[tuple[str, str], Future] = {}
+        self._lock = threading.Lock()
 
     # --- reading --------------------------------------------------------------
 
@@ -87,7 +94,10 @@ class RealBackend:
         selected = tuple(selected_option_ids) if status == RmStatus.APPROVED else ()
         new = dataclasses.replace(result, rm_status=status, rm_note=note, rm_selected=selected,
                                   rm_option_notes={})
-        return self._save(new, inputs)
+        saved = self._save(new, inputs)
+        if status == RmStatus.APPROVED:
+            self._prefetch(run_id, "TR")
+        return saved
 
     def annotate(self, run_id: str, note: str,
                  option_notes: Mapping[str, str]) -> DecisionResult:
@@ -115,6 +125,32 @@ class RealBackend:
         approved = self._narratives.get((run_id, lang))
         if approved is not None:
             return approved
+        with self._lock:
+            job = self._pending.pop((run_id, lang), None)
+        if job is not None:
+            try:
+                return job.result()
+            except Exception:
+                pass                   # the background draft failed: make it again now
+        return self._draft_now(run_id, lang)
+
+    def wait_for_background(self) -> None:
+        """Wait for the running background drafts (tests, shutdown)."""
+        with self._lock:
+            jobs = list(self._pending.values())
+        for job in jobs:
+            try:
+                job.result()
+            except Exception:
+                pass
+
+    def _prefetch(self, run_id: str, lang: str) -> None:
+        with self._lock:
+            if (run_id, lang) not in self._pending:
+                self._pending[(run_id, lang)] = self._pool.submit(self._draft_now, run_id, lang)
+
+    def _draft_now(self, run_id: str, lang: str) -> NarrativeDraft:
+        result, inputs = self._runs[run_id]
         ev = self.evidence(inputs.snapshot_id, inputs.excluded_sources)
         return self._narrator().draft(result, ev, lang)
 
