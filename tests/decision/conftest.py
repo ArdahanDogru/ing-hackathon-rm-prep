@@ -14,8 +14,12 @@ PERSONA_IDS = ["P01", "P02", "P03", "P04", "P05"]
 T0 = datetime(2026, 10, 10, 9, 0, tzinfo=TR_TZ)
 
 _UNITS = {"fund_risk_level": "level", "fund_total_value": "TRY", "fund_investor_count": "count",
-          "deposit_rate": "percent"}
-_SOURCES = {"fund_total_value": "tefas", "fund_investor_count": "tefas", "fund_price": "tefas"}
+          "deposit_rate": "percent", "fund_buyable": "flag", "fund_sell_valor_days": "days",
+          "fund_buy_valor_days": "days", "fund_entry_fee": "pct", "fund_exit_fee": "pct"}
+_SOURCES = {"fund_total_value": "tefas", "fund_investor_count": "tefas", "fund_price": "tefas",
+            "fund_buyable": "tefas_detail", "fund_sell_valor_days": "tefas_detail",
+            "fund_buy_valor_days": "tefas_detail", "fund_entry_fee": "tefas_detail",
+            "fund_exit_fee": "tefas_detail"}
 
 
 def dp(quantity: str, entity: str, value: float | None, *, as_of: date = date(2026, 10, 9),
@@ -41,12 +45,13 @@ def load_evidence(name: str = "evidence_medium.json") -> EvidenceSet:
 
 
 def strip_d9(raw: dict) -> dict:
-    """The config without the D9 and D10 additions (real return, real_loss, long
+    """The config without the D9-D13 additions (real return, real_loss, long
     horizon, deposit quality, return weight 1 + appetite; underperformance, the
-    diversity pool), so the hand-computed values of the D1-D8 tests do not change
-    when the lead adds them to config/decision.yaml."""
+    diversity pool; fund detail; constraint rules), so the hand-computed values of
+    the D1-D8 tests do not change when the lead adds them to config/decision.yaml."""
     raw = copy.deepcopy(raw)
-    for key in ("real_return", "long_horizon", "quality_value", "underperformance"):
+    for key in ("real_return", "long_horizon", "quality_value", "underperformance",
+                "fund_detail", "constraint_rules"):
         raw.pop(key, None)
     for key in ("real_loss", "underperformance"):
         raw["penalties"].pop(key, None)
@@ -214,6 +219,59 @@ def d10_config(d10_raw):
     return parse_config(d10_raw)
 
 
+# --- D12: fund detail (buyable, sell valör, fees) -------------------------------------------
+
+D12_SECTION = {
+    "buyable_quantity": "fund_buyable",
+    "sell_valor_quantity": "fund_sell_valor_days",
+    "entry_fee_quantity": "fund_entry_fee",
+    "exit_fee_quantity": "fund_exit_fee",
+    "liquidity_by_sell_valor": [
+        {"max_days": 0, "value": 1.0}, {"max_days": 1, "value": 0.9},
+        {"max_days": 2, "value": 0.8}, {"max_days": 3, "value": 0.7},
+        {"max_days": 5, "value": 0.6}, {"max_days": 10, "value": 0.4},
+        {"max_days": None, "value": 0.2},
+    ],
+}
+D12_TEXTS = {
+    "constraint": {
+        "not_buyable": "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
+        "buyable": "TEFAS'ta alıma açık.",
+    },
+    "reasons": {
+        "liquidity_valor": "Satış valörü {valor:.0f} gün; likidite {value:.1f}.",
+        "fees": "Giriş + çıkış komisyonu %{fees:.2f}, {years:g} yıla yayılarak getiriden "
+                "düşüldü.",
+    },
+    "assumptions": {
+        "kind_proxy_valor": "Fonlarda likidite satış valöründen (valör yoksa ürün türünden), "
+                            "gelir uygunluğu ürün türünden türetildi.",
+    },
+    "data_quality": {
+        "buyable_missing": "{count} fonun TEFAS alım durumu kanıtlarda yok; bu fonlar alıma "
+                           "açık sayıldı.",
+    },
+}
+
+
+def add_d12(raw: dict) -> dict:
+    """Add the D12 config and texts, in place."""
+    raw["fund_detail"] = copy.deepcopy(D12_SECTION)
+    for section, texts in D12_TEXTS.items():
+        raw["texts"][section].update(texts)
+    return raw
+
+
+@pytest.fixture
+def d12_raw(raw) -> dict:
+    return add_d12(add_d10(add_d9(raw)))
+
+
+@pytest.fixture
+def d12_config(d12_raw):
+    return parse_config(d12_raw)
+
+
 def market_row(value=43.82):
     return dp("deposit_rate", MARKET, value, source="evds", as_of=date(2026, 10, 2))
 
@@ -238,7 +296,8 @@ CATS = {"money_market": "Para Piyasası Şemsiye Fonu", "equity": "Hisse Senedi 
 def make_evidence(funds, deposit=23.0, deposit_flags=("manual_entry",), time_deposit=None,
                   extra=()):
     """funds: code -> dict(kind, name, risk, returns={period: %}, size, investors,
-    flags=(...) for every row of the fund). time_deposit: the e-Vadeli rate, if any.
+    flags=(...) for every row of the fund; buyable, sell_valor, entry_fee, exit_fee
+    give tefas_detail rows). time_deposit: the e-Vadeli rate, if any.
     extra: more rows (e.g. d9_rows())."""
     rows, ents = [], {}
     if deposit is not None:
@@ -256,6 +315,10 @@ def make_evidence(funds, deposit=23.0, deposit_flags=("manual_entry",), time_dep
             rows.append(dp("fund_total_value", code, f["size"], flags=f.get("flags", ())))
         if f.get("investors") is not None:
             rows.append(dp("fund_investor_count", code, f["investors"], flags=f.get("flags", ())))
+        for key, quantity in (("buyable", "fund_buyable"), ("sell_valor", "fund_sell_valor_days"),
+                              ("entry_fee", "fund_entry_fee"), ("exit_fee", "fund_exit_fee")):
+            if f.get(key) is not None:
+                rows.append(dp(quantity, code, f[key], flags=("needs_check",)))
     rows.extend(extra)
     return EvidenceSet(snapshot_id="S-test", created_at=T0, excluded_sources=frozenset(),
                        source_status={}, datapoints=tuple(sorted(rows, key=lambda d: d.id)),

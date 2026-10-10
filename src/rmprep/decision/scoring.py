@@ -83,6 +83,22 @@ def penalty_maxima(config: DecisionConfig) -> dict[str, float]:
     return {r: float(p[r]) for r in rules}
 
 
+def _fee_rows(cand: Candidate, fd: Mapping[str, Any] | None) -> list[DataPoint]:
+    """Entry and exit fee rows of a fund (D12); missing rows count as 0."""
+    if fd is None or cand.option.kind != "fund":
+        return []
+    rows = (cand.values.get(fd["entry_fee_quantity"]), cand.values.get(fd["exit_fee_quantity"]))
+    return [r for r in rows if r is not None]
+
+
+def _valor_liquidity(days: float, fd: Mapping[str, Any]) -> float:
+    """Liquidity value of a sell valör from the config table (D12)."""
+    for row in fd["liquidity_by_sell_valor"]:
+        if row["max_days"] is None or days <= row["max_days"]:
+            return row["value"]
+    raise AssertionError("the config check guarantees a last open row")
+
+
 def _net(option: ProductOption, annual: float, stopaj: float, config: DecisionConfig) -> float:
     """Return after stopaj; no tax on a loss. A time deposit is renewed every
     term_days days (compounding); the deposit and funds do not compound."""
@@ -114,6 +130,12 @@ class Features:
     real_return: float | None = None    # after stopaj and CPI; None without CPI
     stopaj_entity: str | None = None    # stopaj row the option needs
     stopaj_missing: bool = False        # that row is missing: stopaj 0
+    passed_before: tuple[ConstraintResult, ...] = ()   # passed rules checked before the ceiling
+
+    @property
+    def constraints(self) -> tuple[ConstraintResult, ...]:
+        """All passed hard rules, in the order of the checks."""
+        return (*self.passed_before, self.constraint)
 
 
 def _risk_of(cand: Candidate) -> int | None:
@@ -143,18 +165,34 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
                     ) -> tuple[list[Features], list[RejectedOption]]:
     c = config.raw
     texts = c["texts"]
+    fd = c.get("fund_detail")
     kept: list[tuple[Candidate, int | None]] = []
     rejected: list[RejectedOption] = []
+    passed_before: dict[str, tuple[ConstraintResult, ...]] = {}
     for cand in universe.candidates:
+        failed: list[ConstraintResult] = []
+        passed: list[ConstraintResult] = []
+        # not_buyable (D12) before risk_ceiling; a missing status row is no rejection
+        status = (cand.values.get(fd["buyable_quantity"])
+                  if fd is not None and cand.option.kind == "fund" else None)
+        if status is not None:
+            ok = status.value >= 0.5
+            (passed if ok else failed).append(ConstraintResult(
+                rule_id="not_buyable", passed=ok,
+                reason=texts["constraint"]["buyable" if ok else "not_buyable"],
+                evidence_ids=(status.id,)))
         risk = _risk_of(cand)
         if risk is not None and risk > levels.ceiling:
             row = cand.values[_RISK_Q]
-            rejected.append(RejectedOption(cand.option, (ConstraintResult(
+            failed.append(ConstraintResult(
                 rule_id="risk_ceiling", passed=False,
                 reason=texts["constraint"]["failed"].format(risk=risk, ceiling=levels.ceiling),
-                evidence_ids=(row.id,)),)))
+                evidence_ids=(row.id,)))
+        if failed:
+            rejected.append(RejectedOption(cand.option, tuple(failed)))
         else:
             kept.append((cand, risk))
+            passed_before[cand.option.option_id] = tuple(passed)
 
     # risk estimate per fund_kind: highest known risk among the scored funds
     known_by_kind: dict[str, int] = {}
@@ -167,6 +205,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
     rr = c.get("real_return")
     cpi = universe.cpi.value / 100 if rr is not None and universe.cpi is not None else None
     after_tax: dict[str, tuple[float | None, float | None, str | None, DataPoint | None]] = {}
+    fees: dict[str, tuple[float, list[DataPoint]]] = {}
     for cand, _ in kept:
         annual = returns[cand.option.option_id][0]
         if rr is None or annual is None:
@@ -175,6 +214,11 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
         entity = stopaj_entity(cand.option, config)
         st_row = universe.stopaj.get(entity)
         net = _net(cand.option, annual, st_row.value / 100 if st_row else 0.0, config)
+        fee_rows = _fee_rows(cand, fd)
+        if fee_rows:            # (entry + exit) % spread over the horizon years (D12)
+            fee_pct = sum(r.value for r in fee_rows)
+            net -= fee_pct / 100 / c["horizon"]["years"][levels.period]
+            fees[cand.option.option_id] = (fee_pct, fee_rows)
         real = (1 + net) / (1 + cpi) - 1 if cpi is not None else None
         after_tax[cand.option.option_id] = (net, real, entity, st_row)
 
@@ -230,10 +274,13 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             qv = c.get("quality_value", {})
             quality = qv.get(opt.kind, qv.get("deposit", 1.0))
             principal = pv.get(opt.kind, pv["deposit"])
+        valor = (cand.values.get(fd["sell_valor_quantity"])
+                 if fd is not None and is_fund else None)
         values = {
             "return": percentile_rank(ranked, all_returns) if ranked is not None else 0.0,
             "low_risk": 1 - (_clamp(risk, RISK_MIN, RISK_MAX) - 1) / 6,
-            "liquidity": kind_row["liquidity"],
+            "liquidity": (_valor_liquidity(valor.value, fd) if valor is not None
+                          else kind_row["liquidity"]),
             "income": kind_row["income"],
             "principal": principal,
             "simplicity": kind_row["simplicity"],
@@ -273,6 +320,12 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
                 rows[universe.cpi.quantity] = universe.cpi
         if net_or_gross is not None:
             rows.update(bench_rows)          # keyed by role: the deposit has its own rate row
+        fee_pct, fee_rows = fees.get(opt.option_id, (0.0, []))
+        status = (cand.values.get(fd["buyable_quantity"])
+                  if fd is not None and is_fund else None)
+        for extra in (status, valor, *fee_rows):
+            if extra is not None:
+                rows[extra.quantity] = extra
         fields = {
             "risk": risk, "ceiling": levels.ceiling,
             "annual": (annual or 0.0) * 100, "period": period or levels.period,
@@ -282,6 +335,8 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             "nominal": (annual or 0.0) * 100, "net": (net_or_gross or 0.0) * 100,
             "benchmark": (bench or 0.0) * 100,
             "real": (real or 0.0) * 100, "loss": -(real or 0.0) * 100,
+            "valor": valor.value if valor is not None else None,
+            "fees": fee_pct, "years": c["horizon"]["years"][levels.period],
         }
         if estimated:
             reason = texts["reasons"]["penalty:risk_unknown"].format(**fields)
@@ -297,7 +352,8 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             risk=risk, risk_estimated=estimated, period=period,
             shorter_period=is_fund and period is not None and period != levels.period,
             annual_return=annual, rows=rows, net_return=net, real_return=real,
-            stopaj_entity=st_entity, stopaj_missing=net is not None and st_row is None))
+            stopaj_entity=st_entity, stopaj_missing=net is not None and st_row is None,
+            passed_before=passed_before[opt.option_id]))
     return out, rejected
 
 
@@ -327,6 +383,10 @@ def _reasons(f: Features, parts: Mapping[str, float], config: DecisionConfig) ->
         elif key == "return" and f.net_return is not None:
             name = "return_real" if f.real_return is not None else "return_net"
             out[key] = tpl[name].format(**f.fields, value=v, pct=v * 100)
+            if f.fields.get("fees"):
+                out[key] += " " + tpl["fees"].format(**f.fields)
+        elif key == "liquidity" and f.fields.get("valor") is not None:
+            out[key] = tpl["liquidity_valor"].format(**f.fields, value=v)
         else:
             out[key] = tpl[key].format(**f.fields, value=v, pct=v * 100)
     if "penalty:track_record" in out:
