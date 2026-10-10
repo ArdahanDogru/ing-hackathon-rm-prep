@@ -12,7 +12,7 @@ sessions are `claude -p`, where teams cannot form. The user starts only
 | `ing-decision` | `C:/Users/yardang/dev/ing-wt/decision` | `decision` | `src/rmprep/decision/`, `tests/decision/` |
 | `ing-ui` | `C:/Users/yardang/dev/ing-wt/ui` | `ui` | `src/rmprep/ui/`, `tests/ui/` |
 | `ing-narrator` | `C:/Users/yardang/dev/ing-wt/narrator` | `narrator` | `src/rmprep/narrator/`, `tests/narrator/` |
-| later `ing-eval` | `ing-wt/eval` | `eval` | same pattern |
+| `ing-eval` | `C:/Users/yardang/dev/ing-wt/eval` | `eval` | `src/rmprep/eval/`, `tests/eval/` |
 
 Design per module: ingest = `docs/ingest.md`, decision = `docs/decision.md`,
 ui = `docs/ui.md`.
