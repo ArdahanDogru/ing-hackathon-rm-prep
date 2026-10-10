@@ -62,6 +62,8 @@ Each sentence carries citations: option ids and/or evidence ids.
    named; no rejected option; no option outside the result.
 3. Forbidden phrases (config list, rule 6): e.g. "garanti", "kesin getiri",
    "risksiz", "kaybetmezsiniz", "mutlaka kazandırır".
+   The option labels of the result are removed from the text before the scan
+   (N5, found by eval E2: "GARANTİ PORTFÖY ..." fund names matched "garanti").
 4. Every sentence of `oneriler`, `alternatifler` and `dikkat` has at least one
    citation, and each citation exists.
 5. The text says that it is a preparation for the RM, not investment advice.

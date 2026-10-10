@@ -411,6 +411,7 @@ each estimate.
 | `conflict` | 0.6 |
 | estimate: risk level from section 4.3 | × 0.7 |
 | estimate: shorter return period than the horizon | × 0.8 |
+| estimate: liquidity from the kind table because the sell valör is missing (with `fund_detail`; D14) | × 0.8 |
 
 A row with several flags takes its lowest factor. Today: typical fund 0.9,
 fund with unknown risk 0.63, deposit 0.9.
@@ -498,6 +499,7 @@ funds, with `entities`).
 | D11 | use `rmprep.grouping` (4.6): `report.render` groups with `grouping.groups`; the kind caps of 4.5 count by `grouping.group_key`; remove `report.fund_groups` and the local constants | report output unchanged on the real snapshot; tests import the shared rule |
 | D12 | (a) hard rule `not_buyable` (section 2); (b) `liquidity` of a fund from its sell valör (`fund_sell_valor_days`) through a config table (start: 0 days 1.0, 1 → 0.9, 2 → 0.8, 3 → 0.7, 4–5 → 0.6, 6–10 → 0.4, more → 0.2), the kind table only when the row is missing (reason says which); (c) entry and exit fees (`fund_entry_fee`, `fund_exit_fee`, %) reduce the net return N by (entry + exit) / horizon years (6m 0.5, 1y 1, 3y 3); reason texts for valör and fees; all config OPTIONAL until the lead adds it | rejected with the rule and the row id; missing status → note; valör table values and the kind fallback; fee effect hand-computed; P01–P05 valid |
 | D13 | explicit constraints as hard rules (section 2): `fx_limit` (with the RM override question), `liquidity_need` (`max_sell_valor_days` 3, `max_lock_days` 91); config OPTIONAL until the lead adds it | FX fund rejected for P02, back with the override; P05: valör 4 rejected, 3 kept, missing kept + note; time deposit 32 days kept, a 120-day one rejected; rejected options never in `options` |
+| D14 | (found by eval E2, 2026-10-10) a fund whose liquidity falls back to the kind table because its sell valör row is missing gets the estimate factor `confidence.liquidity_proxy` (0.8; optional config); before, excluding `tefas_detail` raised the confidence (ZPO 0.63 → 0.70) | with the valör row → no factor; without it → × 0.8; excluding `tefas_detail` never raises a confidence |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]
