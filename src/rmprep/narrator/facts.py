@@ -65,6 +65,7 @@ class WarningFacts:
     message: str
     option_ids: tuple[str, ...] = ()            # named options only; () = the whole result
     evidence_ids: tuple[str, ...] = ()
+    numbers: tuple[KeyNumber, ...] = ()         # values of its evidence
 
 
 @dataclass(frozen=True)
@@ -119,12 +120,16 @@ def _plain(x):
     return x
 
 
-def _option_facts(o: ScoredOption, ev: EvidenceSet, warnings: list[str], note: str) -> OptionFacts:
+def _numbers(ids, ev: EvidenceSet) -> tuple[KeyNumber, ...]:
     by_id = {dp.id: dp for dp in ev.datapoints}
+    return tuple(KeyNumber(dp.id, dp.quantity, dp.value, dp.unit, dp.as_of, dp.source)
+                 for dp in (by_id.get(i) for i in ids) if dp is not None and dp.value is not None)
+
+
+def _option_facts(o: ScoredOption, ev: EvidenceSet, warnings: list[str], note: str) -> OptionFacts:
     ids = list(dict.fromkeys([*o.evidence_ids, *(i for c in o.constraints
                                                    for i in c.evidence_ids)]))
-    numbers = tuple(KeyNumber(dp.id, dp.quantity, dp.value, dp.unit, dp.as_of, dp.source)
-                    for dp in (by_id.get(i) for i in ids) if dp is not None and dp.value is not None)
+    numbers = _numbers(ids, ev)
     reasons = sorted(((k, v, o.reasons[k]) for k, v in o.score_parts.items()),
                      key=lambda r: -abs(r[1]))
     return OptionFacts(
@@ -157,7 +162,8 @@ def build_facts(r: DecisionResult, ev: EvidenceSet) -> Facts:
         ids = tuple(i for i in w.option_ids if i in named)
         if (w.option_ids and not ids) or any(lbl in w.message for lbl in rejected_labels):
             continue
-        warnings.append(WarningFacts(w.code, w.message, ids, w.evidence_ids))
+        warnings.append(WarningFacts(w.code, w.message, ids, w.evidence_ids,
+                                     _numbers(w.evidence_ids, ev)))
 
     def facts(o: ScoredOption) -> OptionFacts:
         oid = o.option.option_id

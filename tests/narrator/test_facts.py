@@ -74,6 +74,13 @@ def test_warnings_only_about_named_options_or_the_whole_result():
     assert "fund:AKE" not in json.dumps(f.to_dict())
 
 
+def test_warnings_carry_the_numbers_of_their_evidence():
+    f = build_facts(p02(), evidence())
+    market = next(w for w in f.warnings if w.code == "deposit_vs_market")
+    assert {n.evidence_id: n.value for n in market.numbers} == {"E42b47116": 23.0,
+                                                                "E9cb9f7ad": 43.82}
+
+
 def test_open_questions_assumptions_and_data_quality():
     r = p02()
     f = build_facts(r, evidence())
