@@ -81,3 +81,27 @@ scenarios:
     exclude_sources: [tefas_detail]
     narrate: false
     compare_to: base-p05
+
+  - id: reg-d15-short-history-p05
+    group: regression
+    description: >-
+      Case 7 (found by the first full eval), D15 short history: without tefas_detail,
+      P05 listed VKR, ZPO and ZTV (only a 1-month return) with no evidence ids. After
+      D15: no listed option without evidence ids; 57 funds rejected as short_history,
+      VKR, ZPO and ZTV among them.
+    persona: P05
+    needs: [D15]
+    exclude_sources: [tefas_detail]
+    narrate: false
+    expect: {options_without_evidence: {equals: 0}, rejected: {at_least: {short_history: 1}}}
+  - id: reg-d15-short-history-p03
+    group: regression
+    description: >-
+      Case 7 for an Agresif persona (P03): the short-history funds stay listed with the
+      track_record penalty. Before D15 VKR, ZPO and ZTV had no evidence ids; after D15
+      they cite their 1-month return row, and none is rejected as short_history.
+    persona: P03
+    needs: [D15]
+    exclude_sources: [tefas_detail]
+    narrate: false
+    expect: {options_without_evidence: {equals: 0}, rejected: {equals: {short_history: 0}}}

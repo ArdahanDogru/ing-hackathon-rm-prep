@@ -19,6 +19,8 @@ NCFG = load_narrator_config(PROJECT / "config" / "narrator.yaml")
 SUITE = {s.id: s for s in load_scenarios(packaged_scenario_files())}
 CASES = [s for s in SUITE.values() if s.group == "regression"]
 FUNDS = sorted({d.entity for d in fixture_evidence().datapoints if d.source == "tefas"})
+LISTABLE = [f for f in FUNDS                     # in the universe (Serbest funds are not)
+            if not fixture_evidence().entities[f].category.startswith("Serbest")]
 
 
 def row(quantity, entity, value, source="tefas_detail", flags=()):
@@ -123,10 +125,14 @@ def test_n5_a_garanti_fund_name_is_not_a_forbidden_phrase(root, renamed):
 
 
 def _d14_rows(dropped_rows, extra_rows):
-    """FUNDS[2] without tefas_web rows (its risk is estimated) and with
-    needs_check tefas_detail rows, as on the real snapshot (P05: ZPO, ZND, ZTV)."""
+    """FUNDS[2] with no risk row (its risk is estimated), one unflagged 1-year
+    return (a usable history, so D15 short_history keeps it) and needs_check
+    tefas_detail rows: the tefas_detail rows are its weakest rows, as on the
+    real snapshot (P05: ZPO, ZND, ZTV). Keeping its needs_check tefas_web
+    returns would hide the D14 case (the confidence could not rise)."""
     f = FUNDS[2]
     dropped_rows.append(lambda d: d.entity == f and d.source == "tefas_web")
+    extra_rows.append(row("fund_return_1y", f, 40.0, source="tefas_web"))
     extra_rows += [row("fund_sell_valor_days", x, 0.0, flags=(Flag.NEEDS_CHECK,)) for x in FUNDS]
     return f
 
@@ -150,3 +156,56 @@ def test_d14_case_fails_without_its_fix(root, dropped_rows, extra_rows):
     sc, _ = run_case(root, "reg-d14-liquidity-proxy-confidence")
     c = next(c for c in sc.runs[0] if c.check == "missing_data_shown")
     assert c.status == FAIL and "confidence" in c.details[0]
+
+
+def set_d15(root, on: bool):
+    """Turn the D15 config on or off in the test root (independent of the
+    project config, which may or may not have it yet)."""
+    cfg = root / "config" / "decision.yaml"
+    raw = yaml.safe_load(cfg.read_text(encoding="utf-8"))
+    raw.pop("short_history", None)
+    raw["texts"]["constraint"].pop("short_history", None)
+    raw["texts"]["data_quality"].pop("removed_no_data", None)
+    if on:
+        raw["short_history"] = {"min_period": "3m", "allow_appetite": 1.0}
+        raw["texts"]["constraint"]["short_history"] = "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
+        raw["texts"]["data_quality"]["removed_no_data"] = (
+            "{count} fon, kullanılabilir veri satırı olmadığı için çıkarıldı.")
+    cfg.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+
+def _d15_rows(dropped_rows, extra_rows):
+    """A listable fund (not the D14 one) keeps only its 1-month return (as VKR,
+    ZPO, ZTV on the real snapshot without tefas_detail); the other funds get
+    tefas_detail rows, so the scenarios can exclude that source."""
+    f = next(x for x in LISTABLE if x != FUNDS[2])
+    dropped_rows.append(lambda d: d.entity == f and d.quantity != "fund_return_1m")
+    extra_rows += [row("fund_sell_valor_days", x, 1.0) for x in FUNDS if x != f]
+    return f
+
+
+def test_d15_p05_rejects_a_short_history_fund_and_lists_none_without_evidence(
+        root, dropped_rows, extra_rows):
+    f = _d15_rows(dropped_rows, extra_rows)
+    set_d15(root, True)
+    sc, sr = run_case(root, "reg-d15-short-history-p05")
+    assert_passes(sc)
+    rejected = {x.option.entity: [c.rule_id for c in x.failed] for x in sr.runs[0].result.rejected}
+    assert "short_history" in rejected[f]
+
+
+def test_d15_an_agresif_persona_keeps_it_with_the_penalty(root, dropped_rows, extra_rows):
+    f = _d15_rows(dropped_rows, extra_rows)
+    set_d15(root, True)
+    sc, sr = run_case(root, "reg-d15-short-history-p03")
+    assert_passes(sc)
+    o = next(o for o in sr.runs[0].result.options if o.option.entity == f)
+    assert "penalty:track_record" in o.score_parts and o.evidence_ids
+
+
+def test_d15_case_fails_without_its_fix(root, dropped_rows, extra_rows):
+    _d15_rows(dropped_rows, extra_rows)
+    set_d15(root, False)
+    sc, _ = run_case(root, "reg-d15-short-history-p05")
+    sens = next(c for c in sc.scenario_checks if c.check == "sensitivity")
+    assert sens.status == FAIL and "short_history" in " ".join(sens.details)

@@ -470,6 +470,7 @@ def metric_values(run: RunRecord, decision_config: Mapping[str, Any],
                                       if d.source not in ev.excluded_sources)),
         "failed_sources": sorted(k for k, v in ev.source_status.items() if v.status == "failed"),
         "validator_phrase_findings": phrase_findings(run, narrator_config),
+        "options_without_evidence": sum(1 for x in r.options if not x.evidence_ids),
     }
 
 
@@ -478,7 +479,7 @@ ABSOLUTE = ("at_most", "at_least", "equals")
 METRICS = ("state", "avg_risk", "max_risk", "fx_count", "fx_in_options", "avg_sell_valor",
            "shortlist", "not_buyable_in_options", "baseline_below_best_fund", "options",
            "rejected", "max_sell_valor", "evidence_rows", "failed_sources",
-           "validator_phrase_findings")
+           "validator_phrase_findings", "options_without_evidence")
 
 
 def expect_errors(s: Scenario) -> list[str]:
