@@ -1,0 +1,163 @@
+<h2>Meeting text v9: speaking script and notes on one row</h2>
+<p class="subtitle">"Notlarım" moves into the header card, to the right of "Görüşmede söyleyebileceğiniz": a white rounded box the RM types into. The per-option note fields stay under each recommendation.</p>
+
+<style>
+  .m{font-family:Inter,Segoe UI,Arial,sans-serif;color:#1d2440;background:#f3f5f9;border-radius:16px;padding:24px}
+  .m .bar{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .m .title{font-size:26px;font-weight:700}
+  .m .status{font-size:13px;padding:4px 12px;border-radius:999px;background:#fffaeb;color:#b54708;font-weight:600}
+  .m .seg{display:flex;border:1px solid #d0d5dd;border-radius:10px;overflow:hidden;font-size:15px;background:#fff}
+  .m .seg span{padding:8px 16px}.m .seg .on{background:#1d2440;color:#fff}
+  .m .btn{background:#FF6200;color:#fff;border-radius:12px;padding:11px 22px;font-weight:600;font-size:16px}
+  .m .btn2{border:1px solid #d0d5dd;border-radius:12px;padding:11px 18px;font-weight:600;font-size:16px;color:#344054;background:#fff}
+  .m .layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;align-items:start}
+  .m .hero{background:linear-gradient(135deg,#1d2a6b 0%,#2f4a9a 100%);color:#fff;border-radius:20px;padding:28px 30px;margin-bottom:22px}
+  .m .who{display:flex;align-items:center;gap:16px}
+  .m .av{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700}
+  .m .hero h2{margin:0;font-size:24px;color:#fff}
+  .m .sub{opacity:.85;font-size:16px;margin-top:2px}
+  .m .aim{font-size:19px;line-height:1.6;margin:18px 0 14px;max-width:62ch}
+  .m .tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .m .tag{font-size:14px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.14)}
+  .m .tag.k{background:rgba(255,190,150,.22)}
+  .m .tp{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .m .t{background:rgba(255,255,255,.12);border-radius:14px;padding:14px 16px}
+  .m .t .h{font-size:16px;font-weight:700;margin-bottom:4px}
+  .m .t .d{font-size:15px;line-height:1.45;opacity:.9}
+  .m .script{margin-top:20px;background:#fff;color:#1d2440;border-radius:16px;padding:22px 26px 22px 28px;position:relative}
+  .m .script .lbl{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#355fa1}
+  .m .script .q{position:absolute;top:4px;right:20px;font-size:64px;color:#c9d7ee;font-family:Georgia,serif;line-height:1}
+  .m .script p{font-size:19px;line-height:1.7;margin:8px 0 0;max-width:64ch}
+  .m .h{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;margin:6px 0 14px}
+  .m .h .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px}
+  .m .rec{background:#fff;border-radius:18px;padding:22px 24px;margin-bottom:16px;box-shadow:0 2px 6px rgba(16,24,40,.06)}
+  .m .rtop{display:flex;align-items:center;gap:14px}
+  .m .rank{width:36px;height:36px;border-radius:50%;background:#eef2f9;color:#355fa1;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:17px}
+  .m .rname{font-size:20px;font-weight:700}
+  .m .rcat{font-size:15px;color:#667085}
+  .m .kp{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+  .m .k1{background:#f7f9fc;border-radius:12px;padding:12px 14px}
+  .m .k1 .k{font-size:13px;color:#667085}
+  .m .k1 .n{font-size:22px;font-weight:700;margin-top:2px}
+  .m .up{color:#067647}
+  .m .risk{display:flex;gap:4px;margin-top:10px}
+  .m .risk span{flex:1;height:7px;border-radius:4px;background:#e4e7ec}
+  .m .need{display:inline-flex;align-items:center;gap:6px;font-size:14px;padding:6px 12px;border-radius:999px;background:#eef2f9;color:#2c4f8f;margin:0 8px 8px 0;font-weight:500}
+  .m .rec p{font-size:17px;line-height:1.65;margin:8px 0 0;max-width:66ch}
+  .m .ev{font-size:14px;color:#355fa1;font-weight:600;margin-top:12px;display:inline-block}
+  .m .warn{background:#fff;border-radius:18px;padding:20px 24px;box-shadow:0 2px 6px rgba(16,24,40,.06);margin-bottom:16px}
+  .m .wi{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-top:1px solid #f2f4f7;font-size:17px;line-height:1.55}
+  .m .wi:first-of-type{border-top:0;padding-top:4px}
+  .m .dot{flex:none;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+  .m .internal{background:#fff;border-radius:18px;padding:18px 22px;box-shadow:0 2px 6px rgba(16,24,40,.06)}
+  .m .internal .lbl{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700}
+  .m .lock{font-size:12px;padding:2px 8px;border-radius:999px;background:#f2f4f7;color:#475467;font-weight:600}
+  .m .internal p{font-size:16px;line-height:1.55;margin:8px 0 0;color:#344054}
+  .m .box{background:#fff;border-radius:18px;padding:20px 22px;margin-bottom:18px;box-shadow:0 2px 6px rgba(16,24,40,.06)}
+  .m .box h4{margin:0 0 10px;font-size:17px}
+  .m .term{padding:12px 0;border-top:1px solid #f2f4f7;font-size:16px;font-weight:600}
+  .m .term span{display:block;font-weight:400;color:#475467;font-size:15px;line-height:1.5;margin-top:3px}
+  .m .dl{display:flex;align-items:center;gap:8px;padding:12px 0;border-top:1px solid #f2f4f7;font-size:16px;color:#2c4f8f;font-weight:600}
+  .m .small{font-size:13px;color:#667085;margin-top:10px}
+  .m .onote{margin-top:14px;border:1px dashed #c7d2e5;border-radius:12px;padding:10px 14px;font-size:15px;color:#98a2b3;background:#fbfcfe}
+  .m .onote.filled{border-style:solid;color:#1d2440;background:#f7f9fc}
+  .m .onote b{color:#355fa1;font-size:13px;display:block;margin-bottom:2px}
+  .m textarea{width:100%;box-sizing:border-box;min-height:120px;border:1px solid #d0d5dd;border-radius:12px;padding:12px;font:15px/1.5 Inter,Segoe UI,Arial,sans-serif;color:#1d2440;resize:vertical}
+  .m .saved{font-size:12px;color:#067647;margin-top:6px}
+  .m .pair{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:16px;margin-top:20px;align-items:stretch}
+  .m .pair .script{margin-top:0}
+  .m .notes{background:#fff;color:#1d2440;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column}
+  .m .notes .lbl{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#355fa1}
+  .m .notes textarea{flex:1;margin-top:8px;min-height:150px;border:1px solid #d0d5dd;border-radius:12px;background:#fbfcfe}
+</style>
+
+<div class="m">
+  <div class="bar">
+    <span class="title">Görüşme hazırlığı</span>
+    <span class="status">Taslak · onayınızı bekliyor</span>
+    <span style="margin-left:auto" class="seg"><span class="on">TR</span><span>EN</span></span>
+    <span class="btn2">Düzenle</span><span class="btn">Metni onayla</span>
+  </div>
+
+  <div class="hero">
+    <div class="who"><div class="av">P01</div><div><h2>Emekli girişimci, 62</h2><div class="sub">Muhafazakâr · ufuk 1–3 yıl · likidite ihtiyacı orta</div></div></div>
+    <div class="aim">Görüşmenin amacı: varlığı TL mevduat ağırlıklı olan müşteriyle, düzenli gelir ve sermaye korumasını gözeten düşük riskli alternatifleri değerlendirmek.</div>
+    <div class="tags">
+      <span class="tag">Düzenli gelir</span><span class="tag">Likiditeyi koruma</span><span class="tag">Sınırlı dalgalanma</span>
+      <span class="tag k">Kısıt: yüksek riskli ürünlerden kaçınma</span>
+    </div>
+    <div class="tp">
+      <div class="t"><div class="h">Enflasyon karşısında mevduat</div><div class="d">Varlık ağırlıklı mevduatta; yüksek enflasyonda satın alma gücü aşınabilir.</div></div>
+      <div class="t"><div class="h">Düzenli gelir</div><div class="d">Gelir ihtiyacı yüksek: hangi seçeneğin nakit akışına nasıl katkı verdiğini anlatın.</div></div>
+      <div class="t"><div class="h">Paraya erişim</div><div class="d">Önerilen fonlarda para aynı gün çekilebilir; likidite önceliği korunur.</div></div>
+    </div>
+    <div class="pair">
+    <div class="script">
+      <span class="q">“</span>
+      <div class="lbl">Görüşmede söyleyebileceğiniz</div>
+      <p>Düzenli gelir ve sermayenin korunmasını önceliklendirdiğinizi biliyoruz. Varlığınızın büyük kısmı mevduatta; bunu bozmadan, düşük riskli ve paraya kısa sürede erişebileceğiniz birkaç seçeneği birlikte değerlendirmek istiyorum. Geçmiş getiriler gelecekteki getirileri göstermez; kararı önceliklerinize göre birlikte verelim.</p>
+    </div>
+    <div class="notes">
+      <div class="lbl">Notlarım</div>
+      <textarea>Müşteri emeklilik gelirinin bir kısmını aylık nakit olarak almak istiyor. Bir sonraki görüşmede eşi de katılacak.</textarea>
+      <div class="saved">✓ Kaydedildi · karta eklenir</div>
+    </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="h"><span class="ic" style="background:#eef2f9;color:#355fa1">★</span>Öneriler</div>
+      <div class="rec">
+        <div class="rtop"><div class="rank">1</div><div><div class="rname">Nurol Portföy Para Piyasası (TL)</div><div class="rcat">Para Piyasası</div></div></div>
+        <div class="kp">
+          <div class="k1"><div class="k">1 yıl getiri</div><div class="n up">%47,6</div></div>
+          <div class="k1"><div class="k">Risk</div><div class="risk"><span style="background:#12b76a"></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+          <div class="k1"><div class="k">Paraya erişim</div><div class="n">Aynı gün</div></div>
+        </div>
+        <span class="need">💧 Likiditeyi koruma</span><span class="need">〰 Sınırlı dalgalanma</span>
+        <p>Paraya aynı gün erişim sağlar ve en düşük risk sınıfındadır; mevduattan ilk adım için uygun bir başlangıç.</p>
+        <span class="ev">Kanıtları göster (3) ›</span>
+        <div class="onote filled"><b>Notum</b>Müşteri geçen görüşmede bu fonu sordu; ilk bu fonla başlayın.</div>
+      </div>
+      <div class="rec">
+        <div class="rtop"><div class="rank">2</div><div><div class="rname">İstanbul Portföy Kısa Vadeli Borçlanma (TL)</div><div class="rcat">Borçlanma Araçları</div></div></div>
+        <div class="kp">
+          <div class="k1"><div class="k">1 yıl getiri</div><div class="n up">%47,1</div></div>
+          <div class="k1"><div class="k">Risk</div><div class="risk"><span style="background:#12b76a"></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+          <div class="k1"><div class="k">Paraya erişim</div><div class="n">Aynı gün</div></div>
+        </div>
+        <span class="need">₺ Düzenli gelir</span>
+        <p>Gelir ihtiyacı yüksek olan müşteri için gündeme getirilebilir; yatırımcı sayısının diğer seçeneklerden az olduğu izlenmeli.</p>
+        <span class="ev">Kanıtları göster (3) ›</span>
+        <div class="onote">+ Bu seçenek için not ekleyin…</div>
+      </div>
+
+      <div class="h"><span class="ic" style="background:#fffaeb;color:#b54708">!</span>Dikkat</div>
+      <div class="warn">
+        <div class="wi"><span class="dot" style="background:#fef3f2;color:#b42318">!</span><span>Fonlar mevduat gibi <b>anapara korumalı değildir</b>.</span></div>
+        <div class="wi"><span class="dot" style="background:#fffaeb;color:#b54708">↺</span><span>Geçmiş getiriler gelecekteki getirilerin göstergesi değildir; oranlar değişebilir.</span></div>
+        <div class="wi"><span class="dot" style="background:#f2f4f7;color:#475467">i</span><span>Veri notları "Olası sorunlar" bölümünde.</span></div>
+      </div>
+
+      <div class="internal">
+        <div class="lbl">RM notları <span class="lock">yalnızca sizin için</span></div>
+        <p>ING standart mevduat oranı (%23,00) piyasa ortalamasının (%43,82) 20,8 puan altında. Müşteri karşılaştırma sorarsa hazırlıklı olun.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="box">
+        <h4>Terimler</h4>
+        <div class="term">valör<span>Fonu sattıktan sonra paranın hesaba geçmesi için geçen iş günü sayısı.</span></div>
+        <div class="term">reel getiri<span>Enflasyonun etkisi çıkarıldıktan sonra kalan getiri.</span></div>
+      </div>
+      <div class="box">
+        <h4>Kart</h4>
+        <span class="dl">⤓ PDF olarak indir</span>
+        <span class="dl">⤓ Markdown olarak indir</span>
+        <div class="small">Claude Sonnet 5.5 · otomatik kontrol geçti · $0,04</div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,81 @@
+<h2>Fund card v5: one color per risk level, cobalt blue charts, rank as "3. / 88"</h2>
+<p class="subtitle">Chart color: cobalt blue #4676BF, the first data-visualization color of J.P. Morgan's public design system (Salt). Category = light grey. Orange stays for the brand only (main button).</p>
+
+<style>
+  .v{font-family:Inter,Segoe UI,Arial,sans-serif;font-size:12px;border-radius:14px;padding:14px;background:#f7f8fa;color:#1d2440}
+  .v .card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04)}
+  .v h4{margin:0;font-size:15px;font-weight:600}
+  .v .muted{color:#667085;font-size:11px}
+  .v .head{display:flex;gap:14px;align-items:center}
+  .v .ring{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;background:conic-gradient(#4676BF 0 82%,#eef2f9 82% 100%)}
+  .v .ring div{width:48px;height:48px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:15px;line-height:1}
+  .v .ring small{font-size:8px;color:#667085;font-weight:500;margin-top:2px}
+  .v .stars{color:#f5a524;font-size:15px;letter-spacing:1px}
+  .v .rank{font-size:20px;font-weight:700;line-height:1.1;margin-top:2px}
+  .v .rank span{font-size:13px;color:#667085;font-weight:500}
+  .v .tiles{display:grid;grid-template-columns:1.3fr 1fr;gap:10px;margin:14px 0}
+  .v .tile{background:#f9fafb;border-radius:12px;padding:10px}
+  .v .big{font-size:17px;font-weight:700}
+  .v .risk{display:flex;gap:3px;margin:7px 0 3px}
+  .v .risk span{flex:1;height:6px;border-radius:3px;background:#eaecf0}
+  .v .p{display:grid;grid-template-columns:44px 1fr 74px;gap:10px;align-items:center;margin:7px 0}
+  .v .pair div{height:10px;border-radius:5px;margin:2px 0}
+  .v .pair .f{background:#4676BF}
+  .v .pair .c{background:#d0d5dd}
+  .v .delta{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;text-align:center}
+  .v .delta.g{background:#ecfdf3;color:#067647}
+  .v .legend{display:flex;gap:14px;margin-top:4px}
+  .v .legend i{display:inline-block;width:12px;height:8px;border-radius:4px;margin-right:4px}
+  .v .why{margin-top:12px;background:#f3f6fb;border-radius:10px;padding:9px 11px}
+  .v .ex{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .v .btn{display:inline-block;background:#FF6200;color:#fff;border-radius:10px;padding:7px 14px;font-weight:600}
+  .v .link{color:#355fa1;font-size:11px;text-decoration:underline}
+</style>
+
+<div class="v">
+  <div class="card">
+    <div class="head">
+      <div class="ring"><div>8,2<small>uygunluk</small></div></div>
+      <div style="flex:1">
+        <h4>Nurol Portföy Para Piyasası (TL)</h4>
+        <div class="muted">Para Piyasası · PPN · bu müşteri için öneri 1</div>
+      </div>
+      <div style="text-align:right">
+        <div class="stars">★★★★★</div>
+        <div class="rank">3. <span>/ 88</span></div>
+        <div class="muted">kategori sırası · 1 yıl getiri · <span class="link">Kanıt</span></div>
+      </div>
+    </div>
+
+    <div class="tiles">
+      <div class="tile">
+        <div class="muted">SPK risk değeri</div>
+        <div class="risk"><span style="background:#12b76a"></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div><b style="color:#067647">1 / 7</b> <span class="muted">· en düşük risk</span></div>
+      </div>
+      <div class="tile">
+        <div class="muted">Paraya erişim</div>
+        <div class="big">Aynı gün</div>
+        <div class="muted">satış valörü 0 gün</div>
+      </div>
+    </div>
+
+    <div class="muted" style="font-weight:600;color:#344054">Getiri: fon ve kategori ortalaması</div>
+    <div class="p"><span>3 ay</span><div class="pair"><div class="f" style="width:58%"></div><div class="c" style="width:54%"></div></div><span class="delta g">+0,7 puan</span></div>
+    <div class="p"><span>6 ay</span><div class="pair"><div class="f" style="width:66%"></div><div class="c" style="width:61%"></div></div><span class="delta g">+1,6 puan</span></div>
+    <div class="p"><span>1 yıl</span><div class="pair"><div class="f" style="width:95%"></div><div class="c" style="width:89%"></div></div><span class="delta g">+3,1 puan</span></div>
+    <div class="p"><span>Reel</span><div class="pair"><div class="f" style="width:40%"></div><div class="c" style="width:33%"></div></div><span class="delta g">+2,6 puan</span></div>
+    <div class="legend muted"><span><i style="background:#4676BF"></i>bu fon</span><span><i style="background:#d0d5dd"></i>kategori ortalaması (88 fon)</span></div>
+
+    <div class="why"><b>Bu müşteri için neden?</b> "Likiditeyi koruma": paraya aynı gün erişim. "Sınırlı dalgalanma": SPK risk değeri 1.</div>
+    <div style="margin-top:12px;text-align:right"><span class="btn">Seçime ekle</span></div>
+  </div>
+
+  <div class="muted" style="margin-top:12px;font-weight:600;color:#344054">Risk bar: all filled segments take the color of the fund's level</div>
+  <div class="ex">
+    <div class="card"><div class="muted">Risk 1 / 7 · yeşil</div><div class="risk"><span style="background:#12b76a"></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+    <div class="card"><div class="muted">Risk 4 / 7 · turuncu</div><div class="risk"><span style="background:#f79009"></span><span style="background:#f79009"></span><span style="background:#f79009"></span><span style="background:#f79009"></span><span></span><span></span><span></span></div></div>
+    <div class="card"><div class="muted">Risk 7 / 7 · kırmızı</div><div class="risk"><span style="background:#d92d20"></span><span style="background:#d92d20"></span><span style="background:#d92d20"></span><span style="background:#d92d20"></span><span style="background:#d92d20"></span><span style="background:#d92d20"></span><span style="background:#d92d20"></span></div></div>
+  </div>
+  <div class="muted" style="margin-top:6px">Level colors: 1 green #12B76A · 2 #66C61C · 3 yellow-green #A6C612 · 4 orange #F79009 · 5 #EF6820 · 6 #E04F16 · 7 red #D92D20</div>
+</div>

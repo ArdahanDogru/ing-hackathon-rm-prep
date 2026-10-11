@@ -1,0 +1,84 @@
+<h2>"Müşteriyle konuşulacaklar" more prominent; Varsayımlar first among the collapsed lines</h2>
+<p class="subtitle">Yes: these points are what the RM brings into the meeting, so they deserve the strongest place after the client. Two ways to give them weight. In both, the collapsed lines are ordered Varsayımlar → Veri notları → Elenen seçenekler.</p>
+
+<style>
+  .v{font-family:Inter,Segoe UI,Arial,sans-serif;font-size:13px;border-radius:14px;padding:14px;background:#f7f8fa;color:#1d2440}
+  .v .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04)}
+  .v .muted{color:#667085;font-size:12px}
+  .v .lnk{color:#355fa1;text-decoration:underline;font-size:12px}
+  .v .row{display:flex;justify-content:space-between;align-items:center;color:#475467;padding:10px 0;border-top:1px solid #eaecf0}
+  .v .st{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:8px}
+  .v .amber{width:8px;height:8px;border-radius:50%;background:#f79009}
+  .v .open{margin-left:auto;font-size:12px;color:#b54708}
+  .v .chk{display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+  .v .client{display:flex;align-items:center;gap:12px}
+  .v .avatar{width:34px;height:34px;border-radius:50%;background:#eef2f9;display:flex;align-items:center;justify-content:center;font-weight:700;color:#355fa1}
+  .v .talk{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+  .v .t{background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(16,24,40,.06);border-top:3px solid #4676BF}
+  .v .t .n{font-size:22px;font-weight:700;color:#1d2440;line-height:1.1}
+  .v .t .d{margin-top:4px;line-height:1.35}
+  .v .t .k{font-size:11px;color:#667085;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+  .v .placeholder{height:90px;border-radius:12px;background:repeating-linear-gradient(45deg,#f2f4f7,#f2f4f7 8px,#f9fafb 8px,#f9fafb 16px);display:flex;align-items:center;justify-content:center;color:#98a2b3}
+  .v .grid{display:grid;grid-template-columns:1fr 330px;gap:12px;margin-top:12px}
+  .v .big{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(16,24,40,.06)}
+  .v .big h3{margin:0 0 10px;font-size:15px}
+  .v .item{display:flex;gap:12px;padding:10px 0;border-top:1px solid #f2f4f7}
+  .v .item:first-of-type{border-top:0}
+  .v .item .n{min-width:74px;font-size:18px;font-weight:700}
+</style>
+
+<div class="options">
+  <div class="option" data-choice="strip" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>A strip of "talking point" cards right under the client (my recommendation)</h3>
+      <p>The first thing after the client card: 2–3 cards, each with a big number and one sentence. The right panel keeps only "Teyit edin" and the collapsed lines.</p>
+      <div class="v">
+        <div class="card client"><div class="avatar">P01</div><div><b>Emekli girişimci, 62</b> · Muhafazakâr · 1–3 yıl<div class="muted">Düzenli gelir · Anapara koruma · Kısıt: yüksek riskten kaçınma</div></div><span class="lnk" style="margin-left:auto">Düzenle</span></div>
+        <div style="margin-top:12px;font-weight:600">Müşteriyle konuşulacaklar</div>
+        <div class="talk">
+          <div class="t"><div class="k">Mevduat oranı</div><div class="n">−20,8 puan</div><div class="d">ING standart oranı (%23,00) piyasa ortalamasının (%43,82) altında.</div></div>
+          <div class="t"><div class="k">Reel getiri</div><div class="n">−%8,3</div><div class="d">Mevduat, enflasyon ve stopaj sonrası değer kaybettiriyor; müşteri anapara korumasını önemsiyor.</div></div>
+          <div class="t"><div class="k">Alternatif</div><div class="n">+%8,7</div><div class="d">Önerilen para piyasası fonunun reel getirisi (geçmiş getiri).</div></div>
+        </div>
+        <div class="grid">
+          <div class="placeholder">ilk 3 öneri kartı · kategoriler</div>
+          <div class="card">
+            <div class="st"><span class="amber"></span>Teyit edin<span class="open">1 açık</span></div>
+            <label class="chk"><input type="checkbox"><span>Yatırım tutarını sorun — 100.000–249.999 TL dilimi varsayıldı.</span></label>
+            <div class="row" style="margin-top:10px"><span>Varsayımlar · 6</span><span class="lnk">göster ›</span></div>
+            <div class="row"><span>Veri notları · 3</span><span class="lnk">göster ›</span></div>
+            <div class="row"><span>666 seçenek elendi</span><span class="lnk">kurallara göre ›</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="panel" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Keep it in the right panel, but larger and first</h3>
+      <p>Same place as before; bigger type, the number in its own column. Less prominent than A, but the main column stays only for the options.</p>
+      <div class="v">
+        <div class="grid" style="margin-top:0">
+          <div class="placeholder" style="height:260px">ilk 3 öneri kartı · kategoriler</div>
+          <div>
+            <div class="big">
+              <h3>Müşteriyle konuşulacaklar</h3>
+              <div class="item"><span class="n">−20,8 p.</span><span>ING standart oranı piyasa ortalamasının altında.</span></div>
+              <div class="item"><span class="n">−%8,3</span><span>Mevduatta enflasyon ve stopaj sonrası reel kayıp.</span></div>
+            </div>
+            <div class="card" style="margin-top:10px">
+              <div class="st"><span class="amber"></span>Teyit edin<span class="open">1 açık</span></div>
+              <label class="chk"><input type="checkbox"><span>Yatırım tutarını sorun — dilim varsayıldı.</span></label>
+              <div class="row" style="margin-top:10px"><span>Varsayımlar · 6</span><span class="lnk">göster ›</span></div>
+              <div class="row"><span>Veri notları · 3</span><span class="lnk">göster ›</span></div>
+              <div class="row"><span>666 seçenek elendi</span><span class="lnk">kurallara göre ›</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

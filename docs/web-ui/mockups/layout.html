@@ -1,0 +1,115 @@
+<h2>Which main-screen layout fits an RM best?</h2>
+<p class="subtitle">Real data: P01 (Emekli girişimci, Muhafazakâr). ING orange #FF6200 (from ing.com.tr's own stylesheet) and navy #000066. Click one; details in the terminal.</p>
+
+<style>
+  .ing{font-family:Inter,Segoe UI,Arial,sans-serif;color:#1f2433;background:#f6f7f9;border-radius:10px;padding:12px;font-size:12px}
+  .ing .top{display:flex;align-items:center;gap:10px;background:#fff;border-radius:10px;padding:10px 12px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .ing .logo{width:22px;height:22px;border-radius:6px;background:#FF6200}
+  .ing .who b{color:#000066}
+  .ing .chip{display:inline-block;padding:2px 8px;border-radius:999px;background:#fff1e8;color:#c24a00;font-size:11px;margin-right:4px}
+  .ing .chip.n{background:#eef0f7;color:#000066}
+  .ing .row{display:flex;gap:8px;margin-top:10px}
+  .ing .card{flex:1;background:#fff;border-radius:10px;padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .ing .card h4{margin:0 0 4px;font-size:12px;color:#000066}
+  .ing .kind{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+  .ing .big{font-size:18px;font-weight:700;color:#1f2433}
+  .ing .pos{color:#0a7d4f}.ing .neg{color:#c0262d}
+  .ing .bar{height:6px;border-radius:3px;background:#eceef2;margin:4px 0}
+  .ing .bar i{display:block;height:6px;border-radius:3px;background:#FF6200}
+  .ing .risk{display:flex;gap:2px;margin:3px 0}
+  .ing .risk span{flex:1;height:6px;border-radius:2px;background:#e5e7eb}
+  .ing .risk span.on{background:#0a7d4f}
+  .ing .link{color:#FF6200;font-size:11px}
+  .ing .cat{display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:8px;padding:8px 10px;margin-top:6px;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .ing .side{width:30%;background:#fff;border-radius:10px;padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .ing .grp{font-size:10px;text-transform:uppercase;color:#6b7280;margin:8px 0 4px}
+  .ing .warn{border-left:3px solid #FF6200;padding:4px 6px;background:#fff7f2;border-radius:4px;margin-bottom:4px}
+  .ing .note{border-left:3px solid #9ca3af;padding:4px 6px;background:#f6f7f9;border-radius:4px;margin-bottom:4px}
+  .ing .foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;background:#000066;color:#fff;border-radius:10px;padding:8px 12px}
+  .ing .btn{background:#FF6200;color:#fff;border-radius:8px;padding:5px 12px;font-weight:600}
+  .ing .btn.o{background:transparent;border:1px solid #fff}
+  .ing .steps{display:flex;gap:6px;margin-top:10px}
+  .ing .step{flex:1;text-align:center;padding:6px;border-radius:8px;background:#fff;color:#6b7280}
+  .ing .step.on{background:#000066;color:#fff}
+  .ing .list{width:34%}
+  .ing .sel{outline:2px solid #FF6200}
+</style>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Dashboard: top 3 first, then categories (my recommendation)</h3>
+      <p>One page. Client card on top, the 3 best options as cards, categories closed below, issues grouped on the right, the approval as a bar at the bottom.</p>
+      <div class="ing">
+        <div class="top"><div class="logo"></div><div class="who"><b>P01 · Emekli girişimci, 62</b><br>Muhafazakâr · 1-3 yıl · Likidite orta</div>
+          <div style="margin-left:auto"><span class="chip">Düzenli gelir</span><span class="chip">Anapara koruma</span><span class="chip n">Kısıt: yüksek riskten kaçınma</span></div></div>
+        <div class="row">
+          <div class="card" style="flex:.8;border:1px dashed #FF6200"><div class="kind">Karşılaştırma · Mevduat</div><h4>ING Turuncu Hesap</h4><div class="big">%23,00</div><div class="neg">Reel: −%8,3 (TÜFE sonrası)</div></div>
+          <div class="card"><div class="kind">1 · Para Piyasası</div><h4>Nurol Portföy PP (TL)</h4><div class="big pos">%47,6 <span style="font-size:11px;color:#6b7280">1 yıl</span></div>
+            <div>Risk 1/7</div><div class="risk"><span class="on"></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <div>Kategorisinin %94'ünden iyi</div><div class="bar"><i style="width:94%"></i></div><span class="link">Kanıt →</span></div>
+          <div class="card"><div class="kind">2 · Borçlanma Araçları</div><h4>İstanbul Portföy KV Borçlanma</h4><div class="big pos">%47,1 <span style="font-size:11px;color:#6b7280">1 yıl</span></div>
+            <div>Risk 1/7</div><div class="risk"><span class="on"></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <div>Kategorisinin %88'inden iyi</div><div class="bar"><i style="width:88%"></i></div><span class="link">Kanıt →</span></div>
+          <div class="card"><div class="kind">3 · Katılım</div><h4>Ak Portföy PP Katılım</h4><div class="big pos">%46,3 <span style="font-size:11px;color:#6b7280">1 yıl</span></div>
+            <div>Risk 1/7</div><div class="risk"><span class="on"></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <div>Kategorisinin %90'ından iyi</div><div class="bar"><i style="width:90%"></i></div><span class="link">Kanıt →</span></div>
+        </div>
+        <div class="row">
+          <div style="flex:1">
+            <div class="cat"><b>Para Piyasası</b><span>3 fon · en iyi %47,6 ›</span></div>
+            <div class="cat"><b>Vadeli Mevduat (ING e-Vadeli)</b><span>1 · %35,0 ›</span></div>
+            <div class="cat"><b>Borçlanma Araçları</b><span>3 fon · en iyi %47,1 ›</span></div>
+            <div class="cat"><b>Katılım</b><span>3 fon · en iyi %46,3 ›</span></div>
+          </div>
+          <div class="side"><b style="color:#000066">Dikkat</b>
+            <div class="grp">Müşteri için</div><div class="warn">ING oranı piyasanın 20,8 puan altında</div>
+            <div class="grp">Veri</div><div class="note">Bazı fon verileri doğrulanmadı · 6 fonun alım durumu bilinmiyor</div>
+            <div class="grp">Varsayımlar</div><div class="note">Tutar bilinmiyor → 100-250 bin TL dilimi</div>
+          </div>
+        </div>
+        <div class="foot"><span>2 seçenek seçildi · Not ekle</span><span><span class="btn o">Reddet</span> <span class="btn">Onayla</span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Step by step: Müşteri → Öneriler → Kontrol → Görüşme metni</h3>
+      <p>One topic per screen, guided like an onboarding flow. Very calm, but more clicks; the RM cannot see the client and the options together.</p>
+      <div class="ing">
+        <div class="steps"><div class="step">1 Müşteri</div><div class="step on">2 Öneriler</div><div class="step">3 Kontrol</div><div class="step">4 Görüşme metni</div></div>
+        <div class="row">
+          <div class="card"><div class="kind">1 · Para Piyasası</div><h4>Nurol Portföy PP</h4><div class="big pos">%47,6</div><div class="bar"><i style="width:94%"></i></div></div>
+          <div class="card"><div class="kind">2 · Borçlanma</div><h4>İstanbul Portföy KV</h4><div class="big pos">%47,1</div><div class="bar"><i style="width:88%"></i></div></div>
+          <div class="card"><div class="kind">3 · Katılım</div><h4>Ak Portföy Katılım</h4><div class="big pos">%46,3</div><div class="bar"><i style="width:90%"></i></div></div>
+        </div>
+        <div class="foot"><span>Adım 2 / 4</span><span class="btn">İleri →</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Watchlist + detail (like a trading app)</h3>
+      <p>Categories and options as a list on the left; the chosen option's full detail on the right. Fast to browse, but the "best 3" are less prominent.</p>
+      <div class="ing">
+        <div class="row">
+          <div class="list">
+            <div class="cat sel"><b>Nurol PP</b><span class="pos">%47,6</span></div>
+            <div class="cat"><b>İstanbul KV Borç.</b><span class="pos">%47,1</span></div>
+            <div class="cat"><b>Ak PP Katılım</b><span class="pos">%46,3</span></div>
+            <div class="cat"><b>ING e-Vadeli</b><span>%35,0</span></div>
+          </div>
+          <div class="card"><div class="kind">Para Piyasası</div><h4>Nurol Portföy PP (TL)</h4><div class="big pos">%47,6 · 1 yıl</div>
+            <div>Risk 1/7</div><div class="risk"><span class="on"></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <div>Getiri · kategorisinin %94'ünden iyi</div><div class="bar"><i style="width:94%"></i></div>
+            <div>Likidite · satış valörü 0 gün</div><div class="bar"><i style="width:100%"></i></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
