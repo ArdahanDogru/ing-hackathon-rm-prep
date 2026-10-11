@@ -3,6 +3,7 @@ import { useCallback, useContext, useEffect, useRef, useState, type ReactNode } 
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { GlossaryTerm, NarrativeView, RunView, SectionKey } from "../api/types";
+import { ErrorBox } from "../components/ErrorBox";
 import { EvidencePopup } from "../components/EvidencePopup";
 import { HeaderCard, type HeaderPoint } from "../components/HeaderCard";
 import { NotesBox, type SaveState } from "../components/NotesBox";
@@ -58,7 +59,7 @@ export function MeetingText({ view }: { view: RunView }) {
 
   const [draft, setDraft] = useState<NarrativeView | null>(null);
   const [draftMd, setDraftMd] = useState<string | null>(null); // the unedited draft's Markdown
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<Error | null>(null);
   const [terms, setTerms] = useState<GlossaryTerm[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [edited, setEdited] = useState<string | null>(null);
@@ -78,7 +79,7 @@ export function MeetingText({ view }: { view: RunView }) {
         setDraftMd(d.status === "approved" ? null : d.markdown);
         api.glossary(lang, runId).then((x) => live && setTerms(x), () => live && setTerms([]));
       },
-      (e: Error) => live && setLoadError(e.message),
+      (e: Error) => live && setLoadError(e),
     );
     return () => {
       live = false;
@@ -188,12 +189,7 @@ export function MeetingText({ view }: { view: RunView }) {
       )}
 
       {loadError ? (
-        <div role="alert" className="rounded-xl border border-red-200 bg-white p-4 text-sm">
-          <b>{t("errorTitle")}:</b> {loadError}{" "}
-          <button type="button" className="ml-2 underline" onClick={load}>
-            {t("retry")}
-          </button>
-        </div>
+        <ErrorBox error={loadError} onRetry={load} />
       ) : !draft ? (
         <p className="animate-pulse rounded-2xl bg-white p-6 text-base text-muted shadow-sm">{t("textPreparing")}</p>
       ) : editing !== null ? (

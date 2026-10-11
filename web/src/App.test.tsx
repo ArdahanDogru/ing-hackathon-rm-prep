@@ -6,6 +6,7 @@ import { api } from "./api/client";
 import { sample } from "./test/samples";
 
 beforeEach(() => {
+  localStorage.clear();
   vi.spyOn(api, "personas").mockResolvedValue(sample("personas"));
   vi.spyOn(api, "snapshots").mockResolvedValue(sample("snapshots"));
   vi.spyOn(api, "sources").mockResolvedValue(sample("sources"));
@@ -62,4 +63,41 @@ test("an API error shows its detail and Tekrar dene", async () => {
   );
   expect(await screen.findByText(/evidence store is locked/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Tekrar dene" })).toBeInTheDocument();
+});
+
+test("the TR / EN choice is kept for the next tab", async () => {
+  vi.spyOn(api, "run").mockResolvedValue(sample("run_p01_ready"));
+  localStorage.clear();
+  const { unmount } = render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>,
+  );
+  await screen.findByTestId("client-card");
+  await userEvent.click(screen.getByRole("button", { name: "EN" }));
+  unmount();
+  render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByText("Meeting preparation")).toBeInTheDocument();
+  localStorage.clear();
+});
+
+test("a print tab makes no default run", async () => {
+  const run = vi.spyOn(api, "run").mockResolvedValue(sample("run_p01_ready"));
+  vi.spyOn(api, "getRun").mockResolvedValue(sample("run_p01_approved"));
+  vi.spyOn(api, "narrative").mockResolvedValue(sample("narrative_p01_tr"));
+  const print = vi.spyOn(window, "print").mockImplementation(() => {});
+  const id = sample("run_p01_approved").result.run_id;
+  render(
+    <MemoryRouter initialEntries={[`/print/${id}`]}>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByTestId("print-footer")).toBeInTheDocument();
+  await waitFor(() => expect(print).toHaveBeenCalled());
+  expect(run).not.toHaveBeenCalled();
+  expect(screen.queryAllByRole("button")).toHaveLength(0);
 });

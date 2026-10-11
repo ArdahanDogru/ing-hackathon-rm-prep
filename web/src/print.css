@@ -1,0 +1,23 @@
+/* Print layout of the meeting card (route /print/:runId). */
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  .print-page {
+    max-width: none;
+    padding: 0;
+  }
+  .print-avoid {
+    break-inside: avoid;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
