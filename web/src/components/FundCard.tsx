@@ -1,7 +1,9 @@
 // An opened option (mockup detail-v5.html): match ring, stars and rank in the
 // category, SPK risk, access, returns vs the category average, "why".
+import { useContext } from "react";
 import type { OptionView } from "../api/types";
-import { useT } from "../i18n";
+import { fmtNum, fmtPct } from "../format";
+import { LangContext, useT } from "../i18n";
 import { MatchRing } from "./MatchRing";
 import { OptionNotes } from "./Notes";
 import { ReturnBars, type ReturnRow } from "./ReturnBars";
@@ -42,6 +44,11 @@ export function FundCard({
   )
     .map(([k, label]) => ({ period: k, label, fund: o.returns[k]?.value ?? null, category: avg ? avg[k] : null }))
     .filter((r) => r.fund !== null);
+  const lang = useContext(LangContext);
+  // "Kategoride ilk %4": the share of the category at or above this fund; only for the upper half.
+  const top = o.better_than_pct !== null ? 100 - o.better_than_pct : null;
+  const share =
+    top !== null && top <= 50 ? (lang === "TR" ? `Kategoride ilk ${fmtPct(top)}` : `Top ${fmtNum(top)} % of the category`) : null;
   const riskWord = o.risk?.level === 1 ? t("lowestRisk") : o.risk?.level === 7 ? t("highestRisk") : "";
 
   return (
@@ -57,6 +64,7 @@ export function FundCard({
             <>
               <Stars count={o.stars} />
               <div className="mt-0.5 text-xl font-bold leading-tight">{`${o.rank.position}. / ${o.rank.of}`}</div>
+              {share && <div className="text-[11px] font-semibold text-[#067647]">{share}</div>}
               <div className="text-[11px] text-muted">
                 {`${t("categoryRank")} · ${t("return1y")} · `}
                 <EvidenceLink id={o.returns["1y"]?.evidence_id} onEvidence={onEvidence} />

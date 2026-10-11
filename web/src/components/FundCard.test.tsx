@@ -49,3 +49,12 @@ test("selected fund shows Seçimde and toggles", async () => {
   await userEvent.click(screen.getByRole("button", { name: /Seçimde/ }));
   expect(onToggle).toHaveBeenCalled();
 });
+
+test("the share in words: Kategoride ilk %N, only for the upper half", () => {
+  const o = { ...top0(), better_than_pct: 96 };
+  const { unmount } = render(<FundCard option={o} />);
+  expect(screen.getByText("Kategoride ilk %4")).toBeInTheDocument();
+  unmount();
+  render(<FundCard option={{ ...o, better_than_pct: 30 }} />);
+  expect(screen.queryByText(/Kategoride ilk/)).toBeNull();
+});
