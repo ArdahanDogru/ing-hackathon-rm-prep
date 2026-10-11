@@ -127,6 +127,120 @@ return tables. Distribution / spread charts were rejected as unintuitive.
 - Clear names for the two notes: the persona's note (from the file) and the
   RM's approval note (typed at run time, empty at first) — narrator.
 
+## Redesign v2 (approved by the user 2026-10-11, evening)
+
+The first build was "too crowded" (the user's review, 2026-10-11). A research
+pass on the pre-meeting screens of top firms and an NN/G / Carbon review gave
+the new design; the user chose it with mockups. Final mockup:
+`docs/web-ui/mockups/redesign-v4.html` (tab 3 "B4"; tabs 4 and 5 option "A";
+tabs 1 and 2 hold the research with sources; the firm images load from the
+vendors' sites, two of them only from a local copy). **Where this section and
+the screen sections above differ, this section wins.**
+
+### Research behind it (sources in the mockup, tabs 1 and 2)
+
+- Salesforce Agentforce Meeting Concierge (the user's favourite), Microsoft
+  365 Copilot meeting prep, Microsoft unified customer profile, Salesforce
+  FSC household, Jump, Zocks, Wealthbox; Morgan Stanley / UBS / J.P. Morgan
+  by description only. Patterns: a short brief first; at most 3 highlights or
+  agenda points; the system proposes, the person decides, one primary button;
+  a source next to each fact; a readiness counter; the meeting lifecycle as
+  navigation; counts in titles and "show all"; details behind one control.
+- NN/G: about 57 % of viewing time is above the fold; a table beats cards for
+  comparing a few options; at most 2 levels of disclosure. Carbon: do not cut
+  long names, give the full name on hover.
+- SPK suitability (yerindelik): advice only with current client information,
+  so "Teyit edin" is a step before approval.
+
+### Dashboard ("B4")
+
+Top to bottom, one column of 1 200–1 400 px, 24 px between sections:
+
+1. **Top bar**: ING mark, "Görüşme hazırlığı", persona pick, "Veri ▾"
+   (snapshot, sources), TR / EN.
+2. **Lifecycle tabs**: `1 · Hazırlık` | `2 · Görüşme metni` (the second is
+   active only after approval).
+3. **Brief card** (full width):
+   - left: name and age (22 px); one profile line: risk profile with the fund
+     risk ceiling ("Muhafazakâr (fon riski en fazla 2 / 7)"), horizon,
+     liquidity, income need, the constraint in orange; **one brief sentence**
+     (17 px): the persona's `durum` and `yatirim_amaci` (no LLM); a small line
+     "Veri: <snapshot date> · motor · Kaynaklar (2) · Profili düzenle"
+     ("Kaynaklar" opens the persona file and the RM note; "Profili düzenle"
+     opens the side panel of the test run);
+   - right: **"Hazırlık n / 3"** with a thin bar and the steps "✓ Profil
+     okundu · ✓ Öneriler hazır · ○ k konu teyit edilecek" (step 2 done when
+     the state is `ready`; step 3 done when every "Teyit edin" item is ticked).
+4. **Two columns, 1 : 2**:
+   - **"Gündem · müşteriyle konuşulacaklar"**: the talking points (at most 3)
+     as checkable agenda items, each: bold title with the figure, one line,
+     a small source number (opens its evidence); under a line, **"Teyit edin"**
+     items (checkbox; a question item also has "Yanıtla").
+   - **"Öneriler · mevduatla karşılaştırma"** with a view switch
+     **Tablo | Kartlar** (default **Tablo**; the browser remembers the choice):
+     - *Tablo*: columns = the 3 recommendations, then the deposit as a grey
+       "Karşılaştırma" column; rows: Uygunluk (match), 1 yıl getiri, Reel
+       (TÜFE, stopaj), SPK risk, Paraya erişim, Kategorisinde (stars +
+       rank), Neden bu müşteri (the priorities of the `why` lines). Values
+       left-aligned, tabular figures; a small **"K"** mark next to each value
+       with evidence opens the evidence pop-up; the column heading = short
+       name (issuer small, fund type bold); the full official name and the
+       fund code on hover.
+     - *Kartlar*: the 3 recommendations as A-style cards side by side (match
+       ring, return in green with "K", risk bar, stars + rank, the "neden"
+       line), the deposit as a thin dashed "Karşılaştırma" row under them.
+     - A click on a column or a card opens the **fund card** (side panel).
+5. **"Detaylar"**: one line with counts — Kategoriler · Varsayımlar · Veri
+   notları · Elenen · RM notu — that opens one panel (tabs or sections) with
+   the categories (each opens at most 3 funds), assumptions, data notes,
+   eliminated options by rule, and the RM-only warnings.
+6. **Approval bar** (sticky): "Görüşmede konuşulacak" with chips (✕),
+   "k konu teyit edilmedi" while items are open (a reminder, not a block),
+   "Reddet", **"Onayla ve metni hazırla"** (the only filled button).
+
+Short names (all screens): issuer = the words up to and including
+"PORTFÖY", in title case; fund type = the rest, without "FONU", in title case
+with Turkish rules ("PARA PİYASASI (TL)" → "Para Piyasası (TL)"); fixed
+abbreviations "KISA VADELİ" → "KV", "BORÇLANMA ARAÇLARI" → "Borçlanma". The
+API gives them (`issuer`, `short_label`); the full `label` stays for hover,
+the fund card, the evidence pop-up and the meeting text.
+
+### Fund card ("A", side panel)
+
+A drawer on the right (about 520 px); the dashboard stays visible behind it.
+Header: issuer, short name (22 px), the full official name and code small;
+three tiles: Uygunluk, Kategoride (rank + stars), Paraya erişim; fund vs
+category bars per period (3 ay, 6 ay, 1 yıl, Reel) with the delta pill;
+"Bu müşteri için neden?" (the `why` lines); SPK risk bar; "Seçime ekle" /
+"Seçimden çıkar" (the only filled button); "Kaynak: TEFAS, <date> · Kanıtları
+göster (n)".
+
+### Meeting text ("A", document)
+
+One calm document column (17–18 px type, about 70 characters a line) and a
+narrow right column:
+
+- **Document**: status line ("Taslak · onayınızı bekliyor · <model> ·
+  kontrol geçti" or "şablon metin"); title "Görüşme hazırlığı — <name>";
+  sections with small capital headings: **Görüşmenin amacı** (`ozet`),
+  **Konuşulacaklar** (`talking_points`, titles bold), **Söyleyebileceğiniz**
+  (`teklif_metni` as a quote block), **Öneriler** (per selected option: short
+  name, return · risk · access, need tags as chips, its sentences; the
+  per-option note field), **Dikkat** (`dikkat`); collapsed lines "Diğer
+  seçenekler ›", "Sorulacak sorular (n) ›", "Varsayımlar (n) ›". Each
+  sentence with evidence gets a small source number.
+- **Right column**: "Notlarım" (autosave), "RM notu · yalnızca sizin için"
+  (RM-only warnings), "Kaynaklar" (the numbered sources: client file, TEFAS /
+  EVDS rows with date), "Terimler", the card download (PDF, Markdown), and the
+  buttons "Düzenle" and **"Metni onayla"**.
+- An edited text shows as formatted Markdown with "Düzenlenmiş metin" (as
+  before); the cards and source numbers show for an unedited draft.
+
+### Not in this redesign (later, with data)
+
+Life events and client goals (Microsoft, Salesforce): the personas have no
+such data. A "Takip" (follow-up) lifecycle step: no follow-up feature yet.
+
 ## Technical design (spec)
 
 ### 1. Architecture (approved by the user 2026-10-11)
