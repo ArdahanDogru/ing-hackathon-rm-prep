@@ -2,7 +2,7 @@
  "result": {
   "run_id": "Rb78a07821c",
   "config_hash": "8836ab8ea9ba",
-  "created_at": "2026-10-11T11:59:13.490467+03:00",
+  "created_at": "2026-10-11T12:23:24.052251+03:00",
   "persona": {
    "persona_id": "P01",
    "profil": "Emekli girişimci",
@@ -24865,13 +24865,9 @@
     "evidence_ids": []
    }
   ],
-  "rm_status": "approved",
-  "rm_note": "Müşteri aylık nakit akışını sordu.",
-  "rm_selected": [
-   "fund:PPN",
-   "fund:IST",
-   "fund:AIS"
-  ],
+  "rm_status": "pending",
+  "rm_note": "",
+  "rm_selected": [],
   "rm_option_notes": {},
   "talking_points": [
    {
@@ -25147,7 +25143,7 @@
    ],
    "warnings": [],
    "data_notes": [],
-   "selected": true,
+   "selected": false,
    "rm_note": ""
   },
   "fund:BRR": {
@@ -25415,7 +25411,7 @@
    ],
    "warnings": [],
    "data_notes": [],
-   "selected": true,
+   "selected": false,
    "rm_note": ""
   },
   "fund:NSP": {
@@ -25616,7 +25612,7 @@
    ],
    "warnings": [],
    "data_notes": [],
-   "selected": true,
+   "selected": false,
    "rm_note": ""
   },
   "fund:ZBJ": {

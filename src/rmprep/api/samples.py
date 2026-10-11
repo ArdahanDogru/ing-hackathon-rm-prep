@@ -29,8 +29,20 @@ def _get(c: TestClient, method: str, url: str, **kw):
     return r.json()
 
 
+def _forget_p01(root: Path, snapshot: str) -> None:
+    """RealBackend restores saved runs after a restart; the samples need a fresh
+    (pending) P01 run, so the saved P01 run and its approved texts are removed."""
+    c = TestClient(build_app(root))
+    p01 = next(p for p in _get(c, "GET", "/api/personas") if p["persona_id"] == "P01")
+    rid = _get(c, "POST", "/api/runs", json={"persona": p01, "snapshot_id": snapshot})["result"]["run_id"]
+    for path in [root / "data" / "runs" / f"{rid}.json", root / "data" / "cards" / f"{rid}.md",
+                 *(root / "data" / "narratives").glob(f"{rid}-*-approved.json")]:
+        path.unlink(missing_ok=True)
+
+
 def write_samples(root: Path, out: Path, snapshot: str | None = None) -> list[Path]:
     snapshot = snapshot or yaml.safe_load((root / "config" / "eval.yaml").read_text(encoding="utf-8"))["snapshot"]
+    _forget_p01(root, snapshot)
     c = TestClient(build_app(root))
     samples: dict[str, object] = {}
 

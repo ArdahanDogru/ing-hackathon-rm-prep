@@ -413,9 +413,9 @@
  "model": "",
  "prompt_version": "n4",
  "checks": [
-  "llm: request: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'The compiled grammar is too large, which would cause performance issues. Simplify your tool schemas or reduce the number of strict tools.'}, 'request_id': 'req_011CfvCZHds1R2mHUkm6KkHs'}"
+  "llm: request: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'The compiled grammar is too large, which would cause performance issues. Simplify your tool schemas or reduce the number of strict tools.'}, 'request_id': 'req_011CfvCwbaz366S3jMf7WXjC'}"
  ],
- "created_at": "2026-10-11T12:18:27.849650+03:00",
+ "created_at": "2026-10-11T12:23:30.491803+03:00",
  "cost_usd": 0.0,
  "status": "draft",
  "rm_text": "",

@@ -61,3 +61,8 @@ def test_approved_sample_selects_the_top_options():
     s = _sample("run_p01_approved")
     assert s["result"]["rm_status"] == "approved" and s["result"]["rm_selected"] == s["top"]
     assert all(s["options"][i]["selected"] for i in s["top"])
+
+
+def test_ready_samples_are_pending():
+    for name in ("run_p01_ready", "run_p02_ready"):
+        assert _sample(name)["result"]["rm_status"] == "pending"
