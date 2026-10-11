@@ -1,0 +1,1318 @@
+{
+ "result": {
+  "run_id": "R01t0e1s2t3",
+  "config_hash": "example00000",
+  "created_at": "2026-10-10T09:00:00+03:00",
+  "persona": {
+   "persona_id": "P01",
+   "profil": "Emekli girişimci",
+   "yas": 45,
+   "risk_profili": "Muhafazakâr",
+   "durum": "Varlığı TL mevduat ağırlıklı",
+   "yatirim_amaci": "Düzenli gelir ve sermayenin korunmasını önceliklendirmek",
+   "yatirim_ufku": "1-3 yıl",
+   "likidite_ihtiyaci": "Orta",
+   "doviz_maruz_kalma_tercihi": "Sınırlı",
+   "gelir_nakit_akisi_ihtiyaci": "Yüksek",
+   "anapara_koruma_tercihi": "Yüksek",
+   "oncelikler": [
+    "düzenli gelir",
+    "likiditeyi koruma",
+    "sınırlı dalgalanma"
+   ],
+   "acik_kisitlar": [
+    "yüksek riskli ürünlerden kaçınma"
+   ],
+   "rm_notu": "Mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor."
+  },
+  "snapshot_id": "20261010-001233-6b20",
+  "excluded_sources": [],
+  "state": "ready",
+  "options": [
+   {
+    "option": {
+     "option_id": "deposit:ing_turuncu",
+     "kind": "deposit",
+     "label": "ING Turuncu Hesap (standart)",
+     "entity": "ing_turuncu",
+     "fund_kind": "",
+     "fx": false
+    },
+    "score": 0.42,
+    "score_parts": {
+     "return": 0.168,
+     "liquidity": 0.147,
+     "volatility": 0.105
+    },
+    "constraints": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": true,
+      "reason": "SPK risk değeri tavanın altında",
+      "evidence_ids": []
+     }
+    ],
+    "confidence": 0.9,
+    "stability": 0.95,
+    "evidence_ids": [
+     "E11a2af10",
+     "E33d07846"
+    ],
+    "reasons": {
+     "return": "1 yıllık getiri kategorinin üzerinde",
+     "liquidity": "satış valörü kısa",
+     "volatility": "düşük dalgalanma"
+    }
+   },
+   {
+    "option": {
+     "option_id": "fund:NJR",
+     "kind": "fund",
+     "label": "Nurol Portföy Para Piyasası (TL) Fonu",
+     "entity": "NJR",
+     "fund_kind": "money_market",
+     "fx": false
+    },
+    "score": 0.812,
+    "score_parts": {
+     "return": 0.325,
+     "liquidity": 0.284,
+     "volatility": 0.203
+    },
+    "constraints": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": true,
+      "reason": "SPK risk değeri tavanın altında",
+      "evidence_ids": []
+     }
+    ],
+    "confidence": 0.9,
+    "stability": 0.95,
+    "evidence_ids": [
+     "Edee23982",
+     "Edee239df",
+     "Edee23950",
+     "Eaf567286"
+    ],
+    "reasons": {
+     "return": "1 yıllık getiri kategorinin üzerinde",
+     "liquidity": "satış valörü kısa",
+     "volatility": "düşük dalgalanma"
+    }
+   },
+   {
+    "option": {
+     "option_id": "fund:TPP",
+     "kind": "fund",
+     "label": "Tera Portföy Para Piyasası Fonu",
+     "entity": "TPP",
+     "fund_kind": "money_market",
+     "fx": false
+    },
+    "score": 0.791,
+    "score_parts": {
+     "return": 0.316,
+     "liquidity": 0.277,
+     "volatility": 0.198
+    },
+    "constraints": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": true,
+      "reason": "SPK risk değeri tavanın altında",
+      "evidence_ids": []
+     }
+    ],
+    "confidence": 0.9,
+    "stability": 0.95,
+    "evidence_ids": [
+     "Edf397940",
+     "Edf39799d",
+     "Edf39790e",
+     "Ef6dcbac4"
+    ],
+    "reasons": {
+     "return": "1 yıllık getiri kategorinin üzerinde",
+     "liquidity": "satış valörü kısa",
+     "volatility": "düşük dalgalanma"
+    }
+   },
+   {
+    "option": {
+     "option_id": "fund:AKP",
+     "kind": "fund",
+     "label": "Ak Portföy Para Piyasası Fonu",
+     "entity": "AKP",
+     "fund_kind": "money_market",
+     "fx": false
+    },
+    "score": 0.744,
+    "score_parts": {
+     "return": 0.298,
+     "liquidity": 0.26,
+     "volatility": 0.186
+    },
+    "constraints": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": true,
+      "reason": "SPK risk değeri tavanın altında",
+      "evidence_ids": []
+     }
+    ],
+    "confidence": 0.9,
+    "stability": 0.95,
+    "evidence_ids": [
+     "Ede2b74d2",
+     "Ede2b752f",
+     "Ede2b74a0",
+     "E013e19d6"
+    ],
+    "reasons": {
+     "return": "1 yıllık getiri kategorinin üzerinde",
+     "liquidity": "satış valörü kısa",
+     "volatility": "düşük dalgalanma"
+    }
+   },
+   {
+    "option": {
+     "option_id": "fund:KBD",
+     "kind": "fund",
+     "label": "Kuveyt Kısa Vadeli Borçlanma Araçları Fonu",
+     "entity": "KBD",
+     "fund_kind": "short_debt",
+     "fx": false
+    },
+    "score": 0.776,
+    "score_parts": {
+     "return": 0.31,
+     "liquidity": 0.272,
+     "volatility": 0.194
+    },
+    "constraints": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": true,
+      "reason": "SPK risk değeri tavanın altında",
+      "evidence_ids": []
+     }
+    ],
+    "confidence": 0.9,
+    "stability": 0.95,
+    "evidence_ids": [
+     "Edeb41b79",
+     "Edeb41bd6",
+     "Edeb41b47",
+     "E0237b2bd"
+    ],
+    "reasons": {
+     "return": "1 yıllık getiri kategorinin üzerinde",
+     "liquidity": "satış valörü kısa",
+     "volatility": "düşük dalgalanma"
+    }
+   },
+   {
+    "option": {
+     "option_id": "fund:IKB",
+     "kind": "fund",
+     "label": "İş Portföy Kısa Vadeli Borçlanma Araçları Fonu",
+     "entity": "IKB",
+     "fund_kind": "short_debt",
+     "fx": false
+    },
+    "score": 0.731,
+    "score_parts": {
+     "return": 0.292,
+     "liquidity": 0.256,
+     "volatility": 0.183
+    },
+    "constraints": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": true,
+      "reason": "SPK risk değeri tavanın altında",
+      "evidence_ids": []
+     }
+    ],
+    "confidence": 0.9,
+    "stability": 0.95,
+    "evidence_ids": [
+     "Ede9bfc4c",
+     "Ede9bfca9",
+     "Ede9bfc1a",
+     "Ea7aaaad0"
+    ],
+    "reasons": {
+     "return": "1 yıllık getiri kategorinin üzerinde",
+     "liquidity": "satış valörü kısa",
+     "volatility": "düşük dalgalanma"
+    }
+   },
+   {
+    "option": {
+     "option_id": "fund:YBF",
+     "kind": "fund",
+     "label": "Yapı Kredi Borçlanma Araçları Fonu",
+     "entity": "YBF",
+     "fund_kind": "debt",
+     "fx": false
+    },
+    "score": 0.761,
+    "score_parts": {
+     "return": 0.304,
+     "liquidity": 0.266,
+     "volatility": 0.19
+    },
+    "constraints": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": true,
+      "reason": "SPK risk değeri tavanın altında",
+      "evidence_ids": []
+     }
+    ],
+    "confidence": 0.9,
+    "stability": 0.95,
+    "evidence_ids": [
+     "Edf796c09",
+     "Edf796c66",
+     "Edf796bd7",
+     "Ee6eb1f4d"
+    ],
+    "reasons": {
+     "return": "1 yıllık getiri kategorinin üzerinde",
+     "liquidity": "satış valörü kısa",
+     "volatility": "düşük dalgalanma"
+    }
+   },
+   {
+    "option": {
+     "option_id": "fund:GBF",
+     "kind": "fund",
+     "label": "Garanti Borçlanma Araçları Fonu",
+     "entity": "GBF",
+     "fund_kind": "debt",
+     "fx": false
+    },
+    "score": 0.702,
+    "score_parts": {
+     "return": 0.281,
+     "liquidity": 0.246,
+     "volatility": 0.175
+    },
+    "constraints": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": true,
+      "reason": "SPK risk değeri tavanın altında",
+      "evidence_ids": []
+     }
+    ],
+    "confidence": 0.9,
+    "stability": 0.95,
+    "evidence_ids": [
+     "Ede7bc4f7",
+     "Ede7bc554",
+     "Ede7bc4c5",
+     "E2ebaf4bb"
+    ],
+    "reasons": {
+     "return": "1 yıllık getiri kategorinin üzerinde",
+     "liquidity": "satış valörü kısa",
+     "volatility": "düşük dalgalanma"
+    }
+   },
+   {
+    "option": {
+     "option_id": "time_deposit:ing_e_vadeli",
+     "kind": "time_deposit",
+     "label": "ING e-Vadeli (32 gün)",
+     "entity": "ing_e_vadeli",
+     "fund_kind": "",
+     "fx": false
+    },
+    "score": 0.755,
+    "score_parts": {
+     "return": 0.302,
+     "liquidity": 0.264,
+     "volatility": 0.189
+    },
+    "constraints": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": true,
+      "reason": "SPK risk değeri tavanın altında",
+      "evidence_ids": []
+     }
+    ],
+    "confidence": 0.9,
+    "stability": 0.95,
+    "evidence_ids": [
+     "E0098dd5f",
+     "E3df44ed5"
+    ],
+    "reasons": {
+     "return": "1 yıllık getiri kategorinin üzerinde",
+     "liquidity": "satış valörü kısa",
+     "volatility": "düşük dalgalanma"
+    }
+   }
+  ],
+  "rejected": [
+   {
+    "option": {
+     "option_id": "fund:HSE",
+     "kind": "fund",
+     "label": "Hedef Portföy Hisse Senedi Fonu",
+     "entity": "HSE",
+     "fund_kind": "",
+     "fx": false
+    },
+    "failed": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": false,
+      "reason": "SPK risk değeri 6, müşterinin tavanı 3",
+      "evidence_ids": []
+     }
+    ]
+   },
+   {
+    "option": {
+     "option_id": "fund:AGF",
+     "kind": "fund",
+     "label": "Altın Katılım Fonu",
+     "entity": "AGF",
+     "fund_kind": "",
+     "fx": false
+    },
+    "failed": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": false,
+      "reason": "SPK risk değeri 5, müşterinin tavanı 3",
+      "evidence_ids": []
+     }
+    ]
+   },
+   {
+    "option": {
+     "option_id": "fund:DEU",
+     "kind": "fund",
+     "label": "Eurobond Borçlanma Araçları Fonu",
+     "entity": "DEU",
+     "fund_kind": "",
+     "fx": true
+    },
+    "failed": [
+     {
+      "rule_id": "risk_ceiling",
+      "passed": false,
+      "reason": "SPK risk değeri 4, müşterinin tavanı 3",
+      "evidence_ids": []
+     }
+    ]
+   }
+  ],
+  "questions": [
+   {
+    "question_id": "q:gelir_sikligi",
+    "text": "Gelirin hangi sıklıkla gerektiğini sorun.",
+    "reason": "Düzenli gelir önceliği için ödeme sıklığı bilinmiyor.",
+    "about": "gelir_nakit_akisi_ihtiyaci",
+    "choices": [
+     "Aylık",
+     "Üç aylık",
+     "Yıllık"
+    ],
+    "answer": null,
+    "blocking": false
+   }
+  ],
+  "assumptions": [
+   "Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).",
+   "Reel getiri son 12 aylık TÜFE ile hesaplandı."
+  ],
+  "warnings": [
+   {
+    "code": "concentration",
+    "message": "Önerilerin üçü de TL faiz getirisine bağlı; faiz düşerse getiriler birlikte düşer.",
+    "evidence_ids": [],
+    "option_ids": [
+     "fund:NJR",
+     "fund:KBD",
+     "fund:YBF"
+    ],
+    "audience": "client"
+   },
+   {
+    "code": "deposit_vs_market",
+    "message": "ING Turuncu Hesap standart oranı piyasa ortalamasının 4,2 puan altında.",
+    "evidence_ids": [
+     "E11a2af10"
+    ],
+    "option_ids": [
+     "deposit:ing_turuncu"
+    ],
+    "audience": "rm"
+   },
+   {
+    "code": "low_stability",
+    "message": "Ak Portföy Para Piyasası Fonu sırası küçük veri değişimlerinde değişiyor.",
+    "evidence_ids": [],
+    "option_ids": [
+     "fund:AKP"
+    ],
+    "audience": "rm"
+   }
+  ],
+  "data_quality": [
+   {
+    "message": "tefas_web: 6 aylık getiri bir gün eski",
+    "flags": [
+     "stale"
+    ],
+    "sources": [
+     "tefas_web"
+    ],
+    "evidence_ids": [
+     "Edf796c66"
+    ]
+   },
+   {
+    "message": "evds: TÜFE serisi ayın 3'ünde güncellenir",
+    "flags": [],
+    "sources": [
+     "evds"
+    ],
+    "evidence_ids": []
+   }
+  ],
+  "rm_status": "pending",
+  "rm_note": "",
+  "rm_selected": [],
+  "rm_option_notes": {},
+  "talking_points": [
+   {
+    "code": "deposit_real",
+    "label": "Mevduatta reel getiri",
+    "figure": "−%6,8",
+    "text": "Mevduattaki birikiminiz son bir yılda enflasyonun gerisinde kaldı.",
+    "evidence_ids": [
+     "E33d07846"
+    ],
+    "option_ids": []
+   },
+   {
+    "code": "best_alternative",
+    "label": "Para piyasası fonu",
+    "figure": "%4,1",
+    "text": "İlk öneri geçen yıl enflasyonun üzerinde getiri sağladı; bu geçmiş bir getiridir.",
+    "evidence_ids": [
+     "Eaf567286"
+    ],
+    "option_ids": [
+     "fund:NJR"
+    ]
+   },
+   {
+    "code": "access",
+    "label": "Paraya erişim",
+    "figure": "1 iş günü",
+    "text": "Önerilen fonlarda paranıza en geç bir iş gününde ulaşırsınız.",
+    "evidence_ids": [],
+    "option_ids": [
+     "fund:NJR",
+     "fund:KBD",
+     "fund:YBF"
+    ]
+   }
+  ],
+  "to_confirm": [
+   "Yatırım tutarını sorun: 100.000–249.999 TL dilimi varsayıldı."
+  ]
+ },
+ "test_run": true,
+ "persona_changes": [
+  {
+   "field": "yas",
+   "original": 62,
+   "edited": 45
+  }
+ ],
+ "baseline": {
+  "option_id": "deposit:ing_turuncu",
+  "label": "ING Turuncu Hesap (standart)",
+  "kind": "deposit",
+  "category_key": "deposit",
+  "category_label": "Mevduat",
+  "fx": false,
+  "returns": {
+   "3m": null,
+   "6m": null,
+   "1y": {
+    "value": 38,
+    "evidence_id": "E11a2af10"
+   },
+   "real_1y": {
+    "value": -6.8,
+    "evidence_id": "E33d07846"
+   }
+  },
+  "category_avg": null,
+  "rank": null,
+  "stars": null,
+  "better_than_pct": null,
+  "risk": null,
+  "access": {
+   "days": 0,
+   "label": "Aynı gün",
+   "evidence_id": "E4675471c"
+  },
+  "match": null,
+  "why": [
+   [
+    "likiditeyi koruma",
+    "Paraya aynı gün erişim"
+   ]
+  ],
+  "warnings": [],
+  "data_notes": [],
+  "selected": false,
+  "rm_note": ""
+ },
+ "top": [
+  "fund:NJR",
+  "fund:KBD",
+  "fund:YBF"
+ ],
+ "categories": [
+  {
+   "key": "money_market",
+   "label": "Para Piyasası",
+   "count": 3,
+   "best_return_1y": 47.6,
+   "option_ids": [
+    "fund:NJR",
+    "fund:TPP",
+    "fund:AKP"
+   ]
+  },
+  {
+   "key": "short_debt",
+   "label": "Kısa Vadeli Borçlanma Araçları",
+   "count": 2,
+   "best_return_1y": 46.2,
+   "option_ids": [
+    "fund:KBD",
+    "fund:IKB"
+   ]
+  },
+  {
+   "key": "debt",
+   "label": "Borçlanma Araçları",
+   "count": 2,
+   "best_return_1y": 42.3,
+   "option_ids": [
+    "fund:YBF",
+    "fund:GBF"
+   ]
+  },
+  {
+   "key": "time_deposit",
+   "label": "Vadeli Mevduat",
+   "count": 1,
+   "best_return_1y": 42,
+   "option_ids": [
+    "time_deposit:ing_e_vadeli"
+   ]
+  }
+ ],
+ "options": {
+  "fund:NJR": {
+   "option_id": "fund:NJR",
+   "label": "Nurol Portföy Para Piyasası (TL) Fonu",
+   "kind": "fund",
+   "category_key": "money_market",
+   "category_label": "Para Piyasası",
+   "fx": false,
+   "returns": {
+    "3m": {
+     "value": 11.9,
+     "evidence_id": "Edee23982"
+    },
+    "6m": {
+     "value": 23.1,
+     "evidence_id": "Edee239df"
+    },
+    "1y": {
+     "value": 47.6,
+     "evidence_id": "Edee23950"
+    },
+    "real_1y": {
+     "value": 4.1,
+     "evidence_id": "Eaf567286"
+    }
+   },
+   "category_avg": {
+    "3m": 11.2,
+    "6m": 21.5,
+    "1y": 44.5,
+    "real_1y": 1.5
+   },
+   "rank": {
+    "position": 3,
+    "of": 88
+   },
+   "stars": 5,
+   "better_than_pct": 96,
+   "risk": {
+    "level": 1,
+    "evidence_id": "Eaf5683b7"
+   },
+   "access": {
+    "days": 0,
+    "label": "Aynı gün",
+    "evidence_id": "E3bae94dc"
+   },
+   "match": 10,
+   "why": [
+    [
+     "likiditeyi koruma",
+     "Paraya aynı gün erişim"
+    ],
+    [
+     "sınırlı dalgalanma",
+     "SPK risk değeri 1"
+    ]
+   ],
+   "warnings": [
+    {
+     "code": "concentration",
+     "message": "Önerilerin üçü de TL faiz getirisine bağlı; faiz düşerse getiriler birlikte düşer.",
+     "evidence_ids": [],
+     "option_ids": [
+      "fund:NJR",
+      "fund:KBD",
+      "fund:YBF"
+     ],
+     "audience": "client"
+    }
+   ],
+   "data_notes": [],
+   "selected": false,
+   "rm_note": ""
+  },
+  "fund:TPP": {
+   "option_id": "fund:TPP",
+   "label": "Tera Portföy Para Piyasası Fonu",
+   "kind": "fund",
+   "category_key": "money_market",
+   "category_label": "Para Piyasası",
+   "fx": false,
+   "returns": {
+    "3m": {
+     "value": 11.7,
+     "evidence_id": "Edf397940"
+    },
+    "6m": {
+     "value": 22.8,
+     "evidence_id": "Edf39799d"
+    },
+    "1y": {
+     "value": 46.9,
+     "evidence_id": "Edf39790e"
+    },
+    "real_1y": {
+     "value": 3.5,
+     "evidence_id": "Ef6dcbac4"
+    }
+   },
+   "category_avg": {
+    "3m": 11.2,
+    "6m": 21.5,
+    "1y": 44.5,
+    "real_1y": 1.5
+   },
+   "rank": {
+    "position": 7,
+    "of": 88
+   },
+   "stars": 5,
+   "better_than_pct": 92,
+   "risk": {
+    "level": 1,
+    "evidence_id": "Ef6dccbf5"
+   },
+   "access": {
+    "days": 0,
+    "label": "Aynı gün",
+    "evidence_id": "Ee4f1545e"
+   },
+   "match": 9.3,
+   "why": [
+    [
+     "likiditeyi koruma",
+     "Paraya aynı gün erişim"
+    ],
+    [
+     "sınırlı dalgalanma",
+     "SPK risk değeri 1"
+    ]
+   ],
+   "warnings": [],
+   "data_notes": [],
+   "selected": false,
+   "rm_note": ""
+  },
+  "fund:AKP": {
+   "option_id": "fund:AKP",
+   "label": "Ak Portföy Para Piyasası Fonu",
+   "kind": "fund",
+   "category_key": "money_market",
+   "category_label": "Para Piyasası",
+   "fx": false,
+   "returns": {
+    "3m": {
+     "value": 11.4,
+     "evidence_id": "Ede2b74d2"
+    },
+    "6m": {
+     "value": 22,
+     "evidence_id": "Ede2b752f"
+    },
+    "1y": {
+     "value": 45.8,
+     "evidence_id": "Ede2b74a0"
+    },
+    "real_1y": {
+     "value": 2.6,
+     "evidence_id": "E013e19d6"
+    }
+   },
+   "category_avg": {
+    "3m": 11.2,
+    "6m": 21.5,
+    "1y": 44.5,
+    "real_1y": 1.5
+   },
+   "rank": {
+    "position": 21,
+    "of": 88
+   },
+   "stars": 4,
+   "better_than_pct": 76,
+   "risk": {
+    "level": 1,
+    "evidence_id": "E013e2b07"
+   },
+   "access": {
+    "days": 0,
+    "label": "Aynı gün",
+    "evidence_id": "E26bbd78c"
+   },
+   "match": 6.4,
+   "why": [
+    [
+     "likiditeyi koruma",
+     "Paraya aynı gün erişim"
+    ]
+   ],
+   "warnings": [],
+   "data_notes": [],
+   "selected": false,
+   "rm_note": ""
+  },
+  "fund:KBD": {
+   "option_id": "fund:KBD",
+   "label": "Kuveyt Kısa Vadeli Borçlanma Araçları Fonu",
+   "kind": "fund",
+   "category_key": "short_debt",
+   "category_label": "Kısa Vadeli Borçlanma Araçları",
+   "fx": false,
+   "returns": {
+    "3m": {
+     "value": 11.1,
+     "evidence_id": "Edeb41b79"
+    },
+    "6m": {
+     "value": 21.9,
+     "evidence_id": "Edeb41bd6"
+    },
+    "1y": {
+     "value": 46.2,
+     "evidence_id": "Edeb41b47"
+    },
+    "real_1y": {
+     "value": 3,
+     "evidence_id": "E0237b2bd"
+    }
+   },
+   "category_avg": {
+    "3m": 10.6,
+    "6m": 20.7,
+    "1y": 43.1,
+    "real_1y": 0.2
+   },
+   "rank": {
+    "position": 4,
+    "of": 41
+   },
+   "stars": 5,
+   "better_than_pct": 90,
+   "risk": {
+    "level": 2,
+    "evidence_id": "E0237c3ee"
+   },
+   "access": {
+    "days": 1,
+    "label": "1 iş günü",
+    "evidence_id": "E44f55b85"
+   },
+   "match": 8.6,
+   "why": [
+    [
+     "düzenli gelir",
+     "Kategorisinin üzerinde 1 yıllık getiri"
+    ],
+    [
+     "likiditeyi koruma",
+     "Paraya 1 iş gününde erişim"
+    ]
+   ],
+   "warnings": [
+    {
+     "code": "concentration",
+     "message": "Önerilerin üçü de TL faiz getirisine bağlı; faiz düşerse getiriler birlikte düşer.",
+     "evidence_ids": [],
+     "option_ids": [
+      "fund:NJR",
+      "fund:KBD",
+      "fund:YBF"
+     ],
+     "audience": "client"
+    }
+   ],
+   "data_notes": [],
+   "selected": false,
+   "rm_note": ""
+  },
+  "fund:IKB": {
+   "option_id": "fund:IKB",
+   "label": "İş Portföy Kısa Vadeli Borçlanma Araçları Fonu",
+   "kind": "fund",
+   "category_key": "short_debt",
+   "category_label": "Kısa Vadeli Borçlanma Araçları",
+   "fx": false,
+   "returns": {
+    "3m": {
+     "value": 10.8,
+     "evidence_id": "Ede9bfc4c"
+    },
+    "6m": {
+     "value": 21,
+     "evidence_id": "Ede9bfca9"
+    },
+    "1y": {
+     "value": 44,
+     "evidence_id": "Ede9bfc1a"
+    },
+    "real_1y": {
+     "value": 1.1,
+     "evidence_id": "Ea7aaaad0"
+    }
+   },
+   "category_avg": {
+    "3m": 10.6,
+    "6m": 20.7,
+    "1y": 43.1,
+    "real_1y": 0.2
+   },
+   "rank": {
+    "position": 15,
+    "of": 41
+   },
+   "stars": 3,
+   "better_than_pct": 63,
+   "risk": {
+    "level": 2,
+    "evidence_id": "Ea7aabc01"
+   },
+   "access": {
+    "days": 1,
+    "label": "1 iş günü",
+    "evidence_id": "E4de165d2"
+   },
+   "match": 5.7,
+   "why": [
+    [
+     "likiditeyi koruma",
+     "Paraya 1 iş gününde erişim"
+    ]
+   ],
+   "warnings": [],
+   "data_notes": [],
+   "selected": false,
+   "rm_note": ""
+  },
+  "fund:YBF": {
+   "option_id": "fund:YBF",
+   "label": "Yapı Kredi Borçlanma Araçları Fonu",
+   "kind": "fund",
+   "category_key": "debt",
+   "category_label": "Borçlanma Araçları",
+   "fx": false,
+   "returns": {
+    "3m": {
+     "value": 9.8,
+     "evidence_id": "Edf796c09"
+    },
+    "6m": {
+     "value": 20.1,
+     "evidence_id": "Edf796c66"
+    },
+    "1y": {
+     "value": 42.3,
+     "evidence_id": "Edf796bd7"
+    },
+    "real_1y": {
+     "value": -0.6,
+     "evidence_id": "Ee6eb1f4d"
+    }
+   },
+   "category_avg": {
+    "3m": 9.5,
+    "6m": 19.4,
+    "1y": 40.2,
+    "real_1y": -2.1
+   },
+   "rank": {
+    "position": 9,
+    "of": 64
+   },
+   "stars": 4,
+   "better_than_pct": 86,
+   "risk": {
+    "level": 3,
+    "evidence_id": "Ee6eb307e"
+   },
+   "access": {
+    "days": 1,
+    "label": "1 iş günü",
+    "evidence_id": "Ef6af80f5"
+   },
+   "match": 7.9,
+   "why": [
+    [
+     "düzenli gelir",
+     "Kategorisinin üzerinde 1 yıllık getiri"
+    ]
+   ],
+   "warnings": [
+    {
+     "code": "concentration",
+     "message": "Önerilerin üçü de TL faiz getirisine bağlı; faiz düşerse getiriler birlikte düşer.",
+     "evidence_ids": [],
+     "option_ids": [
+      "fund:NJR",
+      "fund:KBD",
+      "fund:YBF"
+     ],
+     "audience": "client"
+    }
+   ],
+   "data_notes": [
+    {
+     "message": "tefas_web: 6 aylık getiri bir gün eski",
+     "flags": [
+      "stale"
+     ],
+     "sources": [
+      "tefas_web"
+     ],
+     "evidence_ids": [
+      "Edf796c66"
+     ]
+    }
+   ],
+   "selected": false,
+   "rm_note": ""
+  },
+  "fund:GBF": {
+   "option_id": "fund:GBF",
+   "label": "Garanti Borçlanma Araçları Fonu",
+   "kind": "fund",
+   "category_key": "debt",
+   "category_label": "Borçlanma Araçları",
+   "fx": false,
+   "returns": {
+    "3m": {
+     "value": 9.1,
+     "evidence_id": "Ede7bc4f7"
+    },
+    "6m": {
+     "value": 18.7,
+     "evidence_id": "Ede7bc554"
+    },
+    "1y": {
+     "value": 39,
+     "evidence_id": "Ede7bc4c5"
+    },
+    "real_1y": {
+     "value": -3,
+     "evidence_id": "E2ebaf4bb"
+    }
+   },
+   "category_avg": {
+    "3m": 9.5,
+    "6m": 19.4,
+    "1y": 40.2,
+    "real_1y": -2.1
+   },
+   "rank": {
+    "position": 40,
+    "of": 64
+   },
+   "stars": 2,
+   "better_than_pct": 37,
+   "risk": {
+    "level": 3,
+    "evidence_id": "E2ebb05ec"
+   },
+   "access": {
+    "days": 1,
+    "label": "1 iş günü",
+    "evidence_id": "Ea8da5947"
+   },
+   "match": 5,
+   "why": [],
+   "warnings": [],
+   "data_notes": [],
+   "selected": false,
+   "rm_note": ""
+  },
+  "deposit:ing_turuncu": {
+   "option_id": "deposit:ing_turuncu",
+   "label": "ING Turuncu Hesap (standart)",
+   "kind": "deposit",
+   "category_key": "deposit",
+   "category_label": "Mevduat",
+   "fx": false,
+   "returns": {
+    "3m": null,
+    "6m": null,
+    "1y": {
+     "value": 38,
+     "evidence_id": "E11a2af10"
+    },
+    "real_1y": {
+     "value": -6.8,
+     "evidence_id": "E33d07846"
+    }
+   },
+   "category_avg": null,
+   "rank": null,
+   "stars": null,
+   "better_than_pct": null,
+   "risk": null,
+   "access": {
+    "days": 0,
+    "label": "Aynı gün",
+    "evidence_id": "E4675471c"
+   },
+   "match": null,
+   "why": [
+    [
+     "likiditeyi koruma",
+     "Paraya aynı gün erişim"
+    ]
+   ],
+   "warnings": [],
+   "data_notes": [],
+   "selected": false,
+   "rm_note": ""
+  },
+  "time_deposit:ing_e_vadeli": {
+   "option_id": "time_deposit:ing_e_vadeli",
+   "label": "ING e-Vadeli (32 gün)",
+   "kind": "time_deposit",
+   "category_key": "time_deposit",
+   "category_label": "Vadeli Mevduat",
+   "fx": false,
+   "returns": {
+    "3m": null,
+    "6m": null,
+    "1y": {
+     "value": 42,
+     "evidence_id": "E0098dd5f"
+    },
+    "real_1y": {
+     "value": -3.9,
+     "evidence_id": "E3df44ed5"
+    }
+   },
+   "category_avg": null,
+   "rank": null,
+   "stars": null,
+   "better_than_pct": null,
+   "risk": null,
+   "access": {
+    "days": 32,
+    "label": "Vade sonunda (32 gün)",
+    "evidence_id": "E80cc426d"
+   },
+   "match": 7.1,
+   "why": [
+    [
+     "düzenli gelir",
+     "Vade sonunda sabit faiz"
+    ]
+   ],
+   "warnings": [],
+   "data_notes": [],
+   "selected": false,
+   "rm_note": ""
+  }
+ },
+ "talking_points": [
+  {
+   "code": "deposit_real",
+   "label": "Mevduatta reel getiri",
+   "figure": "−%6,8",
+   "text": "Mevduattaki birikiminiz son bir yılda enflasyonun gerisinde kaldı.",
+   "evidence_ids": [
+    "E33d07846"
+   ],
+   "option_ids": []
+  },
+  {
+   "code": "best_alternative",
+   "label": "Para piyasası fonu",
+   "figure": "%4,1",
+   "text": "İlk öneri geçen yıl enflasyonun üzerinde getiri sağladı; bu geçmiş bir getiridir.",
+   "evidence_ids": [
+    "Eaf567286"
+   ],
+   "option_ids": [
+    "fund:NJR"
+   ]
+  },
+  {
+   "code": "access",
+   "label": "Paraya erişim",
+   "figure": "1 iş günü",
+   "text": "Önerilen fonlarda paranıza en geç bir iş gününde ulaşırsınız.",
+   "evidence_ids": [],
+   "option_ids": [
+    "fund:NJR",
+    "fund:KBD",
+    "fund:YBF"
+   ]
+  }
+ ],
+ "to_confirm": [
+  {
+   "text": "Yatırım tutarını sorun: 100.000–249.999 TL dilimi varsayıldı.",
+   "question_id": null,
+   "choices": []
+  },
+  {
+   "text": "Gelirin hangi sıklıkla gerektiğini sorun.",
+   "question_id": "q:gelir_sikligi",
+   "choices": [
+    "Aylık",
+    "Üç aylık",
+    "Yıllık"
+   ]
+  }
+ ],
+ "assumptions": [
+  "Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).",
+  "Reel getiri son 12 aylık TÜFE ile hesaplandı."
+ ],
+ "data_notes": [
+  {
+   "message": "tefas_web: 6 aylık getiri bir gün eski",
+   "flags": [
+    "stale"
+   ],
+   "sources": [
+    "tefas_web"
+   ],
+   "evidence_ids": [
+    "Edf796c66"
+   ]
+  },
+  {
+   "message": "evds: TÜFE serisi ayın 3'ünde güncellenir",
+   "flags": [],
+   "sources": [
+    "evds"
+   ],
+   "evidence_ids": []
+  }
+ ],
+ "client_warnings": [
+  {
+   "code": "concentration",
+   "message": "Önerilerin üçü de TL faiz getirisine bağlı; faiz düşerse getiriler birlikte düşer.",
+   "evidence_ids": [],
+   "option_ids": [
+    "fund:NJR",
+    "fund:KBD",
+    "fund:YBF"
+   ],
+   "audience": "client"
+  }
+ ],
+ "rm_warnings": [
+  {
+   "code": "deposit_vs_market",
+   "message": "ING Turuncu Hesap standart oranı piyasa ortalamasının 4,2 puan altında.",
+   "evidence_ids": [
+    "E11a2af10"
+   ],
+   "option_ids": [
+    "deposit:ing_turuncu"
+   ],
+   "audience": "rm"
+  },
+  {
+   "code": "low_stability",
+   "message": "Ak Portföy Para Piyasası Fonu sırası küçük veri değişimlerinde değişiyor.",
+   "evidence_ids": [],
+   "option_ids": [
+    "fund:AKP"
+   ],
+   "audience": "rm"
+  }
+ ],
+ "rejected_by_rule": [
+  {
+   "rule_id": "risk_ceiling",
+   "label": "Risk tavanının üzerinde",
+   "count": 3,
+   "options": [
+    {
+     "label": "Hedef Portföy Hisse Senedi Fonu",
+     "reasons": [
+      "SPK risk değeri 6, müşterinin tavanı 3"
+     ]
+    },
+    {
+     "label": "Altın Katılım Fonu",
+     "reasons": [
+      "SPK risk değeri 5, müşterinin tavanı 3"
+     ]
+    },
+    {
+     "label": "Eurobond Borçlanma Araçları Fonu",
+     "reasons": [
+      "SPK risk değeri 4, müşterinin tavanı 3"
+     ]
+    }
+   ]
+  }
+ ]
+}
