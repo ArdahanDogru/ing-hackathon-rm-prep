@@ -59,7 +59,7 @@ export function EvidencePopup({
       >
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold">{t("evidenceTitle")}</h2>
-          <button type="button" className="text-sm underline" onClick={onClose}>
+          <button type="button" autoFocus className="text-sm underline" onClick={onClose}>
             {t("close")}
           </button>
         </div>

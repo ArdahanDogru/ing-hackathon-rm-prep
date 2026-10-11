@@ -5,7 +5,8 @@
 export type Loader = (name: string) => unknown | undefined;
 export type MockAnswer = { status: number; body: unknown; type?: string };
 
-const RUN_SAMPLES = ["run_p01_ready", "run_p01_approved", "run_p02_ready", "run_needs_input", "run_test"];
+// approved first: after an approval the server holds the approved run under the same id
+const RUN_SAMPLES = ["run_p01_approved", "run_p01_ready", "run_p02_ready", "run_needs_input", "run_test"];
 
 const notFound = (detail: string): MockAnswer => ({ status: 404, body: { detail } });
 

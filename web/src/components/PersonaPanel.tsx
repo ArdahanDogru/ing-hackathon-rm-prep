@@ -68,6 +68,7 @@ export function PersonaPanel({
             <span className="text-xs text-muted">{t("f_yas")}</span>
             <input
               aria-label={t("f_yas")}
+              autoFocus
               type="number"
               min={18}
               max={120}
