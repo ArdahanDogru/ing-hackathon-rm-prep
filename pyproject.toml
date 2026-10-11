@@ -24,6 +24,7 @@ dev = ["pytest>=8.0"]
 kap = ["docling"]
 ui = ["streamlit"]
 narrator = ["anthropic>=1.0"]
+web = ["fastapi>=0.110", "uvicorn>=0.29"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
