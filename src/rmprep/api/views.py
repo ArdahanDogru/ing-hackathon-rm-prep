@@ -155,9 +155,10 @@ class ViewBuilder:
                        for q in r.questions if not q.blocking and q.answer is None]
         answers = {q.question_id: q.answer for q in r.questions if q.answer is not None}
         try:
-            ceiling = read_persona(r.persona, self._config, answers).levels.ceiling
-        except ValueError:                      # an unknown risk profile: no ceiling yet
-            ceiling = None
+            levels = read_persona(r.persona, self._config, answers).levels
+        except ValueError:
+            levels = None
+        ceiling = levels.ceiling if levels is not None else None   # None: a blocking question is open
         return {
             "risk_ceiling": ceiling,            # the SPK fund risk ceiling of the client (1..7)
             "baseline": option_view(baseline) if baseline is not None else None,

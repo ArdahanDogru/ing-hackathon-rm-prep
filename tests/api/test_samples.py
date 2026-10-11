@@ -72,3 +72,8 @@ def test_brief_sample_has_the_contract_keys():
     from rmprep.contracts import NarrativeBrief
     b = NarrativeBrief.from_dict(_sample("brief_p01_tr"))
     assert b.lang == "TR" and b.text.strip()
+
+
+def test_risk_ceiling_in_the_samples():
+    assert _sample("run_p01_ready")["risk_ceiling"] == 2           # Muhafazakâr
+    assert _sample("run_needs_input")["risk_ceiling"] is None      # a blocking question is open
