@@ -194,3 +194,21 @@ def test_a_restart_restores_saved_runs_and_approved_texts(backend, tmp_path):
     assert same.rm_selected == r.rm_selected
     d = again.draft_narrative(r.run_id, "TR")
     assert d.rm_text == "# Onayli metin" and again._narrator_obj.calls == []
+
+
+def test_a_new_ready_run_starts_the_brief(backend):
+    snap = backend.list_snapshots()[0]
+    r = backend.decide(persona(backend, "P02"), snap)
+    backend.wait_for_background()
+    b = backend.brief(r.run_id, "TR")
+    assert b is not None and b.run_id == r.run_id and b.text.strip()
+    assert b.source == "template"            # this narrator has no brief (before N10)
+    assert backend.brief(r.run_id, "TR") is b   # kept, no second job
+
+
+def test_no_brief_for_a_blocking_question(backend):
+    edited = dataclasses.replace(persona(backend, "P02"), acik_kisitlar=("bilinmeyen bir kisit",))
+    r = backend.decide(edited, backend.list_snapshots()[0])
+    assert r.state == DecisionState.NEEDS_RM_INPUT
+    with pytest.raises(ValueError):
+        backend.brief(r.run_id, "TR")

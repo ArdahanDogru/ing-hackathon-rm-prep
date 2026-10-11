@@ -191,6 +191,17 @@ class FakeBackend:
         self._narratives[(run_id, lang)] = approved
         return approved
 
+    def brief(self, run_id: str, lang: str = "TR"):
+        """v1.4: the template brief (no LLM in the fake)."""
+        from rmprep.brief import template_brief
+        from rmprep.contracts import DecisionState
+        result, _ = self._runs[run_id]
+        if result.state != DecisionState.READY:
+            raise ValueError("a brief needs a ready run")
+        if lang not in ("TR", "EN"):
+            raise ValueError(f"unknown language {lang!r}")
+        return template_brief(result, lang, result.created_at)
+
     def _keep(self, result: DecisionResult, inputs: _Inputs) -> DecisionResult:
         old = self._runs.get(result.run_id)
         if old is not None:          # same inputs: the run exists, keep its RM status

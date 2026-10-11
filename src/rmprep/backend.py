@@ -19,8 +19,10 @@ from pathlib import Path
 
 from rmprep import decision
 from rmprep.contracts import (
-    TR_TZ, DecisionResult, EvidenceSet, NarrativeDraft, NarrativeStatus, Persona, RmStatus,
+    NARRATIVE_LANGS, TR_TZ, DecisionResult, DecisionState, EvidenceSet, NarrativeBrief,
+    NarrativeDraft, NarrativeStatus, Persona, RmStatus,
 )
+from rmprep.brief import template_brief
 from rmprep.ingest.pipeline import Paths, build_evidence
 from rmprep.ingest.snapshot import list_snapshots
 
@@ -48,6 +50,7 @@ class RealBackend:
         # so the RM usually finds it ready; opening it waits for that job.
         self._pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="narrator")
         self._pending: dict[tuple[str, str], Future] = {}
+        self._briefs: dict[tuple[str, str], Future] = {}     # v1.4 dashboard briefs
         self._lock = threading.Lock()
 
     # --- reading --------------------------------------------------------------
@@ -135,9 +138,9 @@ class RealBackend:
         return self._draft_now(run_id, lang)
 
     def wait_for_background(self) -> None:
-        """Wait for the running background drafts (tests, shutdown)."""
+        """Wait for the running background drafts and briefs (tests, shutdown)."""
         with self._lock:
-            jobs = list(self._pending.values())
+            jobs = list(self._pending.values()) + list(self._briefs.values())
         for job in jobs:
             try:
                 job.result()
@@ -183,7 +186,38 @@ class RealBackend:
             return old[0]
         saved = self._saved_run(result.run_id)   # approved / rejected before a restart
         self._runs[result.run_id] = (saved or result, inputs)
+        if result.state == DecisionState.READY:   # v1.4: the TR brief starts at once
+            self._start_brief(result.run_id, "TR")
         return saved or result
+
+    # --- dashboard brief (contract v1.4) -------------------------------------------
+
+    def brief(self, run_id: str, lang: str = "TR") -> NarrativeBrief | None:
+        result, _ = self._runs[run_id]
+        if result.state != DecisionState.READY:
+            raise ValueError("a brief needs a ready run")
+        if lang not in NARRATIVE_LANGS:
+            raise ValueError(f"lang must be one of {NARRATIVE_LANGS}, got {lang!r}")
+        job = self._start_brief(run_id, lang)
+        return job.result() if job.done() else None
+
+    def _start_brief(self, run_id: str, lang: str) -> Future:
+        with self._lock:
+            job = self._briefs.get((run_id, lang))
+            if job is None:
+                job = self._briefs[(run_id, lang)] = self._pool.submit(self._brief_now, run_id, lang)
+            return job
+
+    def _brief_now(self, run_id: str, lang: str) -> NarrativeBrief:
+        result, inputs = self._runs[run_id]
+        try:
+            narrator = self._narrator()
+            if not hasattr(narrator, "brief"):  # before narrator N10
+                return template_brief(result, lang, self._now())
+            ev = self.evidence(inputs.snapshot_id, inputs.excluded_sources)
+            return narrator.brief(result, ev, lang)
+        except Exception as e:                  # never fails to the screen: the plain sentence
+            return template_brief(result, lang, self._now(), (f"brief: {type(e).__name__}: {e}",))
 
     def _saved_run(self, run_id: str) -> DecisionResult | None:
         path = self._paths.root / "data" / "runs" / f"{run_id}.json"

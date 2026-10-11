@@ -14,6 +14,12 @@ llm:
 max_cost_usd_per_day: 5.0         # the user's limit; over it -> template text + banner
 prompt_version: "n6"              # bump on any prompt change (part of the cache key); n6 = N9c (named deposit rates; n5 = N9b flat schema)
 cache_dir: data/narratives
+# v1.4 dashboard brief (docs/web-ui.md "LLM brief"; narrator N10): 1-2 sentences for
+# the RM, no retry, the plain sentence as fallback; same daily cost limit
+brief:
+  model: claude-haiku-5-5
+  max_chars: 280
+  prompt_version: "b1"
 
 langs: [TR, EN]
 sections: [ozet, oneriler, alternatifler, dikkat, sorular, teklif_metni, varsayimlar, talking_points]

@@ -12,7 +12,7 @@ def _persona(fake, pid):
 
 def test_fake_has_every_backend_method_with_the_same_signature(fake):
     names = [n for n, _ in inspect.getmembers(Backend, inspect.isfunction) if not n.startswith("_")]
-    assert len(names) == 10
+    assert len(names) == 11          # v1.4 adds brief
     for name in names:
         expected = list(inspect.signature(getattr(Backend, name)).parameters)[1:]
         assert list(inspect.signature(getattr(fake, name)).parameters) == expected, name

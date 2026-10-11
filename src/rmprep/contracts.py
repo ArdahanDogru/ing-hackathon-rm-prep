@@ -223,6 +223,7 @@ class SourceStatus:
 # (docs/narrator.md).
 # v1.3 (2026-10-11): warning audience, talking points, to_confirm; narrator
 # section talking_points, sentence title, need_tags (docs/web-ui.md section 3).
+# v1.4 (2026-10-12): NarrativeBrief + Backend.brief (docs/web-ui.md "LLM brief").
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -582,6 +583,47 @@ class NarrativeDraft:
         return _from_json(cls, d)
 
 
+BRIEF_MAX_CHARS = 280
+
+
+@dataclass(frozen=True)
+class NarrativeBrief:
+    """v1.4: the dashboard brief of a ready run, for the RM only (never in the
+    card or the meeting text)."""
+
+    run_id: str
+    lang: str                            # "TR" | "EN"
+    text: str                            # 1-2 sentences, at most BRIEF_MAX_CHARS
+    source: str                          # "llm" | "template"
+    model: str                           # "" for the template
+    prompt_version: str
+    checks: tuple[str, ...]              # validator findings / errors; () = passed
+    created_at: datetime                 # timezone-aware
+    cost_usd: float = 0.0
+    cite: tuple[str, ...] = ()           # evidence ids and option ids it rests on
+
+    def __post_init__(self) -> None:
+        if self.lang not in NARRATIVE_LANGS:
+            raise ValueError(f"lang must be one of {NARRATIVE_LANGS}, got {self.lang!r}")
+        if self.source not in NARRATIVE_SOURCES:
+            raise ValueError(f"source must be one of {NARRATIVE_SOURCES}, got {self.source!r}")
+        if (self.source == "template") != (self.model == ""):
+            raise ValueError("model must be empty exactly for a template brief")
+        if not self.text.strip() or len(self.text) > BRIEF_MAX_CHARS:
+            raise ValueError(f"text must be 1..{BRIEF_MAX_CHARS} characters")
+        if self.created_at.tzinfo is None:
+            raise ValueError("created_at must be timezone-aware")
+        if self.cost_usd < 0:
+            raise ValueError("cost_usd must be >= 0")
+
+    def to_dict(self) -> dict:
+        return _to_json(self)
+
+    @classmethod
+    def from_dict(cls, d: Mapping) -> NarrativeBrief:
+        return _from_json(cls, d)
+
+
 class Backend(Protocol):
     """What the UI calls (docs/ui.md). FakeBackend (ui worker) serves fixtures;
     the real backend (lead, on main) wires ingest + decision and keeps the runs
@@ -622,6 +664,11 @@ class Backend(Protocol):
 
     def approve_narrative(self, run_id: str, lang: str, text: str) -> NarrativeDraft:
         """Store the RM's final text (status approved); the card uses it."""
+        ...
+
+    def brief(self, run_id: str, lang: str = "TR") -> NarrativeBrief | None:
+        """v1.4: the brief of a ready run; None while its background job runs
+        (the call starts the job if needed). A needs_rm_input run raises ValueError."""
         ...
 
 

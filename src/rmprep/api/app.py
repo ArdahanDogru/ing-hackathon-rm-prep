@@ -158,6 +158,14 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         _run(run_id)
         return _text_view(backend.approve_narrative(run_id, _lang(lang), req.text))
 
+    @app.get("/api/runs/{run_id}/brief")
+    def brief(run_id: str, lang: str = "TR"):
+        _run(run_id)
+        b = backend.brief(run_id, _lang(lang))
+        if b is None:
+            return JSONResponse(status_code=202, content={"status": "running"})
+        return b.to_dict()
+
     @app.get("/api/runs/{run_id}/card.md")
     def card_md(run_id: str, lang: str = "TR"):
         md = _save_card(run_id, _lang(lang))
