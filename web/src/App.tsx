@@ -4,6 +4,7 @@ import { Link, Route, Routes, useParams } from "react-router-dom";
 import { api, getRunOrRerun, recallInputs, rememberInputs } from "./api/client";
 import type { Lang, Persona, RunInputs, RunView, SourceStatus } from "./api/types";
 import { TopBar } from "./components/TopBar";
+import { Dashboard } from "./screens/Dashboard";
 import { LangContext, labels, useT } from "./i18n";
 
 function ErrorLine({ error, onRetry }: { error: Error; onRetry: () => void }) {
@@ -18,7 +19,7 @@ function ErrorLine({ error, onRetry }: { error: Error; onRetry: () => void }) {
   );
 }
 
-/** Placeholder until W3 (Dashboard). */
+/** Placeholder until W5 (meeting text). */
 function Home({ run }: { run: RunView | null }) {
   const t = useT();
   if (!run) return <p className="text-sm text-muted">{t("noRun")}</p>;
@@ -155,6 +156,8 @@ export function App() {
                         <ErrorLine error={error} onRetry={retry} />
                       ) : loading && !run ? (
                         <p className="text-sm text-muted">{labels[lang].loading}</p>
+                      ) : run ? (
+                        <Dashboard key={run.result.run_id + run.result.rm_status} view={run} onView={setRun} />
                       ) : (
                         <Home run={run} />
                       )
