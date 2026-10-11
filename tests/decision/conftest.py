@@ -45,7 +45,7 @@ def load_evidence(name: str = "evidence_medium.json") -> EvidenceSet:
 
 
 def strip_d9(raw: dict) -> dict:
-    """The config without the D9-D15 additions (real return, real_loss, long
+    """The config without the D9-D18 additions (real return, real_loss, long
     horizon, deposit quality, return weight 1 + appetite; underperformance, the
     diversity pool; fund detail; constraint rules), so the hand-computed values of
     the D1-D8 tests do not change when the lead adds them to config/decision.yaml."""
@@ -56,6 +56,11 @@ def strip_d9(raw: dict) -> dict:
     for key in ("real_loss", "underperformance"):
         raw["penalties"].pop(key, None)
     raw["confidence"].pop("liquidity_proxy", None)          # D14
+    raw.pop("to_confirm", None)                              # D16
+    raw["warnings"].pop("audience", None)
+    for key in ("why", "access"):                            # D17
+        raw["display"].pop(key, None)
+    raw.pop("talking_points", None)                          # D18
     for key in ("pool", "diversity_pool_cap"):
         raw["display"].pop(key, None)
     if "time_deposit" in raw:

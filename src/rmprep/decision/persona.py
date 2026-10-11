@@ -49,6 +49,7 @@ class PersonaReading:
     levels: Levels | None           # None while a blocking question is open
     questions: tuple[ClarificationQuestion, ...]
     assumptions: tuple[str, ...]
+    assumption_keys: tuple[str, ...] = ()   # texts.assumptions key of each assumption (D16)
 
     @property
     def blocked(self) -> bool:
@@ -89,6 +90,11 @@ def read_persona(persona: Persona, config: DecisionConfig,
     q_texts = texts["questions"]
     questions: list[ClarificationQuestion] = []
     assumptions: list[str] = []
+    assumption_keys: list[str] = []
+
+    def assume(key: str, **fields: str) -> None:
+        assumptions.append(texts["assumptions"][key].format(**fields))
+        assumption_keys.append(key)
     used_answers: set[str] = set()
 
     def ask(qid: str, about: str, text: str, raw_text: str, choices: tuple[str, ...],
@@ -111,8 +117,7 @@ def read_persona(persona: Persona, config: DecisionConfig,
         if answer is not None:
             return answer
         level = c["safe_levels"][field_name]
-        assumptions.append(texts["assumptions"]["safe_level"].format(
-            field=field_name, text=raw_text, level=level))
+        assume("safe_level", field=field_name, text=raw_text, level=level)
         return level
 
     blocked = False
@@ -150,13 +155,13 @@ def read_persona(persona: Persona, config: DecisionConfig,
     for text in persona.oncelikler:
         key = _lookup(c["priorities"], text)
         if key is None:
-            assumptions.append(texts["assumptions"]["unused_priority"].format(text=text))
+            assume("unused_priority", text=text)
             continue
         kind, _, arg = c["priorities"][key].partition(":")
         if kind == "boost":
             boosts[arg] = boosts.get(arg, 0) + 1
         elif kind == "note":
-            assumptions.append(texts["assumptions"][arg])
+            assume(arg)
         else:
             diversity = True
 
@@ -194,7 +199,7 @@ def read_persona(persona: Persona, config: DecisionConfig,
                          tuple(fx["override_choices"]), blocking=False,
                          reason=q_texts["override_reason"])
             if answer == fx["override_lifts"]:
-                assumptions.append(texts["assumptions"]["fx_override"])
+                assume("fx_override")
                 continue
         hard.append(name)
 
@@ -203,7 +208,8 @@ def read_persona(persona: Persona, config: DecisionConfig,
         raise ValueError(f"answers to unknown questions: {unknown}")
 
     if blocked:
-        return PersonaReading(None, tuple(questions), tuple(assumptions))
+        return PersonaReading(None, tuple(questions), tuple(assumptions),
+                          tuple(assumption_keys))
 
     ceiling = profiles[profile]["ceiling"]
     fx_intensity = c["fx_levels"][fx_key]
@@ -233,4 +239,5 @@ def read_persona(persona: Persona, config: DecisionConfig,
         fx_level=fx_key, fx_intensity=fx_intensity, liquidity_intensity=liquidity_intensity,
         liquidity_weight=liquidity_weight, diversity=diversity, boosts=boosts,
         effects=tuple(applied), hard_rules=tuple(hard), **level_values)
-    return PersonaReading(levels, tuple(questions), tuple(assumptions))
+    return PersonaReading(levels, tuple(questions), tuple(assumptions),
+                          tuple(assumption_keys))

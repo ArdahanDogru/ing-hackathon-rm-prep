@@ -8,6 +8,7 @@ copy of it. The engine reads the tables from `DecisionConfig.raw`; stability
 from __future__ import annotations
 
 import copy
+import string
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,7 +16,7 @@ from typing import Any
 
 import yaml
 
-from rmprep.contracts import Flag
+from rmprep.contracts import WARNING_AUDIENCES, Flag
 from rmprep.decision.text import normalize
 
 CONFIG_VERSION = 1
@@ -35,7 +36,9 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
                  "warnings", "data_quality")
 
 # optional sections of D9 (real return after tax); without them: nominal returns
-_D9_SECTIONS = ("real_return", "long_horizon", "quality_value", "underperformance",
+WARNING_CODES = ("concentration", "fx_exposure", "risk_estimate", "low_stability",
+                 "deposit_vs_market", "no_fx_deposit_data")
+_D9_SECTIONS = ("to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
                 "fund_detail", "constraint_rules", "short_history")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
@@ -294,7 +297,15 @@ def _check_scoring(c: dict) -> None:
     size = c["stability"].get("size", d["shortlist"])     # optional; default display.shortlist
     if not isinstance(size, int) or isinstance(size, bool) or size < 1:
         raise ConfigError(f"stability.size: must be an integer >= 1, got {size!r}")
-    _keys(c["warnings"], "warnings", ("low_stability_below", "deposit_vs_market_points"))
+    _keys(c["warnings"], "warnings", ("low_stability_below", "deposit_vs_market_points"),
+          ("audience",))
+    audience = c["warnings"].get("audience", {})
+    if not isinstance(audience, Mapping):
+        raise ConfigError("warnings.audience: must be a mapping code -> client|rm")
+    for code, who in audience.items():
+        if code not in WARNING_CODES or who not in WARNING_AUDIENCES:
+            raise ConfigError(f"warnings.audience.{code}: a code of {WARNING_CODES} -> "
+                              f"one of {WARNING_AUDIENCES}")
     _num(c["warnings"]["low_stability_below"], "warnings.low_stability_below", 0, 1)
     _num(c["warnings"]["deposit_vs_market_points"], "warnings.deposit_vs_market_points", 0)
 
@@ -444,6 +455,19 @@ def _check_d9(c: dict) -> None:
         for section, key in (("constraint", "short_history"),
                              ("data_quality", "removed_no_data")):
             _text(c, section, key, "the short_history section")
+
+    if "to_confirm" in c:           # D16: assumption key -> command for the RM
+        table = c["to_confirm"]
+        if not isinstance(table, Mapping):
+            raise ConfigError("to_confirm: must be a mapping assumption key -> text")
+        for key, text in table.items():
+            if key not in c["texts"]["assumptions"]:
+                raise ConfigError(f"to_confirm.{key}: not a key of texts.assumptions")
+            if not isinstance(text, str) or not text.strip():
+                raise ConfigError(f"to_confirm.{key}: must be a non-empty text")
+            fields = {f for _, f, _, _ in string.Formatter().parse(text) if f}
+            if not fields <= {"tier"}:
+                raise ConfigError(f"to_confirm.{key}: only the field {{tier}} is filled")
 
     if "quality_value" in c:
         qv = c["quality_value"]
