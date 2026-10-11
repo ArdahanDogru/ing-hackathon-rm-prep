@@ -55,8 +55,8 @@ def good(make=p02, lang="TR", config=None) -> LlmReply:
 
 def bad(config, lang="TR") -> LlmReply:
     data = json.loads(good(lang=lang, config=config).text)
-    data["teklif_metni"].append({"text": "Bu fon garantili kazanç sağlar.", "option_ids": [],
-                                 "evidence_ids": []})
+    data["sentences"].append({"section": "teklif_metni", "text": "Bu fon garantili kazanç sağlar.",
+                              "title": "", "cite": []})
     return reply(json.dumps(data, ensure_ascii=False))
 
 

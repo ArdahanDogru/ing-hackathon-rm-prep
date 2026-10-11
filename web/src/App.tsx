@@ -1,40 +1,15 @@
 // App shell: top bar, run state, routes / (dashboard), /meeting/:runId, /print/:runId.
-import { useCallback, useEffect, useState } from "react";
-import { Link, Route, Routes, useParams } from "react-router-dom";
+import { useCallback, useContext, useEffect, useState } from "react";
+import { Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, getRunOrRerun, recallInputs, rememberInputs } from "./api/client";
-import type { Lang, Persona, RunInputs, RunView, SourceStatus } from "./api/types";
+import type { Lang, NarrativeView, Persona, RunInputs, RunView, SourceStatus } from "./api/types";
+import { ErrorBox } from "./components/ErrorBox";
+import { DashboardSkeleton } from "./components/Skeleton";
 import { TopBar } from "./components/TopBar";
 import { Dashboard } from "./screens/Dashboard";
+import { MeetingText } from "./screens/MeetingText";
+import { PrintCard } from "./screens/PrintCard";
 import { LangContext, labels, useT } from "./i18n";
-
-function ErrorLine({ error, onRetry }: { error: Error; onRetry: () => void }) {
-  const t = useT();
-  return (
-    <div role="alert" className="rounded-xl border border-red-200 bg-white p-4 text-sm">
-      <b>{t("errorTitle")}:</b> {error.message}{" "}
-      <button type="button" className="ml-2 underline" onClick={onRetry}>
-        {t("retry")}
-      </button>
-    </div>
-  );
-}
-
-/** Placeholder until W5 (meeting text). */
-function Home({ run }: { run: RunView | null }) {
-  const t = useT();
-  if (!run) return <p className="text-sm text-muted">{t("noRun")}</p>;
-  const r = run.result;
-  return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm" data-testid="run-summary">
-      <div className="text-xs text-muted">
-        {t("runId")} {r.run_id} · {r.snapshot_id} · {r.state}
-      </div>
-      <h1 className="mt-1 text-lg font-semibold">
-        {r.persona.persona_id} · {r.persona.profil}
-      </h1>
-    </div>
-  );
-}
 
 function MeetingRoute() {
   const t = useT();
@@ -47,32 +22,66 @@ function MeetingRoute() {
     (inputs ? getRunOrRerun(runId, inputs) : api.getRun(runId)).then(setRun, setError);
   }, [runId]);
   useEffect(load, [load]);
-  if (error) return <ErrorLine error={error} onRetry={load} />;
-  if (!run) return <p className="text-sm text-muted">{t("loading")}</p>;
-  return (
-    <div>
-      <Link to="/" className="text-sm underline">
-        {t("backToDashboard")}
-      </Link>
-      <h1 className="mt-2 text-xl font-semibold">{t("meetingText")}</h1>
-      <Home run={run} />
-    </div>
-  );
+  if (error) return <ErrorBox error={error} onRetry={load} />;
+  if (!run) return <p className="animate-pulse text-sm text-muted">{t("loading")}</p>;
+  return <MeetingText view={run} />;
 }
 
 function PrintRoute() {
-  const t = useT();
   const { runId = "" } = useParams();
-  return (
-    <main className="p-8">
-      <h1 className="text-xl font-semibold">{t("printCard")}</h1>
-      <p className="text-sm text-muted">{runId}</p>
-    </main>
-  );
+  const lang = useContext(LangContext);
+  const [run, setRun] = useState<RunView | null>(null);
+  const [text, setText] = useState<NarrativeView | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const load = useCallback(() => {
+    setError(null);
+    const inputs = recallInputs(runId);
+    (inputs ? getRunOrRerun(runId, inputs) : api.getRun(runId))
+      .then((v) => {
+        setRun(v);
+        return api.narrative(runId, lang);
+      })
+      .then(setText, setError);
+  }, [runId, lang]);
+  useEffect(load, [load]);
+  useEffect(() => {
+    if (run && text) {
+      const timer = setTimeout(() => window.print(), 400); // after the fonts and layout
+      return () => clearTimeout(timer);
+    }
+  }, [run, text]);
+  if (error)
+    return (
+      <main className="p-8">
+        <ErrorBox error={error} onRetry={load} />
+      </main>
+    );
+  if (!run || !text) return <p className="p-8 text-sm text-muted">{labels[lang].loading}</p>;
+  return <PrintCard view={run} narrative={text} />;
+}
+
+const LANG_KEY = "rmprep.lang";
+
+function savedLang(): Lang {
+  try {
+    return localStorage.getItem(LANG_KEY) === "EN" ? "EN" : "TR";
+  } catch {
+    return "TR";
+  }
 }
 
 export function App() {
-  const [lang, setLang] = useState<Lang>("TR");
+  const navigate = useNavigate();
+  const printing = useLocation().pathname.startsWith("/print/"); // a print tab loads only its own run
+  const [lang, setLangState] = useState<Lang>(savedLang);
+  const setLang = (l: Lang) => {
+    setLangState(l);
+    try {
+      localStorage.setItem(LANG_KEY, l);
+    } catch {
+      // storage blocked: the choice holds for this tab only
+    }
+  };
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [snapshots, setSnapshots] = useState<string[]>([]);
   const [personaId, setPersonaId] = useState("");
@@ -85,6 +94,7 @@ export function App() {
   const [loading, setLoading] = useState(true);
 
   const init = useCallback(() => {
+    if (printing) return;
     setError(null);
     setLoading(true);
     Promise.all([api.personas(), api.snapshots()]).then(([ps, ss]) => {
@@ -97,7 +107,7 @@ export function App() {
       setError(e);
       setLoading(false);
     });
-  }, []);
+  }, [printing]);
   useEffect(init, [init]);
 
   useEffect(() => {
@@ -141,6 +151,7 @@ export function App() {
                 onPersona={(id) => {
                   setEdited(null);
                   setPersonaId(id);
+                  navigate("/");
                 }}
                 snapshots={snapshots}
                 snapshotId={snapshotId}
@@ -157,9 +168,9 @@ export function App() {
                     path="/"
                     element={
                       error ? (
-                        <ErrorLine error={error} onRetry={retry} />
+                        <ErrorBox error={error} onRetry={retry} />
                       ) : loading && !run ? (
-                        <p className="text-sm text-muted">{labels[lang].loading}</p>
+                        <DashboardSkeleton />
                       ) : run ? (
                         <Dashboard
                           key={run.result.run_id + run.result.rm_status}
@@ -168,7 +179,7 @@ export function App() {
                           onPersona={setEdited}
                         />
                       ) : (
-                        <Home run={run} />
+                        <p className="text-sm text-muted">{labels[lang].noRun}</p>
                       )
                     }
                   />

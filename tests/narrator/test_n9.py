@@ -209,9 +209,9 @@ def test_talking_point_needs_a_citation(approved_p01, config):
 # --- prompt and parser ------------------------------------------------------------------------
 
 def test_schema_has_titles_and_need_tags():
-    assert SCHEMA["required"] == [*NARRATIVE_SECTIONS_V13, "need_tags"]
-    sentence = SCHEMA["properties"]["talking_points"]["items"]
+    sentence = SCHEMA["properties"]["sentences"]["items"]
     assert "title" in sentence["required"]
+    assert "talking_points" in sentence["properties"]["section"]["enum"]
     tag = SCHEMA["properties"]["need_tags"]["items"]
     assert tag["required"] == ["option_id", "tags"]
 
