@@ -111,3 +111,18 @@ def test_every_rule_and_kind_has_a_label():
             assert _label(f"rule.{rule}", lang) != rule
     for kind in {*cfg.raw["fund_kinds"].values(), "deposit", "time_deposit"} - {None}:
         assert _label(f"kind.{kind}", "TR") != kind
+
+
+def test_option_data_notes_are_only_about_that_option(backend, persona):
+    import dataclasses
+
+    from rmprep.contracts import DataQualityNote, Persona
+    r = backend.decide(Persona.from_dict(persona), backend.list_snapshots()[0])
+    head = r.options[1]
+    own = DataQualityNote("only this fund", evidence_ids=head.evidence_ids[:1])
+    wide = DataQualityNote("source wide", evidence_ids=(head.evidence_ids[0], "E-other-fund"))
+    r = dataclasses.replace(r, data_quality=(own, wide))
+    v = ViewBuilder(backend, load_config())(r)
+    notes = v["options"][head.option.option_id]["data_notes"]
+    assert [n["message"] for n in notes] == ["only this fund"]
+    assert [n["message"] for n in v["data_notes"]] == ["only this fund", "source wide"]

@@ -114,7 +114,9 @@ class ViewBuilder:
                 "match": match(position[oid], len(ranked)) if oid in position else None,
                 "why": [list(w) for w in f.why],
                 "warnings": [_to_json(w) for w in r.warnings if oid in w.option_ids],
-                "data_notes": [_to_json(n) for n in r.data_quality if ev_ids & set(n.evidence_ids)],
+                # only notes about this option alone; source-wide notes stay in the panel
+                "data_notes": [_to_json(n) for n in r.data_quality
+                               if n.evidence_ids and set(n.evidence_ids) <= ev_ids],
                 "selected": oid in r.rm_selected,
                 "rm_note": r.rm_option_notes.get(oid, ""),
             }
