@@ -2,6 +2,7 @@ import type { OptionView } from "../api/types";
 import { fmtPct } from "../format";
 import { useT } from "../i18n";
 import { colors } from "../theme";
+import { EvidenceLink } from "./FundCard";
 import { MatchRing } from "./MatchRing";
 import { OptionNotes } from "./Notes";
 import { RiskBar } from "./RiskBar";
@@ -23,11 +24,13 @@ export function TopOptionCard({
   position,
   selected,
   onToggle,
+  onEvidence,
 }: {
   option: OptionView;
   position: number;
   selected: boolean;
   onToggle: () => void;
+  onEvidence?: (id: string) => void;
 }) {
   const t = useT();
   const r1 = option.returns["1y"];
@@ -43,7 +46,8 @@ export function TopOptionCard({
       </div>
       {r1 && (
         <div className="mt-2 text-[20px] font-bold">
-          {fmtPct(r1.value)} <span className="text-[11px] font-normal text-muted">{t("return1y")}</span>
+          {fmtPct(r1.value)} <span className="text-[11px] font-normal text-muted">{t("return1y")}</span>{" "}
+          <EvidenceLink id={r1.evidence_id} onEvidence={onEvidence} />
         </div>
       )}
       {real && <RealReturn value={real.value} />}

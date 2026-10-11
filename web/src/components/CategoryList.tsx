@@ -1,35 +1,57 @@
 import { useState } from "react";
 import type { Category, OptionView } from "../api/types";
 import { fmtPct } from "../format";
+import { FundCard } from "./FundCard";
 import { useT } from "../i18n";
 import { RiskBar } from "./RiskBar";
 import { Stars } from "./Stars";
 
-function FundRow({ option, selected, onToggle }: { option: OptionView; selected: boolean; onToggle: () => void }) {
+function FundRow({
+  option,
+  selected,
+  onToggle,
+  onEvidence,
+}: {
+  option: OptionView;
+  selected: boolean;
+  onToggle: () => void;
+  onEvidence?: (id: string) => void;
+}) {
   const t = useT();
+  const [open, setOpen] = useState(false);
   const r1 = option.returns["1y"];
   return (
-    <li data-testid="fund-row" className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 border-t border-gray-100 py-2.5">
-      <div className="min-w-0">
-        <div className="truncate text-[13px] font-medium">{option.label}</div>
-        <div className="text-[11px] text-muted">
-          {option.rank ? `${option.rank.position}. / ${option.rank.of} ${t("categoryRank")}` : t("noRank")}
-          {option.access.label && ` · ${t("access")}: ${option.access.label}`}
+    <li data-testid="fund-row" className="border-t border-gray-100">
+      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 py-2.5">
+        <div className="min-w-0">
+          <div className="truncate text-[13px] font-medium">{option.label}</div>
+          <div className="text-[11px] text-muted">
+            {option.rank ? `${option.rank.position}. / ${option.rank.of} ${t("categoryRank")}` : t("noRank")}
+            {option.access.label && ` · ${t("access")}: ${option.access.label}`}
+          </div>
         </div>
+        <div className="w-24 text-xs">{option.risk && <RiskBar level={option.risk.level} />}</div>
+        <div className="w-28 text-right">
+          <div className="text-sm font-semibold">{r1 ? fmtPct(r1.value) : "—"}</div>
+          {option.stars !== null && <Stars count={option.stars} />}
+        </div>
+        <button
+          type="button"
+          aria-pressed={selected}
+          onClick={onToggle}
+          className="w-28 rounded-[10px] border border-gray-300 px-2 py-1 text-xs font-semibold"
+        >
+          {selected ? `✓ ${t("inSelection")}` : t("addToSelection")}
+        </button>
+        <button type="button" aria-expanded={open} className="text-xs text-[#355FA1] underline" onClick={() => setOpen(!open)}>
+          {t("details")}
+        </button>
       </div>
-      <div className="w-24 text-xs">{option.risk && <RiskBar level={option.risk.level} />}</div>
-      <div className="w-28 text-right">
-        <div className="text-sm font-semibold">{r1 ? fmtPct(r1.value) : "—"}</div>
-        {option.stars !== null && <Stars count={option.stars} />}
-      </div>
-      <button
-        type="button"
-        aria-pressed={selected}
-        onClick={onToggle}
-        className="w-28 rounded-[10px] border border-gray-300 px-2 py-1 text-xs font-semibold"
-      >
-        {selected ? `✓ ${t("inSelection")}` : t("addToSelection")}
-      </button>
+      {open && (
+        <div className="mb-3 rounded-2xl border border-gray-100">
+          <FundCard option={option} selected={selected} onToggle={onToggle} onEvidence={onEvidence} />
+        </div>
+      )}
     </li>
   );
 }
@@ -40,11 +62,13 @@ export function CategoryList({
   options,
   selected,
   onToggle,
+  onEvidence,
 }: {
   categories: Category[];
   options: Record<string, OptionView>;
   selected: string[];
   onToggle: (id: string) => void;
+  onEvidence?: (id: string) => void;
 }) {
   const t = useT();
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -77,7 +101,13 @@ export function CategoryList({
               {isOpen && (
                 <ul className="pb-2">
                   {ids.map((id) => (
-                    <FundRow key={id} option={options[id]} selected={selected.includes(id)} onToggle={() => onToggle(id)} />
+                    <FundRow
+                      key={id}
+                      option={options[id]}
+                      selected={selected.includes(id)}
+                      onToggle={() => onToggle(id)}
+                      onEvidence={onEvidence}
+                    />
                   ))}
                 </ul>
               )}

@@ -79,6 +79,7 @@ export function App() {
   const [snapshotId, setSnapshotId] = useState("");
   const [sources, setSources] = useState<Record<string, SourceStatus>>({});
   const [excluded, setExcluded] = useState<string[]>([]);
+  const [edited, setEdited] = useState<Persona | null>(null); // a test run's persona
   const [run, setRun] = useState<RunView | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,7 +106,7 @@ export function App() {
   }, [snapshotId]);
 
   const makeRun = useCallback(() => {
-    const persona = personas.find((p) => p.persona_id === personaId);
+    const persona = edited ?? personas.find((p) => p.persona_id === personaId);
     if (!persona || !snapshotId) return;
     const inputs: RunInputs = { persona, snapshot_id: snapshotId, exclude_sources: excluded };
     setError(null);
@@ -121,7 +122,7 @@ export function App() {
         setLoading(false);
       },
     );
-  }, [personas, personaId, snapshotId, excluded]);
+  }, [personas, personaId, snapshotId, excluded, edited]);
   useEffect(makeRun, [makeRun]);
 
   const retry = personas.length ? makeRun : init;
@@ -137,7 +138,10 @@ export function App() {
               <TopBar
                 personas={personas}
                 personaId={personaId}
-                onPersona={setPersonaId}
+                onPersona={(id) => {
+                  setEdited(null);
+                  setPersonaId(id);
+                }}
                 snapshots={snapshots}
                 snapshotId={snapshotId}
                 onSnapshot={setSnapshotId}
@@ -157,7 +161,12 @@ export function App() {
                       ) : loading && !run ? (
                         <p className="text-sm text-muted">{labels[lang].loading}</p>
                       ) : run ? (
-                        <Dashboard key={run.result.run_id + run.result.rm_status} view={run} onView={setRun} />
+                        <Dashboard
+                          key={run.result.run_id + run.result.rm_status}
+                          view={run}
+                          onView={setRun}
+                          onPersona={setEdited}
+                        />
                       ) : (
                         <Home run={run} />
                       )
