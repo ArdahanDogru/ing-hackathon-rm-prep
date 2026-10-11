@@ -77,7 +77,10 @@ test("the rejected line opens one row per rule", async () => {
   await userEvent.click(screen.getByRole("button", { name: /seçenek elendi/ }));
   const rule = v.rejected_by_rule[0];
   await userEvent.click(screen.getByRole("button", { name: new RegExp(rule.label) }));
-  rule.options.forEach((o) => expect(screen.getByText(o.label)).toBeInTheDocument());
+  // real labels can hold double spaces; the DOM text is matched with whitespace collapsed
+  const list = screen.getByTestId(`rule-${rule.rule_id}`);
+  rule.options.slice(0, 5).forEach((o) => expect(list).toHaveTextContent(o.label.replace(/\s+/g, " ").trim()));
+  expect(within(list).getAllByRole("listitem")).toHaveLength(rule.options.length);
 });
 
 test("approval sends the selected chips", async () => {

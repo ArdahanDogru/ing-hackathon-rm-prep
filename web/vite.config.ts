@@ -8,15 +8,12 @@ import { resolveMock } from "./src/api/mock.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-// The lead's samples once they are on main; else the hand-made fixtures.
-const SAMPLE_DIRS = [resolve(here, "../tests/contracts/fixtures/api"), resolve(here, "src/test/fixtures")];
+// The lead's API samples (python -m rmprep.api.samples).
+const SAMPLES = resolve(here, "../tests/contracts/fixtures/api");
 
 function loadSample(name: string): unknown | undefined {
-  for (const dir of SAMPLE_DIRS) {
-    const file = resolve(dir, `${name}.json`);
-    if (existsSync(file)) return JSON.parse(readFileSync(file, "utf8"));
-  }
-  return undefined;
+  const file = resolve(SAMPLES, `${name}.json`);
+  return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : undefined;
 }
 
 /** `npm run dev:mock`: answer /api/* from the sample files, no Python needed. */

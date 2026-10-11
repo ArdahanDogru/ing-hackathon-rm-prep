@@ -1,15 +1,25 @@
+import { useState } from "react";
 import type { DataNote, Warning } from "../api/types";
 import { useT } from "../i18n";
 
-/** The data notes about one option, on its card. */
+/** The data notes about one option, on its card: one closed line, opens on click. */
 export function OptionNotes({ notes }: { notes: DataNote[] }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
   if (!notes.length) return null;
   return (
-    <ul className="mt-2 space-y-1 text-[11px] leading-snug text-muted">
-      {notes.map((n) => (
-        <li key={n.message}>{n.message}</li>
-      ))}
-    </ul>
+    <div className="mt-2 text-[11px] leading-snug text-muted">
+      <button type="button" aria-expanded={open} className="underline" onClick={() => setOpen(!open)}>
+        {`${t("dataNotes")} · ${notes.length}`}
+      </button>
+      {open && (
+        <ul className="mt-1 space-y-1">
+          {notes.map((n) => (
+            <li key={n.message}>{n.message}</li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
