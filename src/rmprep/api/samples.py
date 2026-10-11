@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 import yaml
@@ -57,6 +58,15 @@ def write_samples(root: Path, out: Path, snapshot: str | None = None) -> list[Pa
 
     p01 = run(by_id["P01"])
     samples["run_p01_ready"] = p01
+    rid0 = p01["result"]["run_id"]
+    for _ in range(60):                       # the brief starts in the background
+        r = c.get(f"/api/runs/{rid0}/brief", params={"lang": "TR"})
+        if r.status_code == 200:
+            samples["brief_p01_tr"] = r.json()
+            break
+        time.sleep(1)
+    else:
+        raise SystemExit("brief: still running after 60 s")
     samples["run_p02_ready"] = run(by_id["P02"])
     samples["run_test"] = run(dict(by_id["P01"], yas=45))
     samples["run_needs_input"] = run(dict(by_id["P01"], acik_kisitlar=[UNKNOWN_CONSTRAINT]))

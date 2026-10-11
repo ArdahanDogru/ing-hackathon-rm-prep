@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
+from rmprep.api.names import short_name
 from rmprep.contracts import Backend, DecisionResult, ScoredOption, _to_json
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.display import DisplayFacts, access_text, display_facts
@@ -96,8 +97,10 @@ class ViewBuilder:
             rk = ranks.get(oid) if opt.kind == "fund" else None
             ev_ids = set(o.evidence_ids)
             valor = f.sell_valor_days
+            issuer, short_label = short_name(opt.label)
             return {
                 "option_id": oid, "label": opt.label, "kind": opt.kind,
+                "issuer": issuer, "short_label": short_label,
                 "category_key": key, "category_label": _label(f"kind.{key}", self._lang),
                 "fx": opt.fx,
                 "returns": {**{p: _fact(f.returns.get(p)) for p in PERIODS},

@@ -15,7 +15,7 @@ from rmprep.decision import load_config
 SAMPLES = Path(__file__).resolve().parents[1] / "contracts" / "fixtures" / "api"
 NAMES = ("personas", "snapshots", "sources", "run_p01_ready", "run_p01_approved", "run_p02_ready",
          "run_needs_input", "run_test", "narrative_p01_tr", "narrative_p01_en", "glossary",
-         "evidence_item")
+         "evidence_item", "brief_p01_tr")
 
 
 def _sample(name):
@@ -66,3 +66,9 @@ def test_approved_sample_selects_the_top_options():
 def test_ready_samples_are_pending():
     for name in ("run_p01_ready", "run_p02_ready"):
         assert _sample(name)["result"]["rm_status"] == "pending"
+
+
+def test_brief_sample_has_the_contract_keys():
+    from rmprep.contracts import NarrativeBrief
+    b = NarrativeBrief.from_dict(_sample("brief_p01_tr"))
+    assert b.lang == "TR" and b.text.strip()
