@@ -113,3 +113,4 @@ Config: `config/eval.yaml` (lead-owned). Scenario files:
 | E2 | the checks and metrics of the table | each check catches a hand-made violation |
 | E3 | report (Markdown + JSON), `python -m rmprep eval` (lead wires the CLI) | report from a small suite |
 | E4 | the error-analysis cases as regression scenarios | each case passes after its fix |
+| E8 | (web UI, 2026-10-11; found by the full eval of prompt n6) `no_invented_data` also accepts the numbers of the run's display facts (`rmprep.decision.display.display_facts`: returns per period, real 1-year return, risk, valör) and the evidence rows they cite, because the narrator pack and the screens use them (N9). Before: 2 false findings (P03 edits: NJR 1-year return 49,2 used, only the 3-year row cited) | a text with a display-facts number passes; a number in neither the result, its evidence nor the display facts still fails; the two P03 edit scenarios pass |
