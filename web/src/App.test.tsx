@@ -19,7 +19,7 @@ test("loads the first persona and makes a run on the newest snapshot", async () 
       <App />
     </MemoryRouter>,
   );
-  expect(await screen.findByTestId("run-summary")).toBeInTheDocument();
+  expect(await screen.findByTestId("client-card")).toBeInTheDocument();
   expect(run.mock.calls[0][0].persona.persona_id).toBe("P01");
   expect(run.mock.calls[0][0].snapshot_id).toBe(sample("snapshots")[0]);
   expect(screen.getByText("ING")).toBeInTheDocument();
@@ -32,10 +32,10 @@ test("another persona or an excluded source makes a new run", async () => {
       <App />
     </MemoryRouter>,
   );
-  await screen.findByTestId("run-summary");
+  await screen.findByTestId("client-card");
   await userEvent.selectOptions(screen.getByRole("combobox", { name: /Müşteri/ }), "P02");
   await waitFor(() => expect(run.mock.calls.at(-1)![0].persona.persona_id).toBe("P02"));
-  await userEvent.click(screen.getByRole("button", { name: /Veri/ }));
+  await userEvent.click(screen.getByRole("button", { name: "Veri ▾" }));
   await userEvent.click(screen.getByRole("checkbox", { name: /evds/ }));
   await waitFor(() => expect(run.mock.calls.at(-1)![0].exclude_sources).toEqual(["evds"]));
 });
@@ -47,7 +47,7 @@ test("TR / EN switches the labels", async () => {
       <App />
     </MemoryRouter>,
   );
-  await screen.findByTestId("run-summary");
+  await screen.findByTestId("client-card");
   await userEvent.click(screen.getByRole("button", { name: "EN" }));
   expect(screen.getByText("Meeting preparation")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");

@@ -14,26 +14,30 @@ export function MatchRing({ value, label = "uygunluk", size = 62 }: { value: num
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const share = Math.min(Math.max(value, 0), 10) / 10;
+  const small = size < 56; // the label goes under a small ring
   return (
-    <div className="relative flex-none" style={{ width: size, height: size }}>
-      <svg width={size} height={size} aria-hidden="true" className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={colors.riskEmpty} strokeWidth={stroke} />
-        <circle
-          data-testid="match-arc"
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={matchColor(value)}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={`${c * share} ${c}`}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-        <span className="text-[15px] font-bold">{fmtNum(value)}</span>
-        <small className="mt-0.5 text-[8px] font-medium text-muted">{label}</small>
+    <div className="flex flex-none flex-col items-center">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} aria-hidden="true" className="-rotate-90">
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={colors.riskEmpty} strokeWidth={stroke} />
+          <circle
+            data-testid="match-arc"
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke={matchColor(value)}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${c * share} ${c}`}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+          <span className="text-[15px] font-bold">{fmtNum(value)}</span>
+          {!small && <small className="mt-0.5 text-[8px] font-medium text-muted">{label}</small>}
+        </div>
       </div>
+      {small && <small className="mt-0.5 text-[9px] font-medium text-muted">{label}</small>}
     </div>
   );
 }
