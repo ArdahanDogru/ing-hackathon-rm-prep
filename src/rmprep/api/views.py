@@ -12,6 +12,7 @@ from rmprep.api.names import short_name
 from rmprep.contracts import Backend, DecisionResult, ScoredOption, _to_json
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.display import DisplayFacts, access_text, display_facts
+from rmprep.decision.persona import read_persona
 from rmprep.grouping import group_key, groups, top_heads
 from rmprep.ui.i18n import LABELS, t
 
@@ -152,7 +153,13 @@ class ViewBuilder:
         to_confirm = [{"text": c, "question_id": None, "choices": []} for c in r.to_confirm]
         to_confirm += [{"text": q.text, "question_id": q.question_id, "choices": list(q.choices)}
                        for q in r.questions if not q.blocking and q.answer is None]
+        answers = {q.question_id: q.answer for q in r.questions if q.answer is not None}
+        try:
+            ceiling = read_persona(r.persona, self._config, answers).levels.ceiling
+        except ValueError:                      # an unknown risk profile: no ceiling yet
+            ceiling = None
         return {
+            "risk_ceiling": ceiling,            # the SPK fund risk ceiling of the client (1..7)
             "baseline": option_view(baseline) if baseline is not None else None,
             "top": [o.option.option_id for o in top],
             "categories": cats,

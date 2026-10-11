@@ -126,3 +126,12 @@ def test_option_data_notes_are_only_about_that_option(backend, persona):
     notes = v["options"][head.option.option_id]["data_notes"]
     assert [n["message"] for n in notes] == ["only this fund"]
     assert [n["message"] for n in v["data_notes"]] == ["only this fund", "source wide"]
+
+
+def test_runview_has_the_risk_ceiling(view):
+    r, v = view
+    from rmprep.decision import load_config
+    from rmprep.decision.persona import read_persona
+    answers = {q.question_id: q.answer for q in r.questions if q.answer is not None}
+    assert v["risk_ceiling"] == read_persona(r.persona, load_config(), answers).levels.ceiling
+    assert isinstance(v["risk_ceiling"], int) and 1 <= v["risk_ceiling"] <= 7
