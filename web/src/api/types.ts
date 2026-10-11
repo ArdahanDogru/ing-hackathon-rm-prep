@@ -208,7 +208,7 @@ export interface OptionView {
   stars: number | null;
   better_than_pct: number | null;
   risk: { level: number; evidence_id: string } | null;
-  access: { days: number | null; label: string | null; evidence_id: string };
+  access: { days: number | null; lock_days: number | null; label: string | null; evidence_id: string };
   match: number | null;
   why: [string, string][];
   warnings: Warning[];

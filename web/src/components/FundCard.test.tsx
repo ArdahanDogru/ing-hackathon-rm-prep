@@ -10,14 +10,14 @@ const top0 = () => {
 
 test("fund card: ring, stars, rank, risk, access, bars, why", () => {
   const o = top0();
-  render(<FundCard option={o} />);
+  const { container } = render(<FundCard option={o} />);
   expect(screen.getByText(`${o.rank!.position}. / ${o.rank!.of}`)).toBeInTheDocument();
   expect(screen.getAllByTestId("star-on")).toHaveLength(o.stars!);
   expect(screen.getByText(o.access.label!)).toBeInTheDocument();
   expect(screen.getByText(`${o.risk!.level} / 7`)).toBeInTheDocument();
   expect(screen.getByTestId("bar-fund-1y")).toBeInTheDocument();
   expect(screen.getByText("Bu müşteri için neden?")).toBeInTheDocument();
-  o.why.forEach(([, line]) => expect(screen.getByText(new RegExp(line))).toBeInTheDocument());
+  o.why.forEach(([, line]) => expect(container).toHaveTextContent(line)); // plain text: why lines hold "+", "("
   expect(screen.getByRole("button", { name: "Seçime ekle" })).toBeInTheDocument();
 });
 

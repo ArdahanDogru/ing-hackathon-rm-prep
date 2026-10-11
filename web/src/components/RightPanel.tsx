@@ -47,7 +47,7 @@ function RuleRow({ rule }: { rule: RunView["rejected_by_rule"][number] }) {
         <span className="text-muted">{rule.count} ›</span>
       </button>
       {open && (
-        <ul className="mb-2 ml-3 space-y-1 text-xs">
+        <ul data-testid={`rule-${rule.rule_id}`} className="mb-2 ml-3 max-h-72 space-y-1 overflow-y-auto pr-1 text-xs">
           {rule.options.map((o) => (
             <li key={o.label}>
               <span className="font-medium">{o.label}</span>

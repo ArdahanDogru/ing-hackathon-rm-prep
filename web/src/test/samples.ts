@@ -1,9 +1,8 @@
-// Test access to the API samples: the lead's (tests/contracts/fixtures/api/)
-// when they exist, else the hand-made ones in src/test/fixtures/.
+// Test access to the API samples (tests/contracts/fixtures/api/, written by the
+// lead with `python -m rmprep.api.samples`): the contract between API and web.
 import type { EvidenceItem, GlossaryTerm, NarrativeView, Persona, RunView, SourceStatus } from "../api/types";
 
-const lead = import.meta.glob("../../../tests/contracts/fixtures/api/*.json", { eager: true, import: "default" });
-const local = import.meta.glob("./fixtures/*.json", { eager: true, import: "default" });
+const files = import.meta.glob("../../../tests/contracts/fixtures/api/*.json", { eager: true, import: "default" });
 
 interface Samples {
   personas: Persona[];
@@ -11,6 +10,7 @@ interface Samples {
   sources: Record<string, SourceStatus>;
   run_p01_ready: RunView;
   run_p01_approved: RunView;
+  run_p02_ready: RunView;
   run_needs_input: RunView;
   run_test: RunView;
   narrative_p01_tr: NarrativeView;
@@ -20,9 +20,7 @@ interface Samples {
 }
 
 function find(name: string): unknown {
-  const pick = (files: Record<string, unknown>) =>
-    Object.entries(files).find(([path]) => path.endsWith(`/${name}.json`))?.[1];
-  const v = pick(lead) ?? pick(local);
+  const v = Object.entries(files).find(([path]) => path.endsWith(`/${name}.json`))?.[1];
   if (v === undefined) throw new Error(`no sample ${name}`);
   return v;
 }

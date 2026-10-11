@@ -1,5 +1,5 @@
-// Mock API for `npm run dev:mock`: answers /api/* from sample JSON files
-// (../tests/contracts/fixtures/api/, else src/test/fixtures/). Pure: the Vite
+// Mock API for `npm run dev:mock`: answers /api/* from the sample JSON files
+// (../tests/contracts/fixtures/api/). Pure: the Vite
 // middleware in vite.config.ts gives it a loader by sample name.
 
 export type Loader = (name: string) => unknown | undefined;
