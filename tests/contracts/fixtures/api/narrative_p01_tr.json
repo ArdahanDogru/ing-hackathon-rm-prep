@@ -6,43 +6,20 @@
    "key": "ozet",
    "sentences": [
     {
-     "text": "Emekli girişimci (62 yaşında); durum: Varlığı TL mevduat ağırlıklı.",
+     "text": "Müşteri 62 yaşında, emekli girişimci; muhafazakâr risk profiline sahip ve varlığı TL mevduat ağırlıklı.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "Yatırım amacı: Düzenli gelir ve sermayenin korunmasını önceliklendirmek (ufuk: 1-3 yıl, risk profili: Muhafazakâr).",
+     "text": "Yatırım amacı düzenli gelir ve sermayenin korunmasını önceliklendirmek; ufku 1-3 yıl.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "Öncelikler: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma.",
+     "text": "Görüşmenin amacı, dosyadaki notla uyumlu olarak mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlatmak ve müşterinin sorduğu aylık nakit akışı konusunu ele almaktır.",
      "option_ids": [],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Müşteri notu: Mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor.",
-     "option_ids": [],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "RM'in görüşme notu: Müşteri aylık nakit akışını sordu.",
-     "option_ids": [],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Görüşmede seçtiğiniz 3 seçeneği konuşun; karşılaştırma ölçütü ING Turuncu Hesap (standart).",
-     "option_ids": [
-      "fund:PPN",
-      "fund:IST",
-      "fund:AIS",
-      "deposit:ing_turuncu"
-     ],
      "evidence_ids": [],
      "title": ""
     },
@@ -58,140 +35,37 @@
    "key": "oneriler",
    "sentences": [
     {
-     "text": "NUROL PORTFÖY PARA PİYASASI (TL) FONU (Para Piyasası): Risk değeri 1/7; Yıllık getiri %47.6, stopaj sonrası %39.3, enflasyon sonrası reel %+7.4 (1y); adayların %89'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %87'inden iyi.",
+     "text": "NUROL PORTFÖY PARA PİYASASI (TL) FONU: son bir yıl getirisi %47,60, SPK risk değeri 1/7. Müşterinin 'düzenli gelir' önceliğine yanıt verir; aylık nakit akışı sorusu üzerinden son bir yıl getirisini anlatın, bunun geçmiş getiri olduğunu belirtin.",
      "option_ids": [
       "fund:PPN"
      ],
      "evidence_ids": [
-      "E0382c2e7",
-      "E06f53164",
       "E2075d858",
-      "E6b3773b2",
-      "E8eec2559",
-      "E9cb9f7ad",
-      "E9d4d5f36",
-      "Ea939c58c",
-      "Eb39e0ab5",
-      "Ede9af545"
+      "Ea939c58c"
      ],
      "title": ""
     },
     {
-     "text": "Müşteriye NUROL PORTFÖY PARA PİYASASI (TL) FONU seçeneğinin risk profili (\"Muhafazakâr\") açısından düşük risk ile öne çıktığını anlatın.",
-     "option_ids": [
-      "fund:PPN"
-     ],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Ana rakamlar: withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); fund_sell_valor_days 0,00 (TEFAS, 09.10.2026); 1 yıllık getiri %47,60 (TEFAS, 09.10.2026); fund_buyable 1,00 (TEFAS, 09.10.2026); yatırımcı sayısı 10.366 (TEFAS, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); fon büyüklüğü 9.030.023.246,62 (TEFAS, 09.10.2026); risk düzeyi 1 (TEFAS, 09.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026); withholding_tax_rate %17,50 (manuel giriş, 27.03.2026).",
-     "option_ids": [
-      "fund:PPN"
-     ],
-     "evidence_ids": [
-      "E0382c2e7",
-      "E06f53164",
-      "E2075d858",
-      "E6b3773b2",
-      "E8eec2559",
-      "E9cb9f7ad",
-      "E9d4d5f36",
-      "Ea939c58c",
-      "Eb39e0ab5",
-      "Ede9af545"
-     ],
-     "title": ""
-    },
-    {
-     "text": "İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU (Borçlanma Araçları): Risk değeri 1/7; Yıllık getiri %47.1, stopaj sonrası %38.9, enflasyon sonrası reel %+7.1 (1y); adayların %88'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %52'inden iyi.",
+     "text": "İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU: son bir yıl getirisi %47,14, risk değeri 1/7. 'Sınırlı dalgalanma' önceliği ve 'yüksek riskli ürünlerden kaçınma' kısıtı için düşük risk değerini vurgulayın; yatırımcı sayısının diğer ikisinden az olduğunu göz önünde bulundurun.",
      "option_ids": [
       "fund:IST"
      ],
      "evidence_ids": [
-      "E0382c2e7",
       "E12805994",
-      "E340fc2f7",
-      "E3f036729",
       "E5f8c417b",
-      "E66e0441d",
-      "E9cb9f7ad",
-      "Eb39e0ab5",
-      "Eb3bc9e2a",
-      "Ebc6f2c43"
+      "E66e0441d"
      ],
      "title": ""
     },
     {
-     "text": "Müşteriye İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU seçeneğinin likidite ihtiyacı (\"Orta\") açısından likidite ile öne çıktığını anlatın.",
-     "option_ids": [
-      "fund:IST"
-     ],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Ana rakamlar: withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); 1 yıllık getiri %47,14 (TEFAS, 09.10.2026); fon büyüklüğü 911.373.970,84 (TEFAS, 09.10.2026); fund_sell_valor_days 0,00 (TEFAS, 09.10.2026); risk düzeyi 1 (TEFAS, 09.10.2026); yatırımcı sayısı 2.734 (TEFAS, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026); withholding_tax_rate %17,50 (manuel giriş, 27.03.2026); fund_buyable 1,00 (TEFAS, 09.10.2026).",
-     "option_ids": [
-      "fund:IST"
-     ],
-     "evidence_ids": [
-      "E0382c2e7",
-      "E12805994",
-      "E340fc2f7",
-      "E3f036729",
-      "E5f8c417b",
-      "E66e0441d",
-      "E9cb9f7ad",
-      "Eb39e0ab5",
-      "Eb3bc9e2a",
-      "Ebc6f2c43"
-     ],
-     "title": ""
-    },
-    {
-     "text": "AK PORTFÖY PARA PİYASASI KATILIM FONU (Katılım): Risk değeri 1/7; Yıllık getiri %46.3, stopaj sonrası %38.2, enflasyon sonrası reel %+6.5 (1y); adayların %76'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %92'inden iyi.",
+     "text": "AK PORTFÖY PARA PİYASASI KATILIM FONU: son bir yıl getirisi %46,26, risk değeri 1/7, paraya erişim aynı gün. 'Likiditeyi koruma' önceliğine uyar; katılım türü bir fon olduğundan müşterinin bu yapıya yaklaşımını teyit edin.",
      "option_ids": [
       "fund:AIS"
      ],
      "evidence_ids": [
-      "E0382c2e7",
-      "E89373ea9",
-      "E9cb9f7ad",
-      "Ea77df75c",
-      "Eb39e0ab5",
-      "Eb3bc9e2a",
-      "Ec4ee1814",
       "Efa7fc2ec",
-      "Efc142651",
-      "Efd5bb2e0"
-     ],
-     "title": ""
-    },
-    {
-     "text": "Müşteriye AK PORTFÖY PARA PİYASASI KATILIM FONU seçeneğinin anapara koruma tercihi (\"Yüksek\") açısından anapara koruma ile öne çıktığını anlatın.",
-     "option_ids": [
-      "fund:AIS"
-     ],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Ana rakamlar: withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); fund_buyable 1,00 (TEFAS, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); yatırımcı sayısı 26.708 (TEFAS, 09.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026); withholding_tax_rate %17,50 (manuel giriş, 27.03.2026); risk düzeyi 1 (TEFAS, 09.10.2026); 1 yıllık getiri %46,26 (TEFAS, 09.10.2026); fund_sell_valor_days 0,00 (TEFAS, 09.10.2026); fon büyüklüğü 8.901.239.309,74 (TEFAS, 09.10.2026).",
-     "option_ids": [
-      "fund:AIS"
-     ],
-     "evidence_ids": [
-      "E0382c2e7",
-      "E89373ea9",
-      "E9cb9f7ad",
-      "Ea77df75c",
-      "Eb39e0ab5",
-      "Eb3bc9e2a",
       "Ec4ee1814",
-      "Efa7fc2ec",
-      "Efc142651",
-      "Efd5bb2e0"
+      "Ea77df75c"
      ],
      "title": ""
     }
@@ -201,43 +75,43 @@
    "key": "alternatifler",
    "sentences": [
     {
-     "text": "Para Piyasası grubunda diğer seçenekler: ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU, ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU.",
+     "text": "Para piyasası grubunda ONE PORTFÖY PARA PİYASASI (TL) FONU (%49,68), ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU (%46,86) ve ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU (%51,41) son bir yıl getirileriyle alternatiftir.",
      "option_ids": [
       "fund:GO6",
       "fund:ZBJ",
       "fund:HVT"
      ],
-     "evidence_ids": [],
+     "evidence_ids": [
+      "E0c44641f",
+      "Ecd5fdfbe",
+      "E58c7925c"
+     ],
      "title": ""
     },
     {
-     "text": "Borçlanma Araçları grubunda diğer seçenekler: AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU.",
+     "text": "Borçlanma grubunda AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU (%46,91) ve OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU (%48,36); katılım grubunda GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU (%45,96) ve NUROL PORTFÖY PARA PİYASASI KATILIM FONU (%46,15) var.",
      "option_ids": [
       "fund:BRR",
-      "fund:OSD"
-     ],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Katılım grubunda diğer seçenekler: GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU, NUROL PORTFÖY PARA PİYASASI KATILIM FONU.",
-     "option_ids": [
+      "fund:OSD",
       "fund:GPN",
       "fund:NSP"
      ],
-     "evidence_ids": [],
+     "evidence_ids": [
+      "E2083e1ca",
+      "Ed2f519f7",
+      "Edd8705b3",
+      "Ec8c1d080"
+     ],
      "title": ""
     },
     {
-     "text": "Karşılaştırma ölçütü: ING Turuncu Hesap (standart); withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); mevduat faizi %23,00 (manuel giriş, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026).",
+     "text": "Karşılaştırma için ING Turuncu Hesap (standart) faizi %23,00; piyasa ortalaması mevduat faizi ise %43,82 (02.10.2026).",
      "option_ids": [
       "deposit:ing_turuncu"
      ],
      "evidence_ids": [
-      "E0382c2e7",
       "E42b47116",
-      "E9cb9f7ad",
-      "Eb39e0ab5"
+      "E9cb9f7ad"
      ],
      "title": ""
     }
@@ -247,23 +121,13 @@
    "key": "dikkat",
    "sentences": [
     {
-     "text": "Veri kalitesi notları için \"Olası sorunlar\" bölümüne bakın.",
+     "text": "Fonların geçmiş getirileri gelecekteki getiriyi göstermez.",
      "option_ids": [
-      "fund:PPN",
-      "fund:IST",
-      "fund:AIS"
+      "fund:PPN"
      ],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Fon getirileri geçmiş getirilerdir; gelecekteki getiriyi göstermez ve değerleri dalgalanabilir.",
-     "option_ids": [
-      "fund:PPN",
-      "fund:IST",
-      "fund:AIS"
+     "evidence_ids": [
+      "E2075d858"
      ],
-     "evidence_ids": [],
      "title": ""
     }
    ]
@@ -272,13 +136,13 @@
    "key": "sorular",
    "sentences": [
     {
-     "text": "Kısıtı müşteriyle teyit edin: \"yüksek riskli ürünlerden kaçınma\".",
+     "text": "Müşteriye aylık nakit akışı ihtiyacının tutarını ve zamanlamasını sorun.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "Öncelikler hâlâ bu sırada mı: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma?",
+     "text": "'Yüksek riskli ürünlerden kaçınma' kısıtının hâlâ geçerli olduğunu teyit edin.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
@@ -289,37 +153,7 @@
    "key": "teklif_metni",
    "sentences": [
     {
-     "text": "Bugün \"Varlığı TL mevduat ağırlıklı\" durumunuzu ve \"Düzenli gelir ve sermayenin korunmasını önceliklendirmek\" hedefinizi dikkate alarak birkaç seçeneği birlikte değerlendirmek istiyorum.",
-     "option_ids": [],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Karşılaştırma için ING Turuncu Hesap (standart) ile başlayalım.",
-     "option_ids": [
-      "deposit:ing_turuncu"
-     ],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Sizin için öne çıkan seçenekler: NUROL PORTFÖY PARA PİYASASI (TL) FONU, İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, AK PORTFÖY PARA PİYASASI KATILIM FONU.",
-     "option_ids": [
-      "fund:PPN",
-      "fund:IST",
-      "fund:AIS"
-     ],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Konuştuğumuz getiriler geçmiş getirilerdir.",
-     "option_ids": [],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "Kararı sizin önceliklerinize göre birlikte verelim; sorularınızı memnuniyetle yanıtlarım.",
+     "text": "Düzenli gelir ve sermayenizi korumayı öncelik aldığınızı biliyorum. Mevduat ağırlıklı varlığınızı çeşitlendirmek için, düşük risk değerli ve paraya aynı gün erişim sağlayan fonları birlikte değerlendirelim; geçmiş getirilerin geleceği göstermediğini unutmayalım.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
@@ -371,7 +205,7 @@
    "key": "talking_points",
    "sentences": [
     {
-     "text": "Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor.",
+     "text": "Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor; müşterinin mevduat ağırlıklı varlığı için bunu referans olarak anlatın.",
      "option_ids": [],
      "evidence_ids": [
       "E0382c2e7",
@@ -387,13 +221,12 @@
      ],
      "evidence_ids": [
       "E2075d858",
-      "Eb39e0ab5",
-      "Ede9af545"
+      "Eb39e0ab5"
      ],
      "title": "Alternatif"
     },
     {
-     "text": "İlk üç öneride paraya erişim: Aynı gün.",
+     "text": "Müşterinin likiditeyi koruma önceliği için üç önerinin üçünde de paraya erişim aynı gün.",
      "option_ids": [
       "fund:PPN",
       "fund:IST",
@@ -409,14 +242,12 @@
    ]
   }
  ],
- "source": "template",
- "model": "",
- "prompt_version": "n4",
- "checks": [
-  "llm: request: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'The compiled grammar is too large, which would cause performance issues. Simplify your tool schemas or reduce the number of strict tools.'}, 'request_id': 'req_011CfvCwYWSjYoFadPPQebdP'}"
- ],
- "created_at": "2026-10-11T12:23:29.988714+03:00",
- "cost_usd": 0.0,
+ "source": "llm",
+ "model": "claude-sonnet-5-5",
+ "prompt_version": "n6",
+ "checks": [],
+ "created_at": "2026-10-11T12:37:25.998783+03:00",
+ "cost_usd": 0.0405387,
  "status": "draft",
  "rm_text": "",
  "need_tags": {
@@ -436,6 +267,6 @@
    "sınırlı dalgalanma"
   ]
  },
- "markdown": "# Görüşme metni · Rb78a07821c\n\n> ⚠ Otomatik metin doğrulanamadı; şablon metin gösteriliyor.\n\n## Özet\n\nEmekli girişimci (62 yaşında); durum: Varlığı TL mevduat ağırlıklı. Yatırım amacı: Düzenli gelir ve sermayenin korunmasını önceliklendirmek (ufuk: 1-3 yıl, risk profili: Muhafazakâr). Öncelikler: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma. Müşteri notu: Mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor. RM'in görüşme notu: Müşteri aylık nakit akışını sordu. Görüşmede seçtiğiniz 3 seçeneği konuşun; karşılaştırma ölçütü ING Turuncu Hesap (standart). Bu metin RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir.\n\n## Müşteriyle konuşulacaklar\n\n- **Mevduatta reel getiri:** Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor.\n- **Alternatif:** NUROL PORTFÖY PARA PİYASASI (TL) FONU son bir yılda enflasyon sonrası +%7,4 getirdi; geçmiş getiri geleceği göstermez.\n- **Paraya erişim:** İlk üç öneride paraya erişim: Aynı gün.\n\n## Öneriler\n\n- NUROL PORTFÖY PARA PİYASASI (TL) FONU (Para Piyasası): Risk değeri 1/7; Yıllık getiri %47.6, stopaj sonrası %39.3, enflasyon sonrası reel %+7.4 (1y); adayların %89'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %87'inden iyi.\n- Müşteriye NUROL PORTFÖY PARA PİYASASI (TL) FONU seçeneğinin risk profili (\"Muhafazakâr\") açısından düşük risk ile öne çıktığını anlatın.\n- Ana rakamlar: withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); fund_sell_valor_days 0,00 (TEFAS, 09.10.2026); 1 yıllık getiri %47,60 (TEFAS, 09.10.2026); fund_buyable 1,00 (TEFAS, 09.10.2026); yatırımcı sayısı 10.366 (TEFAS, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); fon büyüklüğü 9.030.023.246,62 (TEFAS, 09.10.2026); risk düzeyi 1 (TEFAS, 09.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026); withholding_tax_rate %17,50 (manuel giriş, 27.03.2026).\n- İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU (Borçlanma Araçları): Risk değeri 1/7; Yıllık getiri %47.1, stopaj sonrası %38.9, enflasyon sonrası reel %+7.1 (1y); adayların %88'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %52'inden iyi.\n- Müşteriye İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU seçeneğinin likidite ihtiyacı (\"Orta\") açısından likidite ile öne çıktığını anlatın.\n- Ana rakamlar: withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); 1 yıllık getiri %47,14 (TEFAS, 09.10.2026); fon büyüklüğü 911.373.970,84 (TEFAS, 09.10.2026); fund_sell_valor_days 0,00 (TEFAS, 09.10.2026); risk düzeyi 1 (TEFAS, 09.10.2026); yatırımcı sayısı 2.734 (TEFAS, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026); withholding_tax_rate %17,50 (manuel giriş, 27.03.2026); fund_buyable 1,00 (TEFAS, 09.10.2026).\n- AK PORTFÖY PARA PİYASASI KATILIM FONU (Katılım): Risk değeri 1/7; Yıllık getiri %46.3, stopaj sonrası %38.2, enflasyon sonrası reel %+6.5 (1y); adayların %76'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %92'inden iyi.\n- Müşteriye AK PORTFÖY PARA PİYASASI KATILIM FONU seçeneğinin anapara koruma tercihi (\"Yüksek\") açısından anapara koruma ile öne çıktığını anlatın.\n- Ana rakamlar: withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); fund_buyable 1,00 (TEFAS, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); yatırımcı sayısı 26.708 (TEFAS, 09.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026); withholding_tax_rate %17,50 (manuel giriş, 27.03.2026); risk düzeyi 1 (TEFAS, 09.10.2026); 1 yıllık getiri %46,26 (TEFAS, 09.10.2026); fund_sell_valor_days 0,00 (TEFAS, 09.10.2026); fon büyüklüğü 8.901.239.309,74 (TEFAS, 09.10.2026).\n\n## Alternatifler\n\n- Para Piyasası grubunda diğer seçenekler: ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU, ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU.\n- Borçlanma Araçları grubunda diğer seçenekler: AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU.\n- Katılım grubunda diğer seçenekler: GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU, NUROL PORTFÖY PARA PİYASASI KATILIM FONU.\n- Karşılaştırma ölçütü: ING Turuncu Hesap (standart); withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); mevduat faizi %23,00 (manuel giriş, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026).\n\n## Dikkat\n\n- Veri kalitesi notları için \"Olası sorunlar\" bölümüne bakın.\n- Fon getirileri geçmiş getirilerdir; gelecekteki getiriyi göstermez ve değerleri dalgalanabilir.\n\n## Sorular\n\n- Kısıtı müşteriyle teyit edin: \"yüksek riskli ürünlerden kaçınma\".\n- Öncelikler hâlâ bu sırada mı: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma?\n\n## Teklif metni\n\nBugün \"Varlığı TL mevduat ağırlıklı\" durumunuzu ve \"Düzenli gelir ve sermayenin korunmasını önceliklendirmek\" hedefinizi dikkate alarak birkaç seçeneği birlikte değerlendirmek istiyorum. Karşılaştırma için ING Turuncu Hesap (standart) ile başlayalım. Sizin için öne çıkan seçenekler: NUROL PORTFÖY PARA PİYASASI (TL) FONU, İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, AK PORTFÖY PARA PİYASASI KATILIM FONU. Konuştuğumuz getiriler geçmiş getirilerdir. Kararı sizin önceliklerinize göre birlikte verelim; sorularınızı memnuniyetle yanıtlarım.\n\n## Varsayımlar\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n",
- "draft_markdown": "# Görüşme metni · Rb78a07821c\n\n> ⚠ Otomatik metin doğrulanamadı; şablon metin gösteriliyor.\n\n## Özet\n\nEmekli girişimci (62 yaşında); durum: Varlığı TL mevduat ağırlıklı. Yatırım amacı: Düzenli gelir ve sermayenin korunmasını önceliklendirmek (ufuk: 1-3 yıl, risk profili: Muhafazakâr). Öncelikler: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma. Müşteri notu: Mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor. RM'in görüşme notu: Müşteri aylık nakit akışını sordu. Görüşmede seçtiğiniz 3 seçeneği konuşun; karşılaştırma ölçütü ING Turuncu Hesap (standart). Bu metin RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir.\n\n## Müşteriyle konuşulacaklar\n\n- **Mevduatta reel getiri:** Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor.\n- **Alternatif:** NUROL PORTFÖY PARA PİYASASI (TL) FONU son bir yılda enflasyon sonrası +%7,4 getirdi; geçmiş getiri geleceği göstermez.\n- **Paraya erişim:** İlk üç öneride paraya erişim: Aynı gün.\n\n## Öneriler\n\n- NUROL PORTFÖY PARA PİYASASI (TL) FONU (Para Piyasası): Risk değeri 1/7; Yıllık getiri %47.6, stopaj sonrası %39.3, enflasyon sonrası reel %+7.4 (1y); adayların %89'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %87'inden iyi.\n- Müşteriye NUROL PORTFÖY PARA PİYASASI (TL) FONU seçeneğinin risk profili (\"Muhafazakâr\") açısından düşük risk ile öne çıktığını anlatın.\n- Ana rakamlar: withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); fund_sell_valor_days 0,00 (TEFAS, 09.10.2026); 1 yıllık getiri %47,60 (TEFAS, 09.10.2026); fund_buyable 1,00 (TEFAS, 09.10.2026); yatırımcı sayısı 10.366 (TEFAS, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); fon büyüklüğü 9.030.023.246,62 (TEFAS, 09.10.2026); risk düzeyi 1 (TEFAS, 09.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026); withholding_tax_rate %17,50 (manuel giriş, 27.03.2026).\n- İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU (Borçlanma Araçları): Risk değeri 1/7; Yıllık getiri %47.1, stopaj sonrası %38.9, enflasyon sonrası reel %+7.1 (1y); adayların %88'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %52'inden iyi.\n- Müşteriye İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU seçeneğinin likidite ihtiyacı (\"Orta\") açısından likidite ile öne çıktığını anlatın.\n- Ana rakamlar: withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); 1 yıllık getiri %47,14 (TEFAS, 09.10.2026); fon büyüklüğü 911.373.970,84 (TEFAS, 09.10.2026); fund_sell_valor_days 0,00 (TEFAS, 09.10.2026); risk düzeyi 1 (TEFAS, 09.10.2026); yatırımcı sayısı 2.734 (TEFAS, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026); withholding_tax_rate %17,50 (manuel giriş, 27.03.2026); fund_buyable 1,00 (TEFAS, 09.10.2026).\n- AK PORTFÖY PARA PİYASASI KATILIM FONU (Katılım): Risk değeri 1/7; Yıllık getiri %46.3, stopaj sonrası %38.2, enflasyon sonrası reel %+6.5 (1y); adayların %76'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %92'inden iyi.\n- Müşteriye AK PORTFÖY PARA PİYASASI KATILIM FONU seçeneğinin anapara koruma tercihi (\"Yüksek\") açısından anapara koruma ile öne çıktığını anlatın.\n- Ana rakamlar: withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); fund_buyable 1,00 (TEFAS, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); yatırımcı sayısı 26.708 (TEFAS, 09.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026); withholding_tax_rate %17,50 (manuel giriş, 27.03.2026); risk düzeyi 1 (TEFAS, 09.10.2026); 1 yıllık getiri %46,26 (TEFAS, 09.10.2026); fund_sell_valor_days 0,00 (TEFAS, 09.10.2026); fon büyüklüğü 8.901.239.309,74 (TEFAS, 09.10.2026).\n\n## Alternatifler\n\n- Para Piyasası grubunda diğer seçenekler: ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU, ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU.\n- Borçlanma Araçları grubunda diğer seçenekler: AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU.\n- Katılım grubunda diğer seçenekler: GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU, NUROL PORTFÖY PARA PİYASASI KATILIM FONU.\n- Karşılaştırma ölçütü: ING Turuncu Hesap (standart); withholding_tax_rate %17,50 (manuel giriş, 20.06.2026); mevduat faizi %23,00 (manuel giriş, 09.10.2026); mevduat faizi %43,82 (TCMB EVDS, 02.10.2026); cpi_annual %29,73 (manuel giriş, 30.09.2026).\n\n## Dikkat\n\n- Veri kalitesi notları için \"Olası sorunlar\" bölümüne bakın.\n- Fon getirileri geçmiş getirilerdir; gelecekteki getiriyi göstermez ve değerleri dalgalanabilir.\n\n## Sorular\n\n- Kısıtı müşteriyle teyit edin: \"yüksek riskli ürünlerden kaçınma\".\n- Öncelikler hâlâ bu sırada mı: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma?\n\n## Teklif metni\n\nBugün \"Varlığı TL mevduat ağırlıklı\" durumunuzu ve \"Düzenli gelir ve sermayenin korunmasını önceliklendirmek\" hedefinizi dikkate alarak birkaç seçeneği birlikte değerlendirmek istiyorum. Karşılaştırma için ING Turuncu Hesap (standart) ile başlayalım. Sizin için öne çıkan seçenekler: NUROL PORTFÖY PARA PİYASASI (TL) FONU, İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, AK PORTFÖY PARA PİYASASI KATILIM FONU. Konuştuğumuz getiriler geçmiş getirilerdir. Kararı sizin önceliklerinize göre birlikte verelim; sorularınızı memnuniyetle yanıtlarım.\n\n## Varsayımlar\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n"
+ "markdown": "# Görüşme metni · Rb78a07821c\n\n## Özet\n\nMüşteri 62 yaşında, emekli girişimci; muhafazakâr risk profiline sahip ve varlığı TL mevduat ağırlıklı. Yatırım amacı düzenli gelir ve sermayenin korunmasını önceliklendirmek; ufku 1-3 yıl. Görüşmenin amacı, dosyadaki notla uyumlu olarak mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlatmak ve müşterinin sorduğu aylık nakit akışı konusunu ele almaktır. Bu metin RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir.\n\n## Müşteriyle konuşulacaklar\n\n- **Mevduatta reel getiri:** Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor; müşterinin mevduat ağırlıklı varlığı için bunu referans olarak anlatın.\n- **Alternatif:** NUROL PORTFÖY PARA PİYASASI (TL) FONU son bir yılda enflasyon sonrası +%7,4 getirdi; geçmiş getiri geleceği göstermez.\n- **Paraya erişim:** Müşterinin likiditeyi koruma önceliği için üç önerinin üçünde de paraya erişim aynı gün.\n\n## Öneriler\n\n- NUROL PORTFÖY PARA PİYASASI (TL) FONU: son bir yıl getirisi %47,60, SPK risk değeri 1/7. Müşterinin 'düzenli gelir' önceliğine yanıt verir; aylık nakit akışı sorusu üzerinden son bir yıl getirisini anlatın, bunun geçmiş getiri olduğunu belirtin.\n- İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU: son bir yıl getirisi %47,14, risk değeri 1/7. 'Sınırlı dalgalanma' önceliği ve 'yüksek riskli ürünlerden kaçınma' kısıtı için düşük risk değerini vurgulayın; yatırımcı sayısının diğer ikisinden az olduğunu göz önünde bulundurun.\n- AK PORTFÖY PARA PİYASASI KATILIM FONU: son bir yıl getirisi %46,26, risk değeri 1/7, paraya erişim aynı gün. 'Likiditeyi koruma' önceliğine uyar; katılım türü bir fon olduğundan müşterinin bu yapıya yaklaşımını teyit edin.\n\n## Alternatifler\n\n- Para piyasası grubunda ONE PORTFÖY PARA PİYASASI (TL) FONU (%49,68), ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU (%46,86) ve ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU (%51,41) son bir yıl getirileriyle alternatiftir.\n- Borçlanma grubunda AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU (%46,91) ve OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU (%48,36); katılım grubunda GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU (%45,96) ve NUROL PORTFÖY PARA PİYASASI KATILIM FONU (%46,15) var.\n- Karşılaştırma için ING Turuncu Hesap (standart) faizi %23,00; piyasa ortalaması mevduat faizi ise %43,82 (02.10.2026).\n\n## Dikkat\n\n- Fonların geçmiş getirileri gelecekteki getiriyi göstermez.\n\n## Sorular\n\n- Müşteriye aylık nakit akışı ihtiyacının tutarını ve zamanlamasını sorun.\n- 'Yüksek riskli ürünlerden kaçınma' kısıtının hâlâ geçerli olduğunu teyit edin.\n\n## Teklif metni\n\nDüzenli gelir ve sermayenizi korumayı öncelik aldığınızı biliyorum. Mevduat ağırlıklı varlığınızı çeşitlendirmek için, düşük risk değerli ve paraya aynı gün erişim sağlayan fonları birlikte değerlendirelim; geçmiş getirilerin geleceği göstermediğini unutmayalım.\n\n## Varsayımlar\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n",
+ "draft_markdown": "# Görüşme metni · Rb78a07821c\n\n## Özet\n\nMüşteri 62 yaşında, emekli girişimci; muhafazakâr risk profiline sahip ve varlığı TL mevduat ağırlıklı. Yatırım amacı düzenli gelir ve sermayenin korunmasını önceliklendirmek; ufku 1-3 yıl. Görüşmenin amacı, dosyadaki notla uyumlu olarak mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlatmak ve müşterinin sorduğu aylık nakit akışı konusunu ele almaktır. Bu metin RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir.\n\n## Müşteriyle konuşulacaklar\n\n- **Mevduatta reel getiri:** Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor; müşterinin mevduat ağırlıklı varlığı için bunu referans olarak anlatın.\n- **Alternatif:** NUROL PORTFÖY PARA PİYASASI (TL) FONU son bir yılda enflasyon sonrası +%7,4 getirdi; geçmiş getiri geleceği göstermez.\n- **Paraya erişim:** Müşterinin likiditeyi koruma önceliği için üç önerinin üçünde de paraya erişim aynı gün.\n\n## Öneriler\n\n- NUROL PORTFÖY PARA PİYASASI (TL) FONU: son bir yıl getirisi %47,60, SPK risk değeri 1/7. Müşterinin 'düzenli gelir' önceliğine yanıt verir; aylık nakit akışı sorusu üzerinden son bir yıl getirisini anlatın, bunun geçmiş getiri olduğunu belirtin.\n- İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU: son bir yıl getirisi %47,14, risk değeri 1/7. 'Sınırlı dalgalanma' önceliği ve 'yüksek riskli ürünlerden kaçınma' kısıtı için düşük risk değerini vurgulayın; yatırımcı sayısının diğer ikisinden az olduğunu göz önünde bulundurun.\n- AK PORTFÖY PARA PİYASASI KATILIM FONU: son bir yıl getirisi %46,26, risk değeri 1/7, paraya erişim aynı gün. 'Likiditeyi koruma' önceliğine uyar; katılım türü bir fon olduğundan müşterinin bu yapıya yaklaşımını teyit edin.\n\n## Alternatifler\n\n- Para piyasası grubunda ONE PORTFÖY PARA PİYASASI (TL) FONU (%49,68), ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU (%46,86) ve ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU (%51,41) son bir yıl getirileriyle alternatiftir.\n- Borçlanma grubunda AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU (%46,91) ve OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU (%48,36); katılım grubunda GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU (%45,96) ve NUROL PORTFÖY PARA PİYASASI KATILIM FONU (%46,15) var.\n- Karşılaştırma için ING Turuncu Hesap (standart) faizi %23,00; piyasa ortalaması mevduat faizi ise %43,82 (02.10.2026).\n\n## Dikkat\n\n- Fonların geçmiş getirileri gelecekteki getiriyi göstermez.\n\n## Sorular\n\n- Müşteriye aylık nakit akışı ihtiyacının tutarını ve zamanlamasını sorun.\n- 'Yüksek riskli ürünlerden kaçınma' kısıtının hâlâ geçerli olduğunu teyit edin.\n\n## Teklif metni\n\nDüzenli gelir ve sermayenizi korumayı öncelik aldığınızı biliyorum. Mevduat ağırlıklı varlığınızı çeşitlendirmek için, düşük risk değerli ve paraya aynı gün erişim sağlayan fonları birlikte değerlendirelim; geçmiş getirilerin geleceği göstermediğini unutmayalım.\n\n## Varsayımlar\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n"
 }
