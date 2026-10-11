@@ -1,0 +1,26 @@
+{
+ "evds": {
+  "status": "ok",
+  "error": null,
+  "fallback_from": null,
+  "excluded": false
+ },
+ "manual": {
+  "status": "ok",
+  "error": null,
+  "fallback_from": null,
+  "excluded": false
+ },
+ "tefas_web": {
+  "status": "ok",
+  "error": null,
+  "fallback_from": null,
+  "excluded": false
+ },
+ "kap": {
+  "status": "skipped",
+  "error": null,
+  "fallback_from": null,
+  "excluded": false
+ }
+}

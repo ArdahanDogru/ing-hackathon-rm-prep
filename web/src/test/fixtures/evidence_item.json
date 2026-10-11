@@ -1,0 +1,16 @@
+{
+ "id": "Edee23950",
+ "quantity": "fund_return_1y",
+ "entity": "NJR",
+ "value": 47.6,
+ "unit": "percent",
+ "as_of": "2026-10-09",
+ "source": "tefas_web",
+ "source_url": "https://www.tefas.gov.tr/FonKarsilastirma.aspx",
+ "fetched_at": "2026-10-10T00:12:33+03:00",
+ "snapshot_id": "20261010-001233-6b20",
+ "raw_ref": "payloads/tefas_web/returns.json#NJR",
+ "flags": [],
+ "note": "",
+ "entity_name": "NUROL PORTFÖY PARA PİYASASI (TL) FONU"
+}
