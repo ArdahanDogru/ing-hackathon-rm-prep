@@ -163,8 +163,9 @@ Top to bottom, one column of 1 200–1 400 px, 24 px between sections:
 3. **Brief card** (full width):
    - left: name and age (22 px); one profile line: risk profile with the fund
      risk ceiling ("Muhafazakâr (fon riski en fazla 2 / 7)"), horizon,
-     liquidity, income need, the constraint in orange; **one brief sentence**
-     (17 px): the persona's `durum` and `yatirim_amaci` (no LLM); a small line
+     liquidity, income need, the constraint in orange; **the brief**
+     (17 px, 1–2 sentences, LLM; see "LLM brief" below; until it is ready and
+     as its fallback: the persona's `durum` and `yatirim_amaci`); a small line
      "Veri: <snapshot date> · motor · Kaynaklar (2) · Profili düzenle"
      ("Kaynaklar" opens the persona file and the RM note; "Profili düzenle"
      opens the side panel of the test run);
@@ -235,6 +236,40 @@ narrow right column:
   buttons "Düzenle" and **"Metni onayla"**.
 - An edited text shows as formatted Markdown with "Düzenlenmiş metin" (as
   before); the cards and source numbers show for an unedited draft.
+
+### LLM brief (approved by the user 2026-10-12)
+
+The brief sentence of the dashboard is written by an LLM; the plain sentence
+(`durum` + `yatirim_amaci`) is its fallback and shows first.
+
+- **Content**: 1–2 sentences for the RM (not for the client): who the client
+  is, what they want, what this meeting should do; built from the same facts
+  pack as the meeting text (persona, `dosyadaki_not`, the decision talking
+  points, the top 3, client-audience warnings only). Formal Turkish (EN with
+  the language switch), at most 280 characters.
+- **Model**: Claude Haiku 5.5 (`claude-haiku-5-5`, config
+  `narrator.brief.model`), structured output `{text, cite}`; about $0.003
+  per brief; counts against the same daily cost limit.
+- **When**: the API starts it in the background when a run is made (not for
+  `needs_rm_input`); `GET /api/runs/{id}/brief?lang=TR` returns the brief or
+  `{"status": "running"}`; the web polls it a few times, then keeps the plain
+  sentence. Cached per (run_id, lang, prompt version, model) under
+  `data/narratives/`; the same run makes no second call.
+- **Guard**: the narrator validator rules that apply (numbers in the facts,
+  no forbidden phrase, no rejected option, the label rule of N9c, no RM-only
+  fact, no pointer to a screen section). A failure or an API error → the plain
+  sentence, no retry (the brief is not worth a second call).
+- **Display**: the sentence with a small "AI özeti" label and the model in the
+  tooltip; "Kaynaklar (n)" lists what it cites. The brief never goes into the
+  card or the meeting text.
+- **Contract v1.4 (additive)**: `NarrativeBrief(run_id, lang, text, source
+  "llm" | "template", model, prompt_version, checks, created_at, cost_usd,
+  cite)`; `Backend.brief(run_id, lang="TR") -> NarrativeBrief` (RealBackend:
+  starts or waits for the background job; FakeBackend: template).
+- **Milestones**: lead L11 (contract v1.4, API endpoint, background start in
+  `RealBackend.decide`), narrator **N10** (prompt, brief builder, validator
+  subset, cache, tests with a fake LLM, one live smoke call), web (the
+  polling and the label, in the redesign milestones).
 
 ### Not in this redesign (later, with data)
 
