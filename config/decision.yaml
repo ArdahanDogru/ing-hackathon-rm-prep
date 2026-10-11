@@ -224,6 +224,16 @@ warnings:
   # never in client-facing text)
   audience: {concentration: client, fx_exposure: client}
 
+# D18 (web UI, docs/decision.md section 9): "Müşteriyle konuşulacaklar"; client view, no ING numbers
+talking_points:
+  order: [deposit_real, best_alternative, access, risk_fit]
+  deposit_keywords: ["mevduat"]
+  texts:
+    deposit_real: {label: "Mevduatta reel getiri", text: "Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık {figure} reel getiri veriyor."}
+    best_alternative: {label: "Alternatif", text: "{label} son bir yılda enflasyon sonrası {figure} getirdi; geçmiş getiri geleceği göstermez."}
+    access: {label: "Paraya erişim", text: "İlk üç öneride paraya erişim: {figure}."}
+    risk_fit: {label: "Risk", figure: "en fazla {max} / 7", text: "İlk üç önerinin SPK risk değeri en fazla {max} / 7; müşterinin sınırı {ceiling} / 7."}
+
 # D16 (web UI, "Teyit edin"): assumption key -> command for the RM; only {tier}
 to_confirm:
   deposit_tier: "Yatırım tutarını sorun: {tier} dilimi varsayıldı."
@@ -261,15 +271,16 @@ texts:
     passed: "Risk değeri {risk}, müşterinin tavanı {ceiling} içinde."
     failed: "Risk değeri {risk}, müşterinin risk tavanı {ceiling} üzerinde."
   questions:
-    override_fx_limit: "Döviz fonları müşterinin açık kısıtı nedeniyle elendi. Kısıt gerekçeyle kaldırılsın mı?"
+    # non-blocking questions show in "Teyit edin" (web UI): written as commands (D16)
+    override_fx_limit: "Döviz fonları müşterinin açık kısıtı nedeniyle elendi; kısıtın gerekçeyle kaldırılıp kaldırılmayacağını müşteriyle netleştirin."
     override_reason: "Kısıt \"gerekçesiz\" diyor; RM gerekçe yazarak kaldırabilir."
     risk_profili: "Müşterinin risk profili nedir?"
     acik_kisitlar: "Bu kısıt nasıl uygulanmalı: \"{text}\"?"
-    yatirim_ufku: "Yatırım ufku hangi döneme karşılık geliyor?"
-    likidite_ihtiyaci: "Likidite ihtiyacı hangi düzeyde?"
-    anapara_koruma_tercihi: "Anapara koruma tercihi hangi düzeyde?"
-    gelir_nakit_akisi_ihtiyaci: "Gelir / nakit akışı ihtiyacı hangi düzeyde?"
-    doviz_maruz_kalma_tercihi: "Döviz fonları için hangi düzey uygulanmalı?"
+    yatirim_ufku: "Yatırım ufkunun hangi döneme karşılık geldiğini müşteriyle netleştirin."
+    likidite_ihtiyaci: "Likidite ihtiyacının düzeyini müşteriyle netleştirin."
+    anapara_koruma_tercihi: "Anapara koruma tercihinin düzeyini müşteriyle netleştirin."
+    gelir_nakit_akisi_ihtiyaci: "Gelir / nakit akışı ihtiyacının düzeyini müşteriyle netleştirin."
+    doviz_maruz_kalma_tercihi: "Döviz fonları için uygulanacak düzeyi müşteriyle netleştirin."
     reason: "\"{text}\" metni tanımlı değerlerle eşleşmiyor."
   effect_labels:
     risk_cap: "Risk tavanını 4 ile sınırla"

@@ -550,6 +550,41 @@ its condition holds; "top 3" = `rmprep.grouping.top_heads(options, 3)`:
 | `risk_fit` | always (top 3 not empty) | "en fazla <max> / 7"; the text names the client's ceiling |
 
 Percent figures: sign and comma, the minus is U+2212 ("−%8,3", "+%8,7").
+
+**As built (D16–D18, 2026-10-11, ing-decision).**
+
+- Helpers: `display.access_text(facts, config)` ("Aynı gün" / "n iş günü" /
+  "Vade sonunda (32 gün)" / None, config `display.access`) and
+  `display.tr_percent(x)`; the API and D18 use them (one rule).
+  `display.facts_of` is public (used by `talking.py`).
+- Deposit and time deposit facts: `returns = {"1y": the published annual rate}`,
+  `real_1y` from it (time deposit with the 32-day renewal of `_net`), risk and
+  sell valör none; time deposit `lock_days = time_deposit.term_days`.
+- `real_1y` needs `real_return` and CPI; a missing stopaj row counts 0 (as
+  D9); no fees; no stopaj on a loss. `sell_valor_days` needs `fund_detail`.
+  Facts respect excluded sources.
+- `why`: persona priorities in persona order, matched with Turkish
+  normalization, shown as written; a criterion without a text, or a line
+  whose value is missing, gives no line; two priorities with the same
+  criterion give two lines. `display.why` needs `display.access`.
+- `to_confirm`: the templates of the assumption keys that the run emitted, in
+  emit order (standard assumptions first, then the persona ones), each once;
+  a `needs_rm_input` result has them too. Config checks: audience codes from
+  the known list, values `client | rm`; `to_confirm` keys are keys of
+  `texts.assumptions`, only the field `{tier}`.
+- Talking points: `deposit_real` cites the market, CPI and stopaj rows, no
+  option ids; skipped without `real_return`, the market row or CPI.
+  `best_alternative` cites the 1y row, CPI and stopaj of the first head;
+  skipped without its `real_1y`. `access`: the condition is a liquidity level
+  above 0 or a priority that boosts liquidity; skipped if one of the top 3 has
+  no valör / term. `risk_fit`: deposit kinds count as risk 1 (cited by their
+  rate row); skipped if a listed fund has no risk row; needs `figure` in its
+  texts. Adding the sections changes `config_hash`, so the run ids change.
+- Real check (snapshot 20261010-183835-6813): P01 `deposit_real` +%4,9,
+  `best_alternative` PPN +%7,4, access "Aynı gün"; P02/P05 GO6 +%8,7, access,
+  "en fazla 1 / 7"; P03 GBV +%2,5, "en fazla 7 / 7".
+- The non-blocking question texts are commands now ("… müşteriyle
+  netleştirin"), because "Teyit edin" shows them.
 Texts: `talking_points.texts.<code>: {label, text}` with `{figure}`, `{label}`,
 `{max}`, `{ceiling}`.
 
