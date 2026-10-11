@@ -20,6 +20,8 @@ brief:
   model: claude-haiku-5-5
   max_chars: 280
   prompt_version: "b1"
+  price_input_per_mtok: 0.10      # Haiku 5.5, prompts up to 100K tokens
+  price_output_per_mtok: 0.50
 
 langs: [TR, EN]
 sections: [ozet, oneriler, alternatifler, dikkat, sorular, teklif_metni, varsayimlar, talking_points]
