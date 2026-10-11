@@ -1,10 +1,11 @@
 // App shell: top bar, run state, routes / (dashboard), /meeting/:runId, /print/:runId.
 import { useCallback, useEffect, useState } from "react";
-import { Link, Route, Routes, useParams } from "react-router-dom";
+import { Route, Routes, useParams } from "react-router-dom";
 import { api, getRunOrRerun, recallInputs, rememberInputs } from "./api/client";
 import type { Lang, Persona, RunInputs, RunView, SourceStatus } from "./api/types";
 import { TopBar } from "./components/TopBar";
 import { Dashboard } from "./screens/Dashboard";
+import { MeetingText } from "./screens/MeetingText";
 import { LangContext, labels, useT } from "./i18n";
 
 function ErrorLine({ error, onRetry }: { error: Error; onRetry: () => void }) {
@@ -15,23 +16,6 @@ function ErrorLine({ error, onRetry }: { error: Error; onRetry: () => void }) {
       <button type="button" className="ml-2 underline" onClick={onRetry}>
         {t("retry")}
       </button>
-    </div>
-  );
-}
-
-/** Placeholder until W5 (meeting text). */
-function Home({ run }: { run: RunView | null }) {
-  const t = useT();
-  if (!run) return <p className="text-sm text-muted">{t("noRun")}</p>;
-  const r = run.result;
-  return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm" data-testid="run-summary">
-      <div className="text-xs text-muted">
-        {t("runId")} {r.run_id} · {r.snapshot_id} · {r.state}
-      </div>
-      <h1 className="mt-1 text-lg font-semibold">
-        {r.persona.persona_id} · {r.persona.profil}
-      </h1>
     </div>
   );
 }
@@ -49,15 +33,7 @@ function MeetingRoute() {
   useEffect(load, [load]);
   if (error) return <ErrorLine error={error} onRetry={load} />;
   if (!run) return <p className="text-sm text-muted">{t("loading")}</p>;
-  return (
-    <div>
-      <Link to="/" className="text-sm underline">
-        {t("backToDashboard")}
-      </Link>
-      <h1 className="mt-2 text-xl font-semibold">{t("meetingText")}</h1>
-      <Home run={run} />
-    </div>
-  );
+  return <MeetingText view={run} />;
 }
 
 function PrintRoute() {
@@ -168,7 +144,7 @@ export function App() {
                           onPersona={setEdited}
                         />
                       ) : (
-                        <Home run={run} />
+                        <p className="text-sm text-muted">{labels[lang].noRun}</p>
                       )
                     }
                   />
