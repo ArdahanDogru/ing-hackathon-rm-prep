@@ -89,17 +89,8 @@ def test_every_selected_option_needs_an_oneriler_sentence(config):
     assert _codes(findings) == {"coverage"} and "fund:AAL" in findings[0]
 
 
-@pytest.mark.parametrize("lang", ["TR", "EN"])
-def test_dikkat_must_point_to_the_pane(lang, config):
-    r, f, sections = _setup(lang=lang, config=config)
-    dikkat = _section(sections, "dikkat")
-    kept = [s for s in dikkat.sentences if "Olası sorunlar" not in s.text
-            and "Possible issues" not in s.text]
-    findings = validate(_with(sections, "dikkat", *kept, replace=True), f, r, config, lang)
-    assert _codes(findings) == {"pointer"}
-
-
 def test_no_pointer_needed_without_data_quality_notes(config):
+    """(N9c: there is no pointer to a screen section at all; see test_n9c.)"""
     r = dataclasses.replace(p02(), data_quality=())
     f = build_facts(r, evidence())
     sections = template_sections(f, "TR", config.disclaimer["TR"])
@@ -152,7 +143,8 @@ def test_pack_has_no_internal_values():
     assert "rejected" not in pack and "data_quality" not in pack
 
 
-@pytest.mark.parametrize("lang, pane", [("TR", "Olası sorunlar"), ("EN", "Possible issues")])
-def test_system_prompt_names_the_pane_and_the_internal_rule(lang, pane, config):
+@pytest.mark.parametrize("lang", ["TR", "EN"])
+def test_system_prompt_states_the_internal_rule(lang, config):
     s = system_prompt(lang, config)
-    assert pane in s and "needs_check" in s and "fits" in s
+    assert "needs_check" in s and "fits" in s
+    assert "Olası sorunlar" not in s and "Possible issues" not in s     # N9c

@@ -45,6 +45,32 @@ class KeyNumber:
     unit: str
     as_of: date
     source: str
+    name: str = ""          # N9c: the name in the pack (deposit rates: market vs ING); "" = quantity
+
+    @property
+    def key(self) -> str:
+        return self.name or self.quantity
+
+
+# N9c: deposit_rate rows by entity. The market average (EVDS) and the ING rates
+# must never be mixed up in a client text.
+MARKET_DEPOSIT_RATE = "piyasa_mevduat_faizi"
+ING_DEPOSIT_RATE = "ing_mevduat_faizi"
+ING_TIME_DEPOSIT_RATE = "ing_vadeli_mevduat_faizi"
+ING_RATES = (ING_DEPOSIT_RATE, ING_TIME_DEPOSIT_RATE)
+
+
+def deposit_rate_name(entity: str, config: DecisionConfig) -> str:
+    """The pack name of a deposit_rate row (config deposit / time_deposit)."""
+    c = config.raw
+    if entity == c["deposit"]["market_entity"]:
+        return MARKET_DEPOSIT_RATE
+    if entity.startswith(c["deposit"]["entity_prefix"]):
+        return ING_DEPOSIT_RATE
+    td = c.get("time_deposit")
+    if td and entity.startswith(td["entity_prefix"]):
+        return ING_TIME_DEPOSIT_RATE
+    return "deposit_rate"
 
 
 @dataclass(frozen=True)
@@ -146,16 +172,19 @@ def _plain(x):
     return x
 
 
-def _numbers(ids, ev: EvidenceSet) -> tuple[KeyNumber, ...]:
+def _numbers(ids, ev: EvidenceSet, config: DecisionConfig) -> tuple[KeyNumber, ...]:
     by_id = {dp.id: dp for dp in ev.datapoints}
-    return tuple(KeyNumber(dp.id, dp.quantity, dp.value, dp.unit, dp.as_of, dp.source)
+    return tuple(KeyNumber(dp.id, dp.quantity, dp.value, dp.unit, dp.as_of, dp.source,
+                           deposit_rate_name(dp.entity, config)
+                           if dp.quantity == config.raw["deposit"]["quantity"] else "")
                  for dp in (by_id.get(i) for i in ids) if dp is not None and dp.value is not None)
 
 
-def _option_facts(o: ScoredOption, ev: EvidenceSet, warnings: list[str], note: str) -> OptionFacts:
+def _option_facts(o: ScoredOption, ev: EvidenceSet, warnings: list[str], note: str,
+                  config: DecisionConfig) -> OptionFacts:
     ids = list(dict.fromkeys([*o.evidence_ids, *(i for c in o.constraints
                                                    for i in c.evidence_ids)]))
-    numbers = _numbers(ids, ev)
+    numbers = _numbers(ids, ev, config)
     reasons = sorted(((k, v, o.reasons[k]) for k, v in o.score_parts.items()),
                      key=lambda r: -abs(r[1]))
     return OptionFacts(
@@ -176,6 +205,7 @@ def build_facts(r: DecisionResult, ev: EvidenceSet,
     if r.rm_status != RmStatus.APPROVED:
         raise ValueError("the narrator writes only for an approved result")
     selected = set(r.rm_selected)
+    dcfg = decision_config or _default_decision_config()
 
     groups = []
     for g in grouping.groups(r.options):
@@ -200,14 +230,14 @@ def build_facts(r: DecisionResult, ev: EvidenceSet,
         if (w.option_ids and not ids) or any(lbl in w.message for lbl in rejected_labels):
             continue
         warnings.append(WarningFacts(w.code, w.message, ids, w.evidence_ids,
-                                     _numbers(w.evidence_ids, ev)))
+                                     _numbers(w.evidence_ids, ev, dcfg)))
 
     def facts(o: ScoredOption) -> OptionFacts:
         oid = o.option.option_id
         return _option_facts(o, ev, [w.message for w in warnings if oid in w.option_ids],
-                             r.rm_option_notes.get(oid, ""))
+                             r.rm_option_notes.get(oid, ""), dcfg)
 
-    shown = display_facts(r, ev, decision_config or _default_decision_config())
+    shown = display_facts(r, ev, dcfg)
     p = r.persona
     return Facts(
         run_id=r.run_id, persona_id=p.persona_id, snapshot_id=r.snapshot_id,

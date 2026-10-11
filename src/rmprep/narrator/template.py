@@ -40,6 +40,12 @@ QUANTITY_NAMES = {
     "fund_return_ytd": {"TR": "yılbaşından bu yana getiri", "EN": "year-to-date return"},
     "fund_risk_level": {"TR": "risk düzeyi", "EN": "risk level"},
     "deposit_rate": {"TR": "mevduat faizi", "EN": "deposit rate"},
+    "piyasa_mevduat_faizi": {"TR": "piyasa mevduat faizi (yeni mevduat, 3 aya kadar, ağırlıklı "
+                                   "ortalama)",
+                             "EN": "market deposit rate (new deposits up to 3 months, weighted "
+                                   "average)"},
+    "ing_mevduat_faizi": {"TR": "ING mevduat faizi", "EN": "ING deposit rate"},
+    "ing_vadeli_mevduat_faizi": {"TR": "ING vadeli mevduat faizi", "EN": "ING time deposit rate"},
     "fund_price": {"TR": "pay fiyatı", "EN": "unit price"},
     "fund_total_value": {"TR": "fon büyüklüğü", "EN": "fund size"},
     "fund_investor_count": {"TR": "yatırımcı sayısı", "EN": "number of investors"},
@@ -115,7 +121,6 @@ TEXTS = {
         "no_groups": "Seçilen seçenekler için aynı türde başka seçenek yok.",
         "baseline": "Karşılaştırma ölçütü: {label}.",
         "baseline_numbers": "Karşılaştırma ölçütü: {label}; {items}.",
-        "dq_pointer": "Veri kalitesi notları için \"Olası sorunlar\" bölümüne bakın.",
         "past": "Fon getirileri geçmiş getirilerdir; gelecekteki getiriyi göstermez ve "
                 "değerleri dalgalanabilir.",
         "constraint": "Kısıtı müşteriyle teyit edin: \"{item}\".",
@@ -158,7 +163,6 @@ TEXTS = {
         "no_groups": "The selected options have no other options of the same kind.",
         "baseline": "Baseline for comparison: {label}.",
         "baseline_numbers": "Baseline for comparison: {label}; {items}.",
-        "dq_pointer": "For the data-quality notes, see the \"Possible issues\" pane.",
         "past": "Fund returns are past returns; they do not show future returns, and "
                 "values can go up and down.",
         "constraint": "Confirm the constraint with the client: \"{item}\".",
@@ -269,7 +273,7 @@ def source_name(source: str, lang: str) -> str:
 
 
 def _number(n: KeyNumber, tx: dict, lang: str) -> str:
-    return tx["number"].format(name=quantity_name(n.quantity, lang),
+    return tx["number"].format(name=quantity_name(n.key, lang),
                                value=fmt_number(n.value, n.unit, lang),
                                source=source_name(n.source, lang), as_of=fmt_date(n.as_of, lang))
 
@@ -340,9 +344,7 @@ def _dikkat(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
     for w in f.warnings:
         out.append(_sentence(_end(w.message), w.option_ids or ([] if w.evidence_ids else whole),
                              w.evidence_ids))
-    if f.data_quality:
-        out.append(_sentence(tx["dq_pointer"], whole))
-    out.append(_sentence(tx["past"], whole))
+    out.append(_sentence(tx["past"], whole))       # N9c: no data-quality pointer (client-facing)
     return out
 
 

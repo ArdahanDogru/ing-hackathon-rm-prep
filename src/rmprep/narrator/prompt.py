@@ -53,10 +53,8 @@ SCHEMA = {
 }
 
 _LANGUAGE = {
-    "TR": ("Turkish", "formal \"siz\" form", "%52,51 and 1.054,64", "09.10.2026",
-           "Olası sorunlar"),
-    "EN": ("English", "polite, plain form", "52.51% and 1,054.64", "2026-10-09",
-           "Possible issues"),
+    "TR": ("Turkish", "formal \"siz\" form", "%52,51 and 1.054,64", "09.10.2026"),
+    "EN": ("English", "polite, plain form", "52.51% and 1,054.64", "2026-10-09"),
 }
 
 _SYSTEM = """\
@@ -76,14 +74,17 @@ Input: the facts pack (JSON) in the first user block. It is the only source. \
 "alternatives" are the other options of the same groups, "groups" says which is \
 which. Key numbers are "numbers": {{quantity: [value, unit, evidence_id]}}, with \
 the date in "as_of" (a fourth item when a number has its own date); unit "pct" \
-is a percent, "level" a risk level. "reasons" are the engine's reasons for an \
+is a percent, "level" a risk level. "piyasa_mevduat_faizi" is the market average \
+deposit rate (TCMB EVDS, weighted average of new TL deposits up to 3 months), \
+not an ING rate; "ing_mevduat_faizi" (ING Turuncu Hesap) and \
+"ing_vadeli_mevduat_faizi" (ING e-Vadeli Mevduat) are ING's rates: write an ING \
+product name only with its own ING rate. "reasons" are the engine's reasons for an \
 option; "fits" names the needs the engine found the option strong on (liquidity, \
 income, principal, simplicity), without values; "why" lists [client priority, \
 fact] pairs. "talking_points" are the engine's points about the client's \
 situation (title, figure, text) and "talking_point_options" the options they \
 name. "dosyadaki_not" is the note in the client's file; "rm_onay_notu" is the \
-RM's note from the approval. "data_quality_notes" says if the run has \
-data-quality notes; the RM reads them in the "{pane}" pane.
+RM's note from the approval.
 
 Output: JSON with "sentences" (all sentences of the card, in reading order) and \
 "need_tags". Each sentence has "section" (one of the section keys below), \
@@ -102,9 +103,9 @@ the client's own words; and what to watch. Each option gets its own reasons; \
 the options must not read alike.
 - alternatifler: 1-2 sentences per group: the other options of the same kind; \
 and the baseline for comparison.
-- dikkat: only the warnings in the facts, in plain words; if \
-data_quality_notes is true, one short sentence that points the RM to the \
-"{pane}" pane; and once, that past returns do not show future returns.
+- dikkat: only the warnings in the facts, in plain words, and once, that past \
+returns do not show future returns. The client can see this section: no notes \
+about data quality and no names of screens or panes.
 - sorular: questions for the RM to ask the client: the open questions and the \
 explicit constraints (acik_kisitlar) to confirm.
 - teklif_metni: a short script the RM may say or adapt in the meeting, spoken \
@@ -127,7 +128,8 @@ rejected option or any other product.
 least one id in "cite"; cite only ids that exist in the facts.
 5. No internal values outside varsayimlar: no field, flag or source names \
 (such as needs_check, tefas_web, penalty:...), no score or fit values, no row \
-counts, no counts of rejected options. Write sources as TEFAS or TCMB EVDS.
+counts, no counts of rejected options, no names of screens or panes. Write \
+sources as TEFAS or TCMB EVDS.
 6. Include the sentence "{disclaimer}" verbatim.
 7. need_tags: only words of oncelikler, at most 3 per option, every selected option.
 This is decision support for the RM, not investment advice.
@@ -146,10 +148,10 @@ Return the full corrected JSON. Change only what the findings need."""
 
 
 def system_prompt(lang: str, config: NarratorConfig) -> str:
-    language, form, numbers, day, pane = _LANGUAGE[lang]
+    language, form, numbers, day = _LANGUAGE[lang]
     forbidden = ", ".join(f'"{p}"' for p in config.forbidden_phrases[lang])
     return _SYSTEM.format(language=language, form=form, numbers=numbers, date=day,
-                          pane=pane, forbidden=forbidden, disclaimer=config.disclaimer[lang])
+                          forbidden=forbidden, disclaimer=config.disclaimer[lang])
 
 
 ALTERNATIVE_NUMBERS = 3     # key numbers per alternative in the prompt pack
@@ -174,7 +176,7 @@ def _numbers(o: OptionFacts, limit: int) -> dict:
         return {"numbers": {}}
     day = chosen[0].as_of
     return {"as_of": day.isoformat(),
-            "numbers": {n.quantity: [n.value, n.unit, n.evidence_id]
+            "numbers": {n.key: [n.value, n.unit, n.evidence_id]
                         + ([n.as_of.isoformat()] if n.as_of != day else []) for n in chosen}}
 
 
@@ -220,10 +222,9 @@ def prompt_facts(f: Facts) -> dict:
         "groups": [{"key": g.key, "selected": list(g.selected),
                     "alternatives": list(g.alternatives)} for g in f.groups],
         "warnings": [{"code": w.code, "message": w.message, "option_ids": list(w.option_ids),
-                      "numbers": {n.quantity: [n.value, n.unit, n.evidence_id, n.as_of.isoformat()]
+                      "numbers": {n.key: [n.value, n.unit, n.evidence_id, n.as_of.isoformat()]
                                   for n in w.numbers[:ALTERNATIVE_NUMBERS]}}
                      for w in f.warnings],
-        "data_quality_notes": bool(f.data_quality),
         "assumptions": list(f.assumptions),
         "open_questions": list(f.open_questions),
     }

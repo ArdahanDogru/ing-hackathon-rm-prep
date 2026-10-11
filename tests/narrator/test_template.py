@@ -96,7 +96,7 @@ def test_dikkat_has_warnings_a_pane_pointer_and_the_past_return_caveat(config):
     for w in r.warnings:
         assert (w.message in text) == (w.audience == "client")      # N9
     assert r.data_quality[0].message not in text and "needs_check" not in text
-    assert text.count("Olası sorunlar") == 1
+    assert "Olası sorunlar" not in text                      # N9c: no screen names
     assert "geçmiş getiri" in text
     assert "elendi" not in text and "risk tavanı" not in text
 
