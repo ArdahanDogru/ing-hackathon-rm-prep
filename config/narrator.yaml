@@ -12,11 +12,11 @@ llm:
   workspace_id_env: ANTHROPIC_WORKSPACE_ID  # the key is org-level: send header anthropic-workspace-id
 
 max_cost_usd_per_day: 5.0         # the user's limit; over it -> template text + banner
-prompt_version: "n3"              # bump on any prompt change (part of the cache key); n3 = N7 (lever 2, client links)
+prompt_version: "n4"              # bump on any prompt change (part of the cache key); n4 = N9 (talking points, need tags, client-only warnings)
 cache_dir: data/narratives
 
 langs: [TR, EN]
-sections: [ozet, oneriler, alternatifler, dikkat, sorular, teklif_metni, varsayimlar]
+sections: [ozet, oneriler, alternatifler, dikkat, sorular, teklif_metni, varsayimlar, talking_points]
 
 # Rule 6 of the brief: no guarantee or certain return. Matched case-insensitively
 # after Turkish lower-casing; a hit fails the validator.
