@@ -263,10 +263,13 @@ def _check_scoring(c: dict) -> None:
 
     d = c["display"]
     _keys(d, "display", ("first", "first_cap", "shortlist", "cap", "diversity_cap"),
-          ("pool", "diversity_pool_cap"))
+          ("pool", "diversity_pool_cap", "why", "access"))
     if ("pool" in d) != ("diversity_pool_cap" in d):
         raise ConfigError("display: pool and diversity_pool_cap go together")
+    _check_display_texts(d)
     for k, v in d.items():
+        if k in ("why", "access"):
+            continue
         if not isinstance(v, int) or isinstance(v, bool) or v < 1:
             raise ConfigError(f"display.{k}: must be an integer >= 1")
     if d["first"] > d["shortlist"]:
@@ -294,6 +297,25 @@ def _check_scoring(c: dict) -> None:
     _keys(c["warnings"], "warnings", ("low_stability_below", "deposit_vs_market_points"))
     _num(c["warnings"]["low_stability_below"], "warnings.low_stability_below", 0, 1)
     _num(c["warnings"]["deposit_vs_market_points"], "warnings.deposit_vs_market_points", 0)
+
+
+def _check_display_texts(d: Mapping[str, Any]) -> None:
+    """Optional web UI texts (D17): display.why (criterion -> text) needs
+    display.access (texts of the "Paraya erişim" value)."""
+    if "why" in d:
+        why = d["why"]
+        if not isinstance(why, Mapping):
+            raise ConfigError("display.why: must be a mapping criterion -> text")
+        for crit, text in why.items():
+            if crit not in CRITERIA or not isinstance(text, str) or not text.strip():
+                raise ConfigError(f"display.why.{crit}: a criterion of {CRITERIA} with a text")
+        if "access" not in d:
+            raise ConfigError("display.access: display.why needs the access texts")
+    if "access" in d:
+        _keys(d["access"], "display.access", ("same_day", "days", "term"))
+        for k, v in d["access"].items():
+            if not isinstance(v, str) or not v.strip():
+                raise ConfigError(f"display.access.{k}: must be a non-empty text")
 
 
 def _text(c: dict, section: str, key: str, why: str) -> None:
