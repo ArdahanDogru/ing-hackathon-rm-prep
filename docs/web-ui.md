@@ -11,6 +11,12 @@ git-ignored `.superpowers/brainstorm/`.
 Replaces the Streamlit UI (`src/rmprep/ui/`, docs/ui.md), which stays as a
 fallback until the web app can do everything.
 
+**Built 2026-10-11** (plan tasks L1-L8, D16-D18, N9-N9c, W1-W6, E8): start with
+`cd web; npm ci; npm run build`, then `python -m rmprep serve` →
+http://127.0.0.1:8600. Full eval `data/eval/20261011-130016-full` (prompt n6):
+rule checks 100 %, narrator validator 100 %, no forbidden phrase. Waits for the
+user's review on screen.
+
 ## Why (the user's demo feedback, 2026-10-11)
 
 The Streamlit page was hard to use and did not look good: the approval area
