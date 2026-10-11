@@ -7,7 +7,9 @@ named options), phrase (no forbidden phrase), citation (cited sentences, known
 ids), disclaimer, section (all sections, in order, none empty), assumption
 (the assumptions verbatim); N7: internal (no internal names or values outside
 varsayimlar), coverage (an oneriler sentence per selected option), pointer
-(dikkat points to the "Olası sorunlar" pane when there are data-quality notes)."""
+(dikkat points to the "Olası sorunlar" pane when there are data-quality notes);
+N9: talking (talking_points has 2-3 sentences, each with a title), tag (need
+tags: every selected option, at most 3, each one of the persona's oncelikler)."""
 
 from __future__ import annotations
 
@@ -15,12 +17,15 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import date
 
-from rmprep.contracts import NARRATIVE_SECTIONS, DecisionResult, NarrativeSection
+from rmprep.contracts import NARRATIVE_SECTIONS_V13, DecisionResult, NarrativeSection, Persona
 from rmprep.narrator.config import NarratorConfig
 from rmprep.narrator.facts import INTERNAL_PARTS, Facts
 from rmprep.narrator.template import INTERNAL_NAME, tr_lower
 
-CITED_SECTIONS = ("oneriler", "alternatifler", "dikkat")
+SECTIONS = NARRATIVE_SECTIONS_V13
+CITED_SECTIONS = ("talking_points", "oneriler", "alternatifler", "dikkat")
+TALKING_POINTS = (2, 3)                         # sentences of talking_points (N9)
+MAX_TAGS = 3                                    # need tags per selected option
 PERCENT_KEYS = ("confidence", "stability")     # 0..1 values that could be written as a percent
 # facts that are internal values (N7): never in the text
 INTERNAL_KEYS = ("score", "confidence", "stability", "data_quality", "rejected_count",
@@ -141,10 +146,10 @@ def _short(text: str, n: int = 80) -> str:
 
 def _check_sections(sections: Sequence[NarrativeSection]) -> list[str]:
     keys = [s.key for s in sections]
-    out = [f"section: {k}: missing" for k in NARRATIVE_SECTIONS if k not in keys]
-    out += [f"section: {k}: more than once" for k in NARRATIVE_SECTIONS if keys.count(k) > 1]
-    if not out and tuple(keys) != NARRATIVE_SECTIONS:
-        out.append(f"section: order must be {', '.join(NARRATIVE_SECTIONS)}")
+    out = [f"section: {k}: missing" for k in SECTIONS if k not in keys]
+    out += [f"section: {k}: more than once" for k in SECTIONS if keys.count(k) > 1]
+    if not out and tuple(keys) != SECTIONS:
+        out.append(f"section: order must be {', '.join(SECTIONS)}")
     out += [f"section: {s.key}: empty" for s in sections
             if not any(x.text.strip() for x in s.sentences)]
     return out
@@ -259,10 +264,49 @@ def _check_pointer(sections, f: Facts, lang: str) -> list[str]:
             f"the data-quality notes"]
 
 
+def _check_talking_points(sections) -> list[str]:
+    tp = [s for sec in sections if sec.key == "talking_points" for s in sec.sentences]
+    low, high = TALKING_POINTS
+    out = []
+    if tp and not low <= len(tp) <= high:
+        out.append(f"talking: talking_points: {low}-{high} sentences, not {len(tp)}")
+    out += [f"talking: talking_points: a sentence without a title: \"{_short(s.text)}\""
+            for s in tp if not s.title.strip()]
+    return out
+
+
+def validate_need_tags(tags: Mapping[str, Sequence[str]], persona: Persona) -> list[str]:
+    """Findings for tags that are not one of the persona's oncelikler (compared
+    with Turkish lower-casing)."""
+    known = {_norm(p) for p in persona.oncelikler}
+    return [f"tag: {oid}: \"{t}\" is not one of the client's priorities"
+            for oid, ts in tags.items() for t in ts if _norm(t) not in known]
+
+
+def _check_need_tags(tags: Mapping[str, Sequence[str]], f: Facts,
+                     r: DecisionResult) -> list[str]:
+    selected = [o.option_id for o in f.selected]
+    out = validate_need_tags(tags, r.persona)
+    out += [f"tag: {oid}: not a selected option" for oid in tags if oid not in selected]
+    out += [f"tag: {oid}: no need_tags entry" for oid in selected if oid not in tags]
+    out += [f"tag: {oid}: at most {MAX_TAGS} tags, not {len(ts)}"
+            for oid, ts in tags.items() if len(ts) > MAX_TAGS]
+    return out
+
+
+def persona_wording(tags: Mapping[str, Sequence[str]], persona: Persona) -> dict[str, tuple[str, ...]]:
+    """Tags as the persona writes them (validated tags; others dropped)."""
+    written = {_norm(p): p for p in persona.oncelikler}
+    return {oid: tuple(dict.fromkeys(written[_norm(t)] for t in ts if _norm(t) in written))
+            for oid, ts in tags.items()}
+
+
 def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
-             config: NarratorConfig, lang: str) -> tuple[str, ...]:
+             config: NarratorConfig, lang: str,
+             need_tags: Mapping[str, Sequence[str]] | None = None) -> tuple[str, ...]:
     """All findings of the text; () means it passed. r is the result the facts
-    were built from (the validator needs the names the facts leave out)."""
+    were built from (the validator needs the names the facts leave out). With
+    need_tags (N9), the tags are checked too."""
     out = _check_sections(sections)
     out += _check_numbers(sections, f)
     out += _check_options(sections, f, r)
@@ -271,6 +315,9 @@ def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
     out += _check_internal_names(sections)
     out += _check_coverage(sections, f)
     out += _check_pointer(sections, f, lang)
+    out += _check_talking_points(sections)
+    if need_tags is not None:
+        out += _check_need_tags(need_tags, f, r)
     everything = _norm(" ".join(s.text for sec in sections for s in sec.sentences))
     if _norm(config.disclaimer[lang]) not in everything:
         out.append(f"disclaimer: the text must contain \"{config.disclaimer[lang]}\"")

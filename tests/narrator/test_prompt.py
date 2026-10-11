@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from rmprep.contracts import NARRATIVE_SECTIONS
+from rmprep.contracts import NARRATIVE_SECTIONS, NARRATIVE_SECTIONS_V13
 from rmprep.narrator.facts import build_facts
 from rmprep.narrator.prompt import (
     SCHEMA,
@@ -21,10 +21,10 @@ def _facts():
 
 
 def test_schema_requires_every_section_and_sentence_field():
-    assert SCHEMA["required"] == list(NARRATIVE_SECTIONS)
+    assert SCHEMA["required"] == [*NARRATIVE_SECTIONS_V13, "need_tags"]
     assert SCHEMA["additionalProperties"] is False
     sentence = SCHEMA["properties"]["ozet"]["items"]
-    assert sentence["required"] == ["text", "option_ids", "evidence_ids"]
+    assert sentence["required"] == ["text", "option_ids", "evidence_ids", "title"]
     assert sentence["additionalProperties"] is False
 
 
@@ -42,7 +42,7 @@ def test_parse_rejects_bad_shapes(text):
 def test_missing_section_parses_as_empty():
     sections = parse_sections(json.dumps({"ozet": [{"text": "a", "option_ids": [],
                                                     "evidence_ids": []}]}))
-    assert [s.key for s in sections] == list(NARRATIVE_SECTIONS)
+    assert [s.key for s in sections] == list(NARRATIVE_SECTIONS_V13)
     assert sections[1].sentences == ()
 
 

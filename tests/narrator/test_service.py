@@ -11,7 +11,13 @@ from rmprep.narrator.facts import build_facts
 from rmprep.narrator.llm import LlmError, LlmReply
 from rmprep.narrator.prompt import sections_json
 from rmprep.narrator.service import Narrator
-from rmprep.narrator.template import BANNER, banner, template_sections, to_markdown
+from rmprep.narrator.template import (
+    BANNER,
+    banner,
+    template_need_tags,
+    template_sections,
+    to_markdown,
+)
 from tests.narrator.conftest import CREATED, evidence, p02, p03, result
 
 COST = 8000 * 2.0 / 1e6 + 1500 * 10.0 / 1e6      # one call at the config prices: $0.031
@@ -43,7 +49,8 @@ def reply(text, **over) -> LlmReply:
 def good(make=p02, lang="TR", config=None) -> LlmReply:
     """A text that passes the validator: the template sections as JSON."""
     f = build_facts(make(), evidence())
-    return reply(sections_json(template_sections(f, lang, config.disclaimer[lang])))
+    return reply(sections_json(template_sections(f, lang, config.disclaimer[lang]),
+                               template_need_tags(f)))
 
 
 def bad(config, lang="TR") -> LlmReply:

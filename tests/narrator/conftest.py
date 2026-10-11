@@ -51,3 +51,26 @@ def p03() -> DecisionResult:
 @pytest.fixture(scope="session")
 def config() -> NarratorConfig:
     return load_config()
+
+
+def persona(pid: str):
+    from rmprep.contracts import Persona
+
+    return Persona.from_dict(_read(f"personas/{pid}.json"))
+
+
+def engine_result(pid: str, selected_n: int = 2, note: str = "") -> DecisionResult:
+    """A real decision engine run on evidence_medium (v1.3: warning audience,
+    talking points), approved with the first selected_n non-deposit options."""
+    from rmprep.decision.config import load_config as load_decision_config
+    from rmprep.decision.engine import decide
+
+    r = decide(evidence(), persona(pid), load_decision_config(), created_at=CREATED)
+    chosen = tuple(o.option.option_id for o in r.options if o.option.kind != "deposit")
+    return dataclasses.replace(r, rm_status=RmStatus.APPROVED,
+                               rm_selected=chosen[:selected_n], rm_note=note)
+
+
+@pytest.fixture(scope="session")
+def approved_p01() -> DecisionResult:
+    return engine_result("p01", note="Faiz geliri önemli; aylık ödeme sorulacak.")

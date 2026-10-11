@@ -149,6 +149,10 @@ def _text_from_pack(pack: dict, disclaimer: str) -> tuple[NarrativeSection, ...]
                    or [NarrativeSentence("Öncelikleriniz değişti mi?")],
         "teklif_metni": [NarrativeSentence("Seçenekleri birlikte değerlendirelim.")],
         "varsayimlar": [NarrativeSentence(a) for a in pack["assumptions"]],
+        "talking_points": [NarrativeSentence("Müşterinin hedefini konuşun.", tuple(selected),
+                                             title="Müşterinin hedefi"),
+                           NarrativeSentence("Önceliklerini teyit edin.", tuple(selected),
+                                             title="Öncelikler")],
     }
     return tuple(NarrativeSection(k, tuple(v)) for k, v in s.items())
 

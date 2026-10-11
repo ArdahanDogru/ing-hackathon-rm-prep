@@ -54,7 +54,7 @@ def test_template_text_passes(make, lang, config):
     ("Müşteri 49 yaşında.", False),
     ("Veri tarihi 09.10.2026.", True),
     ("AFO beş yılda %1.054,64 getirdi.", False),        # only in a data-quality note
-    ("Mevduat faizi %23 ve piyasa ortalaması %43,82.", True),
+    ("Mevduat faizi %23 ve piyasa ortalaması %43,82.", False),   # RM-only warning (N9)
     ("2 seçenek konuşulacak, 1 seçenek elendi.", True),
     ("Risk düzeyi 9.", False),
 ])
@@ -259,7 +259,7 @@ def test_a_data_quality_row_count_is_internal(config):
     from rmprep.contracts import DataQualityNote
 
     r = p02()
-    ids = tuple(sorted(build_facts(r, evidence()).evidence_ids()))[:11]
+    ids = tuple(d.id for d in evidence().datapoints)[:11]
     r = dataclasses.replace(r, data_quality=(DataQualityNote("Bazı değerler eski.",
                                                              evidence_ids=ids),))
     f = build_facts(r, evidence())
