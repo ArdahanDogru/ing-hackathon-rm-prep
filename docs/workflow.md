@@ -52,7 +52,12 @@ also `cd web; npm ci; npm test; npm run build`.
 Green → keep it and tell the workers that are working now to rebase (an idle
 worker rebases at the start of its next milestone; waking an idle session costs
 a full context reread). Red → undo the merge and send the worker the failing
-tests. Pushing: only the lead pushes `main`, to the private GitHub repo
+tests. Before you undo a merge, check that no worker has rebased on
+it since (`git branch --contains <merge>`): a later merge of that branch brings
+the undone merge back (2026-10-11: W5 came back through the narrator branch).
+If a branch contains it, keep the merge and fix forward. Merge a branch only at
+the sha that the worker reported (`git merge --no-ff <sha>`), not the branch
+head, which can already hold the next milestone. Pushing: only the lead pushes `main`, to the private GitHub repo
 `ArdahanDogru/ing-hackathon-rm-prep`, and only when the user asks (decided by the user
 2026-10-11; the guard hook still blocks pushes from worker branches).
 
