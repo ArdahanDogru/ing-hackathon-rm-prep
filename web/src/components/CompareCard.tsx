@@ -19,10 +19,12 @@ export function CompareCard({ option }: { option: OptionView }) {
         </div>
       )}
       {option.returns.real_1y && <RealReturn value={option.returns.real_1y.value} />}
-      <div className="mt-2 text-xs">
-        <span className="text-muted">{t("access")}: </span>
-        <b>{option.access.label ?? "—"}</b>
-      </div>
+      {option.access.label && (
+        <div className="mt-2 text-xs">
+          <span className="text-muted">{t("access")}: </span>
+          <b>{option.access.label}</b>
+        </div>
+      )}
       <OptionNotes notes={option.data_notes} />
     </article>
   );
