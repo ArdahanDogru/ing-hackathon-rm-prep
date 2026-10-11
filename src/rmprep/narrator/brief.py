@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import re
 from dataclasses import dataclass
 
 from rmprep import grouping
@@ -21,7 +22,7 @@ from rmprep.narrator.prompt import _LANGUAGE, _short
 from rmprep.narrator.validator import validate_brief as _validate_brief
 
 __all__ = ["BRIEF_SCHEMA", "BriefFacts", "brief_pack", "brief_request", "build_brief_facts",
-           "parse_brief", "validate_brief"]
+           "fit_sentences", "parse_brief", "validate_brief"]
 
 TOP = 3
 
@@ -83,8 +84,8 @@ def brief_pack(bf: BriefFacts) -> dict:
 
 _SYSTEM = """\
 You write the dashboard brief for a relationship manager (RM) of ING Turkey: \
-1-2 sentences, at most {max_chars} characters, for the RM (not for the client), \
-in {language}, {form}. Say who the client is, what they want, and what this \
+at most two short sentences, at most {max_chars} characters in total (about \
+{words} words), for the RM (not for the client), in {language}, {form}. Say who the client is, what they want, and what this \
 meeting should do. You do not decide or recommend; the engine's options are \
 not approved yet.
 
@@ -113,7 +114,8 @@ _TASK = "Write the brief in {lang} for run {run_id} from the facts above."
 def brief_request(bf: BriefFacts, lang: str, config: NarratorConfig) -> LlmRequest:
     b = config.brief
     language, form, numbers, _ = _LANGUAGE[lang]
-    system = _SYSTEM.format(max_chars=b.max_chars, language=language, form=form,
+    system = _SYSTEM.format(max_chars=b.max_chars, words=b.max_chars // 7,
+                            language=language, form=form,
                             numbers=numbers,
                             forbidden=", ".join(f'"{p}"' for p in config.forbidden_phrases[lang]))
     facts = json.dumps(brief_pack(bf), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -127,6 +129,24 @@ def validate_brief(text: str, cite, bf: BriefFacts, r: DecisionResult, config: N
                    lang: str) -> tuple[str, ...]:
     """The validator rules of the brief (validator.validate_brief) on the brief facts."""
     return _validate_brief(text, tuple(cite), bf.facts, r, config, lang)
+
+
+_SENTENCE_END = re.compile(r"(?<=[.!?…])\s+")
+
+
+def fit_sentences(text: str, limit: int) -> str:
+    """The whole sentences of text that fit into limit characters, never a cut
+    sentence; text as it is when even the first sentence is longer (the
+    validator then reports the length)."""
+    if len(text) <= limit:
+        return text
+    out = ""
+    for sentence in _SENTENCE_END.split(text.strip()):
+        joined = f"{out} {sentence}".strip()
+        if len(joined) > limit:
+            break
+        out = joined
+    return out or text
 
 
 def parse_brief(text: str) -> tuple[str, tuple[str, ...]]:

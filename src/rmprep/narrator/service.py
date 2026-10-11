@@ -17,13 +17,20 @@ from rmprep.brief import template_brief
 from rmprep.contracts import (
     NARRATIVE_LANGS,
     TR_TZ,
+    BRIEF_MAX_CHARS,
     DecisionState,
     NarrativeBrief,
     DecisionResult,
     EvidenceSet,
     NarrativeDraft,
 )
-from rmprep.narrator.brief import brief_request, build_brief_facts, parse_brief, validate_brief
+from rmprep.narrator.brief import (
+    brief_request,
+    build_brief_facts,
+    fit_sentences,
+    parse_brief,
+    validate_brief,
+)
 from rmprep.narrator.config import NarratorConfig, load_config
 from rmprep.narrator.facts import Facts, build_facts
 from rmprep.narrator.llm import LlmClient, LlmError, LlmReply, client_from_env
@@ -128,6 +135,7 @@ class Narrator:
         else:
             try:
                 text, cite = parse_brief(reply.text)
+                text = fit_sentences(text, min(cfg.max_chars, BRIEF_MAX_CHARS))
                 findings = validate_brief(text, cite, bf, r, self.config, lang)
             except ValueError as e:
                 findings = (f"format: {e}",)

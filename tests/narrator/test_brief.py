@@ -197,3 +197,34 @@ def test_english_brief(ready_p01, make):
 def test_brief_config(config):
     assert config.brief.model == "claude-haiku-5-5"
     assert config.brief.max_chars == 280 and config.brief.prompt_version == "b1"
+
+
+def test_a_long_brief_keeps_the_whole_sentences_that_fit(ready_p01, make):
+    """Live run b1: Haiku wrote 389 characters. Whole sentences up to the limit
+    are kept (never a cut sentence); then the validator runs."""
+    first, cite = _good_text(ready_p01)
+    long_text = first + " " + "Müşterinin dosyadaki notunu da dikkate alarak görüşmeyi " * 6 + "planlayın."
+    n, _ = make(brief_reply(long_text, cite))
+    b = n.brief(ready_p01, evidence(), "TR")
+    assert b.source == "llm", b.checks
+    assert b.text == first and len(b.text) <= 280
+
+
+def test_a_first_sentence_over_the_limit_fails(ready_p01, make):
+    n, _ = make(brief_reply("Müşteri " + "çok " * 100 + "önemli."))
+    b = n.brief(ready_p01, evidence(), "TR")
+    assert b.source == "template" and b.checks[0].startswith("length:")
+
+
+def test_fit_sentences():
+    from rmprep.narrator.brief import fit_sentences
+
+    assert fit_sentences("A bb. Cc dd. Ee.", 9) == "A bb."
+    assert fit_sentences("A bb. Cc dd.", 100) == "A bb. Cc dd."
+    assert fit_sentences("Oran %43,82 oldu. Sonra.", 18) == "Oran %43,82 oldu."
+    assert fit_sentences("Çok uzun tek cümle.", 5) == "Çok uzun tek cümle."   # validator decides
+
+
+def test_brief_prompt_states_the_limit_in_words(ready_p01, config):
+    req = brief_request(build_brief_facts(ready_p01, evidence()), "TR", config)
+    assert "40 words" in req.system and "two short sentences" in req.system
