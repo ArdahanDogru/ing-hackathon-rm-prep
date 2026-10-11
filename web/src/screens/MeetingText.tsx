@@ -58,7 +58,7 @@ export function MeetingText({ view }: { view: RunView }) {
   const runId = r.run_id;
 
   const [draft, setDraft] = useState<NarrativeView | null>(null);
-  const [draftMd, setDraftMd] = useState<string | null>(null); // the unedited draft's Markdown
+  const [draftMd, setDraftMd] = useState<string | null>(null); // the unedited draft's Markdown (API: draft_markdown)
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [terms, setTerms] = useState<GlossaryTerm[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
@@ -76,7 +76,7 @@ export function MeetingText({ view }: { view: RunView }) {
       (d) => {
         if (!live) return;
         setDraft(d);
-        setDraftMd(d.status === "approved" ? null : d.markdown);
+        setDraftMd(d.draft_markdown ?? (d.status === "approved" ? null : d.markdown));
         api.glossary(lang, runId).then((x) => live && setTerms(x), () => live && setTerms([]));
       },
       (e: Error) => live && setLoadError(e),
@@ -117,7 +117,7 @@ export function MeetingText({ view }: { view: RunView }) {
     if (!draft) return;
     setActionError(null);
     try {
-      const text = edited ?? draft.markdown;
+      const text = edited ?? draft.draft_markdown ?? draft.markdown;
       const d = await api.approveNarrative(runId, lang, text);
       setDraft(d);
       setEdited(null); // the approved text (d.rm_text) is now the one shown

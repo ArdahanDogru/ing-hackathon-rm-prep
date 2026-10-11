@@ -32,7 +32,11 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
   const points = sentences("talking_points").length
     ? sentences("talking_points").map((s) => ({ title: s.title, text: s.text }))
     : view.talking_points.map((x) => ({ title: x.label, text: x.text }));
-  const approvedText = narrative.status === "approved" ? narrative.rm_text : null;
+  // an approved text prints as Markdown only when the RM edited it
+  const approvedText =
+    narrative.status === "approved" && narrative.rm_text.trim() !== (narrative.draft_markdown ?? "").trim()
+      ? narrative.rm_text
+      : null;
 
   return (
     <article className="print-page mx-auto max-w-[190mm] bg-white p-8 text-[13px] leading-relaxed text-ink">

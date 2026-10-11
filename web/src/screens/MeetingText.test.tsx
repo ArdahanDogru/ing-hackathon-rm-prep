@@ -185,7 +185,23 @@ test("glossary terms and the card downloads", async () => {
   for (const term of sample("glossary")) expect(await screen.findByText(term.form)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /Markdown olarak indir/ })).toHaveAttribute("href", api.cardUrl(v.result.run_id));
   expect(screen.getByRole("link", { name: /PDF olarak indir/ })).toHaveAttribute("href", `/print/${v.result.run_id}`);
-  expect(screen.getByTestId("card-footer")).toHaveTextContent(narrative().model);
+  // a template draft has no model: the footer says "şablon metin" instead
+  const n = narrative();
+  expect(screen.getByTestId("card-footer")).toHaveTextContent(n.source === "template" ? "şablon metin" : n.model);
+  expect(screen.getByTestId("card-footer")).toHaveTextContent(n.checks.length ? "kontrol bulgusu" : "otomatik kontrol geçti");
+});
+
+test("after a reload, an approved unedited text shows the cards; an edited one its Markdown", async () => {
+  const d = narrative();
+  mockNarrative({ ...d, status: "approved", rm_text: d.draft_markdown, markdown: d.draft_markdown });
+  const { unmount } = renderMeeting(sample("run_p01_approved"));
+  expect(await screen.findAllByTestId("rec-card")).not.toHaveLength(0);
+  expect(screen.getByText(/Onaylandı/)).toBeInTheDocument();
+  unmount();
+  mockNarrative({ ...d, status: "approved", rm_text: "## Kendi metnim", markdown: "## Kendi metnim" });
+  renderMeeting(sample("run_p01_approved"));
+  expect(await screen.findByRole("heading", { name: "Kendi metnim" })).toBeInTheDocument();
+  expect(screen.getByText("Düzenlenmiş metin")).toBeInTheDocument();
 });
 
 test("EN asks for the EN text", async () => {
