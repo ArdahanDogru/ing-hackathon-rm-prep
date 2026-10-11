@@ -124,7 +124,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     def _text_view(d: NarrativeDraft) -> dict:
         texts[(d.run_id, d.lang)] = d
         md = d.rm_text if d.status == NarrativeStatus.APPROVED else to_markdown(d)
-        return {**d.to_dict(), "markdown": md}
+        # draft_markdown: the unedited draft, so the web can tell an edited approval apart
+        return {**d.to_dict(), "markdown": md, "draft_markdown": to_markdown(d)}
 
     def _approved_text(run_id: str, lang: str) -> NarrativeDraft | None:
         d = texts.get((run_id, lang))

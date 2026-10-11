@@ -6,25 +6,37 @@
    "key": "ozet",
    "sentences": [
     {
-     "text": "The client is a 62-year-old retired entrepreneur with a conservative risk profile (\"Emekli girişimci\", \"Muhafazakâr\"), whose wealth is described as \"Varlığı TL mevduat ağırlıklı\".",
+     "text": "Client: Emekli girişimci, age 62; situation: Varlığı TL mevduat ağırlıklı.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "The stated aim is \"Düzenli gelir ve sermayenin korunmasını önceliklendirmek\" over a horizon of \"1-3 yıl\", and the client asked about monthly cash flow.",
+     "text": "Investment goal: Düzenli gelir ve sermayenin korunmasını önceliklendirmek (horizon: 1-3 yıl, risk profile: Muhafazakâr).",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "The RM note says the client wants to understand alternatives that could reduce the deposit concentration of the current portfolio.",
+     "text": "Priorities: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "The aim of the meeting is to go through three selected TL funds and compare them with the ING Turuncu Hesap (standart) deposit.",
+     "text": "Client note: Mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor.",
+     "option_ids": [],
+     "evidence_ids": [],
+     "title": ""
+    },
+    {
+     "text": "The RM's meeting note: Müşteri aylık nakit akışını sordu.",
+     "option_ids": [],
+     "evidence_ids": [],
+     "title": ""
+    },
+    {
+     "text": "Discuss the 3 options that you selected; the baseline for comparison is ING Turuncu Hesap (standart).",
      "option_ids": [
       "fund:PPN",
       "fund:IST",
@@ -46,96 +58,140 @@
    "key": "oneriler",
    "sentences": [
     {
-     "text": "NUROL PORTFÖY PARA PİYASASI (TL) FONU is a money market fund with a 1-year return of 47.60% (past) and a risk level of 1 on the 7-point scale, against a deposit rate of 43.82%.",
+     "text": "NUROL PORTFÖY PARA PİYASASI (TL) FONU (Money market): Risk değeri 1/7; Yıllık getiri %47.6, stopaj sonrası %39.3, enflasyon sonrası reel %+7.4 (1y); adayların %89'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %87'inden iyi.",
      "option_ids": [
       "fund:PPN"
      ],
      "evidence_ids": [
+      "E0382c2e7",
+      "E06f53164",
       "E2075d858",
+      "E6b3773b2",
+      "E8eec2559",
+      "E9cb9f7ad",
+      "E9d4d5f36",
       "Ea939c58c",
-      "E9cb9f7ad"
+      "Eb39e0ab5",
+      "Ede9af545"
      ],
      "title": ""
     },
     {
-     "text": "It relates to the client's wish for \"likiditeyi koruma\" and the monthly cash flow question; the RM can check how easily the fund can be sold when cash is needed.",
+     "text": "Explain to the client that NUROL PORTFÖY PARA PİYASASI (TL) FONU stands out on low risk for their risk profile (\"Muhafazakâr\").",
+     "option_ids": [
+      "fund:PPN"
+     ],
+     "evidence_ids": [],
+     "title": ""
+    },
+    {
+     "text": "Key numbers: withholding_tax_rate 17.50% (manual entry, 2026-06-20); fund_sell_valor_days 0.00 (TEFAS, 2026-10-09); 1-year return 47.60% (TEFAS, 2026-10-09); fund_buyable 1.00 (TEFAS, 2026-10-09); number of investors 10,366 (TEFAS, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); fund size 9,030,023,246.62 (TEFAS, 2026-10-09); risk level 1 (TEFAS, 2026-10-09); cpi_annual 29.73% (manual entry, 2026-09-30); withholding_tax_rate 17.50% (manual entry, 2026-03-27).",
      "option_ids": [
       "fund:PPN"
      ],
      "evidence_ids": [
-      "E2075d858"
+      "E0382c2e7",
+      "E06f53164",
+      "E2075d858",
+      "E6b3773b2",
+      "E8eec2559",
+      "E9cb9f7ad",
+      "E9d4d5f36",
+      "Ea939c58c",
+      "Eb39e0ab5",
+      "Ede9af545"
      ],
      "title": ""
     },
     {
-     "text": "The fund has 10,366 investors, but the return is a past figure and may change.",
-     "option_ids": [
-      "fund:PPN"
-     ],
-     "evidence_ids": [
-      "E8eec2559"
-     ],
-     "title": ""
-    },
-    {
-     "text": "İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU is a short-term debt instruments fund with a 1-year return of 47.14% (past) and a risk level of 1.",
+     "text": "İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU (Debt instruments): Risk değeri 1/7; Yıllık getiri %47.1, stopaj sonrası %38.9, enflasyon sonrası reel %+7.1 (1y); adayların %88'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %52'inden iyi.",
      "option_ids": [
       "fund:IST"
      ],
      "evidence_ids": [
+      "E0382c2e7",
       "E12805994",
-      "E5f8c417b"
+      "E340fc2f7",
+      "E3f036729",
+      "E5f8c417b",
+      "E66e0441d",
+      "E9cb9f7ad",
+      "Eb39e0ab5",
+      "Eb3bc9e2a",
+      "Ebc6f2c43"
      ],
      "title": ""
     },
     {
-     "text": "It fits the client's priority \"düzenli gelir\" as a different type of fund from the money market option, which supports the aim of reducing deposit concentration.",
+     "text": "Explain to the client that İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU stands out on liquidity for their liquidity need (\"Orta\").",
+     "option_ids": [
+      "fund:IST"
+     ],
+     "evidence_ids": [],
+     "title": ""
+    },
+    {
+     "text": "Key numbers: withholding_tax_rate 17.50% (manual entry, 2026-06-20); 1-year return 47.14% (TEFAS, 2026-10-09); fund size 911,373,970.84 (TEFAS, 2026-10-09); fund_sell_valor_days 0.00 (TEFAS, 2026-10-09); risk level 1 (TEFAS, 2026-10-09); number of investors 2,734 (TEFAS, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); cpi_annual 29.73% (manual entry, 2026-09-30); withholding_tax_rate 17.50% (manual entry, 2026-03-27); fund_buyable 1.00 (TEFAS, 2026-10-09).",
      "option_ids": [
       "fund:IST"
      ],
      "evidence_ids": [
-      "E12805994"
+      "E0382c2e7",
+      "E12805994",
+      "E340fc2f7",
+      "E3f036729",
+      "E5f8c417b",
+      "E66e0441d",
+      "E9cb9f7ad",
+      "Eb39e0ab5",
+      "Eb3bc9e2a",
+      "Ebc6f2c43"
      ],
      "title": ""
     },
     {
-     "text": "It has fewer investors (2,734) than the other selected funds, so the RM may want to look at its size and sale terms.",
-     "option_ids": [
-      "fund:IST"
-     ],
-     "evidence_ids": [
-      "E66e0441d"
-     ],
-     "title": ""
-    },
-    {
-     "text": "AK PORTFÖY PARA PİYASASI KATILIM FONU is a participation money market fund with a 1-year return of 46.26% (past) and a risk level of 1.",
+     "text": "AK PORTFÖY PARA PİYASASI KATILIM FONU (Participation): Risk değeri 1/7; Yıllık getiri %46.3, stopaj sonrası %38.2, enflasyon sonrası reel %+6.5 (1y); adayların %76'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %92'inden iyi.",
      "option_ids": [
       "fund:AIS"
      ],
      "evidence_ids": [
+      "E0382c2e7",
+      "E89373ea9",
+      "E9cb9f7ad",
+      "Ea77df75c",
+      "Eb39e0ab5",
+      "Eb3bc9e2a",
+      "Ec4ee1814",
       "Efa7fc2ec",
-      "Ec4ee1814"
+      "Efc142651",
+      "Efd5bb2e0"
      ],
      "title": ""
     },
     {
-     "text": "It relates to the client's wish for \"sınırlı dalgalanma\" and \"anaparanın korunması\" with a participation-type structure; the RM can ask whether this structure suits the client.",
+     "text": "Explain to the client that AK PORTFÖY PARA PİYASASI KATILIM FONU stands out on capital protection for their capital protection preference (\"Yüksek\").",
      "option_ids": [
       "fund:AIS"
      ],
-     "evidence_ids": [
-      "Efa7fc2ec"
-     ],
+     "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "It has 26,708 investors, but the return is a past figure and its level may differ going forward.",
+     "text": "Key numbers: withholding_tax_rate 17.50% (manual entry, 2026-06-20); fund_buyable 1.00 (TEFAS, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); number of investors 26,708 (TEFAS, 2026-10-09); cpi_annual 29.73% (manual entry, 2026-09-30); withholding_tax_rate 17.50% (manual entry, 2026-03-27); risk level 1 (TEFAS, 2026-10-09); 1-year return 46.26% (TEFAS, 2026-10-09); fund_sell_valor_days 0.00 (TEFAS, 2026-10-09); fund size 8,901,239,309.74 (TEFAS, 2026-10-09).",
      "option_ids": [
       "fund:AIS"
      ],
      "evidence_ids": [
-      "Ea77df75c"
+      "E0382c2e7",
+      "E89373ea9",
+      "E9cb9f7ad",
+      "Ea77df75c",
+      "Eb39e0ab5",
+      "Eb3bc9e2a",
+      "Ec4ee1814",
+      "Efa7fc2ec",
+      "Efc142651",
+      "Efd5bb2e0"
      ],
      "title": ""
     }
@@ -145,50 +201,43 @@
    "key": "alternatifler",
    "sentences": [
     {
-     "text": "Other money market options are ONE PORTFÖY PARA PİYASASI (TL) FONU at 49.68%, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU at 46.86% and ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU at 51.41% (1-year, past).",
+     "text": "Other options in the Money market group: ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU, ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU.",
      "option_ids": [
       "fund:GO6",
       "fund:ZBJ",
       "fund:HVT"
      ],
-     "evidence_ids": [
-      "E0c44641f",
-      "Ecd5fdfbe",
-      "E58c7925c"
-     ],
+     "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "Other debt options are AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU at 46.91% and OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU at 48.36% (1-year, past).",
+     "text": "Other options in the Debt instruments group: AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU.",
      "option_ids": [
       "fund:BRR",
       "fund:OSD"
      ],
-     "evidence_ids": [
-      "E2083e1ca",
-      "Ed2f519f7"
-     ],
+     "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "Other participation options are GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU at 45.96% and NUROL PORTFÖY PARA PİYASASI KATILIM FONU at 46.15% (1-year, past).",
+     "text": "Other options in the Participation group: GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU, NUROL PORTFÖY PARA PİYASASI KATILIM FONU.",
      "option_ids": [
       "fund:GPN",
       "fund:NSP"
      ],
-     "evidence_ids": [
-      "Edd8705b3",
-      "Ec8c1d080"
-     ],
+     "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "For comparison, the ING Turuncu Hesap (standart) deposit is shown with a market deposit rate of 43.82%.",
+     "text": "Baseline for comparison: ING Turuncu Hesap (standart); withholding_tax_rate 17.50% (manual entry, 2026-06-20); deposit rate 23.00% (manual entry, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); cpi_annual 29.73% (manual entry, 2026-09-30).",
      "option_ids": [
       "deposit:ing_turuncu"
      ],
      "evidence_ids": [
-      "E9cb9f7ad"
+      "E0382c2e7",
+      "E42b47116",
+      "E9cb9f7ad",
+      "Eb39e0ab5"
      ],
      "title": ""
     }
@@ -198,28 +247,7 @@
    "key": "dikkat",
    "sentences": [
     {
-     "text": "The ING standard deposit rate (23.00%) is below the market average of 43.82%, which is relevant to the client's deposit-heavy wealth.",
-     "option_ids": [
-      "deposit:ing_turuncu"
-     ],
-     "evidence_ids": [
-      "E9cb9f7ad"
-     ],
-     "title": ""
-    },
-    {
-     "text": "Inflation is 29.73% (2026-09-30) and withholding tax of 17.5% applies, so returns after tax and inflation are lower than the headline figures.",
-     "option_ids": [
-      "deposit:ing_turuncu"
-     ],
-     "evidence_ids": [
-      "Eb39e0ab5",
-      "E0382c2e7"
-     ],
-     "title": ""
-    },
-    {
-     "text": "Past returns do not show future returns.",
+     "text": "For the data-quality notes, see the \"Possible issues\" pane.",
      "option_ids": [
       "fund:PPN",
       "fund:IST",
@@ -229,11 +257,13 @@
      "title": ""
     },
     {
-     "text": "The run has data-quality notes; please look at the \"Possible issues\" pane before the meeting.",
-     "option_ids": [],
-     "evidence_ids": [
-      "E9cb9f7ad"
+     "text": "Fund returns are past returns; they do not show future returns, and values can go up and down.",
+     "option_ids": [
+      "fund:PPN",
+      "fund:IST",
+      "fund:AIS"
      ],
+     "evidence_ids": [],
      "title": ""
     }
    ]
@@ -242,19 +272,13 @@
    "key": "sorular",
    "sentences": [
     {
-     "text": "Do you confirm that you want to avoid high-risk products (\"yüksek riskli ürünlerden kaçınma\")?",
+     "text": "Confirm the constraint with the client: \"yüksek riskli ürünlerden kaçınma\".",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "How much monthly cash flow do you need, and how often?",
-     "option_ids": [],
-     "evidence_ids": [],
-     "title": ""
-    },
-    {
-     "text": "What amount would you consider moving from deposits, given your 1-3 year horizon?",
+     "text": "Are the priorities still in this order: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma?",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
@@ -265,13 +289,21 @@
    "key": "teklif_metni",
    "sentences": [
     {
-     "text": "You told us that your priority is regular income and protecting your capital, and that most of your wealth is in TL deposits.",
+     "text": "Today I would like to look at a few options with you, based on your situation (\"Varlığı TL mevduat ağırlıklı\") and your goal (\"Düzenli gelir ve sermayenin korunmasını önceliklendirmek\").",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "To reduce that deposit concentration, we can look together at three low-risk TL funds: NUROL PORTFÖY PARA PİYASASI (TL) FONU, İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU and AK PORTFÖY PARA PİYASASI KATILIM FONU.",
+     "text": "For comparison, let us start with ING Turuncu Hesap (standart).",
+     "option_ids": [
+      "deposit:ing_turuncu"
+     ],
+     "evidence_ids": [],
+     "title": ""
+    },
+    {
+     "text": "The options that stand out for you: NUROL PORTFÖY PARA PİYASASI (TL) FONU, İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, AK PORTFÖY PARA PİYASASI KATILIM FONU.",
      "option_ids": [
       "fund:PPN",
       "fund:IST",
@@ -281,10 +313,14 @@
      "title": ""
     },
     {
-     "text": "We will compare them with your current deposit, keeping in mind that past returns do not show future returns, and then talk about your monthly cash flow.",
-     "option_ids": [
-      "deposit:ing_turuncu"
-     ],
+     "text": "The returns we talk about are past returns.",
+     "option_ids": [],
+     "evidence_ids": [],
+     "title": ""
+    },
+    {
+     "text": "We will decide together, based on your priorities; I am glad to answer your questions.",
+     "option_ids": [],
      "evidence_ids": [],
      "title": ""
     }
@@ -330,16 +366,76 @@
      "title": ""
     }
    ]
+  },
+  {
+   "key": "talking_points",
+   "sentences": [
+    {
+     "text": "Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor.",
+     "option_ids": [],
+     "evidence_ids": [
+      "E0382c2e7",
+      "E9cb9f7ad",
+      "Eb39e0ab5"
+     ],
+     "title": "Mevduatta reel getiri"
+    },
+    {
+     "text": "NUROL PORTFÖY PARA PİYASASI (TL) FONU son bir yılda enflasyon sonrası +%7,4 getirdi; geçmiş getiri geleceği göstermez.",
+     "option_ids": [
+      "fund:PPN"
+     ],
+     "evidence_ids": [
+      "E2075d858",
+      "Eb39e0ab5",
+      "Ede9af545"
+     ],
+     "title": "Alternatif"
+    },
+    {
+     "text": "İlk üç öneride paraya erişim: Aynı gün.",
+     "option_ids": [
+      "fund:PPN",
+      "fund:IST",
+      "fund:AIS"
+     ],
+     "evidence_ids": [
+      "E06f53164",
+      "E3f036729",
+      "Efc142651"
+     ],
+     "title": "Paraya erişim"
+    }
+   ]
   }
  ],
- "source": "llm",
- "model": "claude-sonnet-5-5",
- "prompt_version": "n3",
- "checks": [],
- "created_at": "2026-10-11T11:59:58.811231+03:00",
- "cost_usd": 0.0480775,
+ "source": "template",
+ "model": "",
+ "prompt_version": "n4",
+ "checks": [
+  "llm: request: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'The compiled grammar is too large, which would cause performance issues. Simplify your tool schemas or reduce the number of strict tools.'}, 'request_id': 'req_011CfvCZHds1R2mHUkm6KkHs'}"
+ ],
+ "created_at": "2026-10-11T12:18:27.849650+03:00",
+ "cost_usd": 0.0,
  "status": "draft",
  "rm_text": "",
- "need_tags": {},
- "markdown": "# Meeting text · Rb78a07821c\n\n## Summary\n\nThe client is a 62-year-old retired entrepreneur with a conservative risk profile (\"Emekli girişimci\", \"Muhafazakâr\"), whose wealth is described as \"Varlığı TL mevduat ağırlıklı\". The stated aim is \"Düzenli gelir ve sermayenin korunmasını önceliklendirmek\" over a horizon of \"1-3 yıl\", and the client asked about monthly cash flow. The RM note says the client wants to understand alternatives that could reduce the deposit concentration of the current portfolio. The aim of the meeting is to go through three selected TL funds and compare them with the ING Turuncu Hesap (standart) deposit. This text is meeting preparation for the RM; it is not investment advice.\n\n## Options to discuss\n\n- NUROL PORTFÖY PARA PİYASASI (TL) FONU is a money market fund with a 1-year return of 47.60% (past) and a risk level of 1 on the 7-point scale, against a deposit rate of 43.82%.\n- It relates to the client's wish for \"likiditeyi koruma\" and the monthly cash flow question; the RM can check how easily the fund can be sold when cash is needed.\n- The fund has 10,366 investors, but the return is a past figure and may change.\n- İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU is a short-term debt instruments fund with a 1-year return of 47.14% (past) and a risk level of 1.\n- It fits the client's priority \"düzenli gelir\" as a different type of fund from the money market option, which supports the aim of reducing deposit concentration.\n- It has fewer investors (2,734) than the other selected funds, so the RM may want to look at its size and sale terms.\n- AK PORTFÖY PARA PİYASASI KATILIM FONU is a participation money market fund with a 1-year return of 46.26% (past) and a risk level of 1.\n- It relates to the client's wish for \"sınırlı dalgalanma\" and \"anaparanın korunması\" with a participation-type structure; the RM can ask whether this structure suits the client.\n- It has 26,708 investors, but the return is a past figure and its level may differ going forward.\n\n## Alternatives\n\n- Other money market options are ONE PORTFÖY PARA PİYASASI (TL) FONU at 49.68%, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU at 46.86% and ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU at 51.41% (1-year, past).\n- Other debt options are AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU at 46.91% and OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU at 48.36% (1-year, past).\n- Other participation options are GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU at 45.96% and NUROL PORTFÖY PARA PİYASASI KATILIM FONU at 46.15% (1-year, past).\n- For comparison, the ING Turuncu Hesap (standart) deposit is shown with a market deposit rate of 43.82%.\n\n## Points to watch\n\n- The ING standard deposit rate (23.00%) is below the market average of 43.82%, which is relevant to the client's deposit-heavy wealth.\n- Inflation is 29.73% (2026-09-30) and withholding tax of 17.5% applies, so returns after tax and inflation are lower than the headline figures.\n- Past returns do not show future returns.\n- The run has data-quality notes; please look at the \"Possible issues\" pane before the meeting.\n\n## Questions\n\n- Do you confirm that you want to avoid high-risk products (\"yüksek riskli ürünlerden kaçınma\")?\n- How much monthly cash flow do you need, and how often?\n- What amount would you consider moving from deposits, given your 1-3 year horizon?\n\n## Proposal script\n\nYou told us that your priority is regular income and protecting your capital, and that most of your wealth is in TL deposits. To reduce that deposit concentration, we can look together at three low-risk TL funds: NUROL PORTFÖY PARA PİYASASI (TL) FONU, İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU and AK PORTFÖY PARA PİYASASI KATILIM FONU. We will compare them with your current deposit, keeping in mind that past returns do not show future returns, and then talk about your monthly cash flow.\n\n## Assumptions\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n"
+ "need_tags": {
+  "fund:PPN": [
+   "düzenli gelir",
+   "likiditeyi koruma",
+   "sınırlı dalgalanma"
+  ],
+  "fund:IST": [
+   "düzenli gelir",
+   "likiditeyi koruma",
+   "sınırlı dalgalanma"
+  ],
+  "fund:AIS": [
+   "düzenli gelir",
+   "likiditeyi koruma",
+   "sınırlı dalgalanma"
+  ]
+ },
+ "markdown": "# Meeting text · Rb78a07821c\n\n> ⚠ The automatic text could not be verified; the template text is shown.\n\n## Summary\n\nClient: Emekli girişimci, age 62; situation: Varlığı TL mevduat ağırlıklı. Investment goal: Düzenli gelir ve sermayenin korunmasını önceliklendirmek (horizon: 1-3 yıl, risk profile: Muhafazakâr). Priorities: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma. Client note: Mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor. The RM's meeting note: Müşteri aylık nakit akışını sordu. Discuss the 3 options that you selected; the baseline for comparison is ING Turuncu Hesap (standart). This text is meeting preparation for the RM; it is not investment advice.\n\n## Talking points\n\n- **Mevduatta reel getiri:** Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor.\n- **Alternatif:** NUROL PORTFÖY PARA PİYASASI (TL) FONU son bir yılda enflasyon sonrası +%7,4 getirdi; geçmiş getiri geleceği göstermez.\n- **Paraya erişim:** İlk üç öneride paraya erişim: Aynı gün.\n\n## Options to discuss\n\n- NUROL PORTFÖY PARA PİYASASI (TL) FONU (Money market): Risk değeri 1/7; Yıllık getiri %47.6, stopaj sonrası %39.3, enflasyon sonrası reel %+7.4 (1y); adayların %89'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %87'inden iyi.\n- Explain to the client that NUROL PORTFÖY PARA PİYASASI (TL) FONU stands out on low risk for their risk profile (\"Muhafazakâr\").\n- Key numbers: withholding_tax_rate 17.50% (manual entry, 2026-06-20); fund_sell_valor_days 0.00 (TEFAS, 2026-10-09); 1-year return 47.60% (TEFAS, 2026-10-09); fund_buyable 1.00 (TEFAS, 2026-10-09); number of investors 10,366 (TEFAS, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); fund size 9,030,023,246.62 (TEFAS, 2026-10-09); risk level 1 (TEFAS, 2026-10-09); cpi_annual 29.73% (manual entry, 2026-09-30); withholding_tax_rate 17.50% (manual entry, 2026-03-27).\n- İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU (Debt instruments): Risk değeri 1/7; Yıllık getiri %47.1, stopaj sonrası %38.9, enflasyon sonrası reel %+7.1 (1y); adayların %88'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %52'inden iyi.\n- Explain to the client that İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU stands out on liquidity for their liquidity need (\"Orta\").\n- Key numbers: withholding_tax_rate 17.50% (manual entry, 2026-06-20); 1-year return 47.14% (TEFAS, 2026-10-09); fund size 911,373,970.84 (TEFAS, 2026-10-09); fund_sell_valor_days 0.00 (TEFAS, 2026-10-09); risk level 1 (TEFAS, 2026-10-09); number of investors 2,734 (TEFAS, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); cpi_annual 29.73% (manual entry, 2026-09-30); withholding_tax_rate 17.50% (manual entry, 2026-03-27); fund_buyable 1.00 (TEFAS, 2026-10-09).\n- AK PORTFÖY PARA PİYASASI KATILIM FONU (Participation): Risk değeri 1/7; Yıllık getiri %46.3, stopaj sonrası %38.2, enflasyon sonrası reel %+6.5 (1y); adayların %76'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %92'inden iyi.\n- Explain to the client that AK PORTFÖY PARA PİYASASI KATILIM FONU stands out on capital protection for their capital protection preference (\"Yüksek\").\n- Key numbers: withholding_tax_rate 17.50% (manual entry, 2026-06-20); fund_buyable 1.00 (TEFAS, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); number of investors 26,708 (TEFAS, 2026-10-09); cpi_annual 29.73% (manual entry, 2026-09-30); withholding_tax_rate 17.50% (manual entry, 2026-03-27); risk level 1 (TEFAS, 2026-10-09); 1-year return 46.26% (TEFAS, 2026-10-09); fund_sell_valor_days 0.00 (TEFAS, 2026-10-09); fund size 8,901,239,309.74 (TEFAS, 2026-10-09).\n\n## Alternatives\n\n- Other options in the Money market group: ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU, ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU.\n- Other options in the Debt instruments group: AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU.\n- Other options in the Participation group: GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU, NUROL PORTFÖY PARA PİYASASI KATILIM FONU.\n- Baseline for comparison: ING Turuncu Hesap (standart); withholding_tax_rate 17.50% (manual entry, 2026-06-20); deposit rate 23.00% (manual entry, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); cpi_annual 29.73% (manual entry, 2026-09-30).\n\n## Points to watch\n\n- For the data-quality notes, see the \"Possible issues\" pane.\n- Fund returns are past returns; they do not show future returns, and values can go up and down.\n\n## Questions\n\n- Confirm the constraint with the client: \"yüksek riskli ürünlerden kaçınma\".\n- Are the priorities still in this order: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma?\n\n## Proposal script\n\nToday I would like to look at a few options with you, based on your situation (\"Varlığı TL mevduat ağırlıklı\") and your goal (\"Düzenli gelir ve sermayenin korunmasını önceliklendirmek\"). For comparison, let us start with ING Turuncu Hesap (standart). The options that stand out for you: NUROL PORTFÖY PARA PİYASASI (TL) FONU, İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, AK PORTFÖY PARA PİYASASI KATILIM FONU. The returns we talk about are past returns. We will decide together, based on your priorities; I am glad to answer your questions.\n\n## Assumptions\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n",
+ "draft_markdown": "# Meeting text · Rb78a07821c\n\n> ⚠ The automatic text could not be verified; the template text is shown.\n\n## Summary\n\nClient: Emekli girişimci, age 62; situation: Varlığı TL mevduat ağırlıklı. Investment goal: Düzenli gelir ve sermayenin korunmasını önceliklendirmek (horizon: 1-3 yıl, risk profile: Muhafazakâr). Priorities: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma. Client note: Mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor. The RM's meeting note: Müşteri aylık nakit akışını sordu. Discuss the 3 options that you selected; the baseline for comparison is ING Turuncu Hesap (standart). This text is meeting preparation for the RM; it is not investment advice.\n\n## Talking points\n\n- **Mevduatta reel getiri:** Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor.\n- **Alternatif:** NUROL PORTFÖY PARA PİYASASI (TL) FONU son bir yılda enflasyon sonrası +%7,4 getirdi; geçmiş getiri geleceği göstermez.\n- **Paraya erişim:** İlk üç öneride paraya erişim: Aynı gün.\n\n## Options to discuss\n\n- NUROL PORTFÖY PARA PİYASASI (TL) FONU (Money market): Risk değeri 1/7; Yıllık getiri %47.6, stopaj sonrası %39.3, enflasyon sonrası reel %+7.4 (1y); adayların %89'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %87'inden iyi.\n- Explain to the client that NUROL PORTFÖY PARA PİYASASI (TL) FONU stands out on low risk for their risk profile (\"Muhafazakâr\").\n- Key numbers: withholding_tax_rate 17.50% (manual entry, 2026-06-20); fund_sell_valor_days 0.00 (TEFAS, 2026-10-09); 1-year return 47.60% (TEFAS, 2026-10-09); fund_buyable 1.00 (TEFAS, 2026-10-09); number of investors 10,366 (TEFAS, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); fund size 9,030,023,246.62 (TEFAS, 2026-10-09); risk level 1 (TEFAS, 2026-10-09); cpi_annual 29.73% (manual entry, 2026-09-30); withholding_tax_rate 17.50% (manual entry, 2026-03-27).\n- İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU (Debt instruments): Risk değeri 1/7; Yıllık getiri %47.1, stopaj sonrası %38.9, enflasyon sonrası reel %+7.1 (1y); adayların %88'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %52'inden iyi.\n- Explain to the client that İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU stands out on liquidity for their liquidity need (\"Orta\").\n- Key numbers: withholding_tax_rate 17.50% (manual entry, 2026-06-20); 1-year return 47.14% (TEFAS, 2026-10-09); fund size 911,373,970.84 (TEFAS, 2026-10-09); fund_sell_valor_days 0.00 (TEFAS, 2026-10-09); risk level 1 (TEFAS, 2026-10-09); number of investors 2,734 (TEFAS, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); cpi_annual 29.73% (manual entry, 2026-09-30); withholding_tax_rate 17.50% (manual entry, 2026-03-27); fund_buyable 1.00 (TEFAS, 2026-10-09).\n- AK PORTFÖY PARA PİYASASI KATILIM FONU (Participation): Risk değeri 1/7; Yıllık getiri %46.3, stopaj sonrası %38.2, enflasyon sonrası reel %+6.5 (1y); adayların %76'inden iyi; Fon büyüklüğü ve yatırımcı sayısı: adayların %92'inden iyi.\n- Explain to the client that AK PORTFÖY PARA PİYASASI KATILIM FONU stands out on capital protection for their capital protection preference (\"Yüksek\").\n- Key numbers: withholding_tax_rate 17.50% (manual entry, 2026-06-20); fund_buyable 1.00 (TEFAS, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); number of investors 26,708 (TEFAS, 2026-10-09); cpi_annual 29.73% (manual entry, 2026-09-30); withholding_tax_rate 17.50% (manual entry, 2026-03-27); risk level 1 (TEFAS, 2026-10-09); 1-year return 46.26% (TEFAS, 2026-10-09); fund_sell_valor_days 0.00 (TEFAS, 2026-10-09); fund size 8,901,239,309.74 (TEFAS, 2026-10-09).\n\n## Alternatives\n\n- Other options in the Money market group: ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU, ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU.\n- Other options in the Debt instruments group: AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU.\n- Other options in the Participation group: GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU, NUROL PORTFÖY PARA PİYASASI KATILIM FONU.\n- Baseline for comparison: ING Turuncu Hesap (standart); withholding_tax_rate 17.50% (manual entry, 2026-06-20); deposit rate 23.00% (manual entry, 2026-10-09); deposit rate 43.82% (TCMB EVDS, 2026-10-02); cpi_annual 29.73% (manual entry, 2026-09-30).\n\n## Points to watch\n\n- For the data-quality notes, see the \"Possible issues\" pane.\n- Fund returns are past returns; they do not show future returns, and values can go up and down.\n\n## Questions\n\n- Confirm the constraint with the client: \"yüksek riskli ürünlerden kaçınma\".\n- Are the priorities still in this order: düzenli gelir, likiditeyi koruma, sınırlı dalgalanma?\n\n## Proposal script\n\nToday I would like to look at a few options with you, based on your situation (\"Varlığı TL mevduat ağırlıklı\") and your goal (\"Düzenli gelir ve sermayenin korunmasını önceliklendirmek\"). For comparison, let us start with ING Turuncu Hesap (standart). The options that stand out for you: NUROL PORTFÖY PARA PİYASASI (TL) FONU, İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU, AK PORTFÖY PARA PİYASASI KATILIM FONU. The returns we talk about are past returns. We will decide together, based on your priorities; I am glad to answer your questions.\n\n## Assumptions\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n"
 }

@@ -101,3 +101,11 @@ def test_glossary_terms_of_the_run(client, persona, tmp_path):
     assert [t["term"] for t in terms] == ["valor", "stopaj"]
     assert all({"term", "form", "explanation"} <= set(t) for t in terms)
     assert client.get("/api/glossary", params={"lang": "TR"}).json() == []
+
+
+def test_approved_text_keeps_the_draft_markdown(client, persona):
+    _, rid = _approved(client, persona)
+    d = client.get(f"/api/runs/{rid}/narrative").json()
+    assert d["draft_markdown"] == d["markdown"]
+    a = client.post(f"/api/runs/{rid}/narrative/TR/approval", json={"text": "edited"}).json()
+    assert a["markdown"] == "edited" and a["draft_markdown"] == d["markdown"]

@@ -122,7 +122,7 @@ class RealBackend:
         result, inputs = self._runs[run_id]
         if result.rm_status != RmStatus.APPROVED:
             raise ValueError("a meeting text needs an approved run")
-        approved = self._narratives.get((run_id, lang))
+        approved = self._narratives.get((run_id, lang)) or self._saved_text(run_id, lang)
         if approved is not None:
             return approved
         with self._lock:
@@ -181,8 +181,25 @@ class RealBackend:
         old = self._runs.get(result.run_id)
         if old is not None:          # same inputs: the run exists, keep its RM status
             return old[0]
-        self._runs[result.run_id] = (result, inputs)
-        return result
+        saved = self._saved_run(result.run_id)   # approved / rejected before a restart
+        self._runs[result.run_id] = (saved or result, inputs)
+        return saved or result
+
+    def _saved_run(self, run_id: str) -> DecisionResult | None:
+        path = self._paths.root / "data" / "runs" / f"{run_id}.json"
+        try:
+            return DecisionResult.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+
+    def _saved_text(self, run_id: str, lang: str) -> NarrativeDraft | None:
+        path = self._paths.root / "data" / "narratives" / f"{run_id}-{lang}-approved.json"
+        try:
+            d = NarrativeDraft.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        self._narratives[(run_id, lang)] = d
+        return d
 
     def _save(self, result: DecisionResult, inputs: _Inputs) -> DecisionResult:
         self._runs[result.run_id] = (result, inputs)

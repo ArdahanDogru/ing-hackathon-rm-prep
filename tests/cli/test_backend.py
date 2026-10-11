@@ -181,3 +181,16 @@ def test_a_rejection_starts_no_text(backend):
     backend.approve(r.run_id, RmStatus.REJECTED, "not now")
     backend.wait_for_background()
     assert fake.calls == []
+
+
+def test_a_restart_restores_saved_runs_and_approved_texts(backend, tmp_path):
+    backend._narrator_obj = FakeNarrator()
+    r = _approved(backend)
+    backend.approve_narrative(r.run_id, "TR", "# Onayli metin")
+    again = be.RealBackend(tmp_path, personas_dir=FIX / "personas", now=lambda: T0)
+    again._narrator_obj = FakeNarrator()
+    same = again.decide(r.persona, r.snapshot_id)
+    assert same.run_id == r.run_id and same.rm_status == RmStatus.APPROVED
+    assert same.rm_selected == r.rm_selected
+    d = again.draft_narrative(r.run_id, "TR")
+    assert d.rm_text == "# Onayli metin" and again._narrator_obj.calls == []
