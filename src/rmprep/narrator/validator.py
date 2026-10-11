@@ -19,7 +19,14 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import date
 
-from rmprep.contracts import NARRATIVE_SECTIONS_V13, DecisionResult, NarrativeSection, Persona
+from rmprep.contracts import (
+    BRIEF_MAX_CHARS,
+    NARRATIVE_SECTIONS_V13,
+    DecisionResult,
+    NarrativeSection,
+    NarrativeSentence,
+    Persona,
+)
 from rmprep.narrator.config import NarratorConfig
 from rmprep.narrator.facts import ING_RATES, INTERNAL_PARTS, Facts
 from rmprep.narrator.template import INTERNAL_NAME, tr_lower
@@ -340,6 +347,29 @@ def persona_wording(tags: Mapping[str, Sequence[str]], persona: Persona) -> dict
     written = {_norm(p): p for p in persona.oncelikler}
     return {oid: tuple(dict.fromkeys(written[_norm(t)] for t in ts if _norm(t) in written))
             for oid, ts in tags.items()}
+
+
+def validate_brief(text: str, cite: Sequence[str], f: Facts, r: DecisionResult,
+                   config: NarratorConfig, lang: str) -> tuple[str, ...]:
+    """N10: the rules that apply to the dashboard brief (one short text): length,
+    numbers, options, forbidden phrases, citations, internal names and values,
+    the ING label rule. f: the brief facts (the top 3 as the selection, no baseline)."""
+    limit = min(config.brief.max_chars if config.brief else BRIEF_MAX_CHARS, BRIEF_MAX_CHARS)
+    out = []
+    if not text.strip():
+        out.append("length: brief: the text is empty")
+    if len(text) > limit:
+        out.append(f"length: brief: {len(text)} characters, at most {limit}")
+    sentence = NarrativeSentence(text, tuple(c for c in cite if ":" in c),
+                                 tuple(c for c in cite if ":" not in c))
+    sections = [NarrativeSection("ozet", (sentence,))]
+    out += _check_numbers(sections, f)
+    out += _check_options(sections, f, r)
+    out += _check_phrases(sections, f, config)
+    out += _check_citations(sections, f)
+    out += _check_internal_names(sections)
+    out += _check_ing_labels(sections, f)
+    return tuple(x.replace(": ozet:", ": brief:", 1) for x in out)
 
 
 def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,

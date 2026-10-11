@@ -74,3 +74,16 @@ def engine_result(pid: str, selected_n: int = 2, note: str = "") -> DecisionResu
 @pytest.fixture(scope="session")
 def approved_p01() -> DecisionResult:
     return engine_result("p01", note="Faiz geliri önemli; aylık ödeme sorulacak.")
+
+
+def ready_result(pid: str) -> DecisionResult:
+    """A real engine run on evidence_medium, ready and NOT approved (the dashboard brief)."""
+    from rmprep.decision.config import load_config as load_decision_config
+    from rmprep.decision.engine import decide
+
+    return decide(evidence(), persona(pid), load_decision_config(), created_at=CREATED)
+
+
+@pytest.fixture(scope="session")
+def ready_p01() -> DecisionResult:
+    return ready_result("p01")

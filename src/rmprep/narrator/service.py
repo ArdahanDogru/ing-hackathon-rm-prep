@@ -13,13 +13,17 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
+from rmprep.brief import template_brief
 from rmprep.contracts import (
     NARRATIVE_LANGS,
     TR_TZ,
+    DecisionState,
+    NarrativeBrief,
     DecisionResult,
     EvidenceSet,
     NarrativeDraft,
 )
+from rmprep.narrator.brief import brief_request, build_brief_facts, parse_brief, validate_brief
 from rmprep.narrator.config import NarratorConfig, load_config
 from rmprep.narrator.facts import Facts, build_facts
 from rmprep.narrator.llm import LlmClient, LlmError, LlmReply, client_from_env
@@ -76,6 +80,74 @@ class Narrator:
             previous = reply.text or ""
         return self._save(path, self._template(f, lang, findings, cost))
 
+    def brief(self, r: DecisionResult, ev: EvidenceSet, lang: str) -> NarrativeBrief:
+        """The dashboard brief of a ready run (contract v1.4, docs/web-ui.md "LLM
+        brief"): one LLM call, no retry; any failure gives the plain sentence.
+        Cached per (run_id, lang, brief prompt version, model): LLM briefs and
+        validator failures, not API errors or budget stops. Never raises for a
+        ready run."""
+        if lang not in NARRATIVE_LANGS:
+            raise ValueError(f"lang must be one of {NARRATIVE_LANGS}, got {lang!r}")
+        if r.state != DecisionState.READY:
+            raise ValueError("a brief needs a ready run")
+        cfg = self.config.brief
+        if cfg is None:
+            return self._plain(r, lang, ("brief: no brief section in the config",))
+        path = self.cache_dir / f"{r.run_id}-{lang}-brief-{cfg.prompt_version}-{cfg.model}.json"
+        if path.exists():
+            return NarrativeBrief.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        try:
+            return self._brief(r, ev, lang, path)
+        except Exception as e:                  # the dashboard never fails: the plain sentence
+            return self._plain(r, lang, (f"brief: {type(e).__name__}: {e}",))
+
+    def _brief(self, r: DecisionResult, ev: EvidenceSet, lang: str, path: Path) -> NarrativeBrief:
+        cfg = self.config.brief
+        try:
+            bf = build_brief_facts(r, ev)
+        except ValueError as e:
+            return self._plain(r, lang, (f"brief: {e}",))
+        if self.client is None:
+            return self._plain(r, lang, (f"llm: no API key ({self.config.api_key_env})",))
+        spent, limit = self.spent_today(), self.config.max_cost_usd_per_day
+        if spent >= limit:
+            return self._plain(r, lang, (f"budget: daily limit ${limit:.2f} reached "
+                                         f"(${spent:.2f} spent today)",))
+        try:
+            reply = self.client.complete(brief_request(bf, lang, self.config))
+        except LlmError as e:
+            return self._plain(r, lang, (f"llm: {e.kind}: {e.message}",))
+        cost = self._ledger_add(run_id=r.run_id, lang=lang, reply=reply, kind="brief",
+                                prices=(cfg.price_input_per_mtok, cfg.price_output_per_mtok))
+        if reply.stop_reason == "refusal":
+            findings = (f"llm: refusal ({reply.refusal_category or 'no category'})",)
+        elif reply.stop_reason == "max_tokens":
+            findings = ("llm: the text was cut off (max_tokens)",)
+        elif not reply.text:
+            findings = ("llm: the reply has no text",)
+        else:
+            try:
+                text, cite = parse_brief(reply.text)
+                findings = validate_brief(text, cite, bf, r, self.config, lang)
+            except ValueError as e:
+                findings = (f"format: {e}",)
+        if findings:
+            return self._save_brief(path, self._plain(r, lang, findings, cost))
+        return self._save_brief(path, NarrativeBrief(
+            run_id=r.run_id, lang=lang, text=text, source="llm", model=reply.model,
+            prompt_version=cfg.prompt_version, checks=(), created_at=self.clock(),
+            cost_usd=cost, cite=cite))
+
+    def _plain(self, r: DecisionResult, lang: str, checks, cost: float = 0.0) -> NarrativeBrief:
+        b = template_brief(r, lang, self.clock(), tuple(checks))
+        return dataclasses.replace(b, cost_usd=cost)
+
+    def _save_brief(self, path: Path, b: NarrativeBrief) -> NarrativeBrief:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(b.to_dict(), ensure_ascii=False, indent=1) + "\n",
+                        encoding="utf-8", newline="\n")
+        return b
+
     def spent_today(self) -> float:
         today = self.clock().astimezone(TR_TZ).date().isoformat()
         ledger = self.cache_dir / LEDGER
@@ -104,17 +176,21 @@ class Narrator:
             return (), {}, (f"format: {e}",)
         return sections, tags, validate(sections, f, r, self.config, lang, need_tags=tags)
 
-    def _cost(self, reply: LlmReply) -> float:
+    def _cost(self, reply: LlmReply, prices: tuple[float, float] | None = None) -> float:
+        """USD of one call; prices = (input, output) per 1M tokens, default the llm prices."""
         c = self.config
+        p_in, p_out = prices or (c.price_input_per_mtok, c.price_output_per_mtok)
         tokens_in = (reply.input_tokens + CACHE_WRITE_FACTOR * reply.cache_write_tokens
                      + CACHE_READ_FACTOR * reply.cache_read_tokens)
-        return (tokens_in * c.price_input_per_mtok + reply.output_tokens * c.price_output_per_mtok) / 1e6
+        return (tokens_in * p_in + reply.output_tokens * p_out) / 1e6
 
-    def _ledger_add(self, *, run_id: str, lang: str, reply: LlmReply) -> float:
+    def _ledger_add(self, *, run_id: str, lang: str, reply: LlmReply,
+                    prices: tuple[float, float] | None = None, kind: str = "text") -> float:
         now = self.clock().astimezone(TR_TZ)
-        cost = self._cost(reply)
+        cost = self._cost(reply, prices)
         row = {"date": now.date().isoformat(), "at": now.isoformat(), "run_id": run_id,
-               "lang": lang, "model": reply.model, "input_tokens": reply.input_tokens,
+               "kind": kind, "lang": lang, "model": reply.model,
+               "input_tokens": reply.input_tokens,
                "output_tokens": reply.output_tokens,
                "cache_write_tokens": reply.cache_write_tokens,
                "cache_read_tokens": reply.cache_read_tokens, "cost_usd": cost}

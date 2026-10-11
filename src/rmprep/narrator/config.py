@@ -18,6 +18,18 @@ class ConfigError(ValueError):
 
 
 @dataclass(frozen=True)
+class BriefConfig:
+    """v1.4 dashboard brief (config section `brief`; narrator N10)."""
+    model: str
+    max_chars: int
+    prompt_version: str
+    price_input_per_mtok: float     # missing in the config -> the llm prices (over-states)
+    price_output_per_mtok: float
+    effort: str = "low"             # 1-2 sentences: low effort (claude-api skill)
+    max_tokens: int = 4000          # room for adaptive thinking; the text itself is short
+
+
+@dataclass(frozen=True)
 class NarratorConfig:
     model: str
     effort: str
@@ -33,6 +45,7 @@ class NarratorConfig:
     forbidden_phrases: Mapping[str, tuple[str, ...]]
     disclaimer: Mapping[str, str]
     workspace_id_env: str | None = None  # env var of the workspace id (org-level keys)
+    brief: BriefConfig | None = None     # None: no `brief` section -> the plain sentence
 
 
 def _get(raw: Mapping, path: str):
@@ -100,7 +113,28 @@ def parse_config(raw: Mapping) -> NarratorConfig:
         disclaimer=disclaimer,
         workspace_id_env=(_str(raw, "llm.workspace_id_env")
                           if "workspace_id_env" in raw.get("llm", {}) else None),
+        brief=_brief(raw) if "brief" in raw else None,
     )
+
+
+def _brief(raw: Mapping) -> BriefConfig:
+    max_chars = _get(raw, "brief.max_chars")
+    if isinstance(max_chars, bool) or not isinstance(max_chars, int) or max_chars <= 0:
+        raise ConfigError(f"brief.max_chars: must be a positive integer, got {max_chars!r}")
+    b = raw["brief"]
+
+    def price(key: str) -> float:
+        return _num(raw, f"brief.{key}") if key in b else _num(raw, f"llm.{key}")
+
+    extra = {}
+    if "effort" in b:
+        extra["effort"] = _str(raw, "brief.effort")
+    if "max_tokens" in b:
+        extra["max_tokens"] = int(_num(raw, "brief.max_tokens"))
+    return BriefConfig(model=_str(raw, "brief.model"), max_chars=max_chars,
+                       prompt_version=_str(raw, "brief.prompt_version"),
+                       price_input_per_mtok=price("price_input_per_mtok"),
+                       price_output_per_mtok=price("price_output_per_mtok"), **extra)
 
 
 def load_config(path: Path | str = DEFAULT_PATH) -> NarratorConfig:
