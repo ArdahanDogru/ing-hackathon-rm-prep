@@ -187,6 +187,20 @@ export interface EvidenceItem {
   entity_name: string;
 }
 
+/** GET /runs/{id}/brief (contract v1.4): 1–2 sentences for the RM, never in the card. */
+export interface NarrativeBrief {
+  run_id: string;
+  lang: Lang;
+  text: string;
+  source: "llm" | "template";
+  model: string;
+  prompt_version: string;
+  checks: string[];
+  created_at: string;
+  cost_usd: number;
+  cite: string[];
+}
+
 export interface GlossaryTerm {
   term: string;
   form: string;
@@ -199,7 +213,9 @@ export type Fact = { value: number; evidence_id: string } | null;
 
 export interface OptionView {
   option_id: string;
-  label: string;
+  label: string; // the full official name (hover, fund card, evidence, meeting text)
+  issuer: string; // "Nurol Portföy"; "" when the label has no "PORTFÖY"
+  short_label: string; // "Para Piyasası (TL)"; the whole label when there is no issuer
   kind: OptionKind;
   category_key: string;
   category_label: string;
@@ -242,6 +258,8 @@ export interface RejectedByRule {
 
 export interface RunView {
   result: DecisionResult;
+  /** The client's SPK fund risk ceiling (contract request to ing-lead); absent until the API sends it. */
+  risk_ceiling?: number | null;
   test_run: boolean;
   persona_changes: { field: string; original: unknown; edited: unknown }[];
   baseline: OptionView | null;
