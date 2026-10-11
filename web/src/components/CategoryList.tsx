@@ -56,7 +56,7 @@ function FundRow({
   );
 }
 
-/** Categories, closed; one opens at most 3 options (the API sends at most 3 ids, the head first). */
+/** Categories, closed; one opens at most 3 options (the API sends at most 3 ids, the head first). In "Detaylar". */
 export function CategoryList({
   categories,
   options,
@@ -74,15 +74,14 @@ export function CategoryList({
   const [open, setOpen] = useState<Record<string, boolean>>({});
   if (!categories.length) return null;
   return (
-    <section className="mt-5">
-      <h2 className="text-sm font-semibold">{t("categories")}</h2>
-      <div className="mt-2 space-y-2">
+    <section>
+      <div className="space-y-2">
         {categories.map((c) => {
           const isOpen = !!open[c.key];
           const ids = c.option_ids.slice(0, 3).filter((id) => options[id]);
           const allFunds = ids.every((id) => options[id].kind === "fund");
           return (
-            <div key={c.key} data-testid="category" className="rounded-xl bg-white px-4 shadow-sm">
+            <div key={c.key} data-testid="category" className="rounded-xl border border-gray-100 px-4">
               <button
                 type="button"
                 aria-expanded={isOpen}

@@ -1,18 +1,28 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import type { RunView } from "../api/types";
+import type { OptionView, RunView } from "../api/types";
 import { useT } from "../i18n";
 
-/** Bottom bar: the selection as chips, an optional note, "Reddet", "Onayla ve metni hazırla". */
+/** "Nurol · Para Piyasası (TL)": the issuer's first word and the short name. */
+export function chipName(o: OptionView | undefined, id: string): string {
+  if (!o) return id;
+  const who = o.issuer.split(" ")[0];
+  return who ? `${who} · ${o.short_label}` : o.short_label;
+}
+
+/** Bottom bar: the selection as chips, an optional note, the open "Teyit edin" reminder,
+ * "Reddet", "Onayla ve metni hazırla" (the only filled button). */
 export function ApprovalBar({
   view,
   selected,
+  openConfirms = 0,
   onRemove,
   onView,
 }: {
   view: RunView;
   selected: string[];
+  openConfirms?: number;
   onRemove: (id: string) => void;
   onView: (v: RunView) => void;
 }) {
@@ -49,6 +59,7 @@ export function ApprovalBar({
             <ul className="flex flex-wrap gap-1.5">
               {selected.map((id) => {
                 const label = view.options[id]?.label ?? id;
+                const name = chipName(view.options[id], id);
                 return (
                   <li
                     key={id}
@@ -56,7 +67,7 @@ export function ApprovalBar({
                     className="flex max-w-[260px] items-center gap-1 rounded-full bg-white/15 py-0.5 pl-3 pr-1 text-xs"
                   >
                     <span className="truncate" title={label}>
-                      {label}
+                      {name}
                     </span>
                     <button
                       type="button"
@@ -78,6 +89,7 @@ export function ApprovalBar({
                 onChange={(e) => setNote(e.target.value)}
                 className="w-56 rounded-lg bg-white/10 px-3 py-1.5 text-sm placeholder:text-white/60"
               />
+              {openConfirms > 0 && <span className="text-[13px] opacity-80">{`${openConfirms} ${t("notConfirmed")}`}</span>}
               {(reason || error) && (
                 <span role={error ? "alert" : undefined} className="text-xs text-[#FEC84B]">
                   {error ?? reason}

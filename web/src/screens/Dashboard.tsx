@@ -1,17 +1,19 @@
-// Main screen, layout A (docs/web-ui.md "Main screen"; mockups layout.html A, dikkat-v3.html A).
+// Dashboard "B4" (docs/web-ui.md "Redesign v2"; mockup redesign-v4.html tab 3):
+// lifecycle tabs, brief card, agenda | Öneriler, Detaylar, approval bar.
 import { useState } from "react";
 import { api } from "../api/client";
 import type { Persona, RunView } from "../api/types";
+import { Agenda } from "../components/Agenda";
 import { ApprovalBar } from "../components/ApprovalBar";
-import { CategoryList } from "../components/CategoryList";
-import { ClientCard } from "../components/ClientCard";
-import { CompareCard } from "../components/CompareCard";
+import { BriefCard, plainBrief } from "../components/BriefCard";
+import { DetailsPanel } from "../components/DetailsPanel";
 import { EvidencePopup } from "../components/EvidencePopup";
+import { FundCard } from "../components/FundCard";
+import { LifecycleTabs } from "../components/LifecycleTabs";
+import { OptionsCompare } from "../components/OptionsCompare";
 import { PersonaPanel } from "../components/PersonaPanel";
 import { QuestionsPanel } from "../components/QuestionsPanel";
-import { RightPanel } from "../components/RightPanel";
-import { TalkingPoints } from "../components/TalkingPoints";
-import { TopOptionCard } from "../components/TopOptionCard";
+import { useChecks } from "../checks";
 import { labels, useT, type LabelKey } from "../i18n";
 
 const show = (v: unknown) => (Array.isArray(v) ? v.join(", ") : String(v));
@@ -25,7 +27,7 @@ function TestBanner({ view, onReset }: { view: RunView; onReset?: () => void }) 
   };
   const changes = view.persona_changes.map((c) => `${field(c.field)} ${show(c.original)} → ${show(c.edited)}`).join("; ");
   return (
-    <div role="status" className="mb-3 flex items-center gap-3 rounded-xl border border-[#FEC84B] bg-[#FFFAEB] px-4 py-2.5 text-sm">
+    <div role="status" className="mb-4 flex items-center gap-3 rounded-xl border border-[#FEC84B] bg-[#FFFAEB] px-4 py-2.5 text-sm">
       <b>{`${t("testBanner")}:`}</b>
       <span>{`${view.result.persona.persona_id} ${t("changed")} (${changes})`}</span>
       {onReset && (
@@ -49,12 +51,17 @@ export function Dashboard({
 }) {
   const t = useT();
   const r = view.result;
+  const runId = r.run_id;
   const [selected, setSelected] = useState<string[]>(() => (r.rm_selected.length ? r.rm_selected : view.top));
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [discussed, toggleDiscussed] = useChecks(`rmprep.agenda.${runId}`);
+  const [confirmed, toggleConfirmed] = useChecks(`rmprep.confirm.${runId}`);
   const pending = r.rm_status === "pending";
   const ready = r.state === "ready";
+  const openConfirms = view.to_confirm.filter((_, i) => !confirmed[i]).length;
 
   const toggle = (id: string) => {
     if (!pending) return;
@@ -63,58 +70,63 @@ export function Dashboard({
 
   const answer = (questionId: string, value: string) => {
     setError(null);
-    api.answer(r.run_id, questionId, value).then(onView, (e: Error) => setError(e.message));
+    api.answer(runId, questionId, value).then(onView, (e: Error) => setError(e.message));
   };
+
+  const opened = openId ? view.options[openId] : undefined;
 
   return (
     <div>
+      <LifecycleTabs runId={runId} approved={r.rm_status === "approved"} active="prep" />
       {view.test_run && <TestBanner view={view} onReset={onPersona && (() => onPersona(null))} />}
-      <ClientCard persona={r.persona} onEdit={onPersona && (() => setEditing(true))} />
+      <BriefCard
+        view={view}
+        brief={plainBrief(r.persona)}
+        confirmOpen={openConfirms}
+        onEdit={onPersona && (() => setEditing(true))}
+      />
       {error && (
-        <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-white p-3 text-sm">
+        <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-white p-3 text-sm">
           {`${t("errorTitle")}: ${error}`}
         </p>
       )}
-      <TalkingPoints points={view.talking_points} />
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_330px]">
-        <div>
-          {!ready ? (
-            <QuestionsPanel questions={r.questions} onAnswer={answer} />
-          ) : view.top.length > 0 ? (
-            <>
-              <h2 className="text-sm font-semibold">{t("topRecommendations")}</h2>
-              <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                {view.top.map((id, i) =>
-                  view.options[id] ? (
-                    <TopOptionCard
-                      key={id}
-                      option={view.options[id]}
-                      position={i + 1}
-                      selected={selected.includes(id)}
-                      onToggle={() => toggle(id)}
-                      onEvidence={setEvidenceId}
-                    />
-                  ) : null,
-                )}
-                {view.baseline && <CompareCard option={view.baseline} />}
-              </div>
-              <CategoryList
-                categories={view.categories}
-                options={view.options}
-                selected={selected}
-                onToggle={toggle}
-                onEvidence={setEvidenceId}
-              />
-            </>
+      <div className="mb-6 grid items-start gap-6 lg:grid-cols-[1fr_2fr]">
+        <Agenda
+          points={view.talking_points}
+          confirm={view.to_confirm}
+          discussed={discussed}
+          onDiscussed={toggleDiscussed}
+          confirmed={confirmed}
+          onConfirmed={toggleConfirmed}
+          onAnswer={answer}
+          onEvidence={setEvidenceId}
+        />
+        {ready ? (
+          view.top.length > 0 ? (
+            <OptionsCompare view={view} onOpen={setOpenId} onEvidence={setEvidenceId} />
           ) : (
             <p className="rounded-2xl bg-white p-5 text-sm text-muted shadow-sm">{t("noOptions")}</p>
-          )}
-        </div>
-        <RightPanel view={view} onAnswer={answer} />
+          )
+        ) : (
+          <QuestionsPanel questions={r.questions} onAnswer={answer} />
+        )}
       </div>
 
-      {ready && <ApprovalBar view={view} selected={selected} onRemove={toggle} onView={onView} />}
+      {opened && (
+        <div className="mb-6">
+          <FundCard
+            option={opened}
+            selected={selected.includes(opened.option_id)}
+            onToggle={() => toggle(opened.option_id)}
+            onEvidence={setEvidenceId}
+          />
+        </div>
+      )}
+
+      {ready && <DetailsPanel view={view} selected={selected} onToggle={toggle} onEvidence={setEvidenceId} />}
+
+      {ready && <ApprovalBar view={view} selected={selected} openConfirms={openConfirms} onRemove={toggle} onView={onView} />}
 
       {editing && onPersona && (
         <PersonaPanel
