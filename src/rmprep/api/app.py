@@ -8,20 +8,41 @@ result it returned, because the protocol has no "get run".
 from __future__ import annotations
 
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from rmprep.api import schemas
-from rmprep.contracts import Backend, DecisionResult, Persona, RmStatus, _to_json
+from rmprep.contracts import (
+    NARRATIVE_LANGS,
+    Backend,
+    DecisionResult,
+    NarrativeDraft,
+    NarrativeStatus,
+    Persona,
+    RmStatus,
+    _to_json,
+)
+from rmprep.narrator.template import to_markdown
+from rmprep.ui import card, glossary
+
+GLOSSARY = Path(__file__).resolve().parents[3] / "config" / "glossary.yaml"
 
 # views(result) -> extra RunView keys (docs/web-ui.md section 6); None = the core keys only
 ViewFn = Callable[[DecisionResult], dict]
 
 
-def create_app(backend: Backend, *, views: ViewFn | None = None) -> FastAPI:
+def create_app(backend: Backend, *, views: ViewFn | None = None,
+               narrative_timeout_s: float = 120.0,
+               glossary_path: Path | str = GLOSSARY) -> FastAPI:
     app = FastAPI(title="rmprep", docs_url="/api/docs", openapi_url="/api/openapi.json")
     runs: dict[str, DecisionResult] = {}
+    texts: dict[tuple[str, str], NarrativeDraft] = {}   # (run_id, lang) -> last draft / approved text
+    terms = glossary.load(glossary_path)
+    pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="narrative")
 
     @app.exception_handler(ValueError)
     async def _value_error(_: Request, exc: ValueError):
@@ -85,7 +106,78 @@ def create_app(backend: Backend, *, views: ViewFn | None = None) -> FastAPI:
     @app.put("/api/runs/{run_id}/notes")
     def notes(run_id: str, req: schemas.NotesRequest):
         _run(run_id)
-        return _view(backend.annotate(run_id, req.note, req.option_notes))
+        view = _view(backend.annotate(run_id, req.note, req.option_notes))
+        _save_card(run_id, "TR")
+        return view
+
+    # --- meeting text, card, evidence, glossary ----------------------------------
+
+    def _lang(lang: str) -> str:
+        if lang not in NARRATIVE_LANGS:
+            raise HTTPException(422, f"lang must be one of {NARRATIVE_LANGS}")
+        return lang
+
+    def _text_view(d: NarrativeDraft) -> dict:
+        texts[(d.run_id, d.lang)] = d
+        md = d.rm_text if d.status == NarrativeStatus.APPROVED else to_markdown(d)
+        return {**d.to_dict(), "markdown": md}
+
+    def _approved_text(run_id: str, lang: str) -> NarrativeDraft | None:
+        d = texts.get((run_id, lang))
+        return d if d is not None and d.status == NarrativeStatus.APPROVED else None
+
+    def _save_card(run_id: str, lang: str) -> str:
+        result = _run(run_id)
+        if result.rm_status != RmStatus.APPROVED:
+            raise ValueError("only an approved run has a card")
+        ev = backend.evidence(result.snapshot_id, result.excluded_sources)
+        md = card.render_markdown(result, ev, lang, narrative=_approved_text(run_id, lang),
+                                  glossary_terms=terms)
+        backend.save_card(run_id, md)
+        return md
+
+    @app.get("/api/runs/{run_id}/narrative")
+    def narrative(run_id: str, lang: str = "TR"):
+        lang = _lang(lang)
+        if _run(run_id).rm_status != RmStatus.APPROVED:
+            raise ValueError("a meeting text needs an approved run")
+        job = pool.submit(backend.draft_narrative, run_id, lang)
+        try:
+            d = job.result(timeout=narrative_timeout_s)
+        except FutureTimeout:
+            raise HTTPException(504, "the meeting text is not ready yet; try again") from None
+        return _text_view(d)
+
+    @app.post("/api/runs/{run_id}/narrative/{lang}/approval")
+    def approve_text(run_id: str, lang: str, req: schemas.TextRequest):
+        _run(run_id)
+        return _text_view(backend.approve_narrative(run_id, _lang(lang), req.text))
+
+    @app.get("/api/runs/{run_id}/card.md")
+    def card_md(run_id: str, lang: str = "TR"):
+        md = _save_card(run_id, _lang(lang))
+        return Response(md, media_type="text/markdown; charset=utf-8")
+
+    @app.get("/api/evidence/{snapshot_id}/{evidence_id}")
+    def evidence_item(snapshot_id: str, evidence_id: str):
+        if snapshot_id not in backend.list_snapshots():
+            raise HTTPException(404, f"unknown snapshot {snapshot_id}")
+        ev = backend.evidence(snapshot_id)
+        dp = next((d for d in ev.datapoints if d.id == evidence_id), None)
+        if dp is None:
+            raise HTTPException(404, f"unknown evidence id {evidence_id}")
+        info = ev.entities.get(dp.entity)
+        return {**_to_json(dp), "entity_name": info.name if info else ""}
+
+    @app.get("/api/glossary")
+    def glossary_terms(lang: str = "TR", run_id: str | None = None):
+        lang = _lang(lang)
+        d = texts.get((run_id, lang)) if run_id else None
+        if d is None:
+            return []
+        text = d.rm_text if d.status == NarrativeStatus.APPROVED else to_markdown(d)
+        return [{"term": f.term.key, "form": f.form, "explanation": f.explanation}
+                for f in glossary.find_terms(text, terms, lang)]
 
     app.state.runs = runs
     return app
