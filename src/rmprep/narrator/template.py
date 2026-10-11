@@ -13,7 +13,7 @@ from datetime import date, datetime
 
 from rmprep.contracts import (
     NARRATIVE_LANGS,
-    NARRATIVE_SECTIONS,
+    NARRATIVE_SECTIONS_V13,
     NarrativeDraft,
     NarrativeSection,
     NarrativeSentence,
@@ -39,7 +39,7 @@ KIND_NAMES = {
 QUANTITY_NAMES = {
     "fund_return_ytd": {"TR": "yılbaşından bu yana getiri", "EN": "year-to-date return"},
     "fund_risk_level": {"TR": "risk düzeyi", "EN": "risk level"},
-    "deposit_rate": {"TR": "yıllık faiz oranı", "EN": "annual interest rate"},
+    "deposit_rate": {"TR": "mevduat faizi", "EN": "deposit rate"},
     "fund_price": {"TR": "pay fiyatı", "EN": "unit price"},
     "fund_total_value": {"TR": "fon büyüklüğü", "EN": "fund size"},
     "fund_investor_count": {"TR": "yatırımcı sayısı", "EN": "number of investors"},
@@ -76,6 +76,7 @@ NEED_NAMES = {
 }
 
 HEADINGS = {
+    "talking_points": {"TR": "Müşteriyle konuşulacaklar", "EN": "Talking points"},
     "ozet": {"TR": "Özet", "EN": "Summary"},
     "oneriler": {"TR": "Öneriler", "EN": "Options to discuss"},
     "alternatifler": {"TR": "Alternatifler", "EN": "Alternatives"},
@@ -93,12 +94,17 @@ TEXTS = {
         "priorities": "Öncelikler: {items}.",
         "client_note": "Müşteri notu: {note}",
         "rm_note": "RM'in görüşme notu: {note}",
-        "meeting": "Görüşmede RM'in seçtiği {n} seçenek konuşulacak.",
-        "meeting_baseline": "Görüşmede RM'in seçtiği {n} seçenek konuşulacak; "
+        "meeting": "Görüşmede seçtiğiniz {n} seçeneği konuşun.",
+        "meeting_baseline": "Görüşmede seçtiğiniz {n} seçeneği konuşun; "
                             "karşılaştırma ölçütü {baseline}.",
         "option": "{label} ({kind}{fx}): {reasons}.",
         "option_bare": "{label} ({kind}{fx}).",
-        "link": "{label}, müşterinin {need} (\"{value}\") açısından {part} ile öne çıkıyor.",
+        "link": "Müşteriye {label} seçeneğinin {need} (\"{value}\") açısından {part} ile "
+                "öne çıktığını anlatın.",
+        "tp_goal": ("Müşterinin hedefi", "Müşterinin hedefini konuşun: \"{amac}\" "
+                                         "(yatırım ufku: {ufuk})."),
+        "tp_situation": ("Müşterinin durumu", "Müşterinin durumunu dikkate alın: \"{durum}\"."),
+        "tp_priorities": ("Müşterinin öncelikleri", "Öncelikleri teyit edin: {items}."),
         "fx": ", döviz içerir",
         "numbers": "Ana rakamlar: {items}.",
         "number": "{name} {value} ({source}, {as_of})",
@@ -130,12 +136,18 @@ TEXTS = {
         "priorities": "Priorities: {items}.",
         "client_note": "Client note: {note}",
         "rm_note": "The RM's meeting note: {note}",
-        "meeting": "The meeting will discuss the {n} options that the RM selected.",
-        "meeting_baseline": "The meeting will discuss the {n} options that the RM selected; "
-                            "the baseline for comparison is {baseline}.",
+        "meeting": "Discuss the {n} options that you selected.",
+        "meeting_baseline": "Discuss the {n} options that you selected; the baseline for "
+                            "comparison is {baseline}.",
         "option": "{label} ({kind}{fx}): {reasons}.",
         "option_bare": "{label} ({kind}{fx}).",
-        "link": "{label} stands out on {part} for the client's {need} (\"{value}\").",
+        "link": "Explain to the client that {label} stands out on {part} for their {need} "
+                "(\"{value}\").",
+        "tp_goal": ("Client's goal", "Talk about the client's goal: \"{amac}\" "
+                                     "(horizon: {ufuk})."),
+        "tp_situation": ("Client's situation", "Keep the client's situation in mind: "
+                                               "\"{durum}\"."),
+        "tp_priorities": ("Client's priorities", "Confirm the priorities: {items}."),
         "fx": ", FX exposure",
         "numbers": "Key numbers: {items}.",
         "number": "{name} {value} ({source}, {as_of})",
@@ -181,8 +193,10 @@ def tr_lower(text: str) -> str:
 
 def fmt_number(value: float, unit: str, lang: str) -> str:
     """A number as the text writes it: TR 1.054,64 / EN 1,054.64; pct with a % sign."""
-    if unit == "level" and float(value).is_integer():
-        s = str(int(value))
+    if unit in ("level", "count") and float(value).is_integer():
+        s = f"{int(value):,}"
+        if lang == "TR":
+            s = s.replace(",", ".")
     else:
         s = f"{value:,.2f}"
         if lang == "TR":
@@ -279,7 +293,8 @@ def _oneriler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
         oid = [o.option_id]
         public = [x[2] for x in o.reasons if is_quotable(x)][:MAIN_REASONS]
         head = dict(label=o.label, kind=kind_name(o.kind, lang), fx=tx["fx"] if o.fx else "")
-        text = (tx["option"].format(**head, reasons="; ".join(public)) if public
+        text = (tx["option"].format(**head, reasons="; ".join(x.rstrip(".") for x in public))
+                if public
                 else tx["option_bare"].format(**head))
         out.append(_sentence(text, oid, o.evidence_ids))
         link = _link(o, used, f, tx, lang)
@@ -351,6 +366,40 @@ def _teklif(f: Facts, tx: dict) -> list[NarrativeSentence]:
     return out
 
 
+MAX_TALKING_POINTS = 3
+MAX_TAGS = 3
+
+
+def _talking_points(f: Facts, tx: dict) -> list[NarrativeSentence]:
+    """The engine's talking points (title = label), then points from the client's
+    goal, situation and priorities, up to MAX_TALKING_POINTS (N9)."""
+    whole = [o.option_id for o in f.selected]
+    named = f.named_options()
+    out = []
+    for t in f.talking_points[:MAX_TALKING_POINTS]:
+        ids = [i for i in t.option_ids if i in named]
+        out.append(NarrativeSentence(t.text, tuple(ids or ([] if t.evidence_ids else whole)),
+                                     tuple(t.evidence_ids), t.title))
+    c = f.client
+    extra = [("tp_goal", dict(amac=c["yatirim_amaci"], ufuk=c["yatirim_ufku"])),
+             ("tp_situation", dict(durum=c["durum"]))]
+    if c["oncelikler"]:
+        extra.append(("tp_priorities", dict(items=", ".join(c["oncelikler"]))))
+    for key, fields in extra:
+        if len(out) >= MAX_TALKING_POINTS:
+            break
+        title, text = tx[key]
+        out.append(NarrativeSentence(text.format(**fields), tuple(whole), (), title))
+    return out
+
+
+def template_need_tags(f: Facts) -> dict[str, tuple[str, ...]]:
+    """Need tags per selected option: the persona priorities of its why lines
+    (decision D17), as the persona writes them, at most MAX_TAGS."""
+    return {o.option_id: tuple(dict.fromkeys(p for p, _ in f.why.get(o.option_id, ())))[:MAX_TAGS]
+            for o in f.selected}
+
+
 def template_sections(f: Facts, lang: str, disclaimer: str) -> tuple[NarrativeSection, ...]:
     if lang not in NARRATIVE_LANGS:
         raise ValueError(f"lang must be one of {NARRATIVE_LANGS}, got {lang!r}")
@@ -364,8 +413,9 @@ def template_sections(f: Facts, lang: str, disclaimer: str) -> tuple[NarrativeSe
         "teklif_metni": _teklif(f, tx),
         "varsayimlar": ([_sentence(a) for a in f.assumptions]
                         or [_sentence(tx["no_assumptions"])]),
+        "talking_points": _talking_points(f, tx),
     }
-    return tuple(NarrativeSection(k, tuple(sections[k])) for k in NARRATIVE_SECTIONS)
+    return tuple(NarrativeSection(k, tuple(sections[k])) for k in NARRATIVE_SECTIONS_V13)
 
 
 def template_draft(f: Facts, lang: str, config: NarratorConfig, *, created_at: datetime,
@@ -377,7 +427,7 @@ def template_draft(f: Facts, lang: str, config: NarratorConfig, *, created_at: d
     return NarrativeDraft(
         run_id=f.run_id, lang=lang, sections=template_sections(f, lang, config.disclaimer[lang]),
         source="template", model="", prompt_version=config.prompt_version, checks=checks,
-        created_at=created_at)
+        created_at=created_at, need_tags=template_need_tags(f))
 
 
 # shown over a template text that replaces an LLM text (validator, budget, API error)
@@ -392,6 +442,9 @@ def banner(d: NarrativeDraft) -> str | None:
 
 
 _PARAGRAPHS = ("ozet", "teklif_metni")    # prose; the other sections are lists
+# reading order of the Markdown (the draft keeps the contract order)
+_MD_ORDER = ("ozet", "talking_points", "oneriler", "alternatifler", "dikkat", "sorular",
+             "teklif_metni", "varsayimlar")
 
 
 def to_markdown(d: NarrativeDraft) -> str:
@@ -399,10 +452,12 @@ def to_markdown(d: NarrativeDraft) -> str:
     lines = [f"# {TEXTS[d.lang]['title']} · {d.run_id}"]
     if banner(d):
         lines += ["", f"> ⚠ {banner(d)}"]
-    for sec in d.sections:
+    rank = {k: i for i, k in enumerate(_MD_ORDER)}
+    for sec in sorted(d.sections, key=lambda x: rank.get(x.key, len(rank))):
         lines += ["", f"## {HEADINGS[sec.key][d.lang]}", ""]
         if sec.key in _PARAGRAPHS:
             lines.append(" ".join(s.text for s in sec.sentences))
         else:
-            lines += [f"- {s.text}" for s in sec.sentences]
+            lines += [f"- **{s.title}:** {s.text}" if s.title else f"- {s.text}"
+                      for s in sec.sentences]
     return "\n".join(lines) + "\n"

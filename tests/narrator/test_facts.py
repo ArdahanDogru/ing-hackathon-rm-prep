@@ -1,3 +1,4 @@
+import dataclasses
 import json
 from datetime import date
 
@@ -68,8 +69,7 @@ def test_rejected_options_only_as_count_and_rule():
 
 def test_warnings_only_about_named_options_or_the_whole_result():
     f = build_facts(p02(), evidence())
-    assert [w.code for w in f.warnings] == ["deposit_vs_market", "fx_exposure",
-                                            "no_fx_deposit_data"]
+    assert [w.code for w in f.warnings] == ["fx_exposure"]   # the others are RM-only (N9)
     # without BBF the debt group (and AKE) is not named, so its FX warning goes
     f = build_facts(approved("decision_p02_ready", ("fund:AAL",)), evidence())
     assert "fx_exposure" not in [w.code for w in f.warnings]
@@ -77,7 +77,9 @@ def test_warnings_only_about_named_options_or_the_whole_result():
 
 
 def test_warnings_carry_the_numbers_of_their_evidence():
-    f = build_facts(p02(), evidence())
+    r = p02()
+    warnings = tuple(dataclasses.replace(w, audience="client") for w in r.warnings)
+    f = build_facts(dataclasses.replace(r, warnings=warnings), evidence())
     market = next(w for w in f.warnings if w.code == "deposit_vs_market")
     assert {n.evidence_id: n.value for n in market.numbers} == {"E42b47116": 23.0,
                                                                 "E9cb9f7ad": 43.82}

@@ -1,9 +1,11 @@
 """The facts pack: everything the narrator may say about one approved run
 (docs/narrator.md, "Input: the facts pack"). Deterministic; no LLM.
 
-Named options are the baseline, the RM's selection and the other members of
-the groups (rmprep.grouping) that hold a selected option. Rejected options are
-in the pack only as a count per rule; no other option is in it."""
+Named options are the baseline, the RM's selection, the other members of the
+groups (rmprep.grouping) that hold a selected option, and (N9) the options of
+the engine's talking points. Rejected options are in the pack only as a count
+per rule; no other option is in it. Only warnings for the client (v1.3
+audience "client") are in it."""
 
 from __future__ import annotations
 
@@ -12,6 +14,7 @@ from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
+from functools import lru_cache
 
 from rmprep import grouping
 from rmprep.contracts import (
@@ -20,6 +23,9 @@ from rmprep.contracts import (
     RmStatus,
     ScoredOption,
 )
+from rmprep.decision.config import DecisionConfig
+from rmprep.decision.config import load_config as load_decision_config
+from rmprep.decision.display import display_facts
 
 # persona fields the text may use (not scored; the narrator is where they matter)
 CLIENT_FIELDS = ("profil", "yas", "risk_profili", "durum", "yatirim_amaci", "yatirim_ufku",
@@ -80,6 +86,16 @@ class NoteFacts:
 
 
 @dataclass(frozen=True)
+class TalkingPointFacts:
+    """A talking point of the engine (decision D18): the client's situation."""
+    title: str                                  # TalkingPoint.label
+    figure: str
+    text: str
+    option_ids: tuple[str, ...] = ()
+    evidence_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class Facts:
     run_id: str
     persona_id: str
@@ -96,14 +112,19 @@ class Facts:
     rm_note: str
     rejected_count: int
     rejected_rules: Mapping[str, int]           # rule_id -> options it rejected
+    talking_points: tuple[TalkingPointFacts, ...] = ()
+    talked: tuple[OptionFacts, ...] = ()        # talking-point options not named otherwise
+    # selected option -> (persona priority as written, why line) of decision D17
+    why: Mapping[str, tuple[tuple[str, str], ...]] = dataclasses.field(default_factory=dict)
 
     def named_options(self) -> dict[str, OptionFacts]:
         out = {} if self.baseline is None else {self.baseline.option_id: self.baseline}
-        out.update((o.option_id, o) for o in (*self.selected, *self.alternatives))
+        out.update((o.option_id, o) for o in (*self.selected, *self.alternatives, *self.talked))
         return out
 
     def evidence_ids(self) -> frozenset[str]:
         ids = {i for o in self.named_options().values() for i in o.evidence_ids}
+        ids.update(i for t in self.talking_points for i in t.evidence_ids)
         ids.update(i for w in self.warnings for i in w.evidence_ids)
         ids.update(i for n in self.data_quality for i in n.evidence_ids)
         return frozenset(ids)
@@ -144,7 +165,14 @@ def _option_facts(o: ScoredOption, ev: EvidenceSet, warnings: list[str], note: s
         warnings=tuple(warnings), rm_note=note)
 
 
-def build_facts(r: DecisionResult, ev: EvidenceSet) -> Facts:
+@lru_cache(maxsize=1)
+def _default_decision_config() -> DecisionConfig:
+    return load_decision_config()
+
+
+def build_facts(r: DecisionResult, ev: EvidenceSet,
+                decision_config: DecisionConfig | None = None) -> Facts:
+    """decision_config: for the why lines (decision D17); default config/decision.yaml."""
     if r.rm_status != RmStatus.APPROVED:
         raise ValueError("the narrator writes only for an approved result")
     selected = set(r.rm_selected)
@@ -160,10 +188,14 @@ def build_facts(r: DecisionResult, ev: EvidenceSet) -> Facts:
     alternative_ids = {i for g in groups for i in g.alternatives}
     baseline = next((o for o in r.options if o.option.kind == "deposit"), None)
     named = selected | alternative_ids | ({baseline.option.option_id} if baseline else set())
+    talked_ids = [i for t in r.talking_points for i in t.option_ids if i not in named]
+    named |= set(talked_ids)
 
     rejected_labels = [x.option.label for x in r.rejected]
     warnings = []
     for w in r.warnings:
+        if w.audience != "client":              # RM-only warnings never reach the text (N9)
+            continue
         ids = tuple(i for i in w.option_ids if i in named)
         if (w.option_ids and not ids) or any(lbl in w.message for lbl in rejected_labels):
             continue
@@ -175,6 +207,7 @@ def build_facts(r: DecisionResult, ev: EvidenceSet) -> Facts:
         return _option_facts(o, ev, [w.message for w in warnings if oid in w.option_ids],
                              r.rm_option_notes.get(oid, ""))
 
+    shown = display_facts(r, ev, decision_config or _default_decision_config())
     p = r.persona
     return Facts(
         run_id=r.run_id, persona_id=p.persona_id, snapshot_id=r.snapshot_id,
@@ -191,4 +224,8 @@ def build_facts(r: DecisionResult, ev: EvidenceSet) -> Facts:
         rejected_count=len(r.rejected),
         rejected_rules=dict(sorted(Counter(c.rule_id for x in r.rejected
                                            for c in x.failed).items())),
+        talking_points=tuple(TalkingPointFacts(t.label, t.figure, t.text, t.option_ids,
+                                               t.evidence_ids) for t in r.talking_points),
+        talked=tuple(facts(o) for o in r.options if o.option.option_id in set(talked_ids)),
+        why={oid: shown[oid].why for oid in r.rm_selected},
     )

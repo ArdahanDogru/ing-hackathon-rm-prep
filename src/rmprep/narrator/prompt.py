@@ -7,13 +7,15 @@ it is part of the cache key."""
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
-from rmprep.contracts import NARRATIVE_SECTIONS, NarrativeSection, NarrativeSentence
+from rmprep.contracts import NARRATIVE_SECTIONS_V13, NarrativeSection, NarrativeSentence
 from rmprep.narrator.config import NarratorConfig
 from rmprep.narrator.facts import INTERNAL_PARTS, Facts, KeyNumber, OptionFacts
 from rmprep.narrator.llm import LlmRequest
 from rmprep.narrator.template import is_quotable
+
+SECTIONS = NARRATIVE_SECTIONS_V13          # N9: talking_points added
 
 _SENTENCE = {
     "type": "object",
@@ -21,15 +23,30 @@ _SENTENCE = {
         "text": {"type": "string"},
         "option_ids": {"type": "array", "items": {"type": "string"}},
         "evidence_ids": {"type": "array", "items": {"type": "string"}},
+        "title": {"type": "string"},
     },
-    "required": ["text", "option_ids", "evidence_ids"],
+    "required": ["text", "option_ids", "evidence_ids", "title"],
     "additionalProperties": False,
+}
+
+_NEED_TAGS = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "option_id": {"type": "string"},
+            "tags": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": ["option_id", "tags"],
+        "additionalProperties": False,
+    },
 }
 
 SCHEMA = {
     "type": "object",
-    "properties": {k: {"type": "array", "items": _SENTENCE} for k in NARRATIVE_SECTIONS},
-    "required": list(NARRATIVE_SECTIONS),
+    "properties": {**{k: {"type": "array", "items": _SENTENCE} for k in SECTIONS},
+                   "need_tags": _NEED_TAGS},
+    "required": [*SECTIONS, "need_tags"],
     "additionalProperties": False,
 }
 
@@ -41,13 +58,16 @@ _LANGUAGE = {
 }
 
 _SYSTEM = """\
-You write the meeting preparation text for a relationship manager (RM) of ING \
+You write the meeting preparation card for a relationship manager (RM) of ING \
 Turkey. The decision engine has already chosen and ranked the options and the RM \
 has approved a selection; you only write. You do not decide, rank, or recommend \
 anything that is not in the facts.
 
 Language: write in {language}, {form}. Persona fields, option labels and engine \
-texts in the facts are Turkish; quote them as they are.
+texts in the facts are Turkish; quote them as they are. Write the card as \
+instructions to the RM (in Turkish as commands such as "... anlatın", "... sorun", \
+"... teyit edin"; in English "Explain ...", "Ask ..."). Only teklif_metni is \
+speech that the RM says to the client.
 
 Input: the facts pack (JSON) in the first user block. It is the only source. \
 "baseline" is the comparison deposit, "selected" are the options the RM chose, \
@@ -56,44 +76,58 @@ which. Key numbers are "numbers": {{quantity: [value, unit, evidence_id]}}, with
 the date in "as_of" (a fourth item when a number has its own date); unit "pct" \
 is a percent, "level" a risk level. "reasons" are the engine's reasons for an \
 option; "fits" names the needs the engine found the option strong on (liquidity, \
-income, principal, simplicity), without values. "data_quality_notes" says if the \
-run has data-quality notes; the RM reads them in the "{pane}" pane.
+income, principal, simplicity), without values; "why" lists [client priority, \
+fact] pairs. "talking_points" are the engine's points about the client's \
+situation (title, figure, text) and "talking_point_options" the options they \
+name. "dosyadaki_not" is the note in the client's file; "rm_onay_notu" is the \
+RM's note from the approval. "data_quality_notes" says if the run has \
+data-quality notes; the RM reads them in the "{pane}" pane.
 
-Output: JSON with exactly these sections, each a list of sentences; each sentence \
-has its text and its citations (option_ids: option_id values from the facts; \
-evidence_ids: evidence_id values from the facts).
+Output: JSON with these sections, each a list of sentences; each sentence has \
+its text, its citations (option_ids: option_id values from the facts; \
+evidence_ids: evidence_id values from the facts) and a title ("" except in \
+talking_points). Plus need_tags.
 - ozet: 3-5 sentences: the client situation and the aim of the meeting. The last \
 sentence is exactly: "{disclaimer}"
+- talking_points: 2-3 sentences about the client's situation from the client's \
+view, each with a title of 2-4 words and a citation. Start from the engine's \
+talking_points (their title and figure); add from the client's goal, \
+situation or priorities when there are fewer than 2.
 - oneriler: for each selected option: what it is and its key numbers; one \
 sentence that links it to a named need of this client (horizon, liquidity, \
-income, principal protection, an explicit constraint, or the RM note), quoting \
+income, principal protection, an explicit constraint, or a note), quoting \
 the client's own words; and what to watch. Each option gets its own reasons; \
 the options must not read alike.
 - alternatifler: 1-2 sentences per group: the other options of the same kind; \
 and the baseline for comparison.
-- dikkat: only the warnings that matter for this client and this meeting, in \
-plain words; if data_quality_notes is true, one short sentence that points the \
-RM to the "{pane}" pane; and once, that past returns do not show future returns.
+- dikkat: only the warnings in the facts, in plain words; if \
+data_quality_notes is true, one short sentence that points the RM to the \
+"{pane}" pane; and once, that past returns do not show future returns.
 - sorular: questions for the RM to ask the client: the open questions and the \
 explicit constraints (acik_kisitlar) to confirm.
 - teklif_metni: a short script the RM may say or adapt in the meeting, spoken \
 to the client and built on the client's own goal and situation (yatirim_amaci, \
 durum). It is not a letter. At most one short past-return reminder.
 - varsayimlar: each assumption of the facts as its own sentence, verbatim.
+- need_tags: one entry for each selected option: 1-3 tags, each copied exactly \
+from the client's priorities (oncelikler) that the option serves (use its \
+"why" pairs); no other words.
 
 Rules (a validator checks each one; a text that fails is replaced):
 1. Every number and date you write is a number or date of the facts, rounded \
 at most. Write numbers as {numbers} and dates as {date}. Do not compute new \
 numbers (no differences, sums, or averages) and do not write ids in the text.
-2. Name only the baseline, the selected options and the alternatives, by their \
-label or fund code. Never name or hint at a rejected option or any other product.
+2. Name only the baseline, the selected options, the alternatives and the \
+talking_point_options, by their label or fund code. Never name or hint at a \
+rejected option or any other product.
 3. Never promise a result. Do not use these phrases or their forms: {forbidden}.
-4. Every sentence of oneriler, alternatifler and dikkat cites at least one \
-option_id or evidence_id of the facts; cite only ids that exist in the facts.
+4. Every sentence of talking_points, oneriler, alternatifler and dikkat cites at \
+least one option_id or evidence_id of the facts; cite only ids that exist in the facts.
 5. No internal values outside varsayimlar: no field, flag or source names \
 (such as needs_check, tefas_web, penalty:...), no score or fit values, no row \
 counts, no counts of rejected options. Write sources as TEFAS or TCMB EVDS.
 6. Include the sentence "{disclaimer}" verbatim.
+7. need_tags: only words of oncelikler, at most 3 per option, every selected option.
 This is decision support for the RM, not investment advice.
 """
 
@@ -151,8 +185,14 @@ def _option(o: OptionFacts) -> dict:
     if o.warnings:
         out["warnings"] = list(o.warnings)
     if o.rm_note:
-        out["rm_note"] = o.rm_note
+        out["rm_onay_notu"] = o.rm_note
     return out
+
+
+def _short(o: OptionFacts) -> dict:
+    """An alternative or a talking-point option: id, label, kind and a few numbers."""
+    return {"option_id": o.option_id, "label": o.label, "kind": o.kind, "fx": o.fx,
+            **_numbers(o, ALTERNATIVE_NUMBERS)}
 
 
 def prompt_facts(f: Facts) -> dict:
@@ -163,12 +203,18 @@ def prompt_facts(f: Facts) -> dict:
     which the validator checks against."""
     return {
         "run_id": f.run_id,
-        "client": {k: list(v) if isinstance(v, tuple) else v for k, v in f.client.items()},
+        "client": {k: list(v) if isinstance(v, tuple) else v for k, v in f.client.items()
+                   if k != "rm_notu"},
+        "dosyadaki_not": f.client["rm_notu"],
+        "rm_onay_notu": f.rm_note,
+        "talking_points": [{"title": t.title, "figure": t.figure, "text": t.text,
+                            "option_ids": list(t.option_ids),
+                            "evidence_ids": list(t.evidence_ids)} for t in f.talking_points],
+        "talking_point_options": [_short(o) for o in f.talked],
         "baseline": _option(f.baseline) if f.baseline else None,
-        "selected": [_option(o) for o in f.selected],
-        "alternatives": [{"option_id": o.option_id, "label": o.label, "kind": o.kind,
-                          "fx": o.fx, **_numbers(o, ALTERNATIVE_NUMBERS)}
-                         for o in f.alternatives],
+        "selected": [{**_option(o), "why": [list(w) for w in f.why.get(o.option_id, ())]}
+                     for o in f.selected],
+        "alternatives": [_short(o) for o in f.alternatives],
         "groups": [{"key": g.key, "selected": list(g.selected),
                     "alternatives": list(g.alternatives)} for g in f.groups],
         "warnings": [{"code": w.code, "message": w.message, "option_ids": list(w.option_ids),
@@ -178,7 +224,6 @@ def prompt_facts(f: Facts) -> dict:
         "data_quality_notes": bool(f.data_quality),
         "assumptions": list(f.assumptions),
         "open_questions": list(f.open_questions),
-        "rm_note": f.rm_note,
     }
 
 
@@ -199,11 +244,15 @@ def build_request(f: Facts, lang: str, config: NarratorConfig, *, previous: str 
                       schema=SCHEMA)
 
 
-def sections_json(sections: Sequence[NarrativeSection]) -> str:
-    """Sections in the shape of SCHEMA (the reply format; used for tests and retries)."""
-    return json.dumps({s.key: [{"text": x.text, "option_ids": list(x.option_ids),
-                                "evidence_ids": list(x.evidence_ids)} for x in s.sentences]
-                       for s in sections}, ensure_ascii=False)
+def sections_json(sections: Sequence[NarrativeSection],
+                  need_tags: Mapping[str, Sequence[str]] | None = None) -> str:
+    """Sections and need tags in the shape of SCHEMA (the reply format; used for
+    tests and the template)."""
+    data = {s.key: [{"text": x.text, "option_ids": list(x.option_ids),
+                     "evidence_ids": list(x.evidence_ids), "title": x.title}
+                    for x in s.sentences] for s in sections}
+    data["need_tags"] = [{"option_id": k, "tags": list(v)} for k, v in (need_tags or {}).items()]
+    return json.dumps(data, ensure_ascii=False)
 
 
 def _ids(v, where: str) -> tuple[str, ...]:
@@ -215,14 +264,9 @@ def _ids(v, where: str) -> tuple[str, ...]:
 def parse_sections(text: str) -> tuple[NarrativeSection, ...]:
     """The reply JSON as sections, in the contract order; a missing section is
     empty (the validator reports it). ValueError on any other shape."""
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"not JSON: {e}") from e
-    if not isinstance(data, dict):
-        raise ValueError("the reply must be a JSON object")
+    data = _load(text)
     out = []
-    for key in NARRATIVE_SECTIONS:
+    for key in SECTIONS:
         items = data.get(key, [])
         if not isinstance(items, list):
             raise ValueError(f"{key}: must be a list of sentences")
@@ -231,7 +275,36 @@ def parse_sections(text: str) -> tuple[NarrativeSection, ...]:
             where = f"{key}[{i}]"
             if not isinstance(s, dict) or not isinstance(s.get("text"), str):
                 raise ValueError(f"{where}: needs a text string")
+            title = s.get("title", "")
+            if not isinstance(title, str):
+                raise ValueError(f"{where}: title must be a string")
             sentences.append(NarrativeSentence(s["text"], _ids(s.get("option_ids", []), where),
-                                               _ids(s.get("evidence_ids", []), where)))
+                                               _ids(s.get("evidence_ids", []), where),
+                                               title.strip()))
         out.append(NarrativeSection(key, tuple(sentences)))
     return tuple(out)
+
+
+def parse_need_tags(text: str) -> dict[str, tuple[str, ...]]:
+    """The need tags of the reply: option_id -> tags as written by the LLM
+    (the validator checks them against the persona). ValueError on a bad shape."""
+    items = _load(text).get("need_tags", [])
+    if not isinstance(items, list):
+        raise ValueError("need_tags: must be a list")
+    out: dict[str, tuple[str, ...]] = {}
+    for i, item in enumerate(items):
+        where = f"need_tags[{i}]"
+        if not isinstance(item, dict) or not isinstance(item.get("option_id"), str):
+            raise ValueError(f"{where}: needs an option_id string")
+        out[item["option_id"]] = _ids(item.get("tags", []), where)
+    return out
+
+
+def _load(text: str) -> dict:
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"not JSON: {e}") from e
+    if not isinstance(data, dict):
+        raise ValueError("the reply must be a JSON object")
+    return data

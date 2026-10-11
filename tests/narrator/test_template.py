@@ -1,6 +1,6 @@
 import pytest
 
-from rmprep.contracts import NARRATIVE_SECTIONS, NarrativeDraft
+from rmprep.contracts import NARRATIVE_SECTIONS_V13, NarrativeDraft
 from rmprep.narrator.facts import build_facts
 from rmprep.narrator.template import fmt_number, template_draft, to_markdown, tr_lower
 from tests.narrator.conftest import CREATED, evidence, p02, p03
@@ -30,7 +30,7 @@ def test_template_draft_shape(make, lang, config):
     assert (d.source, d.model, d.cost_usd, d.checks) == ("template", "", 0.0, ())
     assert d.prompt_version == config.prompt_version
     assert d.created_at == CREATED
-    assert tuple(s.key for s in d.sections) == NARRATIVE_SECTIONS
+    assert tuple(s.key for s in d.sections) == NARRATIVE_SECTIONS_V13
     assert all(s.sentences and all(x.text.strip() for x in s.sentences) for s in d.sections)
 
 
@@ -94,7 +94,7 @@ def test_dikkat_has_warnings_a_pane_pointer_and_the_past_return_caveat(config):
     r, _, d = _draft(p02, "TR", config)
     text = " ".join(s.text for s in _section(d, "dikkat").sentences)
     for w in r.warnings:
-        assert w.message in text
+        assert (w.message in text) == (w.audience == "client")      # N9
     assert r.data_quality[0].message not in text and "needs_check" not in text
     assert text.count("Olası sorunlar") == 1
     assert "geçmiş getiri" in text
@@ -125,7 +125,7 @@ def test_unknown_language(config):
 def test_markdown_has_every_section_and_sentence(config):
     _, _, d = _draft(p02, "TR", config)
     md = to_markdown(d)
-    assert md.count("\n## ") == len(NARRATIVE_SECTIONS)
+    assert md.count("\n## ") == len(NARRATIVE_SECTIONS_V13)
     for sec in d.sections:
         for s in sec.sentences:
             assert s.text in md
@@ -147,3 +147,25 @@ def test_fmt_number(value, unit, lang, out):
 def test_tr_lower():
     assert tr_lower("GARANTİ RİSKSİZ") == "garanti risksiz"
     assert tr_lower("IRAK") == "ırak"
+
+
+def test_oneriler_punctuation_and_counts(config):
+    """Reasons joined without ".;" or "..", whole counts without decimals, the
+    deposit rate named as such (N9 review of a P01 draft)."""
+    from tests.narrator.conftest import engine_result
+
+    r = engine_result("p01")
+    f = build_facts(r, evidence())
+    d = template_draft(f, "TR", config, created_at=CREATED)
+    text = " ".join(s.text for s in _section(d, "oneriler").sentences)
+    assert ".;" not in text and ".." not in text
+    assert ",00 (TEFAS" not in text
+    assert "mevduat faizi" in text and "yıllık faiz oranı" not in text
+
+
+@pytest.mark.parametrize("value, unit, lang, out", [
+    (1053.0, "count", "TR", "1.053"),
+    (19526.0, "count", "EN", "19,526"),
+])
+def test_fmt_number_whole_counts(value, unit, lang, out):
+    assert fmt_number(value, unit, lang) == out

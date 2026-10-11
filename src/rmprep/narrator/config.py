@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from rmprep.contracts import NARRATIVE_LANGS, NARRATIVE_SECTIONS
+from rmprep.contracts import NARRATIVE_LANGS, NARRATIVE_SECTIONS, NARRATIVE_SECTIONS_V13
 
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "narrator.yaml"
 
@@ -70,8 +70,10 @@ def parse_config(raw: Mapping) -> NarratorConfig:
     if langs != NARRATIVE_LANGS:
         raise ConfigError(f"langs: must be {list(NARRATIVE_LANGS)}, got {list(langs)}")
     sections = tuple(_get(raw, "sections"))
-    if sections != NARRATIVE_SECTIONS:
-        raise ConfigError(f"sections: must be {list(NARRATIVE_SECTIONS)}, got {list(sections)}")
+    # N9: v1.3 adds talking_points; the v1.2 list is accepted until the config has it
+    if sections not in (NARRATIVE_SECTIONS, NARRATIVE_SECTIONS_V13):
+        raise ConfigError(f"sections: must be {list(NARRATIVE_SECTIONS_V13)}, got {list(sections)}")
+    sections = NARRATIVE_SECTIONS_V13
     forbidden = _per_lang(raw, "forbidden_phrases")
     for lang, phrases in forbidden.items():
         if not phrases or not all(isinstance(p, str) and p.strip() for p in phrases):

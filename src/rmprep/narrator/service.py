@@ -23,9 +23,9 @@ from rmprep.contracts import (
 from rmprep.narrator.config import NarratorConfig, load_config
 from rmprep.narrator.facts import Facts, build_facts
 from rmprep.narrator.llm import LlmClient, LlmError, LlmReply, client_from_env
-from rmprep.narrator.prompt import build_request, parse_sections
+from rmprep.narrator.prompt import build_request, parse_need_tags, parse_sections
 from rmprep.narrator.template import template_draft
-from rmprep.narrator.validator import validate
+from rmprep.narrator.validator import persona_wording, validate
 
 ATTEMPTS = 2                    # the first text and one retry with the findings
 CACHE_WRITE_FACTOR = 1.25       # 5-minute cache write, times the input price
@@ -65,12 +65,13 @@ class Narrator:
             except LlmError as e:
                 return self._template(f, lang, (*findings, f"llm: {e.kind}: {e.message}"), cost)
             cost += self._ledger_add(run_id=r.run_id, lang=lang, reply=reply)
-            sections, findings = self._check(reply, f, r, lang)
+            sections, tags, findings = self._check(reply, f, r, lang)
             if not findings:
                 draft = NarrativeDraft(
                     run_id=r.run_id, lang=lang, sections=sections, source="llm",
                     model=reply.model, prompt_version=self.config.prompt_version, checks=(),
-                    created_at=self.clock(), cost_usd=cost)
+                    created_at=self.clock(), cost_usd=cost,
+                    need_tags=persona_wording(tags, r.persona))
                 return self._save(path, draft)
             previous = reply.text or ""
         return self._save(path, self._template(f, lang, findings, cost))
@@ -89,17 +90,19 @@ class Narrator:
         return self.cache_dir / f"{run_id}-{lang}-{self.config.prompt_version}-{self.config.model}.json"
 
     def _check(self, reply: LlmReply, f: Facts, r: DecisionResult, lang: str):
+        """(sections, need tags, findings) of a reply."""
         if reply.stop_reason == "refusal":
-            return (), (f"llm: refusal ({reply.refusal_category or 'no category'})",)
+            return (), {}, (f"llm: refusal ({reply.refusal_category or 'no category'})",)
         if reply.stop_reason == "max_tokens":
-            return (), ("llm: the text was cut off (max_tokens)",)
+            return (), {}, ("llm: the text was cut off (max_tokens)",)
         if not reply.text:
-            return (), ("llm: the reply has no text",)
+            return (), {}, ("llm: the reply has no text",)
         try:
             sections = parse_sections(reply.text)
+            tags = parse_need_tags(reply.text)
         except ValueError as e:
-            return (), (f"format: {e}",)
-        return sections, validate(sections, f, r, self.config, lang)
+            return (), {}, (f"format: {e}",)
+        return sections, tags, validate(sections, f, r, self.config, lang, need_tags=tags)
 
     def _cost(self, reply: LlmReply) -> float:
         c = self.config

@@ -1,13 +1,13 @@
 import pytest
 import yaml
 
-from rmprep.contracts import NARRATIVE_LANGS, NARRATIVE_SECTIONS
+from rmprep.contracts import NARRATIVE_LANGS, NARRATIVE_SECTIONS, NARRATIVE_SECTIONS_V13
 from rmprep.narrator.config import DEFAULT_PATH, ConfigError, load_config
 
 
 def test_real_config_loads(config):
     assert config.model == "claude-sonnet-5-5"
-    assert config.sections == NARRATIVE_SECTIONS
+    assert config.sections == NARRATIVE_SECTIONS_V13
     assert config.langs == NARRATIVE_LANGS
     assert config.max_cost_usd_per_day == 5.0
     assert "garanti" in config.forbidden_phrases["TR"]
@@ -49,3 +49,15 @@ def test_workspace_id_env_is_optional(tmp_path):
     raw["llm"]["workspace_id_env"] = ""
     with pytest.raises(ConfigError, match="llm.workspace_id_env"):
         load_config(_write(tmp_path, raw))
+
+
+def test_sections_v12_or_v13(tmp_path):
+    """N9: the lead adds talking_points to config/narrator.yaml on merge; both
+    lists load until then; the narrator always writes the v1.3 sections."""
+    from rmprep.contracts import NARRATIVE_SECTIONS_V13
+
+    raw = _raw()
+    raw["sections"] = list(NARRATIVE_SECTIONS_V13)
+    assert load_config(_write(tmp_path, raw)).sections == NARRATIVE_SECTIONS_V13
+    raw["sections"] = list(NARRATIVE_SECTIONS)
+    assert load_config(_write(tmp_path, raw)).sections == NARRATIVE_SECTIONS_V13
