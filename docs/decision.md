@@ -501,12 +501,57 @@ funds, with `entities`).
 | D13 | explicit constraints as hard rules (section 2): `fx_limit` (with the RM override question), `liquidity_need` (`max_sell_valor_days` 3, `max_lock_days` 91); config OPTIONAL until the lead adds it | FX fund rejected for P02, back with the override; P05: valör 4 rejected, 3 kept, missing kept + note; time deposit 32 days kept, a 120-day one rejected; rejected options never in `options` |
 | D14 | (found by eval E2, 2026-10-10) a fund whose liquidity falls back to the kind table because its sell valör row is missing gets the estimate factor `confidence.liquidity_proxy` (0.8; optional config); before, excluding `tefas_detail` raised the confidence (ZPO 0.63 → 0.70) | with the valör row → no factor; without it → × 0.8; excluding `tefas_detail` never raises a confidence |
 | D15 | (found by the first full eval, 2026-10-10; rule decided by the user) **short history**: a fund without a usable return of 3 months or longer (only `fund_return_1m`) is graded but rejected with rule `short_history`, reason "Yeterli geçmiş yok (yalnızca 1 aylık getiri)" / "Not enough history"; exception: appetite 1 (Agresif) keeps it in the list with the `track_record` penalty and the reason text; the 1-month row is its evidence. A fund with **no data row at all** is never listed (removed and counted in a data-quality note). Config `short_history: {min_period: 3m, allow_appetite: 1.0}` OPTIONAL | P05 without `tefas_detail`: VKR/ZPO/ZTV rejected with the reason; for an Agresif persona listed with the penalty; no listed option without evidence ids |
+| D16 | (web UI, 2026-10-11; docs/web-ui.md section 4) **warning audience and `to_confirm`** (contract v1.3): config `warnings.audience: {concentration: client, fx_exposure: client}` (a code not in the table → `rm`); config `to_confirm: {<assumption key>: <command template>}`, first entry `deposit_tier: "Yatırım tutarını sorun: {tier} dilimi varsayıldı."`; `DecisionResult.to_confirm` = the templates of the assumption keys that the run emitted, in emit order. Both config sections OPTIONAL until the lead adds them (without them: all `rm`, `to_confirm` empty) | audience from config; `deposit_vs_market` always rm; P01 gets the tier command; without config nothing changes (same `run_id` as before) |
+| D17 | (web UI) **display facts** (section 9): `rmprep.decision.display.display_facts(result, evidence, config) -> dict[str, DisplayFacts]` for every scored and rejected option; config `display.why: {<criterion>: <text with {access} {risk} {ret1y}>}` OPTIONAL | facts for every option; returns cite their rows; real 1-year = net of stopaj, then CPI (no fees); no CPI → none; time deposit `lock_days` = `term_days`; `why` uses the persona's own wording, no score numbers |
+| D18 | (web UI) **talking points** (contract v1.3, section 9): config `talking_points: {order, deposit_keywords, texts}` OPTIONAL (without it: none) | P01 gets `deposit_real` first, without ING numbers; no deposit point without the keyword; figures in Turkish format with a sign; each point cites evidence and only scored options; `needs_rm_input` → none |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]
 [--exclude SRC ...] [--answer QID=VALUE ...]` in `cli.py` and runs the report on
 the real snapshot with the user for tuning. Wired 2026-10-10; extra option
 `--personas DIR` (default: the folder above the project, `../p0*.json`).
+
+## 9. Display data for the web UI (D16–D18, 2026-10-11)
+
+The web UI (docs/web-ui.md) needs values that are business rules, so they come
+from this module and not from the API.
+
+```python
+@dataclass(frozen=True)
+class Fact:
+    value: float
+    evidence_id: str            # "" when the value comes from config (time deposit term)
+
+@dataclass(frozen=True)
+class DisplayFacts:
+    option_id: str
+    returns: Mapping[str, Fact]          # keys among "3m", "6m", "1y" (percent); a missing period has no key
+    real_1y: Fact | None                 # percent, after stopaj and CPI (4.1b, no fees); evidence id = the 1y return row
+    risk: Fact | None                    # SPK risk value 1..7
+    sell_valor_days: Fact | None
+    lock_days: int | None                # time deposit: time_deposit.term_days; else None
+    why: tuple[tuple[str, str], ...]     # (persona priority as written, text)
+```
+
+`real_1y` is a fact of the fund, not of the client: the 1-year return after
+the stopaj of its kind, then CPI; fees and the client's horizon are not used.
+`why`: one line per persona priority that the priority table (section 3) maps
+to a criterion of the option, with the text of `display.why.<criterion>`; no
+score numbers.
+
+**Talking points (D18).** At most 3, in `talking_points.order`, each only if
+its condition holds; "top 3" = `rmprep.grouping.top_heads(options, 3)`:
+
+| Code | Condition | Figure |
+|---|---|---|
+| `deposit_real` | `durum` contains a `deposit_keywords` entry (Turkish lower-casing) | real 1-year return of the **EVDS market** deposit rate (`deposit.market_entity`) after the deposit stopaj and CPI; never an ING row |
+| `best_alternative` | a first recommendation with a real 1-year return | its real 1-year return; the text says that it is a past return |
+| `access` | `likidite_ihtiyaci` is not low, or a priority maps to liquidity | the slowest sell valör of the top 3: "Aynı gün" / "n iş günü" |
+| `risk_fit` | always (top 3 not empty) | "en fazla <max> / 7"; the text names the client's ceiling |
+
+Percent figures: sign and comma, the minus is U+2212 ("−%8,3", "+%8,7").
+Texts: `talking_points.texts.<code>: {label, text}` with `{figure}`, `{label}`,
+`{max}`, `{ceiling}`.
 
 ## Later / optional
 

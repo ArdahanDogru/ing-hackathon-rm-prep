@@ -14,3 +14,5 @@ data/cards/
 data/narratives/
 data/eval/
 .superpowers/
+web/node_modules/
+web/dist/

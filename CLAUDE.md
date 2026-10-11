@@ -46,6 +46,9 @@ prototype/
   src/rmprep/
     contracts.py            DataPoint, Flag, make_id, EvidenceSet (lead-owned)
     cli.py                  `python -m rmprep ...` (lead-owned)
+    grouping.py             short-list grouping rule, top_heads (lead-owned)
+    backend.py              RealBackend (lead-owned)
+    api/                    FastAPI JSON API for the web app (lead-owned, docs/web-ui.md)
     ingest/                 ingestion layer (ingest worker)
       config.py             load + validate sources.yaml
       snapshot.py           raw snapshot write/verify/read
@@ -60,6 +63,7 @@ prototype/
     snapshots/<snapshot_id>/manifest.json, payloads/...
     evidence.duckdb
     export/<snapshot_id>.parquet
+  web/                      React + TypeScript web app (worker ing-web; npm in web/)
   tests/<module>/           one test package per module (tests/ingest/, tests/contracts/);
                             fixtures in tests/<module>/fixtures/; import shared test
                             helpers as `from tests.ingest.conftest import ...`
@@ -72,7 +76,8 @@ prototype/
 
 Dependencies: `httpx`, `pyyaml`, `python-dotenv`, `openpyxl`, `duckdb`; dev:
 `pytest`. Parquet is written by DuckDB (`COPY ... TO`), so no pyarrow/pandas.
-Optional extras `kap = ["docling"]`, `ui = ["streamlit"]`, `narrator = ["anthropic>=1.0"]`.
+Optional extras `kap = ["docling"]`, `ui = ["streamlit"]`, `narrator = ["anthropic>=1.0"]`,
+`web = ["fastapi", "uvicorn"]`.
 
 ## Multi-agent workflow
 
@@ -81,12 +86,15 @@ session per module, each in its own git worktree
 (`C:/Users/yardang/dev/ing-wt/<module>`, branch `<module>`). Protocol, owners
 and message formats: `docs/workflow.md`.
 
-- A worker edits only `src/rmprep/<module>/` and `tests/<module>/`. Everything
+- A worker edits only `src/rmprep/<module>/` and `tests/<module>/` (ing-web:
+  only `web/`). Everything
   else (`contracts.py`, `pyproject.toml`, `config/`, `docs/`, this file, main)
   belongs to ing-lead; a hook enforces it. Ask ing-lead for changes.
 - The decision/UI contracts in `contracts.py` are frozen (v1, 2026-10-10;
   v1.1 adds option kind `time_deposit`; v1.2 adds the narrator types and
-  `Backend.draft_narrative` / `approve_narrative`); their design is
+  `Backend.draft_narrative` / `approve_narrative`; v1.3 adds warning audience,
+  talking points, `to_confirm`, `NARRATIVE_SECTIONS_V13`, sentence title and
+  need tags, docs/web-ui.md section 3); their design is
   `docs/decision.md`, `docs/ui.md` and `docs/narrator.md`.
 - GitHub: private repo `ArdahanDogru/ing-hackathon-rm-prep`; only the lead
   pushes `main`, and only when the user asks (`docs/workflow.md`).

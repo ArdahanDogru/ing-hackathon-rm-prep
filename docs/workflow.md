@@ -13,9 +13,11 @@ sessions are `claude -p`, where teams cannot form. The user starts only
 | `ing-ui` | `C:/Users/yardang/dev/ing-wt/ui` | `ui` | `src/rmprep/ui/`, `tests/ui/` |
 | `ing-narrator` | `C:/Users/yardang/dev/ing-wt/narrator` | `narrator` | `src/rmprep/narrator/`, `tests/narrator/` |
 | `ing-eval` | `C:/Users/yardang/dev/ing-wt/eval` | `eval` | `src/rmprep/eval/`, `tests/eval/` |
+| `ing-web` | `C:/Users/yardang/dev/ing-wt/web` | `web` | `web/` only (React app, docs/web-ui.md; added 2026-10-11) |
 
 Design per module: ingest = `docs/ingest.md`, decision = `docs/decision.md`,
-ui = `docs/ui.md`.
+ui = `docs/ui.md`, narrator = `docs/narrator.md`, eval = `docs/eval.md`,
+web = `docs/web-ui.md` (plan: `docs/superpowers/plans/2026-10-11-web-ui.md`).
 
 ## Rules for everyone
 
@@ -45,7 +47,8 @@ ui = `docs/ui.md`.
 
 ## Lead: merging
 
-In the main checkout: `git merge --no-ff <branch>`, full `pytest`.
+In the main checkout: `git merge --no-ff <branch>`, full `pytest`; for `web`
+also `cd web; npm ci; npm test; npm run build`.
 Green → keep it and tell the workers that are working now to rebase (an idle
 worker rebases at the start of its next milestone; waking an idle session costs
 a full context reread). Red → undo the merge and send the worker the failing
@@ -107,7 +110,7 @@ more tokens and time.
 | `ing-lead` | `high` | merges, red tests, contract requests, choices while the user is away |
 | `ing-ingest`, `ing-decision`, `ing-eval` | `high` | parsing, scoring rules, determinism: edge cases matter |
 | `ing-narrator` | `high` | output guard and claims must hold |
-| `ing-ui` | `medium` | clear scope; the user reviews it on screen |
+| `ing-ui`, `ing-web` | `medium` | clear scope; the user reviews it on screen |
 
 Do not use `xhigh` or `max` as a worker default; for one hard task, ask the
 user first or put `ultrathink` in that one message. To change a running

@@ -84,3 +84,13 @@ def test_hook_denies_with_a_json_decision_in_a_real_repo(tmp_path):
     assert _run_hook(("﻿" + json.dumps(event)).encode("utf-8"))  # PowerShell pipes add a BOM
     event["tool_input"]["file_path"] = "src/rmprep/decision/x.py"
     assert _run_hook(json.dumps(event).encode()) is None
+
+
+def test_web_worker_edits_only_web():
+    web = "C:/wt/web"
+    trees = [MAIN, web]
+    assert guard.module_of("web") == "web"
+    assert guard.check(edit("web/src/App.tsx", cwd=web), "web", web, trees) is None
+    assert guard.check(edit(f"{web}/web/package.json", cwd=web, tool="Write"), "web", web, trees) is None
+    for path in ("src/rmprep/api/app.py", "tests/web/test_x.py", "src/rmprep/web/x.py", "docs/web-ui.md"):
+        assert "may edit only web/" in guard.check(edit(path, cwd=web), "web", web, trees), path

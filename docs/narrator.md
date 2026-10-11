@@ -228,3 +228,31 @@ From the judge's reasons in the eval runs of 2026-10-10:
 | N2 | validator | each rule catches its hand-made bad text; a good text passes |
 | N3 | LLM client (fake in tests), retry, fallback, cache, budget guard | fake LLM path; retry then fallback; cache hit makes no call |
 | N4 | backend + UI wiring (lead / ui), card with the approved text | draft → edit → approve; test run cannot approve |
+| N9 | (web UI, 2026-10-11; docs/web-ui.md section 5) talking points, need tags, client-only warnings, prompt `n4` (below) | see "N9" below |
+
+## N9: talking points, need tags, client-only warnings (2026-10-11, prompt n4)
+
+Contract v1.3. The narrator switches from `NARRATIVE_SECTIONS` to
+`NARRATIVE_SECTIONS_V13` (prompt schema, parser, validator, template, config
+section titles; the lead adds the `talking_points` title to
+`config/narrator.yaml` when N9 is merged).
+
+- New section `talking_points`: 2–3 sentences, each with a `title` (2–4 words)
+  and a citation, about the client's situation from the client's view. Input:
+  `DecisionResult.talking_points`, the persona, the selection.
+- `need_tags`: for each selected option 1–3 tags; each tag is one of the
+  persona's `oncelikler`, compared with Turkish lower-casing
+  (`validate_need_tags(tags, persona) -> list[str]` in `validator.py`); an
+  unknown tag is a validator error (retry, then template). The template takes
+  the tags from the `why` lines of `rmprep.decision.display.display_facts`.
+- The facts pack holds only warnings with `audience == "client"`; RM-only
+  warnings never reach the text (the web shows them in "RM notları").
+- The card is written as instructions to the RM ("… anlatın"); only
+  `teklif_metni` is quoted speech for the client.
+- Note names in the facts pack: `dosyadaki_not` (the persona's `rm_notu`) and
+  `rm_onay_notu` (the RM's approval note).
+- `prompt_version = "n4"`. The lead runs the eval after the merge.
+
+Tests: facts pack without rm warnings; note names; template with 2–3 titled
+talking points and tags for every selected option; Turkish casing in need
+tags; the parser reads titles; no rm warning text in a draft.

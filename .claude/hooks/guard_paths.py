@@ -1,9 +1,9 @@
 """PreToolUse guard for the multi-agent workflow (docs/workflow.md).
 
 A session on branch main (the lead) may do anything. A session on a worker
-branch (ingest, decision, ui, narrator, eval; also "<module>-..." or
+branch (ingest, decision, ui, narrator, eval, web; also "<module>-..." or
 "<module>/...") may edit only src/rmprep/<module>/ and tests/<module>/ of its
-own worktree, never the main checkout or another worktree, and may not merge,
+own worktree (the web worker: only web/), never the main checkout or another worktree, and may not merge,
 push, check out main or reset --hard. Files outside the repository (temp files)
 are not checked.
 
@@ -22,7 +22,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-MODULES = ("ingest", "decision", "ui", "narrator", "eval")
+MODULES = ("ingest", "decision", "ui", "narrator", "eval", "web")
+# folders a worker may edit; default (src/rmprep/<m>/, tests/<m>/)
+ALLOWED = {"web": ("web/",)}
 EDIT_TOOLS = {"Edit": "file_path", "Write": "file_path", "MultiEdit": "file_path",
               "NotebookEdit": "notebook_path"}
 SHELL_TOOLS = ("Bash", "PowerShell")
@@ -80,10 +82,10 @@ def check(event: dict, branch: str, top: str, worktrees: list[str]) -> str | Non
     if not (target == own or target.startswith(own + "/")):
         return None  # outside the repository: scratch files are fine
     rel = target[len(own) + 1:]
-    allowed = (f"src/rmprep/{module}/", f"tests/{module}/")
+    allowed = ALLOWED.get(module, (f"src/rmprep/{module}/", f"tests/{module}/"))
     if rel.startswith(allowed):
         return None
-    return (f"Blocked: the {module} worker may edit only {allowed[0]} and {allowed[1]}; "
+    return (f"Blocked: the {module} worker may edit only {' and '.join(allowed)}; "
             f"{rel} belongs to ing-lead or another worker. For a contract change, send ing-lead "
             f"'contract request: <change> because <reason>'.")
 

@@ -2,7 +2,8 @@
 
 Status: **2026-10-11. Screen design decided with the user (brainstorming with
 mockups). Technical sections 1 and 2 approved by the user 2026-10-11;
-sections 3–9 written by ing-lead for the user's spec review.** The final
+sections 3–9 approved by the user 2026-10-11 (spec review). Plan:
+`docs/superpowers/plans/2026-10-11-web-ui.md`.** The final
 mockups are in git: `docs/web-ui/mockups/` (`layout.html`, `detail-v5.html`,
 `dikkat-v3.html`, `meeting-text-v9.html`); the earlier versions stay in the
 git-ignored `.superpowers/brainstorm/`.
@@ -153,12 +154,12 @@ browser ──JSON──> FastAPI (src/rmprep/api/) ──> RealBackend (backend
 
 | Need | Source | Contract change |
 |---|---|---|
-| Category rank "3. / 88", stars, category average per period | API (section 6), from the option facts of D17 | no |
+| Category rank "3. / 88", stars, category average per period | API (section 6), from the display facts of D17 | no |
 | Match ring 0–10 | API: `10 × (n − position) / (n − 1)` over the run's ranked options (deposit baseline not counted), one decimal; n = 1 → 10 | no |
-| "Paraya erişim" | option facts (D17): `fund_sell_valor_days`, 0 → "Aynı gün", n → "n iş günü"; time deposit → "Vade sonunda (32 gün)" from config | no |
+| "Paraya erişim" | display facts (D17): `fund_sell_valor_days`, 0 → "Aynı gün", n → "n iş günü"; time deposit → "Vade sonunda (32 gün)" from config | no |
 | "For the client" / "for the RM only" on warnings | decision **D16**: `DecisionWarning.audience` | yes (v1.3) |
 | ➕ "Teyit edin" items | decision **D16**: `DecisionResult.to_confirm` (commands from config for assumptions that need the client, e.g. the amount tier) + the open non-blocking questions | yes (v1.3) |
-| ➕ Option facts for every fund of a run (returns per period, real 1-year return, risk, sell valör, "neden" lines) | decision **D17**: a pure function in the decision module | no |
+| ➕ Display facts for every fund of a run (returns per period, real 1-year return, risk, sell valör, "neden" lines) | decision **D17**: a pure function in the decision module | no |
 | ➕ Dashboard row "Müşteriyle konuşulacaklar" | decision **D18**, deterministic, texts in config | yes (v1.3): `TalkingPoint`, `DecisionResult.talking_points` |
 | Talking points of the meeting text; need tags per recommendation | narrator **N9** | yes (v1.3) |
 | Card as instructions to the RM; clear names for the two notes | narrator prompt (N9) | no |
@@ -199,7 +200,10 @@ class TalkingPoint:
                                                     # "Yatırım tutarını sorun: 100.000–249.999 TL dilimi varsayıldı."
 
 # narrator:
-NARRATIVE_SECTIONS = (..., "talking_points")        # added at the end
+NARRATIVE_SECTIONS_V13 = NARRATIVE_SECTIONS + ("talking_points",)
+# NARRATIVE_SECTIONS stays the v1.2 list (a v1.2 narrator stays valid);
+# NarrativeSection accepts every key of NARRATIVE_SECTIONS_V13; N9 switches the
+# narrator to NARRATIVE_SECTIONS_V13.
 # NarrativeSentence, new field:
     title: str = ""                      # talking_points only: 2–4 word heading
 # NarrativeDraft, new field:
@@ -221,10 +225,11 @@ the contract) checks the need tags against the persona.
   varsayıldı."). The lead also rewrites the texts of the non-blocking
   questions in config as commands ("… sorun"), because "Teyit edin" shows
   them.
-- **D17 option facts.** `rmprep.decision.facts.option_facts(result, evidence,
-  config) -> dict[str, OptionFacts]` for every option in `result.options` and
-  `result.rejected`. `OptionFacts` (a decision type, not a contract type;
-  stable for the API): nominal returns 3 months, 6 months, 1 year (each value
+- **D17 display facts.** `rmprep.decision.display.display_facts(result,
+  evidence, config) -> dict[str, DisplayFacts]` for every option in
+  `result.options` and `result.rejected` (named so because the narrator
+  already has an `OptionFacts`). `DisplayFacts` (a decision type, not a
+  contract type; stable for the API; docs/decision.md section 9): nominal returns 3 months, 6 months, 1 year (each value
   + evidence id, or none); the real 1-year return after stopaj and CPI (the
   D9 rule; none without CPI); SPK risk value 1–7 (+ evidence id, or none);
   sell valör days (+ evidence id, or none); `why`: one line per persona
@@ -316,7 +321,11 @@ All bodies JSON; contract objects as their `to_dict()`. Prefix `/api`.
   `assumptions`, `data_notes`, `client_warnings`, `rm_warnings` (by
   `audience`).
 - `rejected_by_rule`: `[{rule_id, label, count, options: [{label, reasons}]}]`.
-- `narrative_status`: `none | running | ready | failed` (TR).
+
+The API keeps a registry `run_id → DecisionResult` of every result it
+returned; `GET /runs/{id}` reads it (the `Backend` protocol has no "get run").
+There is no narrative status in the `RunView` (the protocol cannot report
+it): the web shows "Metin hazırlanıyor…" while `GET narrative` waits.
 
 **`OptionView`**: `option_id, label, kind, category_key, category_label, fx`;
 `returns`: `{3m, 6m, 1y, real_1y}` each `{value, evidence_id}` or null;
@@ -338,9 +347,11 @@ deposit.
 
 Sample responses: the lead writes `tests/contracts/fixtures/api/*.json` (P01
 ready and approved, P02, a `needs_rm_input` run, a test run, a narrative TR
-and EN) from the FakeBackend fixtures with `python -m
-tests.contracts.make_fixtures`; a test checks that they equal the current
-API output. They are the contract between the API and the web app.
+and EN, glossary, one evidence item) with `python -m rmprep.api.samples`, from
+`RealBackend` on the frozen eval snapshot, so the web shows real funds (needs
+`data/`, main checkout only). A test checks that the samples have the keys of
+the live API output (FakeBackend). They are the contract between the API and
+the web app.
 
 ### 7. Web app (worker `ing-web`)
 
@@ -379,8 +390,8 @@ API output. They are the contract between the API and the web app.
   narratives are on disk already.
 - The narrator never fails to the screen: an API error, a validator failure
   or the cost limit gives the template text and its banner (existing
-  behavior). `GET narrative` waits at most 120 s; after that the web shows
-  "Tekrar dene".
+  behavior). `GET narrative` waits at most 120 s, then answers 504; the web
+  shows "Tekrar dene".
 - The server binds `127.0.0.1` only.
 
 ### 9. Tests
