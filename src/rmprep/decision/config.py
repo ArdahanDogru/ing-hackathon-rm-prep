@@ -38,7 +38,8 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
 # optional sections of D9 (real return after tax); without them: nominal returns
 WARNING_CODES = ("concentration", "fx_exposure", "risk_estimate", "low_stability",
                  "deposit_vs_market", "no_fx_deposit_data")
-_D9_SECTIONS = ("to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
+TALKING_CODES = ("deposit_real", "best_alternative", "access", "risk_fit")
+_D9_SECTIONS = ("talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
                 "fund_detail", "constraint_rules", "short_history")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
@@ -455,6 +456,27 @@ def _check_d9(c: dict) -> None:
         for section, key in (("constraint", "short_history"),
                              ("data_quality", "removed_no_data")):
             _text(c, section, key, "the short_history section")
+
+    if "talking_points" in c:       # D18
+        tp = c["talking_points"]
+        _keys(tp, "talking_points", ("order", "deposit_keywords", "texts"))
+        order = tp["order"]
+        if (not isinstance(order, list) or not order or len(set(order)) != len(order)
+                or not set(order) <= set(TALKING_CODES)):
+            raise ConfigError(f"talking_points.order: different codes of {TALKING_CODES}")
+        kw = tp["deposit_keywords"]
+        if not isinstance(kw, list) or not all(isinstance(k, str) and k.strip() for k in kw):
+            raise ConfigError("talking_points.deposit_keywords: a list of non-empty texts")
+        texts = tp["texts"]
+        _keys(texts, "talking_points.texts", order, tuple(TALKING_CODES))
+        for code, t in texts.items():
+            path = f"talking_points.texts.{code}"
+            _keys(t, path, ("label", "text", *(("figure",) if code == "risk_fit" else ())))
+            for k, v in t.items():
+                if not isinstance(v, str) or not v.strip():
+                    raise ConfigError(f"{path}.{k}: must be a non-empty text")
+        if "access" in order and "access" not in c["display"]:
+            raise ConfigError("display.access: talking_points access needs the access texts")
 
     if "to_confirm" in c:           # D16: assumption key -> command for the RM
         table = c["to_confirm"]

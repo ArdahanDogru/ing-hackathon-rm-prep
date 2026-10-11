@@ -21,6 +21,7 @@ from rmprep.decision.config import DecisionConfig
 from rmprep.decision.notes import build_notes, build_warnings, source_notes
 from rmprep.decision.persona import read_persona
 from rmprep.decision.scoring import score_options
+from rmprep.decision.talking import talking_points
 from rmprep.decision.universe import EvidenceIndex, build_universe
 
 _STANDARD_ASSUMPTIONS = ("past_returns", "pre_tax", "deposit_tier", "no_real_returns",
@@ -137,4 +138,7 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
     notes = build_notes(frozenset(used), universe, evidence, config, stopaj_missing,
                         valor_missing)
     return DecisionResult(state=DecisionState.READY, options=options, rejected=scoring.rejected,
-                          warnings=warnings, data_quality=notes, **common)
+                          warnings=warnings, data_quality=notes,
+                          talking_points=talking_points(options, persona, levels, evidence,
+                                                        config),
+                          **common)

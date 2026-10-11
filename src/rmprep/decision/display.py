@@ -72,8 +72,9 @@ def _real(option: ProductOption, annual: float, idx: EvidenceIndex,
     return (1 + net) / (1 + cpi.value / 100) - 1
 
 
-def _option_facts(option: ProductOption, idx: EvidenceIndex,
-                  config: DecisionConfig) -> DisplayFacts:
+def facts_of(option: ProductOption, idx: EvidenceIndex,
+             config: DecisionConfig) -> DisplayFacts:
+    """Display facts of one option without the why lines."""
     c = config.raw
     returns: dict[str, Fact] = {}
     risk = valor = None
@@ -140,7 +141,7 @@ def display_facts(result: DecisionResult, evidence: EvidenceSet,
     options = [o.option for o in result.options] + [x.option for x in result.rejected]
     out = {}
     for option in options:
-        f = _option_facts(option, idx, config)
+        f = facts_of(option, idx, config)
         out[option.option_id] = dataclasses.replace(
             f, why=_why(f, result.persona.oncelikler, config))
     return out
