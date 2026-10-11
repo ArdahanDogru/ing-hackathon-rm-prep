@@ -17,15 +17,18 @@ from rmprep.narrator.template import is_quotable
 
 SECTIONS = NARRATIVE_SECTIONS_V13          # N9: talking_points added
 
+# N9b: ONE sentence schema for all sections. A schema per section (8 copies) was
+# a grammar too large for structured outputs (HTTP 400 "The compiled grammar is
+# too large"); tests/narrator/test_prompt.py keeps the schema small.
 _SENTENCE = {
     "type": "object",
     "properties": {
+        "section": {"type": "string", "enum": list(SECTIONS)},
         "text": {"type": "string"},
-        "option_ids": {"type": "array", "items": {"type": "string"}},
-        "evidence_ids": {"type": "array", "items": {"type": "string"}},
         "title": {"type": "string"},
+        "cite": {"type": "array", "items": {"type": "string"}},   # option ids and evidence ids
     },
-    "required": ["text", "option_ids", "evidence_ids", "title"],
+    "required": ["section", "text", "title", "cite"],
     "additionalProperties": False,
 }
 
@@ -44,9 +47,8 @@ _NEED_TAGS = {
 
 SCHEMA = {
     "type": "object",
-    "properties": {**{k: {"type": "array", "items": _SENTENCE} for k in SECTIONS},
-                   "need_tags": _NEED_TAGS},
-    "required": [*SECTIONS, "need_tags"],
+    "properties": {"sentences": {"type": "array", "items": _SENTENCE}, "need_tags": _NEED_TAGS},
+    "required": ["sentences", "need_tags"],
     "additionalProperties": False,
 }
 
@@ -83,10 +85,10 @@ name. "dosyadaki_not" is the note in the client's file; "rm_onay_notu" is the \
 RM's note from the approval. "data_quality_notes" says if the run has \
 data-quality notes; the RM reads them in the "{pane}" pane.
 
-Output: JSON with these sections, each a list of sentences; each sentence has \
-its text, its citations (option_ids: option_id values from the facts; \
-evidence_ids: evidence_id values from the facts) and a title ("" except in \
-talking_points). Plus need_tags.
+Output: JSON with "sentences" (all sentences of the card, in reading order) and \
+"need_tags". Each sentence has "section" (one of the section keys below), \
+"text", "title" ("" except in talking_points) and "cite": the option_id and \
+evidence_id values of the facts that the sentence rests on.
 - ozet: 3-5 sentences: the client situation and the aim of the meeting. The last \
 sentence is exactly: "{disclaimer}"
 - talking_points: 2-3 sentences about the client's situation from the client's \
@@ -121,8 +123,8 @@ numbers (no differences, sums, or averages) and do not write ids in the text.
 talking_point_options, by their label or fund code. Never name or hint at a \
 rejected option or any other product.
 3. Never promise a result. Do not use these phrases or their forms: {forbidden}.
-4. Every sentence of talking_points, oneriler, alternatifler and dikkat cites at \
-least one option_id or evidence_id of the facts; cite only ids that exist in the facts.
+4. Every sentence of talking_points, oneriler, alternatifler and dikkat has at \
+least one id in "cite"; cite only ids that exist in the facts.
 5. No internal values outside varsayimlar: no field, flag or source names \
 (such as needs_check, tefas_web, penalty:...), no score or fit values, no row \
 counts, no counts of rejected options. Write sources as TEFAS or TCMB EVDS.
@@ -248,10 +250,10 @@ def sections_json(sections: Sequence[NarrativeSection],
                   need_tags: Mapping[str, Sequence[str]] | None = None) -> str:
     """Sections and need tags in the shape of SCHEMA (the reply format; used for
     tests and the template)."""
-    data = {s.key: [{"text": x.text, "option_ids": list(x.option_ids),
-                     "evidence_ids": list(x.evidence_ids), "title": x.title}
-                    for x in s.sentences] for s in sections}
-    data["need_tags"] = [{"option_id": k, "tags": list(v)} for k, v in (need_tags or {}).items()]
+    data = {"sentences": [{"section": s.key, "text": x.text, "title": x.title,
+                           "cite": [*x.option_ids, *x.evidence_ids]}
+                          for s in sections for x in s.sentences],
+            "need_tags": [{"option_id": k, "tags": list(v)} for k, v in (need_tags or {}).items()]}
     return json.dumps(data, ensure_ascii=False)
 
 
@@ -262,27 +264,28 @@ def _ids(v, where: str) -> tuple[str, ...]:
 
 
 def parse_sections(text: str) -> tuple[NarrativeSection, ...]:
-    """The reply JSON as sections, in the contract order; a missing section is
-    empty (the validator reports it). ValueError on any other shape."""
-    data = _load(text)
-    out = []
-    for key in SECTIONS:
-        items = data.get(key, [])
-        if not isinstance(items, list):
-            raise ValueError(f"{key}: must be a list of sentences")
-        sentences = []
-        for i, s in enumerate(items):
-            where = f"{key}[{i}]"
-            if not isinstance(s, dict) or not isinstance(s.get("text"), str):
-                raise ValueError(f"{where}: needs a text string")
-            title = s.get("title", "")
-            if not isinstance(title, str):
-                raise ValueError(f"{where}: title must be a string")
-            sentences.append(NarrativeSentence(s["text"], _ids(s.get("option_ids", []), where),
-                                               _ids(s.get("evidence_ids", []), where),
-                                               title.strip()))
-        out.append(NarrativeSection(key, tuple(sentences)))
-    return tuple(out)
+    """The reply JSON as sections, in the contract order (sentences keep their
+    order within a section); a missing section is empty (the validator reports
+    it). "cite" splits into option ids (with a ":") and evidence ids.
+    ValueError on any other shape."""
+    items = _load(text).get("sentences", [])
+    if not isinstance(items, list):
+        raise ValueError("sentences: must be a list")
+    by_key: dict[str, list[NarrativeSentence]] = {k: [] for k in SECTIONS}
+    for i, s in enumerate(items):
+        where = f"sentences[{i}]"
+        if not isinstance(s, dict) or not isinstance(s.get("text"), str):
+            raise ValueError(f"{where}: needs a text string")
+        if s.get("section") not in by_key:
+            raise ValueError(f"{where}: unknown section {s.get('section')!r}")
+        title = s.get("title", "")
+        if not isinstance(title, str):
+            raise ValueError(f"{where}: title must be a string")
+        cite = _ids(s.get("cite", []), where)
+        by_key[s["section"]].append(NarrativeSentence(
+            s["text"], tuple(c for c in cite if ":" in c), tuple(c for c in cite if ":" not in c),
+            title.strip()))
+    return tuple(NarrativeSection(k, tuple(v)) for k, v in by_key.items())
 
 
 def parse_need_tags(text: str) -> dict[str, tuple[str, ...]]:
