@@ -29,11 +29,19 @@ test("print card: aim, script, Dikkat, RM notes, footer", () => {
   expect(document.body).toHaveTextContent(text("teklif_metni"));
   expect(document.body).toHaveTextContent(text("dikkat"));
   v.rm_warnings.forEach((w) => expect(screen.getByTestId("print-rm-notes")).toHaveTextContent(w.message));
-  expect(screen.getByTestId("print-footer")).toHaveTextContent(n.model);
+  // a template draft has no model: the footer says "şablon metin" instead
+  expect(screen.getByTestId("print-footer")).toHaveTextContent(n.source === "template" ? "şablon metin" : n.model);
 });
 
 test("an approved edited text prints as formatted Markdown", () => {
   const n = { ...sample("narrative_p01_tr"), status: "approved" as const, rm_text: "## Düzenlenmiş başlık\n\nMetin.", markdown: "## Düzenlenmiş başlık\n\nMetin." };
   renderPrint(sample("run_p01_approved"), n);
   expect(screen.getByRole("heading", { name: "Düzenlenmiş başlık" })).toBeInTheDocument();
+});
+
+test("an approved unedited text prints the sections", () => {
+  const d = sample("narrative_p01_tr");
+  const n = { ...d, status: "approved" as const, rm_text: d.draft_markdown, markdown: d.draft_markdown };
+  renderPrint(sample("run_p01_approved"), n);
+  expect(document.body).toHaveTextContent(d.sections.find((s) => s.key === "teklif_metni")!.sentences[0].text);
 });

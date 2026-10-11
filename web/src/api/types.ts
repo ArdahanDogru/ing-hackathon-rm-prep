@@ -155,9 +155,11 @@ export interface NarrativeDraft {
   need_tags: Record<string, string[]>;
 }
 
-/** GET /runs/{id}/narrative: the draft plus its Markdown (the approved text when approved). */
+/** GET /runs/{id}/narrative: the draft plus its Markdown (the approved text when approved)
+ * and the unedited draft's Markdown. */
 export interface NarrativeView extends NarrativeDraft {
   markdown: string;
+  draft_markdown: string;
 }
 
 export interface SourceStatus {
