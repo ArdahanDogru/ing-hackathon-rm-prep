@@ -1,0 +1,18 @@
+{
+ "id": "E2075d858",
+ "quantity": "fund_return_1y",
+ "entity": "PPN",
+ "value": 47.6037,
+ "unit": "pct",
+ "as_of": "2026-10-09",
+ "source": "tefas_web",
+ "source_url": "https://www.tefas.gov.tr/tr/fon-getirileri",
+ "fetched_at": "2026-10-10T18:38:37.587166+03:00",
+ "snapshot_id": "20261010-183835-6813",
+ "raw_ref": "20261010-183835-6813/payloads/tefas_web/fon-getirileri.html#fonKodu=PPN;field=getiri1y",
+ "flags": [
+  "needs_check"
+ ],
+ "note": "NUROL PORTFÖY PARA PİYASASI (TL) FONU; Para Piyasası Şemsiye Fonu; as_of assumed = previous business day",
+ "entity_name": "NUROL PORTFÖY PARA PİYASASI (TL) FONU"
+}

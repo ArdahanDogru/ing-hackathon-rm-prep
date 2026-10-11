@@ -1,0 +1,47 @@
+[
+ {
+  "term": "para_piyasasi_fonu",
+  "form": "para piyasası",
+  "explanation": "Çok kısa vadeli, düşük riskli araçlara (repo, kısa vadeli mevduat ve bonolar) yatırım yapan fon. Genelde aynı gün paraya çevrilebilir."
+ },
+ {
+  "term": "risk_degeri",
+  "form": "risk düzeyi",
+  "explanation": "Fonun fiyat dalgalanmasına göre 1 (en düşük) ile 7 (en yüksek) arasında verilen risk sınıfı. Yüksek değer, değerin kısa sürede daha çok inip çıkabileceği anlamına gelir."
+ },
+ {
+  "term": "likidite",
+  "form": "likidite",
+  "explanation": "Bir yatırımın ne kadar hızlı ve kayıpsız nakde çevrilebildiği."
+ },
+ {
+  "term": "borclanma_araclari_fonu",
+  "form": "borçlanma araçları",
+  "explanation": "Devlet veya şirket tahvili ve bonolarına yatırım yapan fon. Faiz değişimlerine göre değeri dalgalanabilir."
+ },
+ {
+  "term": "katilim_fonu",
+  "form": "katılım",
+  "explanation": "Faizsiz finans ilkelerine uygun araçlara (örneğin kira sertifikası) yatırım yapan fon."
+ },
+ {
+  "term": "stopaj",
+  "form": "stopaj",
+  "explanation": "Faiz veya fon kazancından kaynağında kesilen vergi. Kazancın bir yüzdesi olarak kesilir; müşteriye kesinti sonrası tutar ödenir."
+ },
+ {
+  "term": "tufe",
+  "form": "tüfe",
+  "explanation": "Tüketici Fiyat Endeksi: tüketicilerin satın aldığı mal ve hizmetlerin fiyatlarındaki ortalama değişim. Yıllık TÜFE, yıllık enflasyon oranıdır."
+ },
+ {
+  "term": "reel_getiri",
+  "form": "reel",
+  "explanation": "Enflasyonun etkisi çıkarıldıktan sonra kalan getiri. Reel getiri eksi ise, paranın satın alma gücü azalmıştır."
+ },
+ {
+  "term": "valor",
+  "form": "valör",
+  "explanation": "Fonu sattıktan (veya aldıktan) sonra paranın hesaba geçmesi için geçen iş günü sayısı. Örneğin 2 gün valör: bugün satılan fonun parası 2 iş günü sonra hesapta olur."
+ }
+]
