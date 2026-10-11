@@ -6,8 +6,10 @@ The persona JSONs in the folder above (`../p0*.json`, `../persona_schema.json`)
 are input and are not changed here.
 
 Modules and their design docs: ingest = `docs/ingest.md`, decision =
-`docs/decision.md`, ui = `docs/ui.md` (later narrator, eval). Read the doc of
-the module you work on; you do not need the others.
+`docs/decision.md`, ui (Streamlit, the fallback) = `docs/ui.md`, narrator =
+`docs/narrator.md`, eval = `docs/eval.md`, web UI (the new front end, in
+design) = `docs/web-ui.md`. Read the doc of the module you work on; you do not
+need the others.
 
 ## Working agreement
 
@@ -83,8 +85,11 @@ and message formats: `docs/workflow.md`.
   else (`contracts.py`, `pyproject.toml`, `config/`, `docs/`, this file, main)
   belongs to ing-lead; a hook enforces it. Ask ing-lead for changes.
 - The decision/UI contracts in `contracts.py` are frozen (v1, 2026-10-10;
-  v1.1 adds option kind `time_deposit`);
-  their design is `docs/decision.md` and `docs/ui.md`.
+  v1.1 adds option kind `time_deposit`; v1.2 adds the narrator types and
+  `Backend.draft_narrative` / `approve_narrative`); their design is
+  `docs/decision.md`, `docs/ui.md` and `docs/narrator.md`.
+- GitHub: private repo `ArdahanDogru/ing-hackathon-rm-prep`; only the lead
+  pushes `main`, and only when the user asks (`docs/workflow.md`).
 
 ## Commands
 
