@@ -103,7 +103,7 @@ test("needs_rm_input shows questions instead of Öneriler", () => {
 test("Detaylar opens categories, assumptions, data notes, eliminated, RM note", async () => {
   renderDashboard(sample("run_p01_ready"));
   await userEvent.click(screen.getByRole("button", { name: /Detaylar/ }));
-  for (const t of ["Kategoriler", "Varsayımlar", "Veri notları", "Elenen", "RM notu"])
+  for (const t of ["Kategoriler", "Varsayımlar", "Veri notları", "Elenen", "Uyarılar", "RM notu"])
     expect(screen.getByRole("tab", { name: new RegExp(t) })).toBeInTheDocument();
 });
 
@@ -187,6 +187,18 @@ test("Detaylar: a category opens at most 3 funds; RM notu holds the RM-only warn
   expect(rows.length).toBeLessThanOrEqual(3);
   await userEvent.click(screen.getByRole("tab", { name: /RM notu/ }));
   v.rm_warnings.forEach((w) => expect(screen.getByRole("tabpanel")).toHaveTextContent(w.message));
+});
+
+test("Detaylar: client warnings in Uyarılar, never under RM notu", async () => {
+  const v = sample("run_p01_ready");
+  const w = { code: "concentration", message: "Üç öneri de TL faizine bağlı.", evidence_ids: [], option_ids: [], audience: "client" as const };
+  renderDashboard({ ...v, client_warnings: [w] });
+  expect(screen.getByRole("button", { name: /Detaylar/ })).toHaveTextContent("Uyarılar (1)");
+  await userEvent.click(screen.getByRole("button", { name: /Detaylar/ }));
+  await userEvent.click(screen.getByRole("tab", { name: /Uyarılar/ }));
+  expect(screen.getByRole("tabpanel")).toHaveTextContent(w.message);
+  await userEvent.click(screen.getByRole("tab", { name: /RM notu/ }));
+  expect(screen.getByRole("tabpanel")).not.toHaveTextContent(w.message);
 });
 
 test("Detaylar: Elenen opens one row per rule", async () => {

@@ -178,11 +178,11 @@ const TR = {
   notConfirmed: "konu teyit edilmedi",
   clientFile: "Müşteri dosyası",
   fileNote: "Dosyadaki not",
-  clientWarnings: "Müşteriyle paylaşılabilecek uyarılar",
   deposit: "mevduat",
   kMark: "K",
   removeSelection: "Seçimden çıkar",
   fundCard: "Fon kartı",
+  warningsTab: "Uyarılar",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -362,11 +362,11 @@ const EN: Record<LabelKey, string> = {
   notConfirmed: "items not confirmed",
   clientFile: "Client file",
   fileNote: "Note in the file",
-  clientWarnings: "Warnings you can share with the client",
   deposit: "deposit",
   kMark: "K",
   removeSelection: "Remove from the selection",
   fundCard: "Fund card",
+  warningsTab: "Warnings",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };
