@@ -181,6 +181,8 @@ const TR = {
   clientWarnings: "Müşteriyle paylaşılabilecek uyarılar",
   deposit: "mevduat",
   kMark: "K",
+  removeSelection: "Seçimden çıkar",
+  fundCard: "Fon kartı",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -363,6 +365,8 @@ const EN: Record<LabelKey, string> = {
   clientWarnings: "Warnings you can share with the client",
   deposit: "deposit",
   kMark: "K",
+  removeSelection: "Remove from the selection",
+  fundCard: "Fund card",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };

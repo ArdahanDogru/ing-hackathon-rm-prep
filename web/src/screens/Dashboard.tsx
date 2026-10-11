@@ -1,6 +1,6 @@
 // Dashboard "B4" (docs/web-ui.md "Redesign v2"; mockup redesign-v4.html tab 3):
 // lifecycle tabs, brief card, agenda | Öneriler, Detaylar, approval bar.
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { api } from "../api/client";
 import type { Persona, RunView } from "../api/types";
 import { Agenda } from "../components/Agenda";
@@ -8,7 +8,7 @@ import { ApprovalBar } from "../components/ApprovalBar";
 import { BriefCard, plainBrief } from "../components/BriefCard";
 import { DetailsPanel } from "../components/DetailsPanel";
 import { EvidencePopup } from "../components/EvidencePopup";
-import { FundCard } from "../components/FundCard";
+import { FundCard, FundDrawer } from "../components/FundCard";
 import { LifecycleTabs } from "../components/LifecycleTabs";
 import { OptionsCompare } from "../components/OptionsCompare";
 import { PersonaPanel } from "../components/PersonaPanel";
@@ -74,6 +74,7 @@ export function Dashboard({
   };
 
   const opened = openId ? view.options[openId] : undefined;
+  const closeDrawer = useCallback(() => setOpenId(null), []);
 
   return (
     <div>
@@ -113,18 +114,7 @@ export function Dashboard({
         )}
       </div>
 
-      {opened && (
-        <div className="mb-6">
-          <FundCard
-            option={opened}
-            selected={selected.includes(opened.option_id)}
-            onToggle={() => toggle(opened.option_id)}
-            onEvidence={setEvidenceId}
-          />
-        </div>
-      )}
-
-      {ready && <DetailsPanel view={view} selected={selected} onToggle={toggle} onEvidence={setEvidenceId} />}
+      {ready && <DetailsPanel view={view} selected={selected} onToggle={toggle} onOpen={setOpenId} />}
 
       {ready && <ApprovalBar view={view} selected={selected} openConfirms={openConfirms} onRemove={toggle} onView={onView} />}
 
@@ -137,6 +127,17 @@ export function Dashboard({
             onPersona(p);
           }}
         />
+      )}
+      {opened && (
+        <FundDrawer key={opened.option_id} onClose={closeDrawer} paused={evidenceId !== null}>
+          <FundCard
+            option={opened}
+            selected={selected.includes(opened.option_id)}
+            snapshotId={r.snapshot_id}
+            onToggle={() => toggle(opened.option_id)}
+            onEvidence={setEvidenceId}
+          />
+        </FundDrawer>
       )}
       <EvidencePopup
         snapshotId={r.snapshot_id}

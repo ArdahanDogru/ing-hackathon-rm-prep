@@ -114,6 +114,66 @@ test("K mark opens the evidence pop-up", async () => {
   expect(ev).toHaveBeenCalled();
 });
 
+// --- plan W8: fund card as a side panel ---------------------------------------------
+
+test("a column click opens the drawer with the full name and three tiles", async () => {
+  const v = sample("run_p01_ready");
+  renderDashboard(v);
+  await userEvent.click(screen.getAllByTestId("compare-head")[0]);
+  const d = screen.getByRole("dialog");
+  expect(d).toHaveTextContent(v.options[v.top[0]].label.replace(/\s+/g, " "));
+  expect(within(d).getAllByTestId("fund-tile")).toHaveLength(3);
+});
+
+test("Escape closes the drawer and returns focus", async () => {
+  renderDashboard(sample("run_p01_ready"));
+  const head = screen.getAllByTestId("compare-head")[0];
+  await userEvent.click(head);
+  await userEvent.keyboard("{Escape}");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(head).toHaveFocus();
+});
+
+test("Seçime ekle / Seçimden çıkar changes the chips", async () => {
+  renderDashboard(sample("run_p01_ready"));
+  await userEvent.click(screen.getAllByTestId("compare-head")[0]);
+  await userEvent.click(screen.getByRole("button", { name: "Seçimden çıkar" }));
+  expect(screen.getAllByTestId("chip")).toHaveLength(2);
+  expect(screen.getByRole("button", { name: "Seçime ekle" })).toBeInTheDocument();
+});
+
+test("a card click opens the drawer too; a K mark inside the evidence pop-up, not the drawer", async () => {
+  const v = sample("run_p01_ready");
+  vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
+  renderDashboard(v);
+  await userEvent.click(screen.getByRole("button", { name: "Kartlar" }));
+  const card = screen.getAllByTestId("option-card")[1];
+  await userEvent.click(within(card).getByRole("button", { name: "Kanıt" }));
+  expect(screen.getAllByRole("dialog")).toHaveLength(1); // the evidence pop-up only
+  await userEvent.keyboard("{Escape}");
+  await userEvent.click(card);
+  expect(screen.getByRole("dialog")).toHaveTextContent(v.options[v.top[1]].short_label);
+});
+
+test("Escape with the evidence pop-up over the drawer closes only the pop-up", async () => {
+  vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
+  renderDashboard(sample("run_p01_ready"));
+  await userEvent.click(screen.getAllByTestId("compare-head")[0]);
+  await userEvent.click(screen.getByRole("button", { name: /Kanıtları göster/ }));
+  await userEvent.click(within(screen.getByRole("dialog")).getAllByRole("button", { name: /^E/ })[0]);
+  expect(screen.getAllByRole("dialog")).toHaveLength(2);
+  await userEvent.keyboard("{Escape}");
+  expect(screen.getAllByRole("dialog")).toHaveLength(1);
+});
+
+test("Ayrıntılar in Detaylar opens the same drawer", async () => {
+  renderDashboard(sample("run_p01_ready"));
+  await userEvent.click(screen.getByRole("button", { name: /Detaylar/ }));
+  await userEvent.click(within(screen.getAllByTestId("category")[0]).getByRole("button", { expanded: false }));
+  await userEvent.click(screen.getAllByRole("button", { name: "Ayrıntılar" })[0]);
+  expect(within(screen.getByRole("dialog")).getAllByTestId("fund-tile")).toHaveLength(3);
+});
+
 // --- kept from the first design ---------------------------------------------------
 
 test("Detaylar: a category opens at most 3 funds; RM notu holds the RM-only warnings", async () => {
