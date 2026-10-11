@@ -7,9 +7,11 @@ named options), phrase (no forbidden phrase), citation (cited sentences, known
 ids), disclaimer, section (all sections, in order, none empty), assumption
 (the assumptions verbatim); N7: internal (no internal names or values outside
 varsayimlar), coverage (an oneriler sentence per selected option), pointer
-(dikkat points to the "Olası sorunlar" pane when there are data-quality notes);
-N9: talking (talking_points has 2-3 sentences, each with a title), tag (need
-tags: every selected option, at most 3, each one of the persona's oncelikler)."""
+(the N7 pointer to the "Olası sorunlar" pane is gone in N9c: the text names no
+screen); N9: talking (talking_points has 2-3 sentences, each with a title), tag (need
+tags: every selected option, at most 3, each one of the persona's oncelikler);
+N9c: label (a clause that names an ING deposit carries only ING rates as
+percents), internal also catches the names of UI sections."""
 
 from __future__ import annotations
 
@@ -19,7 +21,7 @@ from datetime import date
 
 from rmprep.contracts import NARRATIVE_SECTIONS_V13, DecisionResult, NarrativeSection, Persona
 from rmprep.narrator.config import NarratorConfig
-from rmprep.narrator.facts import INTERNAL_PARTS, Facts
+from rmprep.narrator.facts import ING_RATES, INTERNAL_PARTS, Facts
 from rmprep.narrator.template import INTERNAL_NAME, tr_lower
 
 SECTIONS = NARRATIVE_SECTIONS_V13
@@ -31,7 +33,10 @@ PERCENT_KEYS = ("confidence", "stability")     # 0..1 values that could be writt
 INTERNAL_KEYS = ("score", "confidence", "stability", "data_quality", "rejected_count",
                  "rejected_rules")
 VERBATIM_SECTIONS = ("varsayimlar",)            # engine text kept as it is
-PANES = {"TR": "Olası sorunlar", "EN": "Possible issues"}
+# N9c: names of screens / panes of the app; the text never points to them
+UI_NAMES = ("Olası sorunlar", "Possible issues", "RM notları", "RM notes")
+_CLAUSE = re.compile(r"[;:]|[.,](?!\d)")        # clause ends; a decimal mark is not one
+_PERCENT = re.compile(r"%\s?\d+(?:[.,]\d+)*|\d+(?:[.,]\d+)*\s?%")
 
 _IDS = re.compile(r"\bE[0-9a-f]{8}\b|\b(?:deposit|time_deposit|fund):\S+")
 _DATE_TR = re.compile(r"(?<![\w.])(\d{1,2})\.(\d{1,2})\.(\d{4})(?![\w])")
@@ -241,9 +246,56 @@ def _check_citations(sections, f: Facts) -> list[str]:
 
 
 def _check_internal_names(sections) -> list[str]:
-    return [f"internal: {sec.key}: internal name \"{m}\": \"{_short(s.text)}\""
-            for sec in sections if sec.key not in VERBATIM_SECTIONS
-            for s in sec.sentences for m in INTERNAL_NAME.findall(s.text)]
+    out = [f"internal: {sec.key}: internal name \"{m}\": \"{_short(s.text)}\""
+           for sec in sections if sec.key not in VERBATIM_SECTIONS
+           for s in sec.sentences for m in INTERNAL_NAME.findall(s.text)]
+    ui = [(u, _norm(u)) for u in UI_NAMES]
+    out += [f"internal: {sec.key}: the text names the screen section \"{u}\": "
+            f"\"{_short(s.text)}\""
+            for sec in sections for s in sec.sentences for u, nu in ui if nu in _norm(s.text)]
+    return out
+
+
+def _ing_names(f: Facts) -> list[str]:
+    """Normalized names of the ING deposit options: the label, the label without
+    its bracket, and both without the leading "ING"."""
+    out: set[str] = set()
+    for o in f.named_options().values():
+        if o.kind not in ("deposit", "time_deposit"):
+            continue
+        for name in (o.label, re.sub(r"\s*\(.*?\)", "", o.label)):
+            n = _norm(name)
+            out.add(n)
+            prefix = _norm("ING ") + " "            # Turkish lower case: "ıng "
+            if n.startswith(prefix):
+                out.add(n[len(prefix):])
+    return sorted((n for n in out if n), key=len, reverse=True)
+
+
+def _check_ing_labels(sections, f: Facts) -> list[str]:
+    """N9c: in a clause that names an ING deposit, every percent must be an ING
+    rate of the facts (a market rate next to the ING name is a wrong label).
+    Clause = the text between ; , : and full stops. A contrast in another clause
+    ("ING %23, piyasa ise %43,82") passes; a false finding costs one retry."""
+    names = _ing_names(f)
+    if not names:
+        return []
+    rates = {n.value for o in f.named_options().values() for n in o.numbers
+             if n.name in ING_RATES}
+    out = []
+    for sec in sections:
+        if sec.key in VERBATIM_SECTIONS:
+            continue
+        for s in sec.sentences:
+            for clause in _CLAUSE.split(s.text):
+                if not any(n in _norm(clause) for n in names):
+                    continue
+                for tok in _PERCENT.findall(clause):
+                    readings = _token_readings(tok)
+                    if not readings or not _matches(readings[0][1], rates):
+                        out.append(f"label: {sec.key}: {tok.strip()} is not an ING rate but "
+                                   f"stands next to an ING product name: \"{_short(s.text)}\"")
+    return out
 
 
 def _check_coverage(sections, f: Facts) -> list[str]:
@@ -251,17 +303,6 @@ def _check_coverage(sections, f: Facts) -> list[str]:
              for i in s.option_ids}
     return [f"coverage: oneriler: no sentence for the selected option {o.option_id} "
             f"({o.label})" for o in f.selected if o.option_id not in cited]
-
-
-def _check_pointer(sections, f: Facts, lang: str) -> list[str]:
-    if not f.data_quality:
-        return []
-    dikkat = _norm(" ".join(s.text for sec in sections if sec.key == "dikkat"
-                            for s in sec.sentences))
-    if any(_norm(p) in dikkat for p in PANES.values()):
-        return []
-    return [f"pointer: dikkat: one sentence must point to the \"{PANES[lang]}\" pane for "
-            f"the data-quality notes"]
 
 
 def _check_talking_points(sections) -> list[str]:
@@ -314,7 +355,7 @@ def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
     out += _check_citations(sections, f)
     out += _check_internal_names(sections)
     out += _check_coverage(sections, f)
-    out += _check_pointer(sections, f, lang)
+    out += _check_ing_labels(sections, f)
     out += _check_talking_points(sections)
     if need_tags is not None:
         out += _check_need_tags(need_tags, f, r)

@@ -69,9 +69,9 @@ def test_facts_block_is_small():
 
 
 def test_pack_has_no_data_quality_details():
-    """N7: only a flag; the text points to the "Olası sorunlar" pane."""
+    """N9c: data-quality facts are RM-only; the pack has none of them."""
     pack = prompt_facts(build_facts(big_result(), evidence()))
-    assert pack["data_quality_notes"] is True
+    assert "data_quality_notes" not in pack
     assert "data_quality" not in pack and "rejected" not in pack
 
 
@@ -141,8 +141,7 @@ def _text_from_pack(pack: dict, disclaimer: str) -> tuple[NarrativeSection, ...]
                      for o in pack["selected"]],
         "alternatifler": [NarrativeSentence(f"{a['label']}: {nums(a)}.", (a["option_id"],), ids(a))
                           for a in pack["alternatives"]],
-        "dikkat": [NarrativeSentence("Veri notları için \"Olası sorunlar\" bölümüne bakın.",
-                                     selected)]
+        "dikkat": [NarrativeSentence("Geçmiş getiriler geleceği göstermez.", selected)]
                   + [NarrativeSentence(w["message"], tuple(w["option_ids"]) or selected)
                      for w in pack["warnings"]],
         "sorular": [NarrativeSentence(q) for q in pack["open_questions"]]
