@@ -33,7 +33,7 @@ test("an error without JSON keeps the status text", async () => {
 });
 
 test("requests use the right method, path and body", async () => {
-  const fetch = vi.fn().mockResolvedValue(json({}));
+  const fetch = vi.fn().mockImplementation(async () => json({}));
   globalThis.fetch = fetch;
   await api.approve("R1", "approved", "not", ["fund:A", "fund:B"]);
   await api.notes("R1", "n", { "fund:A": "x" });

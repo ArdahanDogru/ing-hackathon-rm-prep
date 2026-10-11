@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import { resolveMock } from "./src/api/mock";
+import { resolveMock } from "./src/api/mock.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
