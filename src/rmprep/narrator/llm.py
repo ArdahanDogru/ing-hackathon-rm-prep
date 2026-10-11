@@ -24,6 +24,11 @@ class LlmRequest:
     system: str
     user_blocks: tuple[str, ...]        # first block: the facts (cached prefix)
     schema: Mapping[str, Any]           # JSON schema of the reply
+    # N10: per-request values (the brief); None = the config's llm values
+    model: str | None = None
+    max_tokens: int | None = None
+    effort: str | None = None
+    fallback: bool = True               # server-side refusal fallback (not on Haiku 5.5)
 
 
 @dataclass(frozen=True)
@@ -72,16 +77,16 @@ class AnthropicClient:
         first, *rest = request.user_blocks
         content = [{"type": "text", "text": first, "cache_control": {"type": "ephemeral"}}]
         content += [{"type": "text", "text": b} for b in rest]
+        fallback = {"betas": [FALLBACK_BETA], "fallbacks": "default"} if request.fallback else {}
         try:
             msg = self._sdk.beta.messages.create(
-                model=self._config.model,
-                max_tokens=self._config.max_tokens,
+                model=request.model or self._config.model,
+                max_tokens=request.max_tokens or self._config.max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": content}],
-                output_config={"effort": self._config.effort,
+                output_config={"effort": request.effort or self._config.effort,
                                "format": {"type": "json_schema", "schema": dict(request.schema)}},
-                betas=[FALLBACK_BETA],
-                fallbacks="default",
+                **fallback,
             )
         except anthropic.AuthenticationError as e:
             raise LlmError("auth", e.message) from e

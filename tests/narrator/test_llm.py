@@ -182,3 +182,16 @@ def test_system_is_one_cached_prefix_for_every_client(config):
         assert r.run_id not in a["system"][0]["text"]
         assert r.persona.profil not in a["system"][0]["text"]
     assert a["messages"] != b["messages"]
+
+
+def test_request_overrides_for_the_brief(config):
+    """N10: the brief asks for another model and effort and no refusal fallback
+    (Claude Haiku 5.5 has no server-side fallback)."""
+    req = dataclasses.replace(REQ, model="claude-haiku-5-5", max_tokens=2000, effort="low",
+                              fallback=False)
+    client, calls = _client(config, _message(model="claude-haiku-5-5"))
+    client.complete(req)
+    k = calls.kwargs
+    assert (k["model"], k["max_tokens"], k["output_config"]["effort"]) == ("claude-haiku-5-5",
+                                                                           2000, "low")
+    assert "betas" not in k and "fallbacks" not in k
