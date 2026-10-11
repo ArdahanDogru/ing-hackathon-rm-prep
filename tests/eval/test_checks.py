@@ -319,3 +319,77 @@ def test_a_template_without_an_llm_try_is_not_a_narrator_finding(p01):
         c = check_narrator_valid(Context(p01.scenario, dataclasses.replace(
             run, narratives={"TR": d}), DCFG, PHRASES))
         assert c.status == NA
+
+
+# --- E8: the display facts of the run (decision.display) count as known numbers
+
+def _display(run):
+    from rmprep.decision.config import DecisionConfig
+    from rmprep.decision.display import display_facts
+    return display_facts(run.result, run.evidence, DecisionConfig(raw=DCFG))
+
+
+def _tr1(x: float) -> str:
+    return f"{abs(x):.1f}".replace(".", ",")
+
+
+def _uncited(run, numbers):
+    """(option_id, value) of a display-facts number the result does not hold."""
+    from rmprep.eval.checks import _matches, allowed_numbers
+    from rmprep.narrator.validator import numbers_in
+    nums, _ = allowed_numbers(run.result, {d.id: d for d in run.evidence.datapoints})
+    for oid, value in numbers:
+        if not _matches(numbers_in(_tr1(value)), nums):
+            return oid, value
+    pytest.skip("every display number is also in the result on this fixture")
+
+
+def test_a_display_facts_return_passes(root):
+    sr = one(root, Scenario(id="p03", group="base", persona="P03"))   # horizon 3y: cites 3y rows
+    run = sr.runs[0]
+    shown = {o.option.option_id for o in run.result.options}
+    oid, value = _uncited(run, [(oid, f.value) for oid, d in _display(run).items() if oid in shown
+                                for f in d.returns.values()])
+    run2 = dataclasses.replace(run, narratives={"TR": text(
+        run, NarrativeSentence(f"Getiri %{_tr1(value)} oldu.", (oid,)))})
+    assert check_no_invented_data(Context(sr.scenario, run2, DCFG, PHRASES)).status == PASS
+
+
+def test_a_real_1y_return_passes(root, extra_rows):
+    from tests.eval.test_regression import d9_rows
+    extra_rows += d9_rows()                       # CPI and stopaj rows: real returns exist
+    # P03 (horizon 3y): its reasons show the 3-year real return, not the 1-year one
+    sr = one(root, Scenario(id="p03", group="base", persona="P03"))
+    run = sr.runs[0]
+    shown = {o.option.option_id for o in run.result.options}
+    oid, value = _uncited(run, [(oid, d.real_1y.value) for oid, d in _display(run).items()
+                                if oid in shown and d.real_1y is not None])
+    run2 = dataclasses.replace(run, narratives={"TR": text(
+        run, NarrativeSentence(f"Reel getiri −%{_tr1(value)}.", (oid,)))})
+    assert check_no_invented_data(Context(sr.scenario, run2, DCFG, PHRASES)).status == PASS
+
+
+def test_a_number_in_neither_the_result_nor_the_display_facts_still_fails(root):
+    sr = one(root, Scenario(id="p03", group="base", persona="P03"))
+    run = sr.runs[0]
+    oid = run.result.options[1].option.option_id
+    run2 = dataclasses.replace(run, narratives={"TR": text(
+        run, NarrativeSentence("Getiri %4321,7 oldu.", (oid,)))})
+    c = check_no_invented_data(Context(sr.scenario, run2, DCFG, PHRASES))
+    assert c.status == FAIL and "4321,7" in c.details[0]
+
+
+def test_display_facts_of_rejected_options_do_not_count(root):
+    sr = one(root, Scenario(id="p01", group="base", persona="P01"))
+    run = sr.runs[0]
+    rejected = {x.option.option_id for x in run.result.rejected}
+    shown = {o.option.option_id for o in run.result.options}
+    facts = _display(run)
+    shown_values = {round(f.value, 1) for oid, d in facts.items() if oid in shown
+                    for f in d.returns.values()}
+    oid, value = _uncited(run, [(oid, f.value) for oid, d in facts.items() if oid in rejected
+                                for f in d.returns.values()
+                                if round(f.value, 1) not in shown_values])
+    run2 = dataclasses.replace(run, narratives={"TR": text(
+        run, NarrativeSentence(f"Getiri %{_tr1(value)}.", (run.result.options[1].option.option_id,)))})
+    assert check_no_invented_data(Context(sr.scenario, run2, DCFG, PHRASES)).status == FAIL

@@ -147,6 +147,36 @@ def allowed_numbers(r: DecisionResult, ev_by_id: Mapping) -> tuple[set[float], s
     return nums, dates
 
 
+def display_numbers(r: DecisionResult, ev, decision_config: Mapping[str, Any],
+                    ev_by_id: Mapping) -> tuple[set[float], set[date]]:
+    """Numbers and dates of the display facts of the scored options
+    (rmprep.decision.display: returns per period, real 1-year return, risk,
+    valör, time deposit term, the why lines) and of the evidence rows they
+    cite. The narrator pack and the screens use them (N9), so a text may too.
+    Rejected options are left out: a text must not talk about them."""
+    from rmprep.decision.config import DecisionConfig
+    from rmprep.decision.display import display_facts
+
+    nums: set[float] = set()
+    dates: set[date] = set()
+    shown = {o.option.option_id for o in r.options}
+    for oid, f in display_facts(r, ev, DecisionConfig(raw=decision_config)).items():
+        if oid not in shown:
+            continue
+        facts = [*f.returns.values(), f.real_1y, f.risk, f.sell_valor_days]
+        for fact in (x for x in facts if x is not None):
+            nums.add(abs(fact.value))
+            row = ev_by_id.get(fact.evidence_id)
+            if row is not None:
+                if row.value is not None:
+                    nums.add(abs(row.value))
+                dates.add(row.as_of)
+        if f.lock_days is not None:
+            nums.add(float(f.lock_days))
+        _walk_numbers([text for _, text in f.why], "", nums, dates)
+    return nums, dates
+
+
 def _matches(readings, allowed: set[float]) -> bool:
     return any(abs(x - a) <= 0.5 * 10 ** -d + 1e-9 for x, d in readings for a in allowed)
 
@@ -228,6 +258,10 @@ def check_no_invented_data(c: Context) -> CheckResult:
         elif d.source in excluded:
             problems.append(f"result: {i} comes from the excluded source {d.source}")
     nums, dates = allowed_numbers(r, by_id)
+    if c.run.narratives:
+        shown_nums, shown_dates = display_numbers(r, ev, c.decision_config, by_id)
+        nums |= shown_nums
+        dates |= shown_dates
     for lang, d in sorted(c.run.narratives.items()):
         for key, s in sentences(d):
             for i in s.evidence_ids:
@@ -238,7 +272,7 @@ def check_no_invented_data(c: Context) -> CheckResult:
             for tok, readings in token_readings(text):
                 if not _matches(readings, nums):
                     problems.append(f"text {lang}: {key}: number {tok} is not in the result or "
-                                    f"its evidence: \"{s.text[:80]}\"")
+                                    f"its evidence or display facts: \"{s.text[:80]}\"")
             for dt in sorted(dates_in(text) - dates):
                 problems.append(f"text {lang}: {key}: date {dt} is not in the result or its evidence")
     return CheckResult.of("no_invented_data", problems)
