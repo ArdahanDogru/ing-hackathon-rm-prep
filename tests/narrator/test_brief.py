@@ -197,6 +197,7 @@ def test_english_brief(ready_p01, make):
 def test_brief_config(config):
     assert config.brief.model == "claude-haiku-5-5"
     assert config.brief.max_chars == 280 and config.brief.prompt_version == "b1"
+    assert (config.brief.price_input_per_mtok, config.brief.price_output_per_mtok) == (0.10, 0.50)
 
 
 def test_a_long_brief_keeps_the_whole_sentences_that_fit(ready_p01, make):
