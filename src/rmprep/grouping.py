@@ -52,6 +52,12 @@ def groups(options: Sequence[ScoredOption], rule: GroupingRule = DEFAULT_RULE) -
     return out[:rule.max_groups]
 
 
+def top_heads(options: Sequence[ScoredOption], n: int = 3,
+              rule: GroupingRule = DEFAULT_RULE) -> tuple[ScoredOption, ...]:
+    """The recommendations of the web dashboard: the heads of the first n groups."""
+    return tuple(g.head for g in groups(options, rule)[:n])
+
+
 def visible_alternatives(g: Group, opened: bool,
                          rule: GroupingRule = DEFAULT_RULE) -> tuple[ScoredOption, ...]:
     return g.alternatives if opened else g.alternatives[:rule.visible_alternatives]

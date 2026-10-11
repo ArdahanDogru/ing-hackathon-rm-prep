@@ -264,7 +264,8 @@
     "E42b47116",
     "E9cb9f7ad"
    ],
-   "option_ids": []
+   "option_ids": [],
+   "audience": "rm"
   },
   {
    "code": "fx_exposure",
@@ -272,13 +273,15 @@
    "evidence_ids": [],
    "option_ids": [
     "fund:AKE"
-   ]
+   ],
+   "audience": "client"
   },
   {
    "code": "no_fx_deposit_data",
    "message": "Döviz mevduatı oranı kanıtlarda yok; döviz mevduatı karşılaştırılamadı.",
    "evidence_ids": [],
-   "option_ids": []
+   "option_ids": [],
+   "audience": "rm"
   }
  ],
  "data_quality": [
@@ -306,5 +309,20 @@
  "rm_status": "pending",
  "rm_note": "",
  "rm_selected": [],
- "rm_option_notes": {}
+ "rm_option_notes": {},
+ "talking_points": [
+  {
+   "code": "risk_fit",
+   "label": "Risk",
+   "figure": "en fazla 4 / 7",
+   "text": "İlk üç önerinin SPK risk değeri en fazla 4 / 7; müşterinin sınırı 5 / 7.",
+   "evidence_ids": [
+    "E571475ce"
+   ],
+   "option_ids": []
+  }
+ ],
+ "to_confirm": [
+  "Yatırım tutarını sorun: 100.000–249.999 TL dilimi varsayıldı."
+ ]
 }

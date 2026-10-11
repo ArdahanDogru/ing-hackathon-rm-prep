@@ -37,6 +37,7 @@ from rmprep.contracts import (
     ProductOption,
     RejectedOption,
     ScoredOption,
+    TalkingPoint,
 )
 from rmprep.ingest.pipeline import build_evidence
 
@@ -240,9 +241,16 @@ def decisions(ev: EvidenceSet, personas: dict[str, Persona]) -> dict[str, Decisi
         assumptions=assumptions + ("\"doviz_maruz_kalma_tercihi\" için güvenli düzey \"Sınırlı\" varsayıldı.",),
         warnings=(dep_warn,
                   DecisionWarning("fx_exposure", CONFIG["texts"]["warnings"]["fx_exposure"],
-                                  (), (f"fund:{fxf}",)),
+                                  (), (f"fund:{fxf}",), audience="client"),
                   DecisionWarning("no_fx_deposit_data", CONFIG["texts"]["warnings"]["no_fx_deposit_data"])),
-        data_quality=(quality, removed), **common)
+        data_quality=(quality, removed),
+        # v1.3 (illustrative): one talking point and one item to confirm
+        talking_points=(TalkingPoint(
+            "risk_fit", "Risk", "en fazla 4 / 7",
+            "İlk üç önerinin SPK risk değeri en fazla 4 / 7; müşterinin sınırı 5 / 7.",
+            (_pick(ev, "fund_risk_level", debt),)),),   # no option_ids: ui tests swap the options
+        to_confirm=("Yatırım tutarını sorun: 100.000–249.999 TL dilimi varsayıldı.",),
+        **common)
 
     p03 = DecisionResult(
         run_id="R03examp1e0", persona=personas["P03"], state=DecisionState.READY,

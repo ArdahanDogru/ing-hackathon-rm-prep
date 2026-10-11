@@ -57,3 +57,14 @@ def test_default_rule_on_a_fixture_result():
     pool = [o for o in r.options if o.option.kind != "deposit"][:DEFAULT_RULE.pool]
     members = [o for g in gs for o in (g.head, *g.alternatives)]
     assert all(m in pool for m in members)
+
+
+def test_top_heads_are_the_first_group_heads():
+    from rmprep.grouping import top_heads
+    dep = scored(opt("deposit:d", kind="deposit"), 0.99)
+    rows = [dep, scored(opt("fund:M1"), 0.9), scored(opt("fund:D1", fund_kind="debt"), 0.8),
+            scored(opt("fund:M2"), 0.85), scored(opt("time_deposit:t", kind="time_deposit"), 0.7),
+            scored(opt("fund:E1", fund_kind="equity"), 0.6)]
+    assert [h.option.option_id for h in top_heads(rows, 3)] == ["fund:M1", "fund:D1", "time_deposit:t"]
+    assert top_heads(rows, 3) == tuple(g.head for g in groups(rows))[:3]
+    assert top_heads([dep], 3) == ()

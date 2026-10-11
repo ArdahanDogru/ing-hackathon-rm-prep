@@ -200,7 +200,8 @@
     "E42b47116",
     "E9cb9f7ad"
    ],
-   "option_ids": []
+   "option_ids": [],
+   "audience": "rm"
   }
  ],
  "data_quality": [
@@ -228,5 +229,7 @@
  "rm_status": "pending",
  "rm_note": "",
  "rm_selected": [],
- "rm_option_notes": {}
+ "rm_option_notes": {},
+ "talking_points": [],
+ "to_confirm": []
 }

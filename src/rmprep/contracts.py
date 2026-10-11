@@ -221,6 +221,8 @@ class SourceStatus:
 # v1.1 (2026-10-10): option kind "time_deposit" (ING e-Vadeli Mevduat).
 # v1.2 (2026-10-10): narrator types + Backend.draft_narrative / approve_narrative
 # (docs/narrator.md).
+# v1.3 (2026-10-11): warning audience, talking points, to_confirm; narrator
+# section talking_points, sentence title, need_tags (docs/web-ui.md section 3).
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -370,6 +372,9 @@ class ClarificationQuestion:
             raise ValueError(f"answer {self.answer!r} is not one of {self.choices}")
 
 
+WARNING_AUDIENCES = ("client", "rm")
+
+
 @dataclass(frozen=True)
 class DecisionWarning:
     code: str               # concentration | fx_exposure | risk_estimate | low_stability |
@@ -377,6 +382,28 @@ class DecisionWarning:
     message: str
     evidence_ids: tuple[str, ...] = ()
     option_ids: tuple[str, ...] = ()            # options it is about; () = the whole result
+    audience: str = "rm"                        # v1.3: "client" may go into client-facing text
+
+    def __post_init__(self) -> None:
+        if self.audience not in WARNING_AUDIENCES:
+            raise ValueError(f"audience must be one of {WARNING_AUDIENCES}, got {self.audience!r}")
+
+
+@dataclass(frozen=True)
+class TalkingPoint:
+    """v1.3: one card of "Müşteriyle konuşulacaklar" (decision D18, docs/web-ui.md)."""
+
+    code: str               # deposit_real | best_alternative | access | risk_fit
+    label: str              # short, e.g. "Mevduatta reel getiri"
+    figure: str             # the large number as text, Turkish format, e.g. "−%8,3"
+    text: str               # one sentence, from the client's view
+    evidence_ids: tuple[str, ...] = ()
+    option_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        for name in ("code", "label", "figure", "text"):
+            if not getattr(self, name).strip():
+                raise ValueError(f"talking point {name} must be non-empty")
 
 
 @dataclass(frozen=True)
@@ -406,6 +433,8 @@ class DecisionResult:
     rm_note: str = ""                           # the RM's general note
     rm_selected: tuple[str, ...] = ()           # option_ids to discuss with the client
     rm_option_notes: Mapping[str, str] = field(default_factory=dict)  # option_id -> note
+    talking_points: tuple[TalkingPoint, ...] = ()   # v1.3, D18: 0..3, display order
+    to_confirm: tuple[str, ...] = ()                # v1.3, D16: commands for the RM
 
     @property
     def persona_id(self) -> str:
@@ -438,6 +467,11 @@ class DecisionResult:
         for w in self.warnings:
             if not set(w.option_ids) <= known:
                 raise ValueError(f"warning {w.code} names unknown options")
+        if len(self.talking_points) > 3:
+            raise ValueError("at most 3 talking points")
+        for tp in self.talking_points:
+            if not set(tp.option_ids) <= set(ids):
+                raise ValueError(f"talking point {tp.code} names options that are not scored")
 
         if not set(self.rm_selected) <= set(ids):
             raise ValueError("rm_selected names options that are not scored")
@@ -479,6 +513,9 @@ class DecisionResult:
 NARRATIVE_LANGS = ("TR", "EN")
 NARRATIVE_SECTIONS = ("ozet", "oneriler", "alternatifler", "dikkat", "sorular",
                       "teklif_metni", "varsayimlar")
+# v1.3: the sections of a draft from narrator N9 on (talking_points added at the
+# end). NARRATIVE_SECTIONS stays the v1.2 list, so a v1.2 narrator stays valid.
+NARRATIVE_SECTIONS_V13 = NARRATIVE_SECTIONS + ("talking_points",)
 NARRATIVE_SOURCES = ("llm", "template")
 
 
@@ -492,6 +529,7 @@ class NarrativeSentence:
     text: str
     option_ids: tuple[str, ...] = ()     # options the sentence talks about
     evidence_ids: tuple[str, ...] = ()   # DataPoint ids it rests on
+    title: str = ""                      # v1.3: talking_points only, a 2-4 word heading
 
 
 @dataclass(frozen=True)
@@ -500,8 +538,8 @@ class NarrativeSection:
     sentences: tuple[NarrativeSentence, ...]
 
     def __post_init__(self) -> None:
-        if self.key not in NARRATIVE_SECTIONS:
-            raise ValueError(f"unknown section key {self.key!r}; known: {NARRATIVE_SECTIONS}")
+        if self.key not in NARRATIVE_SECTIONS_V13:
+            raise ValueError(f"unknown section key {self.key!r}; known: {NARRATIVE_SECTIONS_V13}")
 
 
 @dataclass(frozen=True)
@@ -519,6 +557,7 @@ class NarrativeDraft:
     cost_usd: float = 0.0
     status: NarrativeStatus = NarrativeStatus.DRAFT
     rm_text: str = ""                    # the RM's edited text (Markdown); required when approved
+    need_tags: Mapping[str, tuple[str, ...]] = field(default_factory=dict)  # v1.3: option_id -> persona priorities
 
     def __post_init__(self) -> None:
         if self.lang not in NARRATIVE_LANGS:

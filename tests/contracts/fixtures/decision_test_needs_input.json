@@ -71,5 +71,7 @@
  "rm_status": "pending",
  "rm_note": "",
  "rm_selected": [],
- "rm_option_notes": {}
+ "rm_option_notes": {},
+ "talking_points": [],
+ "to_confirm": []
 }
