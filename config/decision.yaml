@@ -191,6 +191,19 @@ display:
   diversity_cap: 2      # with concentration_limit or the çeşitlendirme priority
   pool: 20              # D10: with diversity, positions 1-20 ...
   diversity_pool_cap: 4 # ... at most 4 per kind
+  # D17 (web UI, docs/decision.md section 9): "Paraya erişim" and the
+  # "Bu müşteri için neden?" lines, by criterion; {access} {risk} {ret1y}.
+  # No score numbers; a line whose value is missing is left out.
+  access:
+    same_day: "Aynı gün"
+    days: "{days} iş günü"
+    term: "Vade sonunda ({days} gün)"
+  why:
+    liquidity: "Paraya erişim: {access}"
+    low_risk: "SPK risk değeri {risk} / 7"
+    principal: "SPK risk değeri {risk} / 7"
+    income: "Son bir yılda {ret1y} getiri (geçmiş getiri)"
+    return: "Son bir yılda {ret1y} getiri (geçmiş getiri)"
 
 # --- 5. confidence / stability -------------------------------------------------------
 confidence:
@@ -207,6 +220,13 @@ stability:
 warnings:
   low_stability_below: 0.5
   deposit_vs_market_points: 5.0
+  # D16 (web UI): who may read a warning; any other code is "rm" (RM only,
+  # never in client-facing text)
+  audience: {concentration: client, fx_exposure: client}
+
+# D16 (web UI, "Teyit edin"): assumption key -> command for the RM; only {tier}
+to_confirm:
+  deposit_tier: "Yatırım tutarını sorun: {tier} dilimi varsayıldı."
 
 # --- Texts (Turkish; {name} fields are filled by the engine) -----------------------------
 texts:

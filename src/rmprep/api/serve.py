@@ -11,15 +11,18 @@ DEFAULT_PORT = 8600
 
 def build_app(root: Path, personas_dir: Path | None = None):
     from rmprep.api.app import create_app
+    from rmprep.api.views import ViewBuilder
     from rmprep.backend import RealBackend
+    from rmprep.decision import load_config
 
     backend = RealBackend(root, personas_dir=personas_dir)
+    views = ViewBuilder(backend, load_config(root / "config" / "decision.yaml"))
     dist = root / "web" / "dist"
     if not (dist / "index.html").is_file():
         print(f"web/dist missing: run `npm ci; npm run build` in {root / 'web'} (API only for now)",
               file=sys.stderr)
         dist = None
-    return create_app(backend, static_dir=dist)
+    return create_app(backend, views=views, static_dir=dist)
 
 
 def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None) -> None:
