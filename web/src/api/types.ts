@@ -258,8 +258,8 @@ export interface RejectedByRule {
 
 export interface RunView {
   result: DecisionResult;
-  /** The client's SPK fund risk ceiling (contract request to ing-lead); absent until the API sends it. */
-  risk_ceiling?: number | null;
+  /** The client's SPK fund risk ceiling 1..7; null while a blocking question is open. */
+  risk_ceiling: number | null;
   test_run: boolean;
   persona_changes: { field: string; original: unknown; edited: unknown }[];
   baseline: OptionView | null;

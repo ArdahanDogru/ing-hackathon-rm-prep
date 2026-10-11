@@ -27,6 +27,15 @@ test("brief card: profile line, plain sentence first, readiness 2 / 3", () => {
   v.result.persona.acik_kisitlar.forEach((k) => expect(card).toHaveTextContent(k));
 });
 
+test("the profile line shows the fund risk ceiling; with null only the profile", () => {
+  const v = sample("run_p01_ready");
+  const { unmount } = renderDashboard(v);
+  expect(screen.getByTestId("brief-card")).toHaveTextContent(`${v.result.persona.risk_profili} (fon riski en fazla ${v.risk_ceiling} / 7)`);
+  unmount();
+  renderDashboard(sample("run_needs_input"));
+  expect(screen.getByTestId("brief-card")).not.toHaveTextContent("fon riski en fazla");
+});
+
 test("agenda: at most 3 points and the Teyit edin items", () => {
   const v = sample("run_p01_ready");
   renderDashboard(v);
