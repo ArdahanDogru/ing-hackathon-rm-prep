@@ -13,7 +13,8 @@ from concurrent.futures import TimeoutError as FutureTimeout
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from rmprep.api import schemas
 from rmprep.contracts import (
@@ -37,7 +38,10 @@ ViewFn = Callable[[DecisionResult], dict]
 
 def create_app(backend: Backend, *, views: ViewFn | None = None,
                narrative_timeout_s: float = 120.0,
-               glossary_path: Path | str = GLOSSARY) -> FastAPI:
+               glossary_path: Path | str = GLOSSARY,
+               static_dir: Path | None = None) -> FastAPI:
+    """static_dir: the built web app (web/dist); its index.html answers every
+    non-API path, so the client-side routes (/meeting/..., /print/...) work."""
     app = FastAPI(title="rmprep", docs_url="/api/docs", openapi_url="/api/openapi.json")
     runs: dict[str, DecisionResult] = {}
     texts: dict[tuple[str, str], NarrativeDraft] = {}   # (run_id, lang) -> last draft / approved text
@@ -178,6 +182,20 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         text = d.rm_text if d.status == NarrativeStatus.APPROVED else to_markdown(d)
         return [{"term": f.term.key, "form": f.form, "explanation": f.explanation}
                 for f in glossary.find_terms(text, terms, lang)]
+
+    if static_dir is not None:
+        static = Path(static_dir)
+        if (static / "assets").is_dir():
+            app.mount("/assets", StaticFiles(directory=static / "assets"), name="assets")
+
+        @app.get("/{path:path}", include_in_schema=False)
+        def web_app(path: str):
+            if path == "api" or path.startswith("api/"):
+                raise HTTPException(404, f"unknown API path /{path}")
+            f = static / path
+            if path and f.is_file() and static in f.resolve().parents:
+                return FileResponse(f)
+            return FileResponse(static / "index.html")
 
     app.state.runs = runs
     return app

@@ -191,6 +191,10 @@ def main(argv: list[str] | None = None) -> int:
     p_eval.add_argument("--snapshot", help="snapshot id (default: the frozen eval snapshot)")
     p_eval.add_argument("--no-llm", action="store_true",
                         help="no narrator LLM and no judge: template texts, no cost")
+    p_serve = sub.add_parser("serve", help="start the web app and its API on 127.0.0.1")
+    p_serve.add_argument("--port", type=int, default=8600)
+    p_serve.add_argument("--personas", type=Path,
+                         help="folder with the persona JSONs (default: the folder above --root)")
     p_find = sub.add_parser("evds-find", help="search EVDS data groups by name; list their series")
     p_find.add_argument("text", help='e.g. "mevduat" or "politika faizi"')
     p_info = sub.add_parser("evds-info", help="show EVDS metadata for a series or data group code")
@@ -216,6 +220,9 @@ def main(argv: list[str] | None = None) -> int:
             return _decide(paths, args)
         elif args.command == "eval":
             return _eval(paths, args)
+        elif args.command == "serve":
+            from rmprep.api import serve as web
+            web.serve(paths.root, args.port, personas_dir=args.personas)
         elif args.command in ("evds-find", "evds-info"):
             return _evds_meta(paths, args)
     except (ConfigError, SnapshotError, ExclusionError, EvdsParseError, ValueError) as e:
