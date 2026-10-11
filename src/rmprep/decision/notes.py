@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 
@@ -93,7 +94,9 @@ def build_warnings(options: Sequence[ScoredOption], levels: Levels,
                       for r in idx.rows)
     if (fx_question or levels.fx_level != _FX_SAFE_LEVEL) and not has_fx_rate:
         out.append(DecisionWarning(code="no_fx_deposit_data", message=tpl["no_fx_deposit_data"]))
-    return tuple(out)
+    # audience (D16): config warnings.audience; a code not in the table is for the RM
+    audience = c["warnings"].get("audience", {})
+    return tuple(dataclasses.replace(w, audience=audience.get(w.code, "rm")) for w in out)
 
 
 def source_notes(evidence: EvidenceSet, config: DecisionConfig) -> list[DataQualityNote]:

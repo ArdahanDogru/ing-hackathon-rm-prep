@@ -45,7 +45,9 @@ def run_id(cfg_hash: str, persona: Persona, snapshot_id: str,
     return "R" + hashlib.sha1(_canonical(key), usedforsecurity=False).hexdigest()[:10]
 
 
-def standard_assumptions(config: DecisionConfig, evidence: EvidenceSet) -> tuple[str, ...]:
+def standard_assumption_items(config: DecisionConfig,
+                              evidence: EvidenceSet) -> list[tuple[str, str]]:
+    """(texts.assumptions key, text) of the assumptions every run has."""
     c = config.raw
     a = c["texts"]["assumptions"]
     tier = c["deposit"]["tier"]
@@ -55,33 +57,51 @@ def standard_assumptions(config: DecisionConfig, evidence: EvidenceSet) -> tuple
     keys = _STANDARD_ASSUMPTIONS if rr is None else _REAL_ASSUMPTIONS
     keys = tuple(proxy if k == "kind_proxy" else k for k in keys)
     if rr is None:
-        return tuple(a[k].format(tier=tier) for k in keys)
+        return [(k, a[k].format(tier=tier)) for k in keys]
     out = []
     for key in keys:
         if key == "real_return":
             cpi = EvidenceIndex(evidence).get(rr["cpi"]["quantity"], rr["cpi"]["entity"])
-            out.append(a["real_return_no_cpi"] if cpi is None else
-                       a["real_return_cpi"].format(cpi=cpi.value, cpi_date=cpi.as_of.isoformat()))
+            if cpi is None:
+                out.append(("real_return_no_cpi", a["real_return_no_cpi"]))
+            else:
+                out.append(("real_return_cpi", a["real_return_cpi"].format(
+                    cpi=cpi.value, cpi_date=cpi.as_of.isoformat())))
         elif key == "time_deposit_renewal":
             days = c.get("time_deposit", {}).get("term_days")
             if days:
-                out.append(a[key].format(term_days=days))
+                out.append((key, a[key].format(term_days=days)))
         else:
-            out.append(a[key].format(tier=tier))
-    return tuple(out)
+            out.append((key, a[key].format(tier=tier)))
+    return out
+
+
+def standard_assumptions(config: DecisionConfig, evidence: EvidenceSet) -> tuple[str, ...]:
+    return tuple(text for _, text in standard_assumption_items(config, evidence))
+
+
+def to_confirm(config: DecisionConfig, keys: tuple[str, ...]) -> tuple[str, ...]:
+    """Commands for the RM (config to_confirm) of the emitted assumption keys,
+    in emit order, each once (D16)."""
+    table = config.raw.get("to_confirm", {})
+    tier = config.raw["deposit"]["tier"]
+    return tuple(table[k].format(tier=tier) for k in dict.fromkeys(keys) if k in table)
 
 
 def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
            answers: Mapping[str, str] = {}, *, created_at: datetime) -> DecisionResult:
     reading = read_persona(persona, config, answers)
     cfg_hash = config_hash(config)
+    standard = standard_assumption_items(config, evidence)
+    keys = tuple(k for k, _ in standard) + reading.assumption_keys
     common = dict(
         run_id=run_id(cfg_hash, persona, evidence.snapshot_id, evidence.excluded_sources,
                       answers),
         config_hash=cfg_hash, created_at=created_at, persona=persona,
         snapshot_id=evidence.snapshot_id, excluded_sources=evidence.excluded_sources,
         questions=reading.questions,
-        assumptions=standard_assumptions(config, evidence) + reading.assumptions,
+        assumptions=tuple(text for _, text in standard) + reading.assumptions,
+        to_confirm=to_confirm(config, keys),
     )
     if reading.levels is None:
         return DecisionResult(state=DecisionState.NEEDS_RM_INPUT,
