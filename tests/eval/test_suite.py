@@ -48,6 +48,7 @@ def test_run_suite_writes_markdown_and_json(root, tmp_path):
         assert heading in md
     assert "NOT the frozen eval snapshot" in md and "No failed check." in md
     assert "**reg-x**: a case — passes" in md
+    assert "base personas share the same recommended top 3" in md
 
 
 def test_only_keeps_ids_or_groups_and_their_compare_scenarios(root, tmp_path):

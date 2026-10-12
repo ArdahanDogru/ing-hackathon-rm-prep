@@ -9,7 +9,7 @@ import yaml
 
 from rmprep import decision
 from rmprep.contracts import DataPoint, Flag
-from rmprep.eval.checks import FAIL, PASS, run_checks
+from rmprep.eval.checks import FAIL, NA, PASS, run_checks
 from rmprep.eval.scenario import SCENARIO_DIR, load_scenarios, packaged_scenario_files
 from rmprep.narrator.config import load_config as load_narrator_config
 from tests.eval.conftest import PROJECT, SNAP, T0, FakeNarrator, fixture_evidence
@@ -209,3 +209,26 @@ def test_d15_case_fails_without_its_fix(root, dropped_rows, extra_rows):
     sc, _ = run_case(root, "reg-d15-short-history-p05")
     sens = next(c for c in sc.scenario_checks if c.check == "sensitivity")
     assert sens.status == FAIL and "short_history" in " ".join(sens.details)
+
+
+@pytest.mark.parametrize("case_id", ["reg-d19-p02-diverse", "reg-d19-p04-diverse",
+                                     "reg-d19-p01-unchanged"])
+def test_d19_diverse_recommendations(root, case_id):
+    sc, sr = run_case(root, case_id)
+    assert_passes(sc)
+    c = next(c for c in sc.runs[0] if c.check == "diverse_recommendations")
+    assert c.status == (NA if case_id.endswith("unchanged") else PASS), c
+
+
+def test_d19_case_fails_with_three_cash_like_picks(root):
+    import dataclasses
+    _, sr = run_case(root, "reg-d19-p02-diverse")
+    run = sr.runs[0]
+    cash = tuple(o.option.option_id for o in run.result.options
+                 if o.option.asset_class == "nakit_benzeri" and o.option.kind != "deposit")[:3]
+    assert len(cash) == 3
+    sr.runs[0] = dataclasses.replace(run, result=dataclasses.replace(run.result, recommended=cash))
+    dcfg = decision.load_config(root / "config" / "decision.yaml").raw
+    [sc] = run_checks([sr], dcfg, NCFG.forbidden_phrases, NCFG)
+    failed = {c.check for c in sc.all() if c.status == FAIL}
+    assert {"diverse_recommendations", "sensitivity"} <= failed

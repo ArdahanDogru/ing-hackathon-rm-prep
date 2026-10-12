@@ -33,6 +33,11 @@ def _lookup(table: Mapping[str, Any], text: str):
     return next((v for k, v in table.items() if norm(k) == want), None)
 
 
+def _key(table: Mapping[str, Any], text: str) -> str | None:
+    want = norm(text)
+    return next((k for k in table if norm(k) == want), None)
+
+
 class EvidenceView:
     def __init__(self, ev: EvidenceSet) -> None:
         self.ev = ev
@@ -72,6 +77,8 @@ class Rules:
     liquidity_hard: bool            # D13 liquidity_need applies
     max_sell_valor_days: int | None
     max_lock_days: int | None
+    profile: str | None = None      # the risk profile as a config key (table or answer)
+    diversity: bool = False         # the diversity priority or a constraint with diversity
 
 
 def rules_for(result: DecisionResult, config: Mapping[str, Any]) -> Rules:
@@ -79,9 +86,10 @@ def rules_for(result: DecisionResult, config: Mapping[str, Any]) -> Rules:
     answers = {q.question_id: q.answer for q in result.questions if q.answer is not None}
     unknown: list[str] = []
 
-    profile = _lookup(config["risk_profiles"], p.risk_profili)
-    if profile is None and "q:risk_profili" in answers:
-        profile = config["risk_profiles"].get(answers["q:risk_profili"])
+    profile_name = _key(config["risk_profiles"], p.risk_profili)
+    if profile_name is None and answers.get("q:risk_profili") in config["risk_profiles"]:
+        profile_name = answers["q:risk_profili"]
+    profile = None if profile_name is None else config["risk_profiles"][profile_name]
     if profile is None:
         unknown.append("q:risk_profili")
     ceiling = None if profile is None else int(profile["ceiling"])
@@ -106,7 +114,10 @@ def rules_for(result: DecisionResult, config: Mapping[str, Any]) -> Rules:
     if fx_hard and answers.get("q:override:fx_limit") == rules["fx_limit"]["override_lifts"]:
         fx_hard = False
     ln = rules.get("liquidity_need", {})
+    diversity = (any(_lookup(config["priorities"], x) == "diversity" for x in p.oncelikler)
+                 or any(config["constraint_effects"].get(e, {}).get("diversity") for e in effects))
     return Rules(ceiling=ceiling, effects=tuple(effects), unknown_blocking=tuple(unknown),
+                 profile=profile_name, diversity=diversity,
                  d12="fund_detail" in config, d13=d13, fx_hard=fx_hard,
                  liquidity_hard="liquidity_need" in effects and bool(ln),
                  max_sell_valor_days=ln.get("max_sell_valor_days"),

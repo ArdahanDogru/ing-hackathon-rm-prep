@@ -42,7 +42,7 @@ import yaml
 from rmprep.contracts import NARRATIVE_LANGS, EvidenceSet, Flag, Persona
 
 SCENARIO_DIR = Path(__file__).resolve().parent / "scenarios"
-KNOWN_NEEDS = ("D9", "D12", "D13", "D14", "D15", "I3b", "N5")
+KNOWN_NEEDS = ("D9", "D12", "D13", "D14", "D15", "D19", "I3b", "N5")
 _ID = re.compile(r"^[A-Za-z0-9_.-]+$")
 _TOP = re.compile(r"^@top([1-9][0-9]*)$")
 

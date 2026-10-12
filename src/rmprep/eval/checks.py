@@ -424,10 +424,79 @@ def check_traceability(c: Context) -> CheckResult:
     return CheckResult.of("traceability", problems)
 
 
+def _real_1y(r: DecisionResult, ev, decision_config: Mapping[str, Any]) -> dict[str, float]:
+    """option_id -> real 1-year return in percent (display facts; missing = no key)."""
+    from rmprep.decision.config import DecisionConfig
+    from rmprep.decision.display import display_facts
+
+    return {oid: f.real_1y.value
+            for oid, f in display_facts(r, ev, DecisionConfig(raw=decision_config)).items()
+            if f.real_1y is not None}
+
+
+def check_diverse_recommendations(c: Context) -> CheckResult:
+    """D19 (docs/decision.md section 10): for a client of recommend.profiles
+    (Dengeli, Agresif) or with diversity, `recommended` has at most
+    max_cash_like cash-like options and at least two asset classes, when the
+    ranked options allow it (D19b floor on the real 1-year return included);
+    every recommended option is inside the risk ceiling; no pick that the class
+    rule moved up (not among the first three group heads) has a real 1-year
+    return below recommend.min_real_return."""
+    from rmprep.grouping import top_heads
+
+    r, o, cfg = c.run.result, c.oracle, c.decision_config
+    rec = cfg.get("recommend")
+    if rec is None:
+        return CheckResult.of("diverse_recommendations", [], na="needs D19 (config recommend)",
+                              needs="D19")
+    if r.state != DecisionState.READY or not r.recommended:
+        return CheckResult.of("diverse_recommendations", [], na="no recommended options")
+    rules = o.rules
+    if rules.profile not in rec["profiles"] and not rules.diversity:
+        return CheckResult.of("diverse_recommendations", [],
+                              na=f"{rules.profile}: the class rule does not apply")
+
+    by_id = {x.option.option_id: x for x in r.options}
+    picks = [by_id[i] for i in r.recommended]
+    cash = rec["cash_like"]
+    floor = rec.get("min_real_return")
+    real = _real_1y(r, c.run.evidence, cfg)
+    problems = []
+    for x in picks:
+        if "risk_ceiling" in o.violations(x.option):
+            problems.append(f"{x.option.option_id}: risk {o.risk(x.option):g} above the risk "
+                            f"ceiling {rules.ceiling}")
+    plain = {x.option.option_id for x in top_heads(r.options, len(r.recommended))}
+    if floor is not None:
+        for x in picks:
+            v = real.get(x.option.option_id)
+            if x.option.option_id not in plain and v is not None and v < floor:
+                problems.append(f"{x.option.option_id}: picked by the class rule with a real "
+                                f"1-year return {v:.1f} % below {floor:g} %")
+
+    def eligible(x) -> bool:
+        v = real.get(x.option.option_id)
+        return x.option.kind != "deposit" and not (floor is not None and v is not None and v < floor)
+
+    pool = [x for x in r.options if eligible(x) and not o.violations(x.option)]
+    non_cash = [x for x in pool if x.option.asset_class != cash]
+    classes = {x.option.asset_class for x in pool}
+    n_cash = sum(1 for x in picks if x.option.asset_class == cash)
+    if len(non_cash) >= 2 and n_cash > rec["max_cash_like"]:
+        problems.append(f"{n_cash} {cash} recommendations (at most {rec['max_cash_like']}) "
+                        f"although {len(non_cash)} other options are eligible")
+    picked = {x.option.asset_class for x in picks}
+    if len(classes) >= 2 and len(picked) < 2:
+        problems.append(f"one asset class only ({sorted(picked)}) although the result has "
+                        f"{len(classes)}: {sorted(classes)}")
+    return CheckResult.of("diverse_recommendations", problems)
+
+
 RUN_CHECKS: tuple[Callable[[Context], CheckResult], ...] = (
     check_rule5, check_risk_ceiling, check_not_buyable, check_explicit_constraints,
     check_no_invented_data, check_missing_data_shown, check_bad_data_handled, check_questions,
     check_narrator_valid, check_forbidden_phrases, check_traceability,
+    check_diverse_recommendations,
 )
 
 
@@ -505,6 +574,22 @@ def metric_values(run: RunRecord, decision_config: Mapping[str, Any],
         "failed_sources": sorted(k for k, v in ev.source_status.items() if v.status == "failed"),
         "validator_phrase_findings": phrase_findings(run, narrator_config),
         "options_without_evidence": sum(1 for x in r.options if not x.evidence_ids),
+        **_recommendation_metrics(r, decision_config),
+    }
+
+
+def _recommendation_metrics(r: DecisionResult, decision_config: Mapping[str, Any]) -> dict:
+    """D19: the recommended top 3 (or the first three group heads without it)."""
+    from rmprep.grouping import recommended, top_heads
+
+    picks = recommended(r)
+    cash = decision_config.get("recommend", {}).get("cash_like", "nakit_benzeri")
+    return {
+        "recommended": [x.option.option_id for x in picks],
+        "recommended_cash_like": sum(1 for x in picks if x.option.asset_class == cash),
+        "recommended_classes": len({x.option.asset_class for x in picks}),
+        "recommended_plain_order": ([x.option.option_id for x in picks]
+                                    == [x.option.option_id for x in top_heads(r.options, 3)]),
     }
 
 
@@ -513,7 +598,8 @@ ABSOLUTE = ("at_most", "at_least", "equals")
 METRICS = ("state", "avg_risk", "max_risk", "fx_count", "fx_in_options", "avg_sell_valor",
            "shortlist", "not_buyable_in_options", "baseline_below_best_fund", "options",
            "rejected", "max_sell_valor", "evidence_rows", "failed_sources",
-           "validator_phrase_findings", "options_without_evidence")
+           "validator_phrase_findings", "options_without_evidence", "recommended",
+           "recommended_cash_like", "recommended_classes", "recommended_plain_order")
 
 
 def expect_errors(s: Scenario) -> list[str]:
@@ -529,7 +615,7 @@ def expect_errors(s: Scenario) -> list[str]:
             bad = sorted(set(want) - set(ABSOLUTE))
             if bad or not want:
                 out.append(f"expect.{key}: use {ABSOLUTE}, got {sorted(want)}")
-        elif key not in ("state", "baseline_below_best_fund"):
+        elif key not in ("state", "baseline_below_best_fund", "recommended_plain_order"):
             out.append(f"expect.{key}: use a direction {DIRECTIONS} or {{at_most|at_least|equals: x}}")
     return out
 
