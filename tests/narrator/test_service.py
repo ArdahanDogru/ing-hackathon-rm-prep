@@ -273,3 +273,50 @@ def test_approved_text_files_are_not_cache_files(make, config, tmp_path):
     n, llm = make(good(config=config))
     assert n.draft(p02(), evidence(), "TR").source == "llm"
     assert (tmp_path / "R02examp1e0-TR-approved.json").read_text(encoding="utf-8") == "not a draft"
+
+
+# --- N13d: findings of each attempt in the cost ledger ------------------------------------
+
+def _rows(tmp_path):
+    return [json.loads(x) for x in (tmp_path / "costs.jsonl").read_text("utf-8").splitlines()]
+
+
+def test_ledger_rows_hold_the_attempt_and_its_findings(make, config, tmp_path):
+    n, _ = make(bad(config), good(config=config))
+    d = n.draft(p02(), evidence(), "TR")
+    assert d.source == "llm" and d.checks == ()                  # the draft is unchanged
+    first, second = _rows(tmp_path)
+    assert (first["attempt"], second["attempt"]) == (1, 2)
+    assert first["findings"] and all(x.startswith("phrase:") for x in first["findings"])
+    assert second["findings"] == []
+    assert first["kind"] == second["kind"] == "text"
+
+
+def test_ledger_row_of_an_unusable_reply(make, config, tmp_path):
+    n, _ = make(reply("not json"), good(config=config))
+    n.draft(p02(), evidence(), "TR")
+    assert _rows(tmp_path)[0]["findings"][0].startswith("format:")
+
+
+def test_brief_ledger_row_holds_its_findings(ready_p01, make, tmp_path):
+    from tests.narrator.test_brief import brief_reply
+
+    n, _ = make(brief_reply("Müşteri 99 yaşında."))
+    n.brief(ready_p01, evidence(), "TR")
+    (row,) = _rows(tmp_path)
+    assert row["kind"] == "brief" and row["attempt"] == 1
+    assert any(x.startswith("number:") for x in row["findings"])
+
+
+def test_first_attempt_findings_by_kind(make, config, tmp_path):
+    from rmprep.narrator.service import findings_by_kind
+
+    n, _ = make(bad(config), good(config=config), reply("not json"), reply("not json"))
+    n.draft(p02(), evidence(), "TR")
+    n.draft(p03(), evidence(), "TR")
+    with open(tmp_path / "costs.jsonl", "a", encoding="utf-8") as fh:   # a row from before N13d
+        fh.write(json.dumps({"date": "2026-10-10", "cost_usd": 0.01, "run_id": "R0"}) + "\n")
+    path = tmp_path / "costs.jsonl"
+    assert findings_by_kind(path) == {"attempts": 2, "failed": 2, "phrase": 1, "format": 1}
+    assert findings_by_kind(path, attempt=2) == {"attempts": 2, "failed": 1, "format": 1}
+    assert findings_by_kind(path, kind="brief") == {"attempts": 0, "failed": 0}
