@@ -7,6 +7,7 @@ Turkish only; the English template quotes them as they are."""
 
 from __future__ import annotations
 
+import dataclasses
 import re
 from collections.abc import Sequence
 from datetime import date, datetime
@@ -449,8 +450,49 @@ _MD_ORDER = ("ozet", "talking_points", "oneriler", "alternatifler", "dikkat", "s
              "teklif_metni", "varsayimlar")
 
 
+# --- blocks of the meeting text (contract v1.5; N11; ids also in rmprep.edits) ----------
+
+WHOLE_SECTIONS = ("ozet", "teklif_metni", "dikkat", "alternatifler", "sorular", "varsayimlar")
+
+
+def block_of(key: str, i: int, s: NarrativeSentence) -> str | None:
+    """The block id of sentence i of section key: a whole section, one talking
+    point, or the sentences of one selected option (its first option id)."""
+    if key in WHOLE_SECTIONS:
+        return key
+    if key == "talking_points":
+        return f"talking_points:{i}"
+    if key == "oneriler" and s.option_ids:
+        return f"oneriler:{s.option_ids[0]}"
+    return None
+
+
+def apply_edits(d: NarrativeDraft) -> NarrativeDraft:
+    """The draft with each edited block (d.rm_edits) as one sentence in place of
+    the block's sentences (title and citations of its first sentence kept);
+    rm_edits then empty."""
+    if not d.rm_edits:
+        return d
+    sections = []
+    for sec in d.sections:
+        out, done = [], set()
+        for i, s in enumerate(sec.sentences):
+            block = block_of(sec.key, i, s)
+            if block in d.rm_edits:
+                if block not in done:
+                    done.add(block)
+                    out.append(NarrativeSentence(d.rm_edits[block], s.option_ids,
+                                                 s.evidence_ids, s.title))
+                continue
+            out.append(s)
+        sections.append(NarrativeSection(sec.key, tuple(out)))
+    return dataclasses.replace(d, sections=tuple(sections), rm_edits={})
+
+
 def to_markdown(d: NarrativeDraft) -> str:
-    """The draft as Markdown: the text the RM edits and approves (rm_text)."""
+    """The draft as Markdown: the text the RM approves (rm_text); an edited block
+    (rm_edits, v1.5) stands in place of its sentences."""
+    d = apply_edits(d)
     lines = [f"# {TEXTS[d.lang]['title']} · {d.run_id}"]
     if banner(d):
         lines += ["", f"> ⚠ {banner(d)}"]
