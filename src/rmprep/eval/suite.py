@@ -110,7 +110,7 @@ def run_suite(root: Path | str, *, suite: str = "full",
                     max_cost_usd=config.max_cost_usd_per_run)
     runs = runner.run(scenarios)
     checks = run_checks(runs, dcfg.raw, ncfg.forbidden_phrases, ncfg)
-    grades = grade_texts(runs, judge, config.judge.rubric,
+    grades = grade_texts(runs, judge, config.judge.rubric, repeats=config.judge_repeats,
                          budget_left=runner.budget_left, spend=runner.add_cost)
     judge_cost = sum(g.grade.cost_usd for g in grades)
     metrics = summarize(runs, checks, config.targets, [g.grade for g in grades], judge_cost)
@@ -126,7 +126,8 @@ def run_suite(root: Path | str, *, suite: str = "full",
         "narrator": (None if narrator is None else
                      {"model": ncfg.model, "prompt_version": ncfg.prompt_version,
                       "llm": client is not None or not hasattr(narrator, "client")}),
-        "judge": None if judge is None else {"model": getattr(judge, "model", "?")},
+        "judge": None if judge is None else {"model": getattr(judge, "model", "?"),
+                                             "repeats": config.judge_repeats},
         "scenario_files": [str(p) for p in (scenario_files or packaged_scenario_files())],
     }
     result = SuiteResult(suite=suite, snapshot_id=runner.snapshot_id,

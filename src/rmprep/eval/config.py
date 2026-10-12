@@ -45,21 +45,23 @@ class EvalConfig:
     report_dir: str
     judge: JudgeConfig
     targets: Targets
+    judge_repeats: int = 1          # E10: grades per text (mean and spread in the report)
 
 
 _TOP = {"version", "snapshot", "max_cost_usd_per_run", "report_dir", "judge", "targets"}
+_TOP_OPTIONAL = {"judge_repeats"}
 _JUDGE = {"model", "effort", "max_tokens", "price_input_per_mtok", "price_output_per_mtok",
           "api_key_env", "workspace_id_env", "rubric"}
 _TARGETS = {"rule_checks", "narrator_pass_rate", "forbidden_phrases"}
 
 
-def _keys(node, path: str, allowed: set[str]) -> Mapping:
+def _keys(node, path: str, allowed: set[str], optional: set[str] = frozenset()) -> Mapping:
     if not isinstance(node, Mapping):
         raise ConfigError(f"{path or '<root>'}: must be a mapping")
     unknown = sorted(set(node) - allowed)
     if unknown:
         raise ConfigError(f"{path or '<root>'}: unknown keys {unknown}")
-    missing = sorted(allowed - set(node))
+    missing = sorted(allowed - set(node) - set(optional))
     if missing:
         raise ConfigError(f"{path or '<root>'}: missing keys {missing}")
     return node
@@ -87,7 +89,10 @@ def _int(node: Mapping, key: str, path: str) -> int:
 
 
 def parse_config(raw) -> EvalConfig:
-    raw = _keys(raw, "", _TOP)
+    raw = _keys(raw, "", _TOP | _TOP_OPTIONAL, _TOP_OPTIONAL)
+    repeats = raw.get("judge_repeats", 1)
+    if isinstance(repeats, bool) or not isinstance(repeats, int) or repeats < 1:
+        raise ConfigError(f"judge_repeats: must be an integer >= 1, got {repeats!r}")
     if raw["version"] != 1:
         raise ConfigError(f"version: must be 1, got {raw['version']!r}")
     snapshot = raw["snapshot"]
@@ -120,7 +125,7 @@ def parse_config(raw) -> EvalConfig:
     targets = Targets(rule_checks=_num(t, "rule_checks", "targets."),
                       narrator_pass_rate=_num(t, "narrator_pass_rate", "targets."),
                       forbidden_phrases=_int(t, "forbidden_phrases", "targets."))
-    return EvalConfig(snapshot=snapshot, max_cost_usd_per_run=_num(raw, "max_cost_usd_per_run", ""),
+    return EvalConfig(judge_repeats=repeats, snapshot=snapshot, max_cost_usd_per_run=_num(raw, "max_cost_usd_per_run", ""),
                       report_dir=_str(raw, "report_dir", ""), judge=judge, targets=targets)
 
 

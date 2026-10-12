@@ -41,3 +41,11 @@ def test_snapshot_may_be_set(tmp_path):
     c = load_config(_write(tmp_path, eval_yaml("20261010-001233-6b20")))
     assert c.snapshot == "20261010-001233-6b20"
     assert load_config(_write(tmp_path, GOOD)).snapshot is None
+
+
+def test_judge_repeats_is_optional_and_at_least_one(tmp_path):
+    assert load_config(_write(tmp_path, GOOD)).judge_repeats == 1
+    assert load_config(_write(tmp_path, GOOD + "judge_repeats: 3\n")).judge_repeats == 3
+    for bad in ("0", "1.5", "true"):
+        with pytest.raises(ConfigError, match="judge_repeats"):
+            load_config(_write(tmp_path, GOOD + f"judge_repeats: {bad}\n"))

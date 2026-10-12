@@ -157,10 +157,15 @@ def to_markdown(result) -> str:
 
     L += ["## Judge (LLM, only what code cannot check)", ""]
     if m["judge"]:
-        L += ["| Rubric item | yes | partly | no | Score |", "|---|---|---|---|---|"]
+        L += ["| Rubric item | yes | partly | no | Score (mean) | Spread | Texts that differ |",
+              "|---|---|---|---|---|---|---|"]
         for item, j in m["judge"].items():
-            L.append(f"| {item} | {j['yes']} | {j['partly']} | {j['no']} | {_pct(j['score'])} |")
-        L += ["", "Score: yes = 1, partly = 0.5, no = 0.", ""]
+            spread = "n/a" if j.get("spread") is None else f"{j['spread']:.2f}"
+            L.append(f"| {item} | {j['yes']} | {j['partly']} | {j['no']} | {_pct(j['score'])} | "
+                     f"{spread} | {j.get('disagree', 0)} of {j.get('texts', 0)} |")
+        L += ["", "Score: yes = 1, partly = 0.5, no = 0, mean over all grades. Spread: "
+              "max - min of the score of one text over its repeated grades (judge_repeats), "
+              "mean over the texts; n/a with one grade per text.", ""]
     else:
         L += ["n/a: no graded text (the judge is off, has no API key, or there is no LLM "
               "text).", ""]

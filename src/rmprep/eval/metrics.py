@@ -13,6 +13,8 @@ from rmprep.eval.checks import FAIL, NA, PASS, ScenarioChecks
 from rmprep.eval.config import Targets
 from rmprep.eval.runner import ScenarioRun
 
+SCORE = {"yes": 1.0, "partly": 0.5, "no": 0.0}     # judge choice -> score
+
 RULE_CHECKS = ("rule5", "risk_ceiling", "not_buyable", "explicit_constraints",
                "no_invented_data", "missing_data_shown", "bad_data_handled", "questions",
                "consistency", "traceability", "scenario_runs")
@@ -76,9 +78,21 @@ def summarize(runs: list[ScenarioRun], checks: list[ScenarioChecks], targets: Ta
         for item, (choice, _) in g.items.items():
             j = judge.setdefault(item, {"yes": 0, "partly": 0, "no": 0})
             j[choice] += 1
-    for j in judge.values():
+    # E10: repeated grades of one text (same run_id and lang): the spread of the
+    # score per text (max - min), its mean over texts with 2+ grades, and the
+    # number of texts whose grades differ
+    per_text: dict[tuple[str, str, str], list[float]] = defaultdict(list)
+    for g in grades:
+        for item, (choice, _) in g.items.items():
+            per_text[(item, g.run_id, g.lang)].append(SCORE[choice])
+    for item, j in judge.items():
         n = j["yes"] + j["partly"] + j["no"]
         j["score"] = (j["yes"] + 0.5 * j["partly"]) / n if n else None
+        texts = [v for (i, _, _), v in per_text.items() if i == item]
+        spreads = [max(v) - min(v) for v in texts if len(v) >= 2]
+        j["texts"] = len(texts)
+        j["spread"] = statistics.fmean(spreads) if spreads else None
+        j["disagree"] = sum(1 for s in spreads if s > 0)
 
     target_rows = {
         # met None: not measured (no run of that kind), shown as n/a

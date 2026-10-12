@@ -29,11 +29,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-from rmprep.contracts import DecisionResult, NarrativeDraft
+from rmprep.contracts import DecisionResult, EvidenceSet, NarrativeDraft
 from rmprep.eval.config import JudgeConfig, RubricItem
 
 CHOICES = ("yes", "partly", "no")
-PROMPT_VERSION = "j2"            # bump on any change of the prompt or the schema
+PROMPT_VERSION = "j3"            # bump on any change of the prompt or the schema
+# j3 (E10, 2026-10-12): the 8 sections in screen order, the collapsed ones, varsayimlar
+# as engine text, and the per-option facts (<option_facts>) as context
 WORKSPACE_HEADER = "anthropic-workspace-id"
 CACHE_WRITE_FACTOR = 1.25        # 5-minute cache write, times the input price
 CACHE_READ_FACTOR = 0.1
@@ -49,10 +51,22 @@ What the user message holds:
 situation, goal, horizon, liquidity need, FX preference, income need, principal \
 protection, priorities, explicit constraints, the RM's note). The values are Turkish.
 - <rm_selection>: the products the RM selected for the meeting.
-- <meeting_text>: the text to grade, in Markdown, in Turkish or English. Its sections are: \
-summary (ozet), recommendations (oneriler), alternatives (alternatifler), points of \
-attention (dikkat), questions for the client (sorular), a short offer text (teklif_metni) \
-and assumptions (varsayimlar).
+- <option_facts>: for each selected product, the facts the text could use: short name, \
+real 1-year return after tax and inflation, SPK risk level (1-7), access to the money \
+(settlement days or the term), entry/exit fees above 0, and the risk note of its asset \
+class. A fact marked "not available" is not in the data: the text cannot state it, so \
+its absence is not a gap. A fact that is available and matters for this client but is \
+left out of the text is a gap.
+- <meeting_text>: the text to grade, in Markdown, in Turkish or English. Its 8 sections, \
+in the order of the RM's screen: summary (ozet), talking points for the client \
+(talking_points), a short offer text (teklif_metni), recommendations with one heading per \
+selected product (oneriler), points of attention (dikkat); then, under the heading \
+"Ek bilgiler" / "Additional information": alternatives (alternatifler), questions for the \
+client (sorular) and assumptions (varsayimlar). The RM sees the first five sections at \
+once; the last three are collapsed and opened only on demand, so judge clarity and length \
+mainly on the first five. The assumptions (varsayimlar) are the engine's text, copied \
+word for word by rule; they may hold field names or mixed language. Read them as context, \
+but do not grade its wording, its language or its length.
 
 What code already checked (do not grade these, do not mention them): every number and \
 date comes from the evidence; every named product was selected or is a listed \
@@ -136,7 +150,8 @@ class Judge(Protocol):
     model: str
 
     def grade(self, result: DecisionResult, draft: NarrativeDraft,
-              rubric: tuple[RubricItem, ...]) -> Grade: ...
+              rubric: tuple[RubricItem, ...], *, evidence: EvidenceSet | None = None,
+              repeat: int = 0) -> Grade: ...
 
 
 def schema(rubric: Iterable[RubricItem]) -> dict[str, Any]:
@@ -149,17 +164,55 @@ def schema(rubric: Iterable[RubricItem]) -> dict[str, Any]:
             "additionalProperties": False}
 
 
-def user_text(result: DecisionResult, draft: NarrativeDraft) -> str:
-    """The per-call part: the client, the RM selection and the text to grade."""
+NOT_AVAILABLE = "not available"
+
+
+def option_facts(result: DecisionResult, evidence: EvidenceSet, lang: str) -> str:
+    """One line per selected option with the facts the text could use (narrator
+    facts pack N13 and decision display facts): short name, real 1-year return,
+    risk level, access, fees above 0, the risk note; a missing fact says so."""
+    from rmprep.decision.config import DEFAULT_PATH
+    from rmprep.decision.config import load_config as load_decision
+    from rmprep.decision.display import display_facts
+    from rmprep.narrator.facts import build_facts
+
+    facts = build_facts(result, evidence)
+    shown = display_facts(result, evidence, load_decision(DEFAULT_PATH))
+    lines = []
+    for o in facts.selected:
+        d = shown.get(o.option_id)
+        risk = facts.risks.get(o.option_id)
+        real = (f"real 1-year return {d.real_1y.value:+.1f} %"
+                if d is not None and d.real_1y is not None
+                else f"real 1-year return: {NOT_AVAILABLE}")
+        level = (f"risk level {d.risk.value:.0f}" if d is not None and d.risk is not None
+                 else f"risk level: {NOT_AVAILABLE}")
+        access = (f"access: {risk.access}" if risk is not None and risk.access
+                  else f"access: {NOT_AVAILABLE}")
+        fees = ("fees: " + ", ".join(f"{n.quantity} {n.value:g} %" for n in risk.fees)
+                if risk is not None and risk.fees else "fees: none above 0")
+        note = (risk.note.get(lang) or "") if risk is not None else ""
+        lines.append(f"- {o.name or o.label} ({o.option_id}): {real}; {level}; {access}; "
+                     f"{fees}; risk note: {note or NOT_AVAILABLE}")
+    return "\n".join(lines)
+
+
+def user_text(result: DecisionResult, draft: NarrativeDraft,
+              evidence: EvidenceSet | None = None) -> str:
+    """The per-call part: the client, the RM selection, the option facts (with
+    evidence) and the text to grade."""
     from rmprep.narrator.template import to_markdown
 
     labels = {o.option.option_id: o.option.label for o in result.options}
     client = {k: v for k, v in result.persona.to_dict().items() if k != "persona_id"}
+    facts = ("" if evidence is None else
+             "<option_facts>\n" + option_facts(result, evidence, draft.lang)
+             + "\n</option_facts>\n\n")
     return (
         "<client>\n" + json.dumps(client, ensure_ascii=False, indent=1) + "\n</client>\n\n"
         "<rm_selection>\n" + "\n".join(f"- {labels.get(i, i)}" for i in result.rm_selected)
-        + "\n</rm_selection>\n\n"
-        f"<meeting_text lang=\"{draft.lang}\">\n{to_markdown(draft)}\n</meeting_text>"
+        + "\n</rm_selection>\n\n" + facts
+        + f"<meeting_text lang=\"{draft.lang}\">\n{to_markdown(draft)}\n</meeting_text>"
     )
 
 
@@ -176,7 +229,10 @@ class HaikuJudge:
         self.model = config.model
 
     def grade(self, result: DecisionResult, draft: NarrativeDraft,
-              rubric: tuple[RubricItem, ...]) -> Grade:
+              rubric: tuple[RubricItem, ...], *, evidence: EvidenceSet | None = None,
+              repeat: int = 0) -> Grade:
+        """repeat: the index of a repeated grade (E10). The request is the same;
+        the variation of the model gives the spread."""
         import anthropic
 
         base = Grade(result.run_id, draft.lang, self.model)
@@ -186,7 +242,7 @@ class HaikuJudge:
                 max_tokens=self.config.max_tokens,
                 system=[{"type": "text", "text": system_text(rubric),
                          "cache_control": {"type": "ephemeral"}}],
-                messages=[{"role": "user", "content": user_text(result, draft)}],
+                messages=[{"role": "user", "content": user_text(result, draft, evidence)}],
                 output_config={"effort": self.config.effort,
                                "format": {"type": "json_schema", "schema": schema(rubric)}},
             )
@@ -238,7 +294,7 @@ def judge_from_env(config: JudgeConfig, env: Mapping[str, str]) -> HaikuJudge | 
 
 class CachedJudge:
     """A judge with a grade cache: one file per (model, prompt version, rubric,
-    run, lang, text). Errors are not cached."""
+    run, lang, text with its option facts, repeat index). Errors are not cached."""
 
     def __init__(self, inner: Judge, cache_dir: Path | str) -> None:
         self.inner = inner
@@ -246,28 +302,34 @@ class CachedJudge:
         self.cache_dir = Path(cache_dir)
 
     def key(self, result: DecisionResult, draft: NarrativeDraft,
-            rubric: tuple[RubricItem, ...]) -> str:
-        parts = [self.model, PROMPT_VERSION, system_text(rubric), user_text(result, draft)]
+            rubric: tuple[RubricItem, ...], *, evidence: EvidenceSet | None = None,
+            repeat: int = 0) -> str:
+        parts = [self.model, PROMPT_VERSION, system_text(rubric),
+                 user_text(result, draft, evidence), repeat]
         digest = hashlib.sha1(json.dumps(parts, ensure_ascii=False).encode("utf-8"),
                               usedforsecurity=False).hexdigest()[:12]
         return f"{result.run_id}-{draft.lang}-{digest}"
 
     def cached(self, result: DecisionResult, draft: NarrativeDraft,
-               rubric: tuple[RubricItem, ...]) -> Grade | None:
-        path = self.cache_dir / f"{self.key(result, draft, rubric)}.json"
+               rubric: tuple[RubricItem, ...], *, evidence: EvidenceSet | None = None,
+               repeat: int = 0) -> Grade | None:
+        key = self.key(result, draft, rubric, evidence=evidence, repeat=repeat)
+        path = self.cache_dir / f"{key}.json"
         if path.exists():
             return Grade.from_dict(json.loads(path.read_text(encoding="utf-8")))
         return None
 
     def grade(self, result: DecisionResult, draft: NarrativeDraft,
-              rubric: tuple[RubricItem, ...]) -> Grade:
-        hit = self.cached(result, draft, rubric)
+              rubric: tuple[RubricItem, ...], *, evidence: EvidenceSet | None = None,
+              repeat: int = 0) -> Grade:
+        kw = {"evidence": evidence, "repeat": repeat}
+        hit = self.cached(result, draft, rubric, **kw)
         if hit is not None:
             return dataclasses.replace(hit, cost_usd=0.0, cache_write_tokens=0,
                                        cache_read_tokens=0)
-        g = self.inner.grade(result, draft, rubric)
+        g = self.inner.grade(result, draft, rubric, **kw)
         if g.error is None:
-            path = self.cache_dir / f"{self.key(result, draft, rubric)}.json"
+            path = self.cache_dir / f"{self.key(result, draft, rubric, **kw)}.json"
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(g.to_dict(), ensure_ascii=False, indent=1) + "\n",
                             encoding="utf-8", newline="\n")
@@ -277,16 +339,19 @@ class CachedJudge:
 @dataclass(frozen=True)
 class GradedText:
     scenario_id: str
-    repeat: int
+    repeat: int                 # the run repetition of the scenario (the first run: 0)
     grade: Grade
+    judge_repeat: int = 0       # E10: the index of the repeated grade of the same text
 
 
 def grade_texts(runs, judge: Judge | None, rubric: tuple[RubricItem, ...], *,
                 budget_left: Callable[[], float] | None = None,
-                spend: Callable[[float], None] | None = None) -> list[GradedText]:
-    """Grade each LLM meeting text once (the first run of each scenario; a
-    repeat has the same text). Template texts are not graded (they are code).
-    Over the budget, no new call is made (a cached grade is still used)."""
+                spend: Callable[[float], None] | None = None,
+                repeats: int = 1) -> list[GradedText]:
+    """Grade each LLM meeting text `repeats` times (config judge_repeats), with
+    the run's evidence for the option facts; the first run of each scenario (a
+    run repetition has the same text). Template texts are not graded (they are
+    code). Over the budget, no new call is made (a cached grade is still used)."""
     if judge is None:
         return []
     out = []
@@ -297,12 +362,16 @@ def grade_texts(runs, judge: Judge | None, rubric: tuple[RubricItem, ...], *,
         for lang, d in sorted(run.narratives.items()):
             if d.source != "llm" or run.approved is None:
                 continue
-            cached = judge.cached(run.approved, d, rubric) if isinstance(judge, CachedJudge) else None
-            if cached is None and budget_left is not None and budget_left() <= 0:
-                g = Grade(run.result.run_id, lang, judge.model, error="budget: eval limit reached")
-            else:
-                g = judge.grade(run.approved, d, rubric)
-                if spend is not None:
-                    spend(g.cost_usd)
-            out.append(GradedText(sr.scenario.id, run.repeat, g))
+            for k in range(repeats):
+                kw = {"evidence": run.evidence, "repeat": k}
+                cached = (judge.cached(run.approved, d, rubric, **kw)
+                          if isinstance(judge, CachedJudge) else None)
+                if cached is None and budget_left is not None and budget_left() <= 0:
+                    g = Grade(run.result.run_id, lang, judge.model,
+                              error="budget: eval limit reached")
+                else:
+                    g = judge.grade(run.approved, d, rubric, **kw)
+                    if spend is not None:
+                        spend(g.cost_usd)
+                out.append(GradedText(sr.scenario.id, run.repeat, g, k))
     return out
