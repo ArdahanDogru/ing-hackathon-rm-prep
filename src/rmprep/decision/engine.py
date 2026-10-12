@@ -151,6 +151,14 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
         net = nets.get(o.option.option_id)
         return net * 100 if net is not None else None
 
+    # D21: the assumption names the class rule of the risk estimate when a fund uses it
+    extra_keys: list[str] = []
+    a_texts = config.raw["texts"]["assumptions"]
+    if "risk_estimate_class" in a_texts and any(
+            f.risk_by_class for f in scoring.features):
+        common["assumptions"] += (a_texts["risk_estimate_class"],)
+        extra_keys.append("risk_estimate_class")
+
     rec_ids, moved = choose(options, levels, config, real_of)
     if moved:
         text = config.raw["texts"]["reasons"]["class_rule"]
@@ -159,7 +167,8 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
     if class_rule_applies(levels, config):
         texts = config.raw["texts"]["assumptions"]
         common["assumptions"] += (texts["class_rule"],)
-        common["to_confirm"] = confirm(keys + ("class_rule",))
+        extra_keys.append("class_rule")
+    common["to_confirm"] = confirm(keys + tuple(extra_keys))
     by_id = {o.option.option_id: o for o in options}
     estimates = {f.option.option_id: f.risk for f in scoring.features if f.risk_estimated}
     warnings = build_warnings(options, levels, reading.questions, evidence, config, estimates)

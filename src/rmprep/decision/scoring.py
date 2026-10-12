@@ -9,6 +9,7 @@ hard rule); `rank` combines features with weights and maxima. Stability
 
 from __future__ import annotations
 
+import math
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -132,6 +133,42 @@ def _short_history_rows(cand: Candidate, config: DecisionConfig) -> list[DataPoi
     return [returns[p] for p in sorted(returns)]
 
 
+def class_risk_estimates(universe: Universe, config: DecisionConfig) -> dict[str, int]:
+    """Risk estimate per asset class (D21): the by_class_quantile (default 0.75)
+    of the known SPK risk values of the class among all funds of the snapshot
+    (linear interpolation), rounded up; only classes with at least min_known
+    (default 5) values. {} without asset_classes. The same for every persona."""
+    c = config.raw
+    if "asset_classes" not in c:
+        return {}
+    est = c.get("risk_estimate", {})
+    q = est.get("by_class_quantile", 0.75)
+    min_known = est.get("min_known", 5)
+    values: dict[str, list[int]] = {}
+    for cand in universe.candidates:
+        row = cand.values.get(_RISK_Q)
+        if cand.option.kind == "fund" and row is not None:
+            values.setdefault(cand.option.asset_class, []).append(int(round(row.value)))
+    out = {}
+    for cls, vals in values.items():
+        if len(vals) < min_known:
+            continue
+        a = sorted(vals)
+        pos = q * (len(a) - 1)
+        lo = int(pos)
+        hi = min(lo + 1, len(a) - 1)
+        v = a[lo] + (a[hi] - a[lo]) * (pos - lo)
+        out[cls] = min(RISK_MAX, max(RISK_MIN, math.ceil(v - 1e-9)))
+    return out
+
+
+def _risk_unknown_text(reasons: Mapping[str, str], by_class: bool) -> str:
+    """The reason of an estimated risk; the class text (D21) if configured."""
+    if by_class and "penalty:risk_unknown_class" in reasons:
+        return reasons["penalty:risk_unknown_class"]
+    return reasons["penalty:risk_unknown"]
+
+
 def _band(levels: Levels, config: DecisionConfig) -> dict[str, int]:
     rf = config.raw.get("risk_fit")
     if rf is None:
@@ -201,6 +238,7 @@ class Features:
     passed_before: tuple[ConstraintResult, ...] = ()   # passed rules checked before the ceiling
     liquidity_proxy: bool = False       # fund_detail configured, but liquidity from the kind table
     short_history: bool = False         # listed although its history is short (D15, Agresif)
+    risk_by_class: bool = False         # the risk estimate comes from its asset class (D21)
 
     @property
     def constraints(self) -> tuple[ConstraintResult, ...]:
@@ -275,7 +313,9 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             kept.append((cand, risk))
             passed_before[cand.option.option_id] = tuple(passed)
 
-    # risk estimate per fund_kind: highest known risk among the scored funds
+    # risk estimate: by asset class (D21) when the class has enough known values,
+    # else per fund_kind: the highest known risk among the scored funds
+    by_class = class_risk_estimates(universe, config)
     known_by_kind: dict[str, int] = {}
     for cand, risk in kept:
         if cand.option.kind == "fund" and risk is not None:
@@ -334,7 +374,13 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
         is_fund = opt.kind == "fund"
         kind_row = c["kinds"][group_key(opt)]
         estimated = known is None
-        risk = known_by_kind.get(opt.fund_kind, RISK_MAX) if estimated else known
+        risk_by_class = estimated and opt.asset_class in by_class
+        if not estimated:
+            risk = known
+        elif risk_by_class:
+            risk = by_class[opt.asset_class]
+        else:
+            risk = known_by_kind.get(opt.fund_kind, RISK_MAX)
         annual, period, ret_row = returns[opt.option_id]
         net, real, st_entity, st_row = after_tax[opt.option_id]
         ranked = ranked_return(opt.option_id)
@@ -420,7 +466,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             "fees": fee_pct, "years": c["horizon"]["years"][levels.period],
         }
         if estimated:
-            reason = texts["reasons"]["penalty:risk_unknown"].format(**fields)
+            reason = _risk_unknown_text(texts["reasons"], risk_by_class).format(**fields)
             risk_ids: tuple[str, ...] = ()
         else:
             reason = texts["constraint"]["passed"].format(**fields)
@@ -434,7 +480,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             shorter_period=is_fund and period is not None and period != levels.period,
             annual_return=annual, rows=rows, net_return=net, real_return=real,
             stopaj_entity=st_entity, stopaj_missing=net is not None and st_row is None,
-            passed_before=passed_before[opt.option_id],
+            passed_before=passed_before[opt.option_id], risk_by_class=risk_by_class,
             liquidity_proxy=fd is not None and is_fund and valor is None,
             short_history=opt.option_id in short))
     return out, rejected
@@ -474,6 +520,8 @@ def _reasons(f: Features, parts: Mapping[str, float], config: DecisionConfig) ->
             out[key] = tpl["liquidity_valor"].format(**f.fields, value=v)
         else:
             out[key] = tpl[key].format(**f.fields, value=v, pct=v * 100)
+    if "penalty:risk_unknown" in out and f.risk_by_class:
+        out["penalty:risk_unknown"] = _risk_unknown_text(tpl, True).format(**f.fields)
     if "penalty:track_record" in out:
         out["penalty:track_record"] = tpl["penalty:track_record"].format(
             **{**f.fields, "period": f.fields["horizon"]})
