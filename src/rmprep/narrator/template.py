@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import dataclasses
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime
 
 from rmprep.contracts import (
@@ -20,7 +20,14 @@ from rmprep.contracts import (
     NarrativeSentence,
 )
 from rmprep.narrator.config import NarratorConfig
-from rmprep.narrator.facts import INTERNAL_PARTS, Facts, KeyNumber, OptionFacts
+from rmprep.narrator.facts import (
+    INTERNAL_PARTS,
+    MARKET_NAMES,
+    Facts,
+    KeyNumber,
+    OptionFacts,
+    number_rank,
+)
 
 MAIN_REASONS = 3        # largest score parts quoted per selected option
 
@@ -47,6 +54,11 @@ QUANTITY_NAMES = {
                                    "average)"},
     "ing_mevduat_faizi": {"TR": "ING mevduat faizi", "EN": "ING deposit rate"},
     "ing_vadeli_mevduat_faizi": {"TR": "ING vadeli mevduat faizi", "EN": "ING time deposit rate"},
+    "real_return_1y": {"TR": "stopaj ve enflasyon sonrası reel getiri (1 yıl)",
+                       "EN": "real return after stopaj and inflation (1 year)"},
+    "tufe_yillik": {"TR": "yıllık TÜFE", "EN": "annual CPI"},
+    "fund_entry_fee": {"TR": "giriş komisyonu", "EN": "entry fee"},
+    "fund_exit_fee": {"TR": "çıkış komisyonu", "EN": "exit fee"},
     "fund_price": {"TR": "pay fiyatı", "EN": "unit price"},
     "fund_total_value": {"TR": "fon büyüklüğü", "EN": "fund size"},
     "fund_investor_count": {"TR": "yatırımcı sayısı", "EN": "number of investors"},
@@ -84,6 +96,7 @@ NEED_NAMES = {
 }
 
 HEADINGS = {
+    "ek": {"TR": "Ek bilgiler", "EN": "Additional information"},     # N13: screen order
     "talking_points": {"TR": "Müşteriyle konuşulacaklar", "EN": "Talking points"},
     "ozet": {"TR": "Özet", "EN": "Summary"},
     "oneriler": {"TR": "Öneriler", "EN": "Options to discuss"},
@@ -97,7 +110,24 @@ HEADINGS = {
 TEXTS = {
     "TR": {
         "title": "Görüşme metni",
-        "client": "{profil} ({yas} yaşında); durum: {durum}.",
+        "client": "{profil} ({yas} yaşında); durum: {durum}; amaç: {amac} (ufuk: {ufuk}, "
+                  "risk profili: {risk}).",
+        "notes_file": "Dosyadaki not: {note}",
+        "notes_rm": "RM onay notu: {note}",
+        "o_facts": "{name} ({kind}{fx}): {items}.",
+        "o_bare": "{name} ({kind}{fx}).",
+        "o_fit": "{name}: müşterinin {need} (\"{value}\") açısından {part} ile öne çıktığını "
+                 "anlatın.",
+        "o_fit_none": "{name}: müşterinin önceliklerine nasıl uyduğunu birlikte değerlendirin.",
+        "o_risk": "{name}: {note}",
+        "o_risk_none": "{name}: başlıca riskini müşteriyle konuşun.",
+        "watch_access": "{name}: paraya erişim {access}{fees}.",
+        "watch_none": "{name}: değerini ve riskini düzenli izleyin.",
+        "unmatched": "\"{p}\" önceliği seçeneklerin hiçbir ölçütüyle karşılanmıyor.",
+        "ask_unmatched": "\"{p}\" önceliğinin müşteri için ne anlama geldiğini sorun.",
+        "tp_unmatched": ("Kapsanmayan öncelik", "Seçeneklerin karşılamadığı önceliği konuşun: "
+                                                "\"{p}\"."),
+        "tp_constraint": ("Açık kısıt", "Kısıtı müşteriyle teyit edin: \"{k}\"."),
         "goal": "Yatırım amacı: {amac} (ufuk: {ufuk}, risk profili: {risk}).",
         "priorities": "Öncelikler: {items}.",
         "client_note": "Müşteri notu: {note}",
@@ -138,7 +168,25 @@ TEXTS = {
     },
     "EN": {
         "title": "Meeting text",
-        "client": "Client: {profil}, age {yas}; situation: {durum}.",
+        "client": "Client: {profil}, age {yas}; situation: {durum}; goal: {amac} (horizon: "
+                  "{ufuk}, risk profile: {risk}).",
+        "notes_file": "Note in the file: {note}",
+        "notes_rm": "RM approval note: {note}",
+        "o_facts": "{name} ({kind}{fx}): {items}.",
+        "o_bare": "{name} ({kind}{fx}).",
+        "o_fit": "{name}: explain that it stands out on {part} for the client's {need} "
+                 "(\"{value}\").",
+        "o_fit_none": "{name}: discuss with the client how it fits their priorities.",
+        "o_risk": "{name}: {note}",
+        "o_risk_none": "{name}: discuss its main risk with the client.",
+        "watch_access": "{name}: access to the money {access}{fees}.",
+        "watch_none": "{name}: watch its value and risk regularly.",
+        "unmatched": "No criterion of the options covers the priority \"{p}\".",
+        "ask_unmatched": "Ask what the priority \"{p}\" means for the client.",
+        "tp_unmatched": ("Uncovered priority", "Talk about the priority that the options do "
+                                               "not cover: \"{p}\"."),
+        "tp_constraint": ("Explicit constraint", "Confirm the constraint with the client: "
+                                                 "\"{k}\"."),
         "goal": "Investment goal: {amac} (horizon: {ufuk}, risk profile: {risk}).",
         "priorities": "Priorities: {items}.",
         "client_note": "Client note: {note}",
@@ -247,16 +295,18 @@ def _labels(options: Sequence[OptionFacts]) -> str:
 
 
 def _ozet(f: Facts, tx: dict, disclaimer: str) -> list[NarrativeSentence]:
+    """N13: at most 3 sentences (client, notes, meeting), then the disclaimer."""
     c = f.client
-    out = [_sentence(tx["client"].format(profil=c["profil"], yas=c["yas"], durum=c["durum"])),
-           _sentence(tx["goal"].format(amac=c["yatirim_amaci"], ufuk=c["yatirim_ufku"],
-                                       risk=c["risk_profili"]))]
-    if c["oncelikler"]:
-        out.append(_sentence(tx["priorities"].format(items=", ".join(c["oncelikler"]))))
+    out = [_sentence(tx["client"].format(profil=c["profil"], yas=c["yas"], durum=c["durum"],
+                                         amac=c["yatirim_amaci"], ufuk=c["yatirim_ufku"],
+                                         risk=c["risk_profili"]))]
+    notes = []
     if c["rm_notu"]:
-        out.append(_sentence(tx["client_note"].format(note=_end(c["rm_notu"]))))
+        notes.append(tx["notes_file"].format(note=_end(c["rm_notu"])))
     if f.rm_note:
-        out.append(_sentence(tx["rm_note"].format(note=_end(f.rm_note))))
+        notes.append(tx["notes_rm"].format(note=_end(f.rm_note)))
+    if notes:
+        out.append(_sentence(" ".join(notes)))
     ids = [o.option_id for o in f.selected]
     if f.baseline is not None:
         out.append(_sentence(tx["meeting_baseline"].format(n=len(f.selected),
@@ -289,30 +339,51 @@ def _link(o: OptionFacts, used: set[str], f: Facts, tx: dict, lang: str) -> str 
     part = next((k for k in parts if k not in used), parts[0])
     used.add(part)
     need = PART_NEEDS[part]
-    return tx["link"].format(label=o.label, need=NEED_NAMES[need][lang],
-                             value=f.client[need], part=PART_NAMES[part][lang])
+    return tx["o_fit"].format(name=_name(o), need=NEED_NAMES[need][lang],
+                              value=f.client[need], part=PART_NAMES[part][lang])
+
+
+OPTION_NUMBERS = 4      # numbers in the facts sentence of an option
+_NOT_OPTION_NUMBERS = {"fund_buyable", "fund_sell_valor_days", "fund_entry_fee", "fund_exit_fee"}
+
+
+def _name(o: OptionFacts) -> str:
+    return o.name or o.label
+
+
+def _own_numbers(o: OptionFacts) -> list[KeyNumber]:
+    """The option's numbers for the text: real return first; no market facts and
+    no risk-line rows (N13)."""
+    own = [n for n in o.numbers if n.name not in MARKET_NAMES
+           and n.quantity not in _NOT_OPTION_NUMBERS]
+    return sorted(own, key=number_rank)[:OPTION_NUMBERS]
 
 
 def _oneriler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
+    """N13: per selected option 3 sentences that start with its name: (a) facts,
+    real return first; (b) the fit with a client need (+ the RM's option note);
+    (c) the risk of its asset class (+ its warnings)."""
     out, used = [], set()
     for o in f.selected:
-        oid = [o.option_id]
-        public = [x[2] for x in o.reasons if is_quotable(x)][:MAIN_REASONS]
-        head = dict(label=o.label, kind=kind_name(o.kind, lang), fx=tx["fx"] if o.fx else "")
-        text = (tx["option"].format(**head, reasons="; ".join(x.rstrip(".") for x in public))
-                if public
-                else tx["option_bare"].format(**head))
-        out.append(_sentence(text, oid, o.evidence_ids))
-        link = _link(o, used, f, tx, lang)
-        if link:
-            out.append(_sentence(link, oid))
-        if o.numbers:
-            items = "; ".join(_number(n, tx, lang) for n in o.numbers)
-            out.append(_sentence(tx["numbers"].format(items=items), oid,
-                                 [n.evidence_id for n in o.numbers]))
-        out += [_sentence(tx["watch"].format(message=_end(m)), oid) for m in o.warnings]
+        oid, name = [o.option_id], _name(o)
+        head = dict(name=name, kind=kind_name(o.kind, lang), fx=tx["fx"] if o.fx else "")
+        nums = _own_numbers(o)
+        if nums:
+            items = "; ".join(_number(n, tx, lang) for n in nums)
+            out.append(_sentence(tx["o_facts"].format(**head, items=items), oid,
+                                 [n.evidence_id for n in nums]))
+        else:
+            out.append(_sentence(tx["o_bare"].format(**head), oid, o.evidence_ids))
+        fit = _link(o, used, f, tx, lang) or tx["o_fit_none"].format(name=name)
         if o.rm_note:
-            out.append(_sentence(tx["option_note"].format(note=_end(o.rm_note)), oid))
+            fit += " " + tx["option_note"].format(note=_end(o.rm_note))
+        out.append(_sentence(fit, oid))
+        risk = f.risks.get(o.option_id)
+        note = risk.note.get(lang, "") if risk else ""
+        text = tx["o_risk"].format(name=name, note=_end(note)) if note else \
+            tx["o_risk_none"].format(name=name)
+        text = " ".join([text, *(_end(m) for m in o.warnings)])
+        out.append(_sentence(text, oid, risk.evidence_ids if risk else ()))
     return out
 
 
@@ -341,18 +412,37 @@ def _alternatifler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
 
 
 def _dikkat(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
+    """N13: the warnings, one watch item per selected option (access, fees), the
+    unmatched priorities, the past-return caveat once."""
     whole = [o.option_id for o in f.selected]      # citation of a note about the whole result
     out = []
     for w in f.warnings:
         out.append(_sentence(_end(w.message), w.option_ids or ([] if w.evidence_ids else whole),
                              w.evidence_ids))
+    for o in f.selected:
+        risk = f.risks.get(o.option_id)
+        if risk and risk.access:
+            fees = "".join(f"; {quantity_name(n.quantity, lang)} {fmt_number(n.value, n.unit, lang)}"
+                           for n in risk.fees)
+            out.append(_sentence(tx["watch_access"].format(name=_name(o),
+                                                           access=_lower_first(risk.access),
+                                                           fees=fees),
+                                 [o.option_id], risk.evidence_ids))
+        else:
+            out.append(_sentence(tx["watch_none"].format(name=_name(o)), [o.option_id]))
+    out += [_sentence(tx["unmatched"].format(p=p), whole) for p in f.unmatched_priorities]
     out.append(_sentence(tx["past"], whole))       # N9c: no data-quality pointer (client-facing)
     return out
+
+
+def _lower_first(text: str) -> str:
+    return tr_lower(text[:1]) + text[1:] if text else text
 
 
 def _sorular(f: Facts, tx: dict) -> list[NarrativeSentence]:
     out = [_sentence(_end(q)) for q in f.open_questions]
     out += [_sentence(tx["constraint"].format(item=k)) for k in f.client["acik_kisitlar"]]
+    out += [_sentence(tx["ask_unmatched"].format(p=p)) for p in f.unmatched_priorities]
     if f.client["oncelikler"]:
         out.append(_sentence(tx["ask_priorities"].format(items=", ".join(f.client["oncelikler"]))))
     return out
@@ -375,8 +465,9 @@ MAX_TAGS = 3
 
 
 def _talking_points(f: Facts, tx: dict) -> list[NarrativeSentence]:
-    """The engine's talking points (title = label), then points from the client's
-    goal, situation and priorities, up to MAX_TALKING_POINTS (N9)."""
+    """The engine's talking points (title = label), then points from the
+    unmatched priorities, the priorities and the constraints (N13: no profile
+    facts; the goal only as the last resort), up to MAX_TALKING_POINTS."""
     whole = [o.option_id for o in f.selected]
     named = f.named_options()
     out = []
@@ -385,10 +476,11 @@ def _talking_points(f: Facts, tx: dict) -> list[NarrativeSentence]:
         out.append(NarrativeSentence(t.text, tuple(ids or ([] if t.evidence_ids else whole)),
                                      tuple(t.evidence_ids), t.title))
     c = f.client
-    extra = [("tp_goal", dict(amac=c["yatirim_amaci"], ufuk=c["yatirim_ufku"])),
-             ("tp_situation", dict(durum=c["durum"]))]
+    extra = [("tp_unmatched", dict(p=p)) for p in f.unmatched_priorities]
     if c["oncelikler"]:
         extra.append(("tp_priorities", dict(items=", ".join(c["oncelikler"]))))
+    extra += [("tp_constraint", dict(k=k)) for k in c["acik_kisitlar"]]
+    extra.append(("tp_goal", dict(amac=c["yatirim_amaci"], ufuk=c["yatirim_ufku"])))
     for key, fields in extra:
         if len(out) >= MAX_TALKING_POINTS:
             break
@@ -446,9 +538,9 @@ def banner(d: NarrativeDraft) -> str | None:
 
 
 _PARAGRAPHS = ("ozet", "teklif_metni")    # prose; the other sections are lists
-# reading order of the Markdown (the draft keeps the contract order)
-_MD_ORDER = ("ozet", "talking_points", "oneriler", "alternatifler", "dikkat", "sorular",
-             "teklif_metni", "varsayimlar")
+# N13: the screen order; the last three under "Ek bilgiler"
+_MD_MAIN = ("ozet", "talking_points", "teklif_metni", "oneriler", "dikkat")
+_MD_EXTRA = ("alternatifler", "sorular", "varsayimlar")
 
 
 # --- blocks of the meeting text (contract v1.5; N11; ids also in rmprep.edits) ----------
@@ -490,19 +582,41 @@ def apply_edits(d: NarrativeDraft) -> NarrativeDraft:
     return dataclasses.replace(d, sections=tuple(sections), rm_edits={})
 
 
-def to_markdown(d: NarrativeDraft) -> str:
+def to_markdown(d: NarrativeDraft, names: Mapping[str, str] | None = None) -> str:
     """The draft as Markdown: the text the RM approves (rm_text); an edited block
-    (rm_edits, v1.5) stands in place of its sentences."""
+    (rm_edits, v1.5) stands in place of its sentences. N13: the screen order
+    (ozet, talking_points, teklif_metni, oneriler with a ### heading per option,
+    dikkat, then alternatifler, sorular, varsayimlar under "Ek bilgiler"). names:
+    option id -> heading (default: the fund code)."""
     d = apply_edits(d)
+    by_key = {sec.key: sec for sec in d.sections}
     lines = [f"# {TEXTS[d.lang]['title']} · {d.run_id}"]
     if banner(d):
         lines += ["", f"> ⚠ {banner(d)}"]
-    rank = {k: i for i, k in enumerate(_MD_ORDER)}
-    for sec in sorted(d.sections, key=lambda x: rank.get(x.key, len(rank))):
-        lines += ["", f"## {HEADINGS[sec.key][d.lang]}", ""]
+
+    def body(sec) -> list[str]:
         if sec.key in _PARAGRAPHS:
-            lines.append(" ".join(s.text for s in sec.sentences))
-        else:
-            lines += [f"- **{s.title}:** {s.text}" if s.title else f"- {s.text}"
-                      for s in sec.sentences]
+            return [" ".join(s.text for s in sec.sentences)]
+        return [f"- **{s.title}:** {s.text}" if s.title else f"- {s.text}" for s in sec.sentences]
+
+    for key in _MD_MAIN:
+        sec = by_key.get(key)
+        if sec is None:
+            continue
+        lines += ["", f"## {HEADINGS[key][d.lang]}", ""]
+        if key != "oneriler":
+            lines += body(sec)
+            continue
+        loose = [s for s in sec.sentences if not s.option_ids]
+        lines += [f"- {s.text}" for s in loose]
+        order = list(dict.fromkeys(s.option_ids[0] for s in sec.sentences if s.option_ids))
+        for oid in order:
+            heading = (names or {}).get(oid) or oid.split(":", 1)[-1]
+            lines += ([] if lines[-1] == "" else [""]) + [f"### {heading}", ""]
+            lines += [f"- {s.text}" for s in sec.sentences if s.option_ids[:1] == (oid,)]
+    extra = [by_key[k] for k in _MD_EXTRA if k in by_key]
+    if extra:
+        lines += ["", f"## {HEADINGS['ek'][d.lang]}"]
+        for sec in extra:
+            lines += ["", f"### {HEADINGS[sec.key][d.lang]}", ""] + body(sec)
     return "\n".join(lines) + "\n"

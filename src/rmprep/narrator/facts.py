@@ -23,9 +23,11 @@ from rmprep.contracts import (
     RmStatus,
     ScoredOption,
 )
+from rmprep.api.names import short_name
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.config import load_config as load_decision_config
-from rmprep.decision.display import display_facts
+from rmprep.decision.display import DisplayFacts, access_text, display_facts
+from rmprep.decision.text import normalize
 
 # persona fields the text may use (not scored; the narrator is where they matter)
 CLIENT_FIELDS = ("profil", "yas", "risk_profili", "durum", "yatirim_amaci", "yatirim_ufku",
@@ -58,6 +60,18 @@ MARKET_DEPOSIT_RATE = "piyasa_mevduat_faizi"
 ING_DEPOSIT_RATE = "ing_mevduat_faizi"
 ING_TIME_DEPOSIT_RATE = "ing_vadeli_mevduat_faizi"
 ING_RATES = (ING_DEPOSIT_RATE, ING_TIME_DEPOSIT_RATE)
+CPI_RATE = "tufe_yillik"                   # N13: the annual CPI row (real-return input)
+MARKET_NAMES = (MARKET_DEPOSIT_RATE, CPI_RATE)   # N13: shown once, at the top of the pack
+REAL_RETURN = "real_return_1y"             # N13: the real 1-year return (after stopaj and CPI)
+# N13: number order of an option: the real return first, then the nominal one
+NUMBER_ORDER = (REAL_RETURN, "fund_return_1y", ING_DEPOSIT_RATE, ING_TIME_DEPOSIT_RATE,
+                "deposit_rate", "fund_risk_level", "fund_return_3y", "fund_return_5y",
+                "fund_return_6m", "fund_return_3m", "fund_return_ytd", "fund_return_1m")
+
+
+def number_rank(n: "KeyNumber") -> tuple[int, str]:
+    k = n.key if n.key in NUMBER_ORDER else n.quantity
+    return (NUMBER_ORDER.index(k) if k in NUMBER_ORDER else len(NUMBER_ORDER), k)
 
 
 def deposit_rate_name(entity: str, config: DecisionConfig) -> str:
@@ -87,6 +101,17 @@ class OptionFacts:
     evidence_ids: tuple[str, ...]
     warnings: tuple[str, ...] = ()              # messages of the warnings that name it
     rm_note: str = ""
+    name: str = ""                              # N13: the screen's short name (issuer + type)
+    asset_class: str = ""                       # N13 (v1.6): nakit_benzeri | borclanma | ...
+
+
+@dataclass(frozen=True)
+class RiskFacts:
+    """N13: the risk line of a selected option."""
+    access: str = ""                            # display access text ("Aynı gün"); "" = no data
+    fees: tuple[KeyNumber, ...] = ()            # entry / exit fee rows above 0
+    note: Mapping[str, str] = dataclasses.field(default_factory=dict)   # lang -> config text
+    evidence_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -142,6 +167,9 @@ class Facts:
     talked: tuple[OptionFacts, ...] = ()        # talking-point options not named otherwise
     # selected option -> (persona priority as written, why line) of decision D17
     why: Mapping[str, tuple[tuple[str, str], ...]] = dataclasses.field(default_factory=dict)
+    risks: Mapping[str, RiskFacts] = dataclasses.field(default_factory=dict)   # N13, selected
+    market: tuple[KeyNumber, ...] = ()          # N13: market deposit rate and CPI, once
+    unmatched_priorities: tuple[str, ...] = ()  # N13: priorities with no scoring criterion
 
     def named_options(self) -> dict[str, OptionFacts]:
         out = {} if self.baseline is None else {self.baseline.option_id: self.baseline}
@@ -172,26 +200,85 @@ def _plain(x):
     return x
 
 
+def _name_of(dp, config: DecisionConfig) -> str:
+    c = config.raw
+    if dp.quantity == c["deposit"]["quantity"]:
+        return deposit_rate_name(dp.entity, config)
+    cpi = (c.get("real_return") or {}).get("cpi") or {}
+    if dp.quantity == cpi.get("quantity") and dp.entity == cpi.get("entity"):
+        return CPI_RATE
+    return ""
+
+
 def _numbers(ids, ev: EvidenceSet, config: DecisionConfig) -> tuple[KeyNumber, ...]:
     by_id = {dp.id: dp for dp in ev.datapoints}
     return tuple(KeyNumber(dp.id, dp.quantity, dp.value, dp.unit, dp.as_of, dp.source,
-                           deposit_rate_name(dp.entity, config)
-                           if dp.quantity == config.raw["deposit"]["quantity"] else "")
+                           _name_of(dp, config))
                  for dp in (by_id.get(i) for i in ids) if dp is not None and dp.value is not None)
 
 
+def display_name(label: str) -> str:
+    """The screen's short name of an option: issuer + short label, or the label."""
+    issuer, short = short_name(label)
+    return f"{issuer} {short}" if issuer else label
+
+
 def _option_facts(o: ScoredOption, ev: EvidenceSet, warnings: list[str], note: str,
-                  config: DecisionConfig) -> OptionFacts:
+                  config: DecisionConfig, shown: DisplayFacts | None = None) -> OptionFacts:
     ids = list(dict.fromkeys([*o.evidence_ids, *(i for c in o.constraints
                                                    for i in c.evidence_ids)]))
     numbers = _numbers(ids, ev, config)
+    if shown is not None and shown.real_1y is not None:          # N13: the real return is a number
+        row = next((dp for dp in ev.datapoints if dp.id == shown.real_1y.evidence_id), None)
+        if row is not None:
+            numbers = (KeyNumber(row.id, REAL_RETURN, shown.real_1y.value, "pct", row.as_of,
+                                 row.source), *numbers)
+            ids = list(dict.fromkeys([*ids, row.id]))
     reasons = sorted(((k, v, o.reasons[k]) for k, v in o.score_parts.items()),
                      key=lambda r: -abs(r[1]))
     return OptionFacts(
         option_id=o.option.option_id, label=o.option.label, kind=grouping.group_key(o),
         fx=o.option.fx, score=o.score, confidence=o.confidence, stability=o.stability,
         reasons=tuple(reasons), numbers=numbers, evidence_ids=tuple(ids),
-        warnings=tuple(warnings), rm_note=note)
+        warnings=tuple(warnings), rm_note=note, name=display_name(o.option.label),
+        asset_class=o.option.asset_class)
+
+
+def _risk(o: ScoredOption, f: OptionFacts, shown: DisplayFacts, config: DecisionConfig,
+          notes: Mapping) -> RiskFacts:
+    """N13: access (sell valör or the term), fees above 0, the config risk note."""
+    access = access_text(shown, config) or ""
+    ids = []
+    if shown.sell_valor_days is not None:
+        ids.append(shown.sell_valor_days.evidence_id)
+    elif shown.lock_days is not None and "1y" in shown.returns:
+        ids.append(shown.returns["1y"].evidence_id)
+    fd = config.raw.get("fund_detail") or {}
+    fee_q = {fd.get("entry_fee_quantity"), fd.get("exit_fee_quantity")} - {None}
+    fees = tuple(n for n in f.numbers if n.quantity in fee_q and n.value > 0)
+    ids += [n.evidence_id for n in fees]
+    note = (notes.get("by_class", {}).get(o.option.asset_class)
+            or notes.get("by_kind", {}).get(o.option.kind) or {})
+    return RiskFacts(access=access, fees=fees, note=dict(note), evidence_ids=tuple(ids))
+
+
+def unmatched_priorities(priorities, config: DecisionConfig) -> tuple[str, ...]:
+    """N13: the persona priorities that map to no scoring criterion (the
+    decision table: boost:<criterion> and diversity match; notes do not)."""
+    table = {normalize(k): str(v) for k, v in config.raw["priorities"].items()}
+    out = []
+    for p in priorities:
+        entry = table.get(normalize(p), "")
+        if not (entry.startswith("boost:") or entry == "diversity"):
+            out.append(p)
+    return tuple(out)
+
+
+@lru_cache(maxsize=1)
+def _default_risk_notes() -> Mapping:
+    from rmprep.narrator.config import load_config
+
+    return load_config().risk_notes
 
 
 @lru_cache(maxsize=1)
@@ -200,8 +287,10 @@ def _default_decision_config() -> DecisionConfig:
 
 
 def build_facts(r: DecisionResult, ev: EvidenceSet,
-                decision_config: DecisionConfig | None = None) -> Facts:
-    """decision_config: for the why lines (decision D17); default config/decision.yaml."""
+                decision_config: DecisionConfig | None = None,
+                risk_notes: Mapping | None = None) -> Facts:
+    """decision_config: for the why lines (decision D17) and access texts; default
+    config/decision.yaml. risk_notes: config narrator.yaml risk_notes (default)."""
     if r.rm_status != RmStatus.APPROVED:
         raise ValueError("the narrator writes only for an approved result")
     selected = set(r.rm_selected)
@@ -232,19 +321,36 @@ def build_facts(r: DecisionResult, ev: EvidenceSet,
         warnings.append(WarningFacts(w.code, w.message, ids, w.evidence_ids,
                                      _numbers(w.evidence_ids, ev, dcfg)))
 
+    shown = display_facts(r, ev, dcfg)
+
     def facts(o: ScoredOption) -> OptionFacts:
         oid = o.option.option_id
         return _option_facts(o, ev, [w.message for w in warnings if oid in w.option_ids],
-                             r.rm_option_notes.get(oid, ""), dcfg)
+                             r.rm_option_notes.get(oid, ""), dcfg, shown.get(oid))
 
-    shown = display_facts(r, ev, dcfg)
+    chosen = [o for o in r.options if o.option.option_id in selected]
+    selected_facts = tuple(facts(o) for o in chosen)
+    notes = _default_risk_notes() if risk_notes is None else risk_notes
+    risks = {o.option.option_id: _risk(o, fo, shown[o.option.option_id], dcfg, notes)
+             for o, fo in zip(chosen, selected_facts)}
+    baseline_facts = facts(baseline) if baseline else None
+    alternatives = tuple(facts(o) for o in r.options if o.option.option_id in alternative_ids)
+    market = {}
+    for o in (*([baseline_facts] if baseline_facts else []), *selected_facts, *alternatives):
+        for n in o.numbers:
+            if n.name in MARKET_NAMES:
+                market.setdefault(n.name, n)
+    for w in warnings:
+        for n in w.numbers:
+            if n.name in MARKET_NAMES:
+                market.setdefault(n.name, n)
     p = r.persona
     return Facts(
         run_id=r.run_id, persona_id=p.persona_id, snapshot_id=r.snapshot_id,
         client={k: getattr(p, k) for k in CLIENT_FIELDS},
-        baseline=facts(baseline) if baseline else None,
-        selected=tuple(facts(o) for o in r.options if o.option.option_id in selected),
-        alternatives=tuple(facts(o) for o in r.options if o.option.option_id in alternative_ids),
+        baseline=baseline_facts,
+        selected=selected_facts,
+        alternatives=alternatives,
         groups=tuple(groups),
         warnings=tuple(warnings),
         data_quality=tuple(NoteFacts(n.message, n.evidence_ids) for n in r.data_quality),
@@ -258,4 +364,7 @@ def build_facts(r: DecisionResult, ev: EvidenceSet,
                                                t.evidence_ids) for t in r.talking_points),
         talked=tuple(facts(o) for o in r.options if o.option.option_id in set(talked_ids)),
         why={oid: shown[oid].why for oid in r.rm_selected},
+        risks=risks,
+        market=tuple(market[k] for k in sorted(market)),
+        unmatched_priorities=unmatched_priorities(p.oncelikler, dcfg),
     )

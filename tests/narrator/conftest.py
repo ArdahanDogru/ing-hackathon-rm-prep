@@ -87,3 +87,34 @@ def ready_result(pid: str) -> DecisionResult:
 @pytest.fixture(scope="session")
 def ready_p01() -> DecisionResult:
     return ready_result("p01")
+
+
+def evidence_n13():
+    """evidence_medium + a CPI row and a sell-valör row per fund (N13: real
+    returns and access lines; the fixture has neither)."""
+    from datetime import date
+
+    from rmprep.contracts import DataPoint
+
+    ev = evidence()
+    common = dict(source_url="test://n13", fetched_at=CREATED, snapshot_id=ev.snapshot_id,
+                  raw_ref="test")
+    extra = [DataPoint.create(quantity="cpi_annual", entity="TÜFE yıllık değişim (TÜİK)",
+                              value=29.73, unit="pct", as_of=date(2026, 9, 30), source="manual",
+                              **common)]
+    funds = sorted({dp.entity for dp in ev.datapoints if dp.quantity == "fund_return_1y"})
+    extra += [DataPoint.create(quantity="fund_sell_valor_days", entity=code, value=float(i % 3),
+                               unit="days", as_of=date(2026, 10, 9), source="tefas_detail",
+                               **common) for i, code in enumerate(funds)]
+    rows = sorted((*ev.datapoints, *extra), key=lambda d: d.id)
+    return dataclasses.replace(ev, datapoints=tuple(rows))
+
+
+def engine_result_on(ev, pid: str, selected_n: int = 2, note: str = "") -> DecisionResult:
+    from rmprep.decision.config import load_config as load_decision_config
+    from rmprep.decision.engine import decide
+
+    r = decide(ev, persona(pid), load_decision_config(), created_at=CREATED)
+    chosen = tuple(o.option.option_id for o in r.options if o.option.kind != "deposit")
+    return dataclasses.replace(r, rm_status=RmStatus.APPROVED,
+                               rm_selected=chosen[:selected_n], rm_note=note)

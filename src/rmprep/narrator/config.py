@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -46,6 +47,9 @@ class NarratorConfig:
     disclaimer: Mapping[str, str]
     workspace_id_env: str | None = None  # env var of the workspace id (org-level keys)
     brief: BriefConfig | None = None     # None: no `brief` section -> the plain sentence
+    # N13: fixed risk note per asset class (by_class) or option kind (by_kind), per language
+    risk_notes: Mapping[str, Mapping[str, Mapping[str, str]]] = dataclasses.field(
+        default_factory=dict)
 
 
 def _get(raw: Mapping, path: str):
@@ -114,7 +118,21 @@ def parse_config(raw: Mapping) -> NarratorConfig:
         workspace_id_env=(_str(raw, "llm.workspace_id_env")
                           if "workspace_id_env" in raw.get("llm", {}) else None),
         brief=_brief(raw) if "brief" in raw else None,
+        risk_notes=_risk_notes(raw) if "risk_notes" in raw else {},
     )
+
+
+def _risk_notes(raw: Mapping) -> dict:
+    out = {}
+    for group in ("by_class", "by_kind"):
+        table = raw["risk_notes"].get(group, {})
+        if not isinstance(table, Mapping):
+            raise ConfigError(f"risk_notes.{group}: must be a mapping")
+        out[group] = {key: _per_lang(raw, f"risk_notes.{group}.{key}") for key in table}
+        for key, texts in out[group].items():
+            for lang in texts:
+                _str(raw, f"risk_notes.{group}.{key}.{lang}")
+    return out
 
 
 def _brief(raw: Mapping) -> BriefConfig:

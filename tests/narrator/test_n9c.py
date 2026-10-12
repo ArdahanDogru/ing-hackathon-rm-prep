@@ -46,7 +46,8 @@ def test_pack_uses_the_names():
     pack = prompt_facts(build_facts(engine_result("p01"), evidence()))
     keys = {k for o in [pack["baseline"], *pack["selected"], *pack["alternatives"]]
             for k in o["numbers"]}
-    assert ING in keys and MARKET in keys and "deposit_rate" not in keys
+    assert ING in keys and "deposit_rate" not in keys
+    assert MARKET in pack["market"] and MARKET not in keys      # N13: once, at the top
 
 
 @pytest.mark.parametrize("lang", ["TR", "EN"])

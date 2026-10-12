@@ -232,6 +232,34 @@ def _has_form(text: str, form: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(form)}(?!\w)", text) is not None
 
 
+def _starts_with_name(text: str, label: str, name: str, option_id: str) -> bool:
+    """N13: the text starts with a name of the option: the label (with or without
+    its brackets), the screen's short name, a short form with the issuer
+    (name_forms) or the fund code."""
+    start = _norm(text)
+    names = {_norm(label), _norm(_BRACKET.sub("", label)), _norm(name),
+             _norm(_BRACKET.sub("", name)), *name_forms(label)}
+    if option_id.startswith("fund:"):
+        names.add(_norm(option_id.split(":", 1)[1]))
+    return any(n and re.match(rf"{re.escape(n)}(?!\w)", start) for n in names)
+
+
+def _check_shape(sections, f: Facts) -> list[str]:
+    """N13: every sentence of oneriler starts with the name of its option (the
+    first one it cites)."""
+    named = f.named_options()
+    out = []
+    for sec in sections:
+        if sec.key != "oneriler":
+            continue
+        for s in sec.sentences:
+            o = named.get(s.option_ids[0]) if s.option_ids else None
+            if o is not None and not _starts_with_name(s.text, o.label, o.name, o.option_id):
+                out.append(f"shape: oneriler: the sentence must start with the name of "
+                           f"{o.name or o.label}: \"{_short(s.text)}\"")
+    return out
+
+
 def _check_options(sections, f: Facts, r: DecisionResult) -> list[str]:
     """Rule 2: only the named options, by label, id, fund code or (N10b) short
     name. The issuer must be in a short name: a short label alone ("Para
@@ -267,10 +295,13 @@ def _check_options(sections, f: Facts, r: DecisionResult) -> list[str]:
 
 
 def _check_phrases(sections, f: Facts, config: NarratorConfig) -> list[str]:
-    """Forbidden phrases outside the option labels (a fund of Garanti Portföy is
-    not a guarantee)."""
+    """Forbidden phrases outside the names of the named options (a fund of
+    Garanti Portföy is not a guarantee): labels, and (N13) the screen's short
+    names and the short forms with the issuer."""
     phrases = list(dict.fromkeys(p for ps in config.forbidden_phrases.values() for p in ps))
-    labels = _named_labels(f)
+    named = f.named_options().values()
+    labels = sorted({*_named_labels(f), *(_norm(o.name) for o in named if o.name),
+                     *(x for o in named for x in name_forms(o.label))}, key=len, reverse=True)
     out = []
     for sec in sections:
         for s in sec.sentences:
@@ -443,6 +474,7 @@ def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
     out += _check_coverage(sections, f)
     out += _check_ing_labels(sections, f)
     out += _check_talking_points(sections)
+    out += _check_shape(sections, f)
     if need_tags is not None:
         out += _check_need_tags(need_tags, f, r)
     everything = _norm(" ".join(s.text for sec in sections for s in sec.sentences))

@@ -69,7 +69,7 @@ def test_internal_numbers(text, config):
     r = _p02_with_internal_reason()
     f = build_facts(r, evidence())
     sections = list(template_sections(f, "TR", config.disclaimer["TR"]))
-    bad = _with(sections, "oneriler", NarrativeSentence(text, ("fund:BBF",)))
+    bad = _with(sections, "dikkat", NarrativeSentence(text, ("fund:BBF",)))
     assert _codes(validate(bad, f, r, config, "TR")) == {"internal"}
 
 

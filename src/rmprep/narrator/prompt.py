@@ -11,7 +11,14 @@ from collections.abc import Mapping, Sequence
 
 from rmprep.contracts import NARRATIVE_SECTIONS_V13, NarrativeSection, NarrativeSentence
 from rmprep.narrator.config import NarratorConfig
-from rmprep.narrator.facts import INTERNAL_PARTS, Facts, KeyNumber, OptionFacts
+from rmprep.narrator.facts import (
+    INTERNAL_PARTS,
+    MARKET_NAMES,
+    Facts,
+    OptionFacts,
+    RiskFacts,
+    number_rank,
+)
 from rmprep.narrator.llm import LlmRequest
 from rmprep.narrator.template import is_quotable
 
@@ -74,7 +81,14 @@ Input: the facts pack (JSON) in the first user block. It is the only source. \
 "alternatives" are the other options of the same groups, "groups" says which is \
 which. Key numbers are "numbers": {{quantity: [value, unit, evidence_id]}}, with \
 the date in "as_of" (a fourth item when a number has its own date); unit "pct" \
-is a percent, "level" a risk level. "piyasa_mevduat_faizi" is the market average \
+is a percent, "level" a risk level. "real_return_1y" is the real 1-year return \
+after stopaj and CPI; it comes first, the nominal "fund_return_1y" after it. \
+"market" holds, once for the whole text, "piyasa_mevduat_faizi" and \
+"tufe_yillik" (annual CPI). Each selected option has "name" (its short name, \
+as the RM's screen shows it) and "risk": "access" (when the money is \
+available), "fees" and "note" (the main risk of its asset class), with "cite". \
+"unmatched_priorities" are client priorities that no option criterion covers. \
+"piyasa_mevduat_faizi" is the market average \
 deposit rate (TCMB EVDS, weighted average of new TL deposits up to 3 months), \
 not an ING rate; "ing_mevduat_faizi" (ING Turuncu Hesap) and \
 "ing_vadeli_mevduat_faizi" (ING e-Vadeli Mevduat) are ING's rates: write an ING \
@@ -90,24 +104,30 @@ Output: JSON with "sentences" (all sentences of the card, in reading order) and 
 "need_tags". Each sentence has "section" (one of the section keys below), \
 "text", "title" ("" except in talking_points) and "cite": the option_id and \
 evidence_id values of the facts that the sentence rests on.
-- ozet: 3-5 sentences: the client situation and the aim of the meeting. The last \
-sentence is exactly: "{disclaimer}"
+- ozet: at most 3 sentences: the client situation and the aim of the meeting; \
+then the sentence "{disclaimer}" exactly.
 - talking_points: 2-3 sentences about the client's situation from the client's \
 view, each with a title of 2-4 words and a citation. Start from the engine's \
-talking_points (their title and figure); add from the client's goal, \
-situation or priorities when there are fewer than 2.
-- oneriler: for each selected option: what it is and its key numbers; one \
-sentence that links it to a named need of this client (horizon, liquidity, \
-income, principal protection, an explicit constraint, or a note), quoting \
-the client's own words; and what to watch. Each option gets its own reasons; \
-the options must not read alike.
+talking_points (their title and figure); add from the client's priorities or \
+constraints when there are fewer than 2. Do not repeat profile facts (age, \
+situation, goal) that ozet gives.
+- oneriler: for each selected option exactly 3 sentences, and each sentence \
+must start with the option's name (its "name" or label): (a) its facts, the \
+real return first, then the nominal return and the risk level; (b) why it fits \
+this client, with a client fact (horizon, liquidity, income, principal \
+protection, a constraint or a note, in the client's own words) that you do not \
+use for the other options; (c) the main trade-off or risk for this client, \
+from its "risk" line. The options must not read alike.
 - alternatifler: 1-2 sentences per group: the other options of the same kind; \
 and the baseline for comparison.
-- dikkat: only the warnings in the facts, in plain words, and once, that past \
-returns do not show future returns. The client can see this section: no notes \
-about data quality and no names of screens or panes.
-- sorular: questions for the RM to ask the client: the open questions and the \
-explicit constraints (acik_kisitlar) to confirm.
+- dikkat: the warnings in the facts, in plain words; one watch item per selected \
+option (from its "risk" line, starting with its name); each unmatched priority, \
+named as not covered by the options; and once, that past returns do not show \
+future returns. The client can see this section: no notes about data quality \
+and no names of screens or panes.
+- sorular: questions for the RM to ask the client: the open questions, the \
+explicit constraints (acik_kisitlar) to confirm, and one question per \
+unmatched priority.
 - teklif_metni: a short script the RM may say or adapt in the meeting, spoken \
 to the client and built on the client's own goal and situation (yatirim_amaci, \
 durum). It is not a letter. At most one short past-return reminder.
@@ -123,7 +143,8 @@ numbers (no differences, sums, or averages) and do not write ids in the text.
 2. Name only the baseline, the selected options, the alternatives and the \
 talking_point_options, by their label or fund code. Never name or hint at a \
 rejected option or any other product.
-3. Never promise a result. Do not use these phrases or their forms: {forbidden}.
+3. Never promise a result. Do not use these phrases or their forms: {forbidden}. \
+Write the past-return caveat only in dikkat and teklif_metni.
 4. Every sentence of talking_points, oneriler, alternatifler and dikkat has at \
 least one id in "cite"; cite only ids that exist in the facts.
 5. No internal values outside varsayimlar: no field, flag or source names \
@@ -157,21 +178,18 @@ def system_prompt(lang: str, config: NarratorConfig) -> str:
 ALTERNATIVE_NUMBERS = 3     # key numbers per alternative in the prompt pack
 SELECTED_NUMBERS = 6        # key numbers per selected option and the baseline
 MAIN_REASONS = 3            # reason texts per selected option (internal parts excluded)
-_ORDER = ("fund_return_1y", "deposit_rate", "fund_risk_level", "fund_return_3y",
-          "fund_return_5y", "fund_return_6m", "fund_return_3m", "fund_return_ytd",
-          "fund_return_1m")
-
-
-def _rank(n: KeyNumber) -> tuple[int, str]:
-    """1-year return (or the deposit rate), risk level, longer returns, the rest."""
-    q = n.quantity
-    return (_ORDER.index(q) if q in _ORDER else len(_ORDER), q)
+# N13: not option numbers: the market facts (top level), buyability, and the rows of
+# the risk line (sell valör, fees)
+_NOT_OPTION_NUMBERS = {"fund_buyable", "fund_sell_valor_days", "fund_entry_fee", "fund_exit_fee"}
 
 
 def _numbers(o: OptionFacts, limit: int) -> dict:
     """{"as_of": date, "numbers": {quantity: [value, unit, evidence_id(, as_of)]}};
-    a number gets its own date only if it differs from the option's."""
-    chosen = sorted(o.numbers, key=_rank)[:limit]
+    a number gets its own date only if it differs from the option's. The real
+    return first (N13); market facts and risk-line rows are not option numbers."""
+    own = [n for n in o.numbers if n.name not in MARKET_NAMES
+           and n.quantity not in _NOT_OPTION_NUMBERS]
+    chosen = sorted(own, key=number_rank)[:limit]
     if not chosen:
         return {"numbers": {}}
     day = chosen[0].as_of
@@ -182,7 +200,8 @@ def _numbers(o: OptionFacts, limit: int) -> dict:
 
 def _option(o: OptionFacts) -> dict:
     """A selected option or the baseline: what the text says about it."""
-    out = {"option_id": o.option_id, "label": o.label, "kind": o.kind, "fx": o.fx,
+    out = {"option_id": o.option_id, "label": o.label, "name": o.name, "kind": o.kind,
+           "fx": o.fx,
            "reasons": [x[2] for x in o.reasons if is_quotable(x)][:MAIN_REASONS],
            "fits": [k for k, v, _ in o.reasons if k in INTERNAL_PARTS and v > 0],
            **_numbers(o, SELECTED_NUMBERS)}
@@ -199,7 +218,15 @@ def _short(o: OptionFacts) -> dict:
             **_numbers(o, ALTERNATIVE_NUMBERS)}
 
 
-def prompt_facts(f: Facts) -> dict:
+def _risk(risk: RiskFacts | None, lang: str) -> dict:
+    """N13: the risk line of a selected option for the prompt."""
+    if risk is None:
+        return {}
+    return {"risk": {"access": risk.access, "fees": {n.quantity: n.value for n in risk.fees},
+                     "note": risk.note.get(lang, ""), "cite": list(risk.evidence_ids)}}
+
+
+def prompt_facts(f: Facts, lang: str = "TR") -> dict:
     """The facts pack as the LLM sees it (N8, N7): only what the text needs.
     Alternatives with label, kind, id and ALTERNATIVE_NUMBERS key numbers; no
     internal values (scores, confidence, internal-part reason texts, data-quality
@@ -216,8 +243,11 @@ def prompt_facts(f: Facts) -> dict:
                             "evidence_ids": list(t.evidence_ids)} for t in f.talking_points],
         "talking_point_options": [_short(o) for o in f.talked],
         "baseline": _option(f.baseline) if f.baseline else None,
-        "selected": [{**_option(o), "why": [list(w) for w in f.why.get(o.option_id, ())]}
-                     for o in f.selected],
+        "selected": [{**_option(o), "why": [list(w) for w in f.why.get(o.option_id, ())],
+                      **_risk(f.risks.get(o.option_id), lang)} for o in f.selected],
+        "market": {n.name: [n.value, n.unit, n.evidence_id, n.as_of.isoformat()]
+                   for n in f.market},
+        "unmatched_priorities": list(f.unmatched_priorities),
         "alternatives": [_short(o) for o in f.alternatives],
         "groups": [{"key": g.key, "selected": list(g.selected),
                     "alternatives": list(g.alternatives)} for g in f.groups],
@@ -230,16 +260,16 @@ def prompt_facts(f: Facts) -> dict:
     }
 
 
-def facts_block(f: Facts) -> str:
+def facts_block(f: Facts, lang: str = "TR") -> str:
     """The prompt pack as stable, compact JSON bytes (same facts -> same prompt
     cache prefix)."""
-    return json.dumps(prompt_facts(f), ensure_ascii=False, sort_keys=True,
+    return json.dumps(prompt_facts(f, lang), ensure_ascii=False, sort_keys=True,
                       separators=(",", ":"))
 
 
 def build_request(f: Facts, lang: str, config: NarratorConfig, *, previous: str | None = None,
                   findings: Sequence[str] = ()) -> LlmRequest:
-    blocks = [facts_block(f), _TASK.format(lang=lang, run_id=f.run_id)]
+    blocks = [facts_block(f, lang), _TASK.format(lang=lang, run_id=f.run_id)]
     if previous is not None:
         blocks.append(_RETRY.format(previous=previous,
                                     findings="\n".join(f"- {x}" for x in findings)))
