@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { Category, OptionView } from "../api/types";
 import { fmtPct } from "../format";
-import { FundCard } from "./FundCard";
 import { useT } from "../i18n";
 import { RiskBar } from "./RiskBar";
 import { Stars } from "./Stars";
@@ -10,15 +9,14 @@ function FundRow({
   option,
   selected,
   onToggle,
-  onEvidence,
+  onOpen,
 }: {
   option: OptionView;
   selected: boolean;
   onToggle: () => void;
-  onEvidence?: (id: string) => void;
+  onOpen: () => void;
 }) {
   const t = useT();
-  const [open, setOpen] = useState(false);
   const r1 = option.returns["1y"];
   return (
     <li data-testid="fund-row" className="border-t border-gray-100">
@@ -43,15 +41,10 @@ function FundRow({
         >
           {selected ? `✓ ${t("inSelection")}` : t("addToSelection")}
         </button>
-        <button type="button" aria-expanded={open} className="text-xs text-[#355FA1] underline" onClick={() => setOpen(!open)}>
+        <button type="button" className="text-xs text-[#355FA1] underline" onClick={onOpen}>
           {t("details")}
         </button>
       </div>
-      {open && (
-        <div className="mb-3 rounded-2xl border border-gray-100">
-          <FundCard option={option} selected={selected} onToggle={onToggle} onEvidence={onEvidence} />
-        </div>
-      )}
     </li>
   );
 }
@@ -62,13 +55,13 @@ export function CategoryList({
   options,
   selected,
   onToggle,
-  onEvidence,
+  onOpen,
 }: {
   categories: Category[];
   options: Record<string, OptionView>;
   selected: string[];
   onToggle: (id: string) => void;
-  onEvidence?: (id: string) => void;
+  onOpen: (id: string) => void;
 }) {
   const t = useT();
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -105,7 +98,7 @@ export function CategoryList({
                       option={options[id]}
                       selected={selected.includes(id)}
                       onToggle={() => onToggle(id)}
-                      onEvidence={onEvidence}
+                      onOpen={() => onOpen(id)}
                     />
                   ))}
                 </ul>

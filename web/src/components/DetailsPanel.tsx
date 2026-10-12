@@ -27,18 +27,18 @@ function RuleRow({ rule }: { rule: RejectedByRule }) {
   );
 }
 
-type Tab = "categories" | "assumptions" | "dataNotes" | "eliminated" | "rmNote";
+type Tab = "categories" | "assumptions" | "dataNotes" | "eliminated" | "warnings" | "rmNote";
 
 export function DetailsPanel({
   view,
   selected,
   onToggle,
-  onEvidence,
+  onOpen,
 }: {
   view: RunView;
   selected: string[];
   onToggle: (id: string) => void;
-  onEvidence: (id: string) => void;
+  onOpen: (id: string) => void;
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -48,6 +48,7 @@ export function DetailsPanel({
     ["assumptions", "assumptions", view.assumptions.length],
     ["dataNotes", "dataNotes", view.data_notes.length],
     ["eliminated", "eliminated", view.result.rejected.length],
+    ["warnings", "warningsTab", view.client_warnings.length],
     ["rmNote", "rmNote", view.rm_warnings.length],
   ];
   const list = (items: string[]) => (
@@ -58,7 +59,7 @@ export function DetailsPanel({
     </ul>
   );
   const panels: Record<Tab, ReactNode> = {
-    categories: <CategoryList categories={view.categories} options={view.options} selected={selected} onToggle={onToggle} onEvidence={onEvidence} />,
+    categories: <CategoryList categories={view.categories} options={view.options} selected={selected} onToggle={onToggle} onOpen={onOpen} />,
     assumptions: list(view.assumptions),
     dataNotes: list(view.data_notes.map((n) => n.message)),
     eliminated: (
@@ -71,17 +72,9 @@ export function DetailsPanel({
         <p className="mt-2 text-xs text-muted">{t("rejectedMulti")}</p>
       </>
     ),
-    rmNote: (
-      <div className="space-y-4">
-        <WarningList warnings={view.rm_warnings} />
-        {view.client_warnings.length > 0 && (
-          <div>
-            <h3 className="mb-1.5 text-sm font-semibold">{t("clientWarnings")}</h3>
-            <WarningList warnings={view.client_warnings} />
-          </div>
-        )}
-      </div>
-    ),
+    // client-audience warnings (may go into client-facing text); "RM notu" is RM-only
+    warnings: <WarningList warnings={view.client_warnings} />,
+    rmNote: <WarningList warnings={view.rm_warnings} />,
   };
 
   return (
