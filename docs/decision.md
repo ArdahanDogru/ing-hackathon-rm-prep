@@ -504,6 +504,7 @@ funds, with `entities`).
 | D16 | (web UI, 2026-10-11; docs/web-ui.md section 4) **warning audience and `to_confirm`** (contract v1.3): config `warnings.audience: {concentration: client, fx_exposure: client}` (a code not in the table → `rm`); config `to_confirm: {<assumption key>: <command template>}`, first entry `deposit_tier: "Yatırım tutarını sorun: {tier} dilimi varsayıldı."`; `DecisionResult.to_confirm` = the templates of the assumption keys that the run emitted, in emit order. Both config sections OPTIONAL until the lead adds them (without them: all `rm`, `to_confirm` empty) | audience from config; `deposit_vs_market` always rm; P01 gets the tier command; without config nothing changes (same `run_id` as before) |
 | D17 | (web UI) **display facts** (section 9): `rmprep.decision.display.display_facts(result, evidence, config) -> dict[str, DisplayFacts]` for every scored and rejected option; config `display.why: {<criterion>: <text with {access} {risk} {ret1y}>}` OPTIONAL | facts for every option; returns cite their rows; real 1-year = net of stopaj, then CPI (no fees); no CPI → none; time deposit `lock_days` = `term_days`; `why` uses the persona's own wording, no score numbers |
 | D18 | (web UI) **talking points** (contract v1.3, section 9): config `talking_points: {order, deposit_keywords, texts}` OPTIONAL (without it: none) | P01 gets `deposit_real` first, without ING numbers; no deposit point without the keyword; figures in Turkish format with a sign; each point cites evidence and only scored options; `needs_rm_input` → none |
+| D19 | (2026-10-12, error analysis) **diverse recommendations** (section 10): `asset_class` per option, criterion `risk_fit` with profile bands instead of `low_risk`, `DecisionResult.recommended` with the class rule; config sections OPTIONAL until the lead adds them (without them: the old behaviour, `recommended` = the first three group heads) | P01 top 3 unchanged; P02 and P04 at most one `nakit_benzeri` in `recommended` and at least two classes; a fund inside the band beats an equal fund below it; Muhafazakâr unchanged by the class rule; `recommended` ⊆ scored options, ≤ 3; the reason text names the class rule; talking points use `recommended` |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]
@@ -587,6 +588,64 @@ Percent figures: sign and comma, the minus is U+2212 ("−%8,3", "+%8,7").
   netleştirin"), because "Teyit edin" shows them.
 Texts: `talking_points.texts.<code>: {label, text}` with `{figure}`, `{label}`,
 `{max}`, `{ceiling}`.
+
+## 10. Diverse recommendations: asset classes and risk fit (D19, approved by the user 2026-10-12)
+
+**Finding (error analysis, 2026-10-12).** On the frozen eval snapshot, four of
+five personas got the same top 3 (Nurol Para Piyasası, İstanbul KV Borçlanma,
+Ak Para Piyasası Katılım, all SPK risk 1): P01 Muhafazakâr, but also P02 and P04
+(Dengeli, ceiling 5) and P05 (Temkinli). Causes:
+
+1. The market of the last year: TL cash-like funds had the best real returns
+   (+7–9 %); balanced funds +3 %, equity about 0 %, gold −13 % (TÜFE and stopaj
+   applied).
+2. No criterion rewards the use of the client's risk budget: `low_risk` has a
+   positive weight for Dengeli too, and the `principal` penalty hits risk-5
+   funds (P04: a risk-5 mixed fund scores 0.02, money market 0.91).
+3. Diversity works on `fund_kind`, but money market, short-term debt and
+   participation money market are one asset class (short-term TL cash).
+
+Missing SPK risk values are not a cause (3–10 % of the funds of each kind).
+
+**Rules (D19).**
+
+- **Asset class of each option** (`ProductOption.asset_class`, contract v1.6):
+  config `asset_classes`:
+  - `by_kind`: deposit, time_deposit, money_market → `nakit_benzeri`; debt →
+    `borclanma`; participation → `borclanma`; variable, mixed, fund_of_funds →
+    `dengeli`; equity → `hisse`; precious_metals → `altin_doviz`;
+  - `by_name` (checked first, Turkish upper case, whole words): "PARA
+    PİYASASI" → `nakit_benzeri`, "KISA VADELİ" → `nakit_benzeri`; an FX fund
+    (`fx = true`) → `altin_doviz`.
+- **Risk fit** (criterion `risk_fit`, replaces `low_risk`): config
+  `risk_fit.bands` per risk profile — Muhafazakâr [1, 2], Temkinli [2, 3],
+  Dengeli [3, 5], Agresif [4, 7]; value 1.0 inside the band, minus
+  `risk_fit.per_step` (0.25) for each level below the band (above the ceiling
+  the fund is rejected anyway), at least 0; unknown risk → the existing
+  `risk_unknown` rules. The weight of `risk_fit` = the old `low_risk` weight
+  at appetite 0 (base 1.0, no appetite term). The priority boosts that pointed
+  at `low_risk` ("sınırlı dalgalanma", "uzun vadeli dayanıklılık") point at
+  `risk_fit`. The bands are an **assumption** (config comment), to be checked
+  with the mentors.
+- **Recommended top 3** (`DecisionResult.recommended`, contract v1.6): the
+  engine chooses them, in score order, from the group heads; when the client
+  is Dengeli or Agresif, or has the diversity priority, at most
+  `recommend.max_per_class` (1) option per asset class, and at most
+  `recommend.max_cash_like` (1) `nakit_benzeri` option; if fewer than 3
+  classes have an option, the rule relaxes in that order. Muhafazakâr and
+  Temkinli clients without the diversity priority keep the plain score order.
+  The dashboard, the brief, the talking points (D18) and the meeting text use
+  `recommended` (via `grouping.recommended(result)`; `top_heads` stays the
+  fallback for results without it).
+- **Explanation**: the reason of a recommendation that the class rule moved
+  up says so ("Çeşitlendirme: farklı varlık sınıfından en iyi seçenek"); the
+  assumptions list the class rule when it applied.
+
+**Expected effect** (to be measured): P01 unchanged; P02 and P04 get one
+cash-like option plus options from two other classes inside their band; P03
+unchanged or more varied; P05 at most one cash-like option only if it has the
+diversity priority (it has not, so unchanged unless its band moves the
+order). The eval gets regression scenarios for these (E9).
 
 ## Later / optional
 

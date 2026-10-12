@@ -49,7 +49,7 @@ def build_brief_facts(r: DecisionResult, ev: EvidenceSet,
     """ValueError for a run that is not ready or has no recommendation."""
     if r.state != DecisionState.READY:
         raise ValueError("a brief needs a ready run")
-    top = tuple(o.option.option_id for o in grouping.top_heads(r.options, TOP))
+    top = tuple(o.option.option_id for o in grouping.recommended(r, TOP))   # v1.6 (lead, 2026-10-12)
     if not top:
         raise ValueError("the run has no recommendation")
     view = dataclasses.replace(r, rm_status=RmStatus.APPROVED, rm_selected=top, rm_note="",

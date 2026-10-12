@@ -35,7 +35,8 @@
     "label": "ING Turuncu Hesap (standart)",
     "entity": "ING Turuncu Hesap standart, 100.000-249.999 TL",
     "fund_kind": "",
-    "fx": false
+    "fx": false,
+    "asset_class": ""
    },
    "score": 0.42,
    "score_parts": {
@@ -64,7 +65,8 @@
     "label": "PARDUS PORTFÖY BİRİNCİ BORÇLANMA ARAÇLARI (TL) FONU",
     "entity": "BBF",
     "fund_kind": "debt",
-    "fx": false
+    "fx": false,
+    "asset_class": ""
    },
    "score": 0.42000000000000004,
    "score_parts": {
@@ -103,7 +105,8 @@
     "label": "ATA PORTFÖY PARA PİYASASI (TL) FONU",
     "entity": "AAL",
     "fund_kind": "money_market",
-    "fx": false
+    "fx": false,
+    "asset_class": ""
    },
    "score": 0.41000000000000003,
    "score_parts": {
@@ -142,7 +145,8 @@
     "label": "AK PORTFÖY EUROBOND (AMERİKAN DOLARI) BORÇLANMA ARAÇLARI FONU",
     "entity": "AKE",
     "fund_kind": "debt",
-    "fx": true
+    "fx": true,
+    "asset_class": ""
    },
    "score": 0.25,
    "score_parts": {
@@ -181,7 +185,8 @@
     "label": "AK PORTFÖY BİREBİR BANKACILIK DEĞİŞKEN ÖZEL FON",
     "entity": "ABU",
     "fund_kind": "variable",
-    "fx": false
+    "fx": false,
+    "asset_class": ""
    },
    "score": 0.28,
    "score_parts": {
@@ -222,7 +227,8 @@
     "label": "ATA PORTFÖY İKİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
     "entity": "AAV",
     "fund_kind": "equity",
-    "fx": false
+    "fx": false,
+    "asset_class": ""
    },
    "failed": [
     {
@@ -239,7 +245,7 @@
  "questions": [
   {
    "question_id": "q:doviz_maruz_kalma_tercihi",
-   "text": "Döviz fonları için hangi düzey uygulanmalı?",
+   "text": "Döviz fonları için uygulanacak düzeyi müşteriyle netleştirin.",
    "reason": "\"Mevcut döviz gelirini dikkate alarak kontrollü\" metni tanımlı değerlerle eşleşmiyor.",
    "about": "doviz_maruz_kalma_tercihi",
    "choices": [
@@ -324,5 +330,6 @@
  ],
  "to_confirm": [
   "Yatırım tutarını sorun: 100.000–249.999 TL dilimi varsayıldı."
- ]
+ ],
+ "recommended": []
 }

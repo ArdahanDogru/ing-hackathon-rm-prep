@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from rmprep.contracts import ProductOption, RejectedOption, ScoredOption
+from rmprep.contracts import DecisionResult, ProductOption, RejectedOption, ScoredOption
 
 
 @dataclass(frozen=True)
@@ -56,6 +56,15 @@ def top_heads(options: Sequence[ScoredOption], n: int = 3,
               rule: GroupingRule = DEFAULT_RULE) -> tuple[ScoredOption, ...]:
     """The recommendations of the web dashboard: the heads of the first n groups."""
     return tuple(g.head for g in groups(options, rule)[:n])
+
+
+def recommended(result: DecisionResult, n: int = 3) -> tuple[ScoredOption, ...]:
+    """The recommendations of a result: the engine's choice (v1.6, D19), else
+    the heads of the first n groups."""
+    if result.recommended:
+        by_id = {o.option.option_id: o for o in result.options}
+        return tuple(by_id[i] for i in result.recommended[:n])
+    return top_heads(result.options, n)
 
 
 def visible_alternatives(g: Group, opened: bool,

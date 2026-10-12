@@ -13,7 +13,7 @@ from rmprep.contracts import Backend, DecisionResult, ScoredOption, _to_json
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.display import DisplayFacts, access_text, display_facts
 from rmprep.decision.persona import read_persona
-from rmprep.grouping import group_key, groups, top_heads
+from rmprep.grouping import group_key, groups, recommended
 from rmprep.ui.i18n import LABELS, t
 
 PERIODS = ("3m", "6m", "1y")
@@ -126,7 +126,7 @@ class ViewBuilder:
             }
 
         baseline = r.options[0] if r.options and r.options[0].option.kind == "deposit" else None
-        top = top_heads(r.options, 3)
+        top = recommended(r, 3)            # the engine's choice (v1.6), else the group heads
         cats = []
         for g in groups(r.options):
             shown = (g.head, *g.alternatives)[:SHOWN_PER_CATEGORY]

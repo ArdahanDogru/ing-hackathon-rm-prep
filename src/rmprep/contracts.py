@@ -226,6 +226,8 @@ class SourceStatus:
 # v1.4 (2026-10-12): NarrativeBrief + Backend.brief (docs/web-ui.md "LLM brief").
 # v1.5 (2026-10-12): per-block edits of the meeting text (rm_edits, edit_checks,
 # Backend.edit_narrative; docs/web-ui.md "Section-by-section editing").
+# v1.6 (2026-10-12): ProductOption.asset_class, DecisionResult.recommended
+# (docs/decision.md section 10, D19).
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -308,6 +310,7 @@ class ProductOption:
     entity: str = ""        # DataPoint.entity it is measured by, e.g. a fund code
     fund_kind: str = ""     # funds only: money_market | debt | ... (config/decision.yaml)
     fx: bool = False        # funds only: the fund carries FX exposure
+    asset_class: str = ""   # v1.6: nakit_benzeri | borclanma | dengeli | hisse | altin_doviz ("" = not set)
 
     def __post_init__(self) -> None:
         if self.kind not in OPTION_KINDS:
@@ -438,6 +441,7 @@ class DecisionResult:
     rm_option_notes: Mapping[str, str] = field(default_factory=dict)  # option_id -> note
     talking_points: tuple[TalkingPoint, ...] = ()   # v1.3, D18: 0..3, display order
     to_confirm: tuple[str, ...] = ()                # v1.3, D16: commands for the RM
+    recommended: tuple[str, ...] = ()               # v1.6, D19: the engine's top 3 (option ids, in order)
 
     @property
     def persona_id(self) -> str:
@@ -470,6 +474,12 @@ class DecisionResult:
         for w in self.warnings:
             if not set(w.option_ids) <= known:
                 raise ValueError(f"warning {w.code} names unknown options")
+        if len(self.recommended) > 3:
+            raise ValueError("at most 3 recommended options")
+        if len(set(self.recommended)) != len(self.recommended):
+            raise ValueError("a recommended option appears twice")
+        if not set(self.recommended) <= set(ids):
+            raise ValueError("recommended names options that are not scored")
         if len(self.talking_points) > 3:
             raise ValueError("at most 3 talking points")
         for tp in self.talking_points:
