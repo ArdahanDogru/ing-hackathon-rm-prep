@@ -317,3 +317,19 @@ test("EN asks for the EN text", async () => {
   expect(get.mock.calls[0][1]).toBe("EN");
   expect(screen.getAllByTestId("doc-heading")[0]).toHaveTextContent("Aim of the meeting");
 });
+
+test("an approved text shows Onaylandı with its time", async () => {
+  const d = sample("narrative_p01_tr");
+  mockNarrative({ ...d, status: "approved", rm_text: d.markdown, approved_at: "2026-10-12T21:05:00+03:00" });
+  renderMeeting(sample("run_p01_approved"));
+  expect(await screen.findByTestId("doc-status")).toHaveTextContent("Onaylandı: 12.10.2026 21:05");
+});
+
+test("Metni onayla shows the approval time from the answer", async () => {
+  const d = sample("narrative_p01_tr");
+  mockNarrative(d);
+  vi.spyOn(api, "approveNarrative").mockResolvedValue({ ...d, status: "approved", rm_text: d.markdown, approved_at: "2026-10-12T21:06:00+03:00" });
+  renderMeeting(sample("run_p01_approved"));
+  await userEvent.click(await screen.findByRole("button", { name: "Metni onayla" }));
+  expect(await screen.findByTestId("doc-status")).toHaveTextContent("Onaylandı: 12.10.2026 21:06");
+});

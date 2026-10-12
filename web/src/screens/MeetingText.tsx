@@ -14,7 +14,7 @@ import { LifecycleTabs } from "../components/LifecycleTabs";
 import { NotesBox, type SaveState } from "../components/NotesBox";
 import { SourceList, type Source } from "../components/SourceList";
 import { TermsBox } from "../components/TermsBox";
-import { fmtPct } from "../format";
+import { fmtDateTime, fmtPct } from "../format";
 import { LangContext, useT } from "../i18n";
 import { Markdown } from "../markdown";
 
@@ -321,7 +321,12 @@ export function MeetingText({ view }: { view: RunView }) {
         <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
           <article data-testid="document" className="rounded-2xl bg-white px-10 py-[34px] text-[17px] leading-[1.7] shadow-sm">
             <div data-testid="doc-status" className="text-[13px] text-muted">
-              {[approved ? `✓ ${t("statusApproved")}` : t("statusDraft"), ...modelLine].join(" · ")}
+              {[
+                approved
+                  ? `✓ ${t("statusApproved")}${draft.approved_at ? `: ${fmtDateTime(draft.approved_at)}` : ""}`
+                  : t("statusDraft"),
+                ...modelLine,
+              ].join(" · ")}
             </div>
             <h1 className="mb-[18px] mt-1.5 text-[26px] font-bold leading-snug">
               {`${t("meetingText")} — ${r.persona.profil}, ${r.persona.yas}`}

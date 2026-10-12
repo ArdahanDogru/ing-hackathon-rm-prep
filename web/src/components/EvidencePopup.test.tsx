@@ -11,7 +11,10 @@ test("evidence pop-up shows source and date", async () => {
   const get = vi.spyOn(api, "evidence").mockResolvedValue(item);
   render(<EvidencePopup snapshotId="S" evidenceId={item.id} open onClose={() => {}} />);
   expect(await screen.findByText(item.source)).toBeInTheDocument();
-  expect(screen.getByText(item.as_of)).toBeInTheDocument();
+  // the value date and the fetch time, in Turkish format (Europe/Istanbul)
+  const [y, m, d] = item.as_of.split("-");
+  expect(screen.getByText(`${d}.${m}.${y}`)).toBeInTheDocument();
+  expect(screen.getByTestId("fetched-at")).toHaveTextContent(/^Alındı: \d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$/);
   expect(screen.getByText(item.id)).toBeInTheDocument();
   expect(screen.getByText(item.entity_name)).toBeInTheDocument();
   expect(get).toHaveBeenCalledWith("S", item.id);

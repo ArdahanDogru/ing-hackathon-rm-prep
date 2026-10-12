@@ -9,3 +9,11 @@ test("Turkish separators and a true minus sign", () => {
   expect(fmtPct(47.6)).toBe("%47,6");
   expect(fmtPct(-8.3)).toBe("−%8,3");
 });
+
+test("Turkish dates and times in Europe/Istanbul", async () => {
+  const { fmtDate, fmtDateTime } = await import("./format");
+  expect(fmtDate("2026-10-09")).toBe("09.10.2026");
+  expect(fmtDateTime("2026-10-12T20:47:15.985540+03:00")).toBe("12.10.2026 20:47");
+  expect(fmtDateTime("2026-10-12T17:47:15Z")).toBe("12.10.2026 20:47");
+  expect(fmtDateTime("not a time")).toBe("not a time");
+});

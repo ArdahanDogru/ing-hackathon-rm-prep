@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import type { EvidenceItem } from "../api/types";
-import { fmtNum } from "../format";
+import { fmtDate, fmtDateTime, fmtNum } from "../format";
 import { useT } from "../i18n";
 
 /** "Kanıt" pop-up: value, source, date, evidence id, flags of one DataPoint. */
@@ -75,7 +75,17 @@ export function EvidencePopup({
             <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5">
               {row(t("value"), item.value === null ? "—" : `${fmtNum(item.value)} ${item.unit}`)}
               {row(t("source"), <span>{item.source}</span>)}
-              {row(t("asOf"), <span>{item.as_of}</span>)}
+              {row(
+                t("asOf"),
+                <>
+                  <span>{fmtDate(item.as_of)}</span>
+                  {item.fetched_at && (
+                    <span data-testid="fetched-at" className="block text-xs text-muted">
+                      {`${t("fetchedAt")}: ${fmtDateTime(item.fetched_at)}`}
+                    </span>
+                  )}
+                </>,
+              )}
               {row(t("evidenceId"), <code>{item.id}</code>)}
               {row(t("flags"), item.flags.length ? item.flags.join(", ") : t("noFlags"))}
             </dl>
