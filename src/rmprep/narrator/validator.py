@@ -19,7 +19,7 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import date
 
-from rmprep.api.names import short_name
+from rmprep.api.names import ISSUER_WORDS, short_name
 from rmprep.contracts import (
     BRIEF_MAX_CHARS,
     NARRATIVE_SECTIONS_V13,
@@ -215,12 +215,14 @@ def name_forms(label: str) -> tuple[str, ...]:
     if not issuer:
         return ()
     core = _norm(issuer)
-    port = _norm("PORTFÖY")
     issuers = {core}
-    if core.endswith(" " + port):
-        issuers.add(core[:-len(port) - 1])
+    for word in ISSUER_WORDS:                 # "Portföy" or "PYŞ" (lead fix 2026-10-12)
+        mark = _norm(word)
+        if core.endswith(" " + mark):
+            issuers.add(core[:-len(mark) - 1])
     words = re.sub(r"\s+", " ", label).strip().split(" ")
-    full = " ".join(x for x in words[words.index("PORTFÖY") + 1:] if x != "FONU")
+    cut = next(i for i, w in enumerate(words) if w in ISSUER_WORDS)
+    full = " ".join(x for x in words[cut + 1:] if x != "FONU")
     bodies = {_norm(_BRACKET.sub("", b)) for b in (short, short.replace("KV", "Kısa Vadeli"), full)}
     return tuple(sorted({f"{i} {b}" for i in issuers for b in bodies if b and i},
                         key=len, reverse=True))

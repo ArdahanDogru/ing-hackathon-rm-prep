@@ -44,3 +44,11 @@ def test_option_view_has_short_names(backend, persona):
 
 def test_short_name_pys_issuer():
     assert short_name("AZİMUT PYŞ KISA VADELİ BORÇLANMA ARAÇLARI FONU") == ("Azimut PYŞ", "KV Borçlanma")
+
+
+def test_narrator_name_forms_accept_every_issuer_word():
+    """The narrator's short-name check uses the same issuer words (a PYŞ label crashed it)."""
+    from rmprep.narrator.validator import name_forms
+    forms = name_forms("AZİMUT PYŞ KISA VADELİ BORÇLANMA ARAÇLARI FONU")
+    assert "azimut pyş kv borçlanma" in forms and "azimut kv borçlanma" in forms
+    assert name_forms("NUROL PORTFÖY PARA PİYASASI (TL) FONU")
