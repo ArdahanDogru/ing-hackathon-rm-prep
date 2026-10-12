@@ -88,3 +88,19 @@ test("Kaynaklar lists what the LLM brief cites", async () => {
   expect(screen.getByTestId("brief-sources")).toHaveTextContent("E2075d858");
   expect(screen.getByTestId("brief-sources")).toHaveTextContent(v.options["fund:PPN"].short_label);
 });
+
+test("the real LLM brief sample: text, label, its cites under Kaynaklar", async () => {
+  const b = sample("brief_p01_tr");
+  vi.spyOn(api, "brief").mockResolvedValue(b);
+  const v = sample("run_p01_ready");
+  renderDashboard(v);
+  await waitFor(() => expect(screen.getByTestId("brief-text")).toHaveTextContent(b.text));
+  expect(screen.getByText("AI özeti")).toBeInTheDocument();
+  expect(b.text.length).toBeLessThanOrEqual(280);
+  const { default: userEvent } = await import("@testing-library/user-event");
+  const sources = screen.getByRole("button", { name: /Kaynaklar/ });
+  const base = 1 + (v.result.persona.rm_notu.trim() ? 1 : 0);
+  expect(sources).toHaveTextContent(`(${base + b.cite.length})`);
+  await userEvent.click(sources);
+  b.cite.filter((c) => v.options[c]).forEach((c) => expect(screen.getByTestId("brief-sources")).toHaveTextContent(v.options[c].short_label));
+});
