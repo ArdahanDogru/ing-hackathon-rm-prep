@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 from collections import Counter
@@ -21,6 +22,7 @@ from rmprep.decision.config import DecisionConfig
 from rmprep.decision.notes import build_notes, build_warnings, source_notes
 from rmprep.decision.persona import read_persona
 from rmprep.decision.scoring import score_options
+from rmprep.decision.recommend import class_rule_applies, choose
 from rmprep.decision.talking import talking_points
 from rmprep.decision.universe import EvidenceIndex, build_universe
 
@@ -89,6 +91,14 @@ def to_confirm(config: DecisionConfig, keys: tuple[str, ...]) -> tuple[str, ...]
     return tuple(table[k].format(tier=tier) for k in dict.fromkeys(keys) if k in table)
 
 
+def _with_class_reason(o: ScoredOption, text: str) -> ScoredOption:
+    """Append the class-rule text to the return reason (else the first reason):
+    the reason keys must stay the keys of score_parts."""
+    key = "return" if "return" in o.reasons else next(iter(o.reasons))
+    reasons = {**o.reasons, key: f"{o.reasons[key]} {text}"}
+    return dataclasses.replace(o, reasons=reasons)
+
+
 def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
            answers: Mapping[str, str] = {}, *, created_at: datetime) -> DecisionResult:
     reading = read_persona(persona, config, answers)
@@ -118,6 +128,18 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
                      stability=stab[r.option.option_id], evidence_ids=r.evidence_ids,
                      reasons=r.reasons)
         for r in scoring.scored)
+    # recommended top 3 with the class rule (D19); the reason of an option the rule
+    # moved up says so
+    rec_ids, moved = choose(options, levels, config)
+    if moved:
+        text = config.raw["texts"]["reasons"]["class_rule"]
+        options = tuple(_with_class_reason(o, text) if o.option.option_id in moved else o
+                        for o in options)
+    if class_rule_applies(levels, config):
+        texts = config.raw["texts"]["assumptions"]
+        common["assumptions"] += (texts["class_rule"],)
+        common["to_confirm"] = to_confirm(config, keys + ("class_rule",))
+    by_id = {o.option.option_id: o for o in options}
     estimates = {f.option.option_id: f.risk for f in scoring.features if f.risk_estimated}
     warnings = build_warnings(options, levels, reading.questions, evidence, config, estimates)
 
@@ -139,6 +161,7 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
                         valor_missing)
     return DecisionResult(state=DecisionState.READY, options=options, rejected=scoring.rejected,
                           warnings=warnings, data_quality=notes,
-                          talking_points=talking_points(options, persona, levels, evidence,
-                                                        config),
-                          **common)
+                          talking_points=talking_points(
+                              options, persona, levels, evidence, config,
+                              top=[by_id[i] for i in rec_ids]),
+                          recommended=rec_ids, **common)

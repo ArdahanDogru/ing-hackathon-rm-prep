@@ -154,3 +154,9 @@ def test_report_of_a_blocked_result_shows_the_questions(config, medium):
     text = render(decide(medium, p, config, created_at=T0))
     assert "needs_rm_input" in text
     assert "q:acik_kisitlar[0]" in text and "bilinmeyen bir kısıt" in text
+
+
+def test_report_names_the_recommended_options():
+    r = dataclasses.replace(_result(SIX_KINDS), recommended=("fund:eq1", "fund:debt1"))
+    assert "recommended: fund:eq1, fund:debt1" in render(r)
+    assert "recommended:" not in render(_result(SIX_KINDS))

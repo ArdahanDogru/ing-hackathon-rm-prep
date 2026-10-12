@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from rmprep.contracts import ConstraintResult, DataPoint, ProductOption, RejectedOption
-from rmprep.decision.config import CRITERIA, DEPOSIT_KINDS, PENALTY_RULES, DecisionConfig
+from rmprep.decision.config import DEPOSIT_KINDS, PENALTY_RULES, DecisionConfig
 from rmprep.decision.persona import LEVEL_ATTR, Levels
 from rmprep.decision.universe import Candidate, Universe, stopaj_entity
 from rmprep.grouping import group_key
@@ -50,7 +50,7 @@ def _clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
 def raw_weights(levels: Levels, config: DecisionConfig) -> dict[str, float]:
     c = config.raw
     out = {}
-    for crit in CRITERIA:
+    for crit in config.criteria:
         w = c["weights"][crit]
         raw = w["base"] + w.get("appetite", 0.0) * levels.appetite
         if "level" in w:
@@ -130,6 +130,25 @@ def _short_history_rows(cand: Candidate, config: DecisionConfig) -> list[DataPoi
     if any(p in years and years[p] >= least for p in returns):
         return None
     return [returns[p] for p in sorted(returns)]
+
+
+def _band(levels: Levels, config: DecisionConfig) -> dict[str, int]:
+    rf = config.raw.get("risk_fit")
+    if rf is None:
+        return {}
+    lo, hi = rf["bands"][levels.risk_profile]
+    return {"band_lo": lo, "band_hi": hi}
+
+
+def _risk_value(risk: int, levels: Levels, config: DecisionConfig) -> dict[str, float]:
+    """low_risk (1 at risk 1) or, with the risk_fit section (D19), risk_fit: 1
+    inside the client's band, minus per_step per level outside it, at least 0."""
+    rf = config.raw.get("risk_fit")
+    if rf is None:
+        return {"low_risk": 1 - (_clamp(risk, RISK_MIN, RISK_MAX) - 1) / 6}
+    lo, hi = rf["bands"][levels.risk_profile]
+    off = lo - risk if risk < lo else risk - hi if risk > hi else 0
+    return {"risk_fit": max(0.0, 1.0 - rf["per_step"] * off)}
 
 
 def _fee_rows(cand: Candidate, fd: Mapping[str, Any] | None) -> list[DataPoint]:
@@ -340,7 +359,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
                  if fd is not None and is_fund else None)
         values = {
             "return": percentile_rank(ranked, all_returns) if ranked is not None else 0.0,
-            "low_risk": 1 - (_clamp(risk, RISK_MIN, RISK_MAX) - 1) / 6,
+            **_risk_value(risk, levels, config),
             "liquidity": (_valor_liquidity(valor.value, fd) if valor is not None
                           else kind_row["liquidity"]),
             "income": kind_row["income"],
@@ -389,7 +408,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             if extra is not None:
                 rows[extra.quantity] = extra
         fields = {
-            "risk": risk, "ceiling": levels.ceiling,
+            "risk": risk, "ceiling": levels.ceiling, **_band(levels, config),
             "annual": (annual or 0.0) * 100, "period": period or levels.period,
             "horizon": levels.period,
             "size_m": size_row.value / 1e6 if size_row else 0.0,
@@ -464,7 +483,7 @@ def _reasons(f: Features, parts: Mapping[str, float], config: DecisionConfig) ->
 def score_row(f: Features, weights: Mapping[str, float], maxima: Mapping[str, float],
               config: DecisionConfig | None = None) -> Row:
     parts: dict[str, float] = {}
-    for crit in CRITERIA:
+    for crit in weights:
         if weights[crit] > 0:
             parts[crit] = weights[crit] * f.values[crit]
     for rule, maximum in maxima.items():

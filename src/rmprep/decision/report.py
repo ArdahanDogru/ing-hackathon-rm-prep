@@ -35,6 +35,9 @@ def render(result: DecisionResult) -> str:
     if r.options and r.options[0].option.kind == "deposit":
         lines += ["", _head("baseline: ", r.options[0]), _parts(r.options[0])]
 
+    if r.recommended:
+        lines += ["", f"recommended: {', '.join(r.recommended)}"]
+
     funds = [o for o in r.options if o.option.kind != "deposit"]
     position = {o.option.option_id: i for i, o in enumerate(funds, start=1)}
     groups = grouping.groups(r.options)

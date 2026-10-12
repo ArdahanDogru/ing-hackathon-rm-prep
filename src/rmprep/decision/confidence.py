@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from rmprep.decision.config import CRITERIA, DecisionConfig
+from rmprep.decision.config import DecisionConfig
 from rmprep.decision.persona import Levels
 from rmprep.decision.scoring import (
     Features,
@@ -43,7 +43,7 @@ def stability(features: Sequence[Features], levels: Levels,
     maxima = penalty_maxima(config)
     runs: list[tuple[dict[str, float], dict[str, float]]] = []
     for factor in (1 - step, 1 + step):
-        for crit in CRITERIA:
+        for crit in raw:
             runs.append(({**raw, crit: raw[crit] * factor}, maxima))
         for rule in maxima:
             runs.append((raw, {**maxima, rule: maxima[rule] * factor}))

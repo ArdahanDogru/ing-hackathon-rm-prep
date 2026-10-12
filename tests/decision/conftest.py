@@ -45,7 +45,7 @@ def load_evidence(name: str = "evidence_medium.json") -> EvidenceSet:
 
 
 def strip_d9(raw: dict) -> dict:
-    """The config without the D9-D18 additions (real return, real_loss, long
+    """The config without the D9-D19 additions (real return, real_loss, long
     horizon, deposit quality, return weight 1 + appetite; underperformance, the
     diversity pool; fund detail; constraint rules), so the hand-computed values of
     the D1-D8 tests do not change when the lead adds them to config/decision.yaml."""
@@ -61,6 +61,16 @@ def strip_d9(raw: dict) -> dict:
     for key in ("why", "access"):                            # D17
         raw["display"].pop(key, None)
     raw.pop("talking_points", None)                          # D18
+    for key in ("asset_classes", "risk_fit", "recommend"):   # D19
+        raw.pop(key, None)
+    if "risk_fit" in raw["weights"]:
+        raw["weights"].pop("risk_fit")
+        raw["weights"]["low_risk"] = {"base": 1.0, "appetite": -1.0}
+        raw["priorities"] = {k: ("boost:low_risk" if v == "boost:risk_fit" else v)
+                             for k, v in raw["priorities"].items()}
+        why = raw["display"].get("why", {})
+        if "risk_fit" in why:
+            why["low_risk"] = why.pop("risk_fit")
     for key in ("pool", "diversity_pool_cap"):
         raw["display"].pop(key, None)
     if "time_deposit" in raw:
@@ -356,6 +366,64 @@ def d15_config(d15_raw):
     return parse_config(d15_raw)
 
 
+# --- D19: asset classes, risk fit, recommended ----------------------------------------------------
+
+D19_SECTIONS = {
+    "asset_classes": {
+        "by_name": {"PARA PİYASASI": "nakit_benzeri", "KISA VADELİ": "nakit_benzeri"},
+        "by_kind": {"deposit": "nakit_benzeri", "time_deposit": "nakit_benzeri",
+                    "money_market": "nakit_benzeri", "debt": "borclanma",
+                    "participation": "borclanma", "variable": "dengeli", "mixed": "dengeli",
+                    "fund_of_funds": "dengeli", "equity": "hisse",
+                    "precious_metals": "altin_doviz"},
+        "fx": "altin_doviz",
+    },
+    "risk_fit": {
+        "bands": {"Muhafazakâr": [1, 2], "Temkinli": [2, 3], "Dengeli": [3, 5],
+                  "Agresif": [4, 7]},
+        "per_step": 0.25,
+    },
+    "recommend": {"max_per_class": 1, "max_cash_like": 1, "cash_like": "nakit_benzeri",
+                  "profiles": ["Dengeli", "Agresif"]},
+}
+D19_TEXTS = {
+    "reasons": {
+        "risk_fit": "Risk değeri {risk}/7; müşterinin risk aralığı {band_lo}-{band_hi}.",
+        "class_rule": "Çeşitlendirme: farklı varlık sınıfından en iyi seçenek.",
+    },
+    "assumptions": {
+        "class_rule": "Öneriler varlık sınıflarına yayıldı: her sınıftan en fazla bir, nakit "
+                      "benzeri en fazla bir seçenek.",
+    },
+}
+
+
+def add_d19(raw: dict) -> dict:
+    """Add the D19 config (section 10 values) and texts, in place: risk_fit
+    replaces low_risk in the weights and the priority boosts."""
+    raw.update(copy.deepcopy(D19_SECTIONS))
+    weights = raw["weights"]
+    weights["risk_fit"] = {"base": 1.0}
+    del weights["low_risk"]
+    raw["priorities"] = {k: ("boost:risk_fit" if v == "boost:low_risk" else v)
+                         for k, v in raw["priorities"].items()}
+    if "why" in raw.get("display", {}) and "low_risk" in raw["display"]["why"]:
+        raw["display"]["why"]["risk_fit"] = raw["display"]["why"].pop("low_risk")
+    for section, texts in D19_TEXTS.items():
+        raw["texts"][section].update(texts)
+    return raw
+
+
+@pytest.fixture
+def d19_raw(raw) -> dict:
+    return add_d19(add_d15(add_d13(add_d12(add_d10(add_d9(raw))))))
+
+
+@pytest.fixture
+def d19_config(d19_raw):
+    return parse_config(d19_raw)
+
+
 def market_row(value=43.82):
     return dp("deposit_rate", MARKET, value, source="evds", as_of=date(2026, 10, 2))
 
@@ -374,7 +442,9 @@ def d9_rows(cpi=29.73, deposit=17.5, time_deposit=15.0, fund_default=10.0, money
 
 CATS = {"money_market": "Para Piyasası Şemsiye Fonu", "equity": "Hisse Senedi Şemsiye Fonu",
         "debt": "Borçlanma Araçları Şemsiye Fonu", "mixed": "Karma Şemsiye Fonu",
-        "participation": "Katılım Şemsiye Fonu"}
+        "participation": "Katılım Şemsiye Fonu", "variable": "Değişken Şemsiye Fonu",
+        "fund_of_funds": "Fon Sepeti Şemsiye Fonu",
+        "precious_metals": "Kıymetli Madenler Şemsiye Fonu"}
 
 
 def make_evidence(funds, deposit=23.0, deposit_flags=("manual_entry",), time_deposit=None,

@@ -42,6 +42,7 @@ class Levels:
     boosts: Mapping[str, int] = field(default_factory=dict)  # criterion -> matched priorities
     effects: tuple[str, ...] = ()   # constraint effects applied, in order
     hard_rules: tuple[str, ...] = ()  # effects enforced as hard rules (D13), in order
+    risk_profile: str = ""          # risk_profiles key (D19: risk_fit band, class rule)
 
 
 @dataclass(frozen=True)
@@ -238,6 +239,7 @@ def read_persona(persona: Persona, config: DecisionConfig,
         ceiling=ceiling, appetite=profiles[profile]["appetite"], period=period,
         fx_level=fx_key, fx_intensity=fx_intensity, liquidity_intensity=liquidity_intensity,
         liquidity_weight=liquidity_weight, diversity=diversity, boosts=boosts,
-        effects=tuple(applied), hard_rules=tuple(hard), **level_values)
+        effects=tuple(applied), hard_rules=tuple(hard), risk_profile=profile,
+        **level_values)
     return PersonaReading(levels, tuple(questions), tuple(assumptions),
                           tuple(assumption_keys))
