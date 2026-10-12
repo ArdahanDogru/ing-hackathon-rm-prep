@@ -244,3 +244,65 @@ def test_talking_points_use_recommended(d19_raw):
     for code in ("access", "risk_fit"):
         if code in by_code:
             assert by_code[code].option_ids == r.recommended
+
+
+# --- D19b: a real-return floor for the class rule ---------------------------------------------------
+
+FLOOR_FUNDS = {
+    # P03 (Agresif, 3y horizon): the 3y returns rank; the floor looks at the real 1y return
+    "EQA": dict(kind="equity", name="A HİSSE SENEDİ FONU", risk=6,
+                returns={"1y": 60.0, "3y": 350.0}, **BASE),
+    "MXB": dict(kind="mixed", name="B KARMA FON", risk=5,
+                returns={"1y": 50.0, "3y": 320.0}, **BASE),
+    # long-term debt: a strong 3y return, but 1y 10 % -> negative after stopaj and CPI
+    "UVC": dict(kind="debt", name="C UZUN VADELİ BORÇLANMA ARAÇLARI FONU", risk=5,
+                returns={"1y": 10.0, "3y": 310.0}, **BASE),
+    "EQD": dict(kind="equity", name="D HİSSE SENEDİ FONU", risk=6,
+                returns={"1y": 45.0, "3y": 200.0}, **BASE),
+}
+
+
+def test_without_a_floor_the_negative_class_pick_stays(d19_config):
+    r = _decide(d19_config, "P03", funds=FLOOR_FUNDS)
+    assert "fund:UVC" in r.recommended                    # the case of P03 (KUT)
+
+
+def test_floor_replaces_a_negative_real_class_pick(d19_raw):
+    d19_raw["recommend"]["min_real_return"] = 0.0
+    r = _decide(parse_config(d19_raw), "P03", funds=FLOOR_FUNDS)
+    assert "fund:UVC" not in r.recommended
+    # the next class with a real return >= 0: the time deposit (cash-like)
+    assert r.recommended == ("fund:EQA", "fund:MXB", "time_deposit:ing_e_vadeli")
+
+
+def test_floor_fills_by_score_when_no_class_is_left(d19_raw):
+    d19_raw["recommend"]["min_real_return"] = 0.0
+    funds = {k: FLOOR_FUNDS[k] for k in ("EQA", "UVC", "EQD")}
+    ev = make_evidence(funds, extra=d9_rows() + [market_row()])     # no time deposit
+    r = decide(ev, load_persona("P03"), parse_config(d19_raw), created_at=T0)
+    # class picks: EQA (hisse); UVC is below the floor; the class cap is relaxed
+    # first (EQD, hisse); the last step fills by score without the floor (UVC)
+    assert set(r.recommended) == {"fund:EQA", "fund:UVC", "fund:EQD"}
+    scores = {o.option.option_id: o.score for o in r.options}
+    assert [scores[i] for i in r.recommended] == sorted(scores[i] for i in r.recommended)[::-1]
+
+
+def test_floor_does_not_touch_the_plain_score_order(d19_raw):
+    # P05 (Temkinli, no diversity): no class rule, so the floor does not apply
+    d19_raw["recommend"]["min_real_return"] = 100.0      # every option is below it
+    cfg = parse_config(d19_raw)
+    r = _decide(cfg, "P05")
+    assert r.recommended == tuple(o.option.option_id for o in top_heads(r.options, 3))
+
+
+def test_floor_that_blocks_all_falls_back_to_score_order(d19_raw):
+    d19_raw["recommend"]["min_real_return"] = 100.0
+    r = _decide(parse_config(d19_raw), "P04")
+    assert len(r.recommended) == 3
+
+
+def test_floor_is_optional_and_checked(d19_raw, d19_config):
+    assert "min_real_return" not in d19_config.raw["recommend"]
+    d19_raw["recommend"]["min_real_return"] = "0"
+    with pytest.raises(ConfigError, match="recommend.min_real_return"):
+        parse_config(d19_raw)

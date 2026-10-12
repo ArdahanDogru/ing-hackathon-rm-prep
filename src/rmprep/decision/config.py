@@ -357,7 +357,10 @@ def _check_d19(c: dict) -> None:
 
     if "recommend" in c:
         rec = c["recommend"]
-        _keys(rec, "recommend", ("max_per_class", "max_cash_like", "cash_like", "profiles"))
+        _keys(rec, "recommend", ("max_per_class", "max_cash_like", "cash_like", "profiles"),
+              ("min_real_return",))
+        if "min_real_return" in rec:        # D19b: percent, e.g. 0.0
+            _num(rec["min_real_return"], "recommend.min_real_return")
         for key in ("max_per_class", "max_cash_like"):
             v = rec[key]
             if not isinstance(v, int) or isinstance(v, bool) or v < 1:
