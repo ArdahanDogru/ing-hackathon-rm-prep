@@ -47,7 +47,7 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
 WARNING_CODES = ("concentration", "fx_exposure", "risk_estimate", "low_stability",
                  "deposit_vs_market", "no_fx_deposit_data")
 TALKING_CODES = ("deposit_real", "best_alternative", "access", "risk_fit")
-_D9_SECTIONS = ("allocation", "asset_classes", "risk_fit", "recommend", "talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
+_D9_SECTIONS = ("risk_estimate", "allocation", "asset_classes", "risk_fit", "recommend", "talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
                 "fund_detail", "constraint_rules", "short_history")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
@@ -162,6 +162,7 @@ def _check(c: dict) -> None:
     _keys(c["texts"]["reasons"], "texts.reasons",
           (*criteria(c), *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"),
           ("low_risk", "risk_fit", "class_rule", "return_real", "return_net",
+           "penalty:risk_unknown_class",
            "penalty:real_loss", "penalty:underperformance", "liquidity_valor", "fees"))
     if "real_loss" in c["penalties"] and "penalty:real_loss" not in c["texts"]["reasons"]:
         raise ConfigError("texts.reasons: penalties.real_loss needs penalty:real_loss")
@@ -390,6 +391,16 @@ def _check_d19(c: dict) -> None:
             raise ConfigError("recommend.profiles: a list of risk_profiles names")
         _text(c, "reasons", "class_rule", "the recommend section")
         _text(c, "assumptions", "class_rule", "the recommend section")
+
+    if "risk_estimate" in c:        # D21: risk estimate by asset class
+        re_ = c["risk_estimate"]
+        _keys(re_, "risk_estimate", (), ("by_class_quantile", "min_known"))
+        q = re_.get("by_class_quantile", 0.75)
+        if _num(q, "risk_estimate.by_class_quantile", 0, 1) <= 0:
+            raise ConfigError("risk_estimate.by_class_quantile: must be > 0")
+        n = re_.get("min_known", 5)
+        if not isinstance(n, int) or isinstance(n, bool) or n < 1:
+            raise ConfigError("risk_estimate.min_known: must be an integer >= 1")
 
     if "allocation" in c:           # D20: model allocation bands
         if "asset_classes" not in c:
