@@ -31,3 +31,7 @@ class NotesRequest(BaseModel):
 
 class TextRequest(BaseModel):
     text: str
+
+
+class BlockRequest(BaseModel):
+    text: str | None          # None restores the original block (v1.5)

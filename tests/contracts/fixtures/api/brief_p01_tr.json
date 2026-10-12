@@ -1,20 +1,18 @@
 {
  "run_id": "Rb78a07821c",
  "lang": "TR",
- "text": "Müşteriniz, 62 yaşında muhafazakâr profilli emekli girişimci; düzenli gelir ve sermaye korumayı önceliklendiriyor, varlığı ağırlıklı olarak TL mevduatta. Görüşmede mevduat yoğunluğunu azaltabilecek üç öneriyi, paraya erişim ve risk değerleriyle birlikte değerlendirmeniz önerilir.",
+ "text": "Müşteriniz, 62 yaşında emekli girişimci ve muhafazakâr profilli; düzenli gelir ve sermaye korumayı önceliklendiriyor, mevcut mevduat yoğunluğunu azaltmak istiyor.",
  "source": "llm",
  "model": "claude-haiku-5-5",
  "prompt_version": "b1",
  "checks": [],
- "created_at": "2026-10-12T10:38:54.028973+03:00",
- "cost_usd": 0.000395925,
+ "created_at": "2026-10-12T10:38:54.273729+03:00",
+ "cost_usd": 0.000430425,
  "cite": [
   "fund:PPN",
   "fund:IST",
   "fund:AIS",
   "E2075d858",
-  "E06f53164",
-  "E3f036729",
-  "Efc142651"
+  "E06f53164"
  ]
 }

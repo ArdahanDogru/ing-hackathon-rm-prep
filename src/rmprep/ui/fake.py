@@ -183,10 +183,25 @@ class FakeBackend:
                 created_at=result.created_at)
         return self._narratives[key]
 
+    def edit_narrative(self, run_id: str, lang: str, block_id: str,
+                       text: str | None) -> NarrativeDraft:
+        """v1.5: one block of the draft; the stand-in check of rmprep.edits."""
+        from rmprep import edits
+        d = self.draft_narrative(run_id, lang)
+        if d.status == NarrativeStatus.APPROVED:
+            raise ValueError("the meeting text is approved; edits are closed")
+        result, _ = self._runs[run_id]
+        findings = edits.check_block(d, result, None, block_id, text) if text and text.strip() else ()
+        new = edits.with_edit(d, block_id, text, findings)
+        self._narratives[(run_id, lang)] = new
+        return new
+
     def approve_narrative(self, run_id: str, lang: str, text: str) -> NarrativeDraft:
         if not text.strip():
             raise ValueError("an approved narrative needs a text")
         draft = self.draft_narrative(run_id, lang)
+        if draft.blocking_findings():
+            raise ValueError(f"blocking findings: {draft.blocking_findings()}")
         approved = dataclasses.replace(draft, status=NarrativeStatus.APPROVED, rm_text=text)
         self._narratives[(run_id, lang)] = approved
         return approved

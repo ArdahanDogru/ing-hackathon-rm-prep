@@ -7,6 +7,7 @@ result it returned, because the protocol has no "get run".
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
@@ -16,6 +17,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from rmprep import edits
 from rmprep.api import schemas
 from rmprep.contracts import (
     NARRATIVE_LANGS,
@@ -123,9 +125,10 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     def _text_view(d: NarrativeDraft) -> dict:
         texts[(d.run_id, d.lang)] = d
-        md = d.rm_text if d.status == NarrativeStatus.APPROVED else to_markdown(d)
-        # draft_markdown: the unedited draft, so the web can tell an edited approval apart
-        return {**d.to_dict(), "markdown": md, "draft_markdown": to_markdown(d)}
+        md = d.rm_text if d.status == NarrativeStatus.APPROVED else to_markdown(edits.apply_edits(d))
+        # draft_markdown: the unedited draft, so the web can tell an edited text apart
+        plain = to_markdown(dataclasses.replace(d, rm_edits={}))
+        return {**d.to_dict(), "markdown": md, "draft_markdown": plain}
 
     def _approved_text(run_id: str, lang: str) -> NarrativeDraft | None:
         d = texts.get((run_id, lang))
@@ -157,6 +160,11 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     def approve_text(run_id: str, lang: str, req: schemas.TextRequest):
         _run(run_id)
         return _text_view(backend.approve_narrative(run_id, _lang(lang), req.text))
+
+    @app.put("/api/runs/{run_id}/narrative/{lang}/blocks/{block_id}")
+    def edit_block(run_id: str, lang: str, block_id: str, req: schemas.BlockRequest):
+        _run(run_id)
+        return _text_view(backend.edit_narrative(run_id, _lang(lang), block_id, req.text))
 
     @app.get("/api/runs/{run_id}/brief")
     def brief(run_id: str, lang: str = "TR"):

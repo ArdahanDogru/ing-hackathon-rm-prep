@@ -224,6 +224,8 @@ class SourceStatus:
 # v1.3 (2026-10-11): warning audience, talking points, to_confirm; narrator
 # section talking_points, sentence title, need_tags (docs/web-ui.md section 3).
 # v1.4 (2026-10-12): NarrativeBrief + Backend.brief (docs/web-ui.md "LLM brief").
+# v1.5 (2026-10-12): per-block edits of the meeting text (rm_edits, edit_checks,
+# Backend.edit_narrative; docs/web-ui.md "Section-by-section editing").
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -520,6 +522,9 @@ NARRATIVE_SECTIONS_V13 = NARRATIVE_SECTIONS + ("talking_points",)
 NARRATIVE_SOURCES = ("llm", "template")
 
 
+BLOCKING_CHECK_KINDS = ("phrase", "option", "internal", "label")   # v1.5; "number" only warns
+
+
 class NarrativeStatus(StrEnum):
     DRAFT = "draft"
     APPROVED = "approved"
@@ -559,6 +564,17 @@ class NarrativeDraft:
     status: NarrativeStatus = NarrativeStatus.DRAFT
     rm_text: str = ""                    # the RM's edited text (Markdown); required when approved
     need_tags: Mapping[str, tuple[str, ...]] = field(default_factory=dict)  # v1.3: option_id -> persona priorities
+    rm_edits: Mapping[str, str] = field(default_factory=dict)        # v1.5: block id -> the RM's text
+    edit_checks: Mapping[str, tuple[str, ...]] = field(default_factory=dict)  # v1.5: block id -> "kind: message"
+
+    def blocking_findings(self) -> dict[str, tuple[str, ...]]:
+        """The findings of the edited blocks that stop the approval (v1.5)."""
+        out = {}
+        for block, findings in self.edit_checks.items():
+            hard = tuple(f for f in findings if f.split(":", 1)[0].strip() in BLOCKING_CHECK_KINDS)
+            if hard:
+                out[block] = hard
+        return out
 
     def __post_init__(self) -> None:
         if self.lang not in NARRATIVE_LANGS:
@@ -664,6 +680,12 @@ class Backend(Protocol):
 
     def approve_narrative(self, run_id: str, lang: str, text: str) -> NarrativeDraft:
         """Store the RM's final text (status approved); the card uses it."""
+        ...
+
+    def edit_narrative(self, run_id: str, lang: str, block_id: str,
+                       text: str | None) -> NarrativeDraft:
+        """v1.5: set (text) or restore (None) one block of a draft meeting text;
+        the block is checked at once (NarrativeDraft.edit_checks)."""
         ...
 
     def brief(self, run_id: str, lang: str = "TR") -> NarrativeBrief | None:

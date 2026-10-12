@@ -51,6 +51,7 @@ class RealBackend:
         self._pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="narrator")
         self._pending: dict[tuple[str, str], Future] = {}
         self._briefs: dict[tuple[str, str], Future] = {}     # v1.4 dashboard briefs
+        self._edits: dict[tuple[str, str], tuple[dict, dict]] = {}   # v1.5 (rm_edits, edit_checks)
         self._lock = threading.Lock()
 
     # --- reading --------------------------------------------------------------
@@ -132,10 +133,47 @@ class RealBackend:
             job = self._pending.pop((run_id, lang), None)
         if job is not None:
             try:
-                return job.result()
+                return self._with_edits(job.result())
             except Exception:
                 pass                   # the background draft failed: make it again now
-        return self._draft_now(run_id, lang)
+        return self._with_edits(self._draft_now(run_id, lang))
+
+    # --- per-block edits (contract v1.5) ------------------------------------------
+
+    def _edits_path(self, run_id: str, lang: str) -> Path:
+        return self._paths.root / "data" / "narratives" / f"{run_id}-{lang}-edits.json"
+
+    def _with_edits(self, d: NarrativeDraft) -> NarrativeDraft:
+        key = (d.run_id, d.lang)
+        if key not in self._edits:
+            try:
+                raw = json.loads(self._edits_path(*key).read_text(encoding="utf-8"))
+                self._edits[key] = (dict(raw["rm_edits"]),
+                                    {k: tuple(v) for k, v in raw["edit_checks"].items()})
+            except (OSError, ValueError, KeyError):
+                self._edits[key] = ({}, {})
+        rm_edits, checks = self._edits[key]
+        return dataclasses.replace(d, rm_edits=dict(rm_edits), edit_checks=dict(checks))
+
+    def edit_narrative(self, run_id: str, lang: str, block_id: str,
+                       text: str | None) -> NarrativeDraft:
+        from rmprep import edits
+        d = self.draft_narrative(run_id, lang)
+        if d.status == NarrativeStatus.APPROVED:
+            raise ValueError("the meeting text is approved; edits are closed")
+        result, inputs = self._runs[run_id]
+        findings = ()
+        if text is not None and text.strip():
+            ev = self.evidence(inputs.snapshot_id, inputs.excluded_sources)
+            findings = edits.check_block(d, result, ev, block_id, text)
+        new = edits.with_edit(d, block_id, text, findings)
+        self._edits[(run_id, lang)] = (dict(new.rm_edits), dict(new.edit_checks))
+        path = self._edits_path(run_id, lang)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"rm_edits": new.rm_edits,
+                                    "edit_checks": {k: list(v) for k, v in new.edit_checks.items()}},
+                                   ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n")
+        return new
 
     def wait_for_background(self) -> None:
         """Wait for the running background drafts and briefs (tests, shutdown)."""
@@ -160,8 +198,10 @@ class RealBackend:
     def approve_narrative(self, run_id: str, lang: str, text: str) -> NarrativeDraft:
         if not text.strip():
             raise ValueError("the approved meeting text is empty")
-        d = dataclasses.replace(self.draft_narrative(run_id, lang),
-                                status=NarrativeStatus.APPROVED, rm_text=text)
+        current = self.draft_narrative(run_id, lang)
+        if current.blocking_findings():
+            raise ValueError(f"blocking findings: {current.blocking_findings()}")
+        d = dataclasses.replace(current, status=NarrativeStatus.APPROVED, rm_text=text)
         path = self._paths.root / "data" / "narratives" / f"{run_id}-{lang}-approved.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(d.to_dict(), ensure_ascii=False, indent=1) + "\n",

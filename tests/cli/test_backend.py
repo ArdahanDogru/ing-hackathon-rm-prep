@@ -124,6 +124,7 @@ def test_draft_and_approve_narrative(backend, tmp_path):
     fake = FakeNarrator()
     backend._narrator_obj = fake
     r = _approved(backend)
+    backend.wait_for_background()      # the TR draft and the brief run in the same pool
     d = backend.draft_narrative(r.run_id, "EN")
     assert (d.run_id, d.lang) == (r.run_id, "EN") and fake.calls[-1][1] == "EN"
     with pytest.raises(ValueError):
@@ -212,3 +213,15 @@ def test_no_brief_for_a_blocking_question(backend):
     assert r.state == DecisionState.NEEDS_RM_INPUT
     with pytest.raises(ValueError):
         backend.brief(r.run_id, "TR")
+
+
+def test_edits_survive_a_restart(backend, tmp_path):
+    backend._narrator_obj = FakeNarrator()
+    r = _approved(backend)
+    backend.draft_narrative(r.run_id, "TR")
+    d = backend.edit_narrative(r.run_id, "TR", "ozet", "Yeni metin.")
+    assert d.rm_edits == {"ozet": "Yeni metin."}
+    again = be.RealBackend(tmp_path, personas_dir=FIX / "personas", now=lambda: T0)
+    again._narrator_obj = FakeNarrator()
+    again.decide(r.persona, r.snapshot_id)
+    assert again.draft_narrative(r.run_id, "TR").rm_edits == {"ozet": "Yeni metin."}
