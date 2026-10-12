@@ -118,8 +118,7 @@ this client, with a client fact (horizon, liquidity, income, principal \
 protection, a constraint or a note, in the client's own words) that you do not \
 use for the other options; (c) the main trade-off or risk for this client, \
 from its "risk" line. The options must not read alike.
-- alternatifler: 1-2 sentences per group: the other options of the same kind; \
-and the baseline for comparison.
+- alternatifler: 1-2 sentences per group: the other options of the same kind.
 - dikkat: the warnings in the facts, in plain words; then at most one sentence per \
 selected option, starting with its name and only with what oneriler does not say: \
 its access when "access_slow" is true, and its fees if any (nothing for an option \
@@ -154,6 +153,10 @@ least one id in "cite"; cite only ids that exist in the facts.
 counts, no counts of rejected options, no names of screens or panes. Write \
 sources as TEFAS or TCMB EVDS.
 6. Include the sentence "{disclaimer}" verbatim.
+8. Do not compare the ING deposit with the market deposit rate (or the market \
+average) in any section but oneriler: that comparison is an RM-only note. Name the \
+ING deposit in oneriler only if the RM selected it, and never with the market rate. \
+The market deposit rate alone (as in a talking point) is fine.
 7. need_tags: only words of oncelikler, at most 3 per option, every selected option.
 Length: aim for about 450 words in total for 3 selected options (fewer for fewer \
 options); ozet at most 3 sentences plus the disclaimer; teklif_metni at most 4 sentences.

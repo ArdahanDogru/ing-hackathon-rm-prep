@@ -29,7 +29,13 @@ from rmprep.contracts import (
     Persona,
 )
 from rmprep.narrator.config import NarratorConfig
-from rmprep.narrator.facts import ING_RATES, INTERNAL_PARTS, REAL_RETURN, Facts
+from rmprep.narrator.facts import (
+    ING_RATES,
+    INTERNAL_PARTS,
+    MARKET_DEPOSIT_RATE,
+    REAL_RETURN,
+    Facts,
+)
 from rmprep.narrator.template import INTERNAL_NAME, tr_lower
 
 SECTIONS = NARRATIVE_SECTIONS_V13
@@ -297,6 +303,37 @@ def _check_repeat(sections, f: Facts) -> list[str]:
             if repeats(s.text, oneriler, names)]
 
 
+# N13c: words for the market deposit rate / average (TR, EN), normalized
+MARKET_WORDS = ("piyasa ortalama", "piyasa mevduat", "piyasadaki mevduat", "piyasa faiz",
+                "market average", "market deposit", "market rate")
+COMPARE_FREE = ("oneriler", "varsayimlar")   # oneriler: a selected deposit; varsayimlar: verbatim
+
+
+def compares_ing_with_market(text: str, ing_names: Sequence[str], market_values) -> bool:
+    """N13c: the sentence names an ING deposit and the market deposit rate (its
+    words or its number): the ING-vs-market comparison, an RM-only note. The
+    sentence is the unit (not the clause): a contrast in two clauses is still
+    the comparison."""
+    t = _norm(text)
+    if not any(n in t for n in ing_names):
+        return False
+    if any(w in t for w in MARKET_WORDS):
+        return True
+    values = {abs(v) for v in market_values}
+    return any(r and _matches(r, values) for _, r in _token_readings(text))
+
+
+def _check_compare(sections, f: Facts) -> list[str]:
+    names = _ing_names(f)
+    if not names:
+        return []
+    market = [n.value for n in f.market if n.name == MARKET_DEPOSIT_RATE]
+    return [f"compare: {sec.key}: the ING deposit is compared with the market deposit rate "
+            f"(an RM-only note): \"{_short(s.text)}\""
+            for sec in sections if sec.key not in COMPARE_FREE for s in sec.sentences
+            if compares_ing_with_market(s.text, names, market)]
+
+
 def _check_options(sections, f: Facts, r: DecisionResult) -> list[str]:
     """Rule 2: only the named options, by label, id, fund code or (N10b) short
     name. The issuer must be in a short name: a short label alone ("Para
@@ -515,6 +552,7 @@ def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
     out += _check_talking_points(sections)
     out += _check_shape(sections, f)
     out += _check_repeat(sections, f)
+    out += _check_compare(sections, f)
     if need_tags is not None:
         out += _check_need_tags(need_tags, f, r)
     everything = _norm(" ".join(s.text for sec in sections for s in sec.sentences))
