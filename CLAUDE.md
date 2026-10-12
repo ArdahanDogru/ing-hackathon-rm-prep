@@ -94,7 +94,8 @@ and message formats: `docs/workflow.md`.
   v1.1 adds option kind `time_deposit`; v1.2 adds the narrator types and
   `Backend.draft_narrative` / `approve_narrative`; v1.3 adds warning audience,
   talking points, `to_confirm`, `NARRATIVE_SECTIONS_V13`, sentence title and
-  need tags, docs/web-ui.md section 3); their design is
+  need tags, docs/web-ui.md section 3; v1.4 adds `NarrativeBrief` and
+  `Backend.brief`; v1.5 adds the per-block edits of the meeting text); their design is
   `docs/decision.md`, `docs/ui.md` and `docs/narrator.md`.
 - GitHub: private repo `ArdahanDogru/ing-hackathon-rm-prep`; only the lead
   pushes `main`, and only when the user asks (`docs/workflow.md`).

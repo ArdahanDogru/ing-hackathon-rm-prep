@@ -233,8 +233,9 @@ narrow right column:
 - **Right column**: "Notlarım" (autosave), "RM notu · yalnızca sizin için"
   (RM-only warnings), "Kaynaklar" (the numbered sources: client file, TEFAS /
   EVDS rows with date), "Terimler", the card download (PDF, Markdown), and the
-  buttons "Düzenle" and **"Metni onayla"**.
-- An edited text shows as formatted Markdown with "Düzenlenmiş metin" (as
+  button **"Metni onayla"** (at the top of the right column; editing is per
+  block, see "Section-by-section editing").
+- (Before 2026-10-12:) An edited text shows as formatted Markdown with "Düzenlenmiş metin" (as
   before); the cards and source numbers show for an unedited draft.
 
 ### LLM brief (approved by the user 2026-10-12)
@@ -270,6 +271,41 @@ The brief sentence of the dashboard is written by an LLM; the plain sentence
   `RealBackend.decide`), narrator **N10** (prompt, brief builder, validator
   subset, cache, tests with a fake LLM, one live smoke call), web (the
   polling and the label, in the redesign milestones).
+
+### Section-by-section editing of the meeting text (approved by the user 2026-10-12)
+
+Replaces the "Düzenle" of the whole text as Markdown.
+
+- **Blocks**: `ozet`, `teklif_metni`, `dikkat`, `alternatifler`, `sorular`,
+  `varsayimlar` (one block each); `talking_points:<i>` (one per point);
+  `oneriler:<option_id>` (one per selected option). Block ids come from the
+  narrator (`narrator.blocks.block_ids(draft)`).
+- **Editing**: a pencil on each block opens only that block as plain text
+  ("Kaydet", "Vazgeç"); the other blocks keep their layout. An edited block
+  shows "düzenlendi" and "Orijinale dön" (restores the LLM text).
+- **Check**: after "Kaydet" the narrator validator checks the edited block
+  alone. Findings of kind `phrase`, `option`, `internal`, `label` (forbidden
+  phrase, a rejected or outside option, an RM-only fact, a wrong ING rate
+  label) **block** "Metni onayla" until the RM corrects them; findings of kind
+  `number` (a number not in the facts) only **warn**. Each finding shows next
+  to its block.
+- **Saving**: each saved block is stored on the server at once
+  (`data/narratives/<run_id>-<lang>-edits.json`, restored after a restart).
+  "Metni onayla" approves the text with the edits (the server composes the
+  Markdown; `approve_narrative` refuses while a blocking finding is open).
+  The card and the PDF use the approved text, as before.
+- **Contract v1.5 (additive)**: `NarrativeDraft.rm_edits: Mapping[str, str]`
+  (block id → edited text, default empty), `NarrativeDraft.edit_checks:
+  Mapping[str, tuple[str, ...]]` (block id → findings, each "kind: message"),
+  `BLOCKING_CHECK_KINDS = ("phrase", "option", "internal", "label")`;
+  `Backend.edit_narrative(run_id, lang, block_id, text: str | None) ->
+  NarrativeDraft` (None restores the original).
+- **Milestones**: lead L15 (contract v1.5, RealBackend / FakeBackend
+  `edit_narrative`, store and restore, approval guard, API `PUT
+  /api/runs/{id}/narrative/{lang}/blocks/{block_id}` with `{text}` or
+  `{text: null}`), narrator **N11** (block ids, `check_block`, `to_markdown`
+  with the edits), web **W11** (pencil, editor, findings, "Orijinale dön",
+  approval disabled with the reason while a blocking finding is open).
 
 ### Not in this redesign (later, with data)
 
@@ -436,7 +472,7 @@ Where each section shows in the meeting text view:
 | `alternatifler`, `sorular`, `varsayimlar` | collapsed lines under "Dikkat": "Diğer seçenekler", "Sorulacak sorular", "Varsayımlar" |
 | (RM-only warnings, not narrator) | "RM notları · yalnızca sizin için" |
 
-"Düzenle" opens the whole text as Markdown (`narrator.template.to_markdown`)
+(Superseded 2026-10-12 by "Section-by-section editing" in "Redesign v2".) "Düzenle" opens the whole text as Markdown (`narrator.template.to_markdown`)
 in an editor. "Metni onayla" approves the shown text (`approve_narrative`).
 After an edit, the view shows the edited Markdown, formatted, with the label
 "Düzenlenmiş metin"; the cards show again only for an unedited draft.
