@@ -139,6 +139,27 @@ recommend:
   profiles: ["Dengeli", "Agresif"]   # also with the diversity priority / concentration_limit
   min_real_return: 0.0               # D19b: no class-rule pick with a negative real 1-year return (%)
 
+# --- D20: model allocation bands (docs/decision.md section 11) ---------------------------
+# Source: Ata Yatırım, "Yatırım Portföyü Oluşturma Stratejileri ve Rehberi", 28.04.2026,
+# table "Risk Profillerine Göre Örnek Portföy Yapıları"; its gold/commodity column is our
+# altin_doviz (no public FX band). Temkinli has no source: our inference between
+# Muhafazakâr and Dengeli. dengeli (multi-asset funds) has no band. Strategic bands, to be
+# confirmed with the mentors (question 6); no current shares, no amounts.
+allocation:
+  classes: [nakit_benzeri, borclanma, hisse, altin_doviz, dengeli]
+  profiles:
+    "Muhafazakâr": {source: "Ata Yatırım, 28.04.2026", inferred: false, bands: {nakit_benzeri: [10, 20], borclanma: [60, 70], hisse: [10, 20], altin_doviz: [5, 10]}}
+    "Temkinli": {source: "çıkarım (Muhafazakâr–Dengeli arası)", inferred: true, bands: {nakit_benzeri: [5, 20], borclanma: [40, 60], hisse: [20, 40], altin_doviz: [5, 15]}}
+    "Dengeli": {source: "Ata Yatırım, 28.04.2026", inferred: false, bands: {nakit_benzeri: [5, 10], borclanma: [30, 40], hisse: [40, 50], altin_doviz: [10, 15]}}
+    "Agresif": {source: "Ata Yatırım, 28.04.2026", inferred: false, bands: {nakit_benzeri: [0, 5], borclanma: [5, 10], hisse: [70, 85], altin_doviz: [5, 10]}}
+  note_texts:
+    ceiling: "Risk tavanı nedeniyle uygun fon yok."
+    none: "Bu sınıfta puanlanan seçenek yok."
+    negative_real: "Son 1 yıl reel {figure}: önerilmiyor."
+  holding_hints:
+    "mevduat ağırlıklı": "Dosyaya göre varlık TL mevduat ağırlıklı: nakit benzeri bandı aşılıyor olabilir."
+  holding_confirm: "Mevcut portföy dağılımını sorun."
+
 # --- 4. Scoring ----------------------------------------------------------------------
 kinds:   # liquidity / income / simplicity values (0..1)
   deposit:         {liquidity: 1.0, income: 1.0, simplicity: 1.0}
