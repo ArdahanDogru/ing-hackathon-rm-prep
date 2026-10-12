@@ -111,6 +111,9 @@ LABELS: dict[str, dict[str, str]] = {
     "ch_answer": {"TR": "yanıt: {question} = {answer}", "EN": "answer: {question} = {answer}"},
     # summary card and language
     "card_title": {"TR": "Görüşme kartı", "EN": "Meeting card"},
+    "card_rm_decided": {"TR": "RM onayı: {at}", "EN": "RM decision: {at}"},
+    "card_text_approved": {"TR": "Metin onayı: {at} · model {model} · kontrol bulgusu {checks}",
+                           "EN": "Text approval: {at} · model {model} · check findings {checks}"},
     "card_meta": {"TR": "Çalıştırma {run_id} · veri {snapshot} · {created}",
                   "EN": "Run {run_id} · data {snapshot} · {created}"},
     "card_client": {"TR": "Müşteri", "EN": "Client"},

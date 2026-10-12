@@ -242,3 +242,13 @@ def test_a_new_approval_clears_old_edits_and_texts(backend, tmp_path):
     folder = tmp_path / "data" / "narratives"
     assert not (folder / f"{r.run_id}-TR-edits.json").exists()
     assert not (folder / f"{r.run_id}-TR-approved.json").exists()
+
+
+def test_approval_times_are_recorded(backend):
+    backend._narrator_obj = FakeNarrator()
+    r = _approved(backend)
+    assert r.rm_decided_at == T0
+    backend.wait_for_background()
+    backend.draft_narrative(r.run_id, "TR")
+    d = backend.approve_narrative(r.run_id, "TR", "# Metin")
+    assert d.approved_at == T0

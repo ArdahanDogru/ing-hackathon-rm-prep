@@ -331,5 +331,6 @@
  "to_confirm": [
   "Yatırım tutarını sorun: 100.000–249.999 TL dilimi varsayıldı."
  ],
- "recommended": []
+ "recommended": [],
+ "rm_decided_at": null
 }

@@ -11,10 +11,12 @@ import hashlib
 import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from rmprep.contracts import (
     NARRATIVE_SECTIONS,
+    TR_TZ,
     DecisionResult,
     DecisionState,
     EvidenceSet,
@@ -147,7 +149,7 @@ class FakeBackend:
             raise ValueError("a rejection needs a note")
         selected = tuple(selected_option_ids) if status == RmStatus.APPROVED else ()
         new = dataclasses.replace(result, rm_status=status, rm_note=note, rm_selected=selected,
-                                  rm_option_notes={})
+                                  rm_option_notes={}, rm_decided_at=datetime.now(TR_TZ))
         for lang in ("TR", "EN"):                # texts of an earlier decision no longer apply
             self._narratives.pop((run_id, lang), None)
         self.saved[run_id] = new
@@ -204,7 +206,8 @@ class FakeBackend:
         draft = self.draft_narrative(run_id, lang)
         if draft.blocking_findings():
             raise ValueError(f"blocking findings: {draft.blocking_findings()}")
-        approved = dataclasses.replace(draft, status=NarrativeStatus.APPROVED, rm_text=text)
+        approved = dataclasses.replace(draft, status=NarrativeStatus.APPROVED, rm_text=text,
+                                       approved_at=datetime.now(TR_TZ))
         self._narratives[(run_id, lang)] = approved
         return approved
 

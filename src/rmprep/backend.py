@@ -97,7 +97,7 @@ class RealBackend:
             raise ValueError("a test run (edited persona) cannot be approved or rejected")
         selected = tuple(selected_option_ids) if status == RmStatus.APPROVED else ()
         new = dataclasses.replace(result, rm_status=status, rm_note=note, rm_selected=selected,
-                                  rm_option_notes={})
+                                  rm_option_notes={}, rm_decided_at=self._now())
         self._forget_texts(run_id)               # texts and edits of an earlier decision
         saved = self._save(new, inputs)
         if status == RmStatus.APPROVED:
@@ -216,7 +216,8 @@ class RealBackend:
         current = self.draft_narrative(run_id, lang)
         if current.blocking_findings():
             raise ValueError(f"blocking findings: {current.blocking_findings()}")
-        d = dataclasses.replace(current, status=NarrativeStatus.APPROVED, rm_text=text)
+        d = dataclasses.replace(current, status=NarrativeStatus.APPROVED, rm_text=text,
+                                approved_at=self._now())
         path = self._paths.root / "data" / "narratives" / f"{run_id}-{lang}-approved.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(d.to_dict(), ensure_ascii=False, indent=1) + "\n",

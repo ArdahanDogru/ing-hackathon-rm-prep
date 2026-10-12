@@ -120,3 +120,11 @@ def test_a_new_approval_drops_the_old_text_everywhere(client, persona):
     d = client.get(f"/api/runs/{rid}/narrative").json()
     assert d["status"] == "draft" and "ESKİ ONAYLI METİN" not in d["markdown"]
     assert "ESKİ ONAYLI METİN" not in client.get(f"/api/runs/{rid}/card.md").text
+
+
+def test_the_card_shows_the_approval_times(client, persona):
+    _, rid = _approved(client, persona)
+    client.get(f"/api/runs/{rid}/narrative")
+    client.post(f"/api/runs/{rid}/narrative/TR/approval", json={"text": "# Onaylı metin"})
+    md = client.get(f"/api/runs/{rid}/card.md").text
+    assert "RM onayı" in md and "Metin onayı" in md

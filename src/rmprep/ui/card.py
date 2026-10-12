@@ -85,6 +85,18 @@ def _meta(r: DecisionResult, lang: str) -> str:
              created=r.created_at.strftime("%Y-%m-%d %H:%M"))
 
 
+def _approvals(r: DecisionResult, narrative: NarrativeDraft | None, lang: str) -> list[str]:
+    """v1.7: the decision record of the card: when the RM approved the run and the text."""
+    out = []
+    if r.rm_decided_at is not None:
+        out.append(t("card_rm_decided", lang, at=r.rm_decided_at.strftime("%Y-%m-%d %H:%M")))
+    if (narrative is not None and narrative.approved_at is not None
+            and _narrative_text(r, narrative, lang) is not None):   # the text of this card
+        out.append(t("card_text_approved", lang, at=narrative.approved_at.strftime("%Y-%m-%d %H:%M"),
+                     model=narrative.model or "şablon", checks=len(narrative.checks)))
+    return ["", *out] if out else []
+
+
 def _narrative_text(r: DecisionResult, narrative: NarrativeDraft | None, lang: str) -> str | None:
     """The RM-approved meeting text of this run and language, else None."""
     if (narrative is None or narrative.status != NarrativeStatus.APPROVED
@@ -119,6 +131,7 @@ def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
 def _markdown_body(r: DecisionResult, evidence: EvidenceSet, lang: str,
                    narrative: NarrativeDraft | None) -> str:
     lines = [f"# {_title(r, lang)}", "", _meta(r, lang)]
+    lines += _approvals(r, narrative, lang)
     for s in _sections(r, evidence, lang):
         lines += ["", f"## {s.heading}", ""]
         for it in s.items:

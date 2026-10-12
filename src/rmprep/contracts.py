@@ -228,6 +228,8 @@ class SourceStatus:
 # Backend.edit_narrative; docs/web-ui.md "Section-by-section editing").
 # v1.6 (2026-10-12): ProductOption.asset_class, DecisionResult.recommended
 # (docs/decision.md section 10, D19).
+# v1.7 (2026-10-12): approval times, DecisionResult.rm_decided_at and
+# NarrativeDraft.approved_at (deliverable 6, the decision record).
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -442,6 +444,7 @@ class DecisionResult:
     talking_points: tuple[TalkingPoint, ...] = ()   # v1.3, D18: 0..3, display order
     to_confirm: tuple[str, ...] = ()                # v1.3, D16: commands for the RM
     recommended: tuple[str, ...] = ()               # v1.6, D19: the engine's top 3 (option ids, in order)
+    rm_decided_at: datetime | None = None           # v1.7: when the RM approved / rejected (Europe/Istanbul)
 
     @property
     def persona_id(self) -> str:
@@ -497,6 +500,12 @@ class DecisionResult:
                 raise ValueError("an approved result needs at least one selected option")
         elif self.rm_selected:
             raise ValueError("rm_selected is set only on approval")
+        if self.rm_decided_at is not None:
+            if self.rm_status == RmStatus.PENDING:
+                raise ValueError("a pending result has no decision time")
+            if self.rm_decided_at.tzinfo is None:
+                raise ValueError("rm_decided_at must be timezone-aware")
+            object.__setattr__(self, "rm_decided_at", self.rm_decided_at.astimezone(TR_TZ))
 
     def evidence_ids(self) -> frozenset[str]:
         ids: set[str] = set()
@@ -576,6 +585,7 @@ class NarrativeDraft:
     need_tags: Mapping[str, tuple[str, ...]] = field(default_factory=dict)  # v1.3: option_id -> persona priorities
     rm_edits: Mapping[str, str] = field(default_factory=dict)        # v1.5: block id -> the RM's text
     edit_checks: Mapping[str, tuple[str, ...]] = field(default_factory=dict)  # v1.5: block id -> "kind: message"
+    approved_at: datetime | None = None  # v1.7: when the RM approved the text (Europe/Istanbul)
 
     def blocking_findings(self) -> dict[str, tuple[str, ...]]:
         """The findings of the edited blocks that stop the approval (v1.5)."""
@@ -600,6 +610,11 @@ class NarrativeDraft:
         object.__setattr__(self, "status", NarrativeStatus(self.status))
         if self.status == NarrativeStatus.APPROVED and not self.rm_text.strip():
             raise ValueError("an approved narrative needs rm_text")
+        if self.approved_at is not None:
+            if self.status != NarrativeStatus.APPROVED:
+                raise ValueError("a draft has no approval time")
+            if self.approved_at.tzinfo is None:
+                raise ValueError("approved_at must be timezone-aware")
 
     def to_dict(self) -> dict:
         return _to_json(self)
