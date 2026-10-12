@@ -128,3 +128,12 @@ def test_the_card_shows_the_approval_times(client, persona):
     client.post(f"/api/runs/{rid}/narrative/TR/approval", json={"text": "# Onaylı metin"})
     md = client.get(f"/api/runs/{rid}/card.md").text
     assert "RM onayı" in md and "Metin onayı" in md
+
+
+def test_markdown_headings_use_short_fund_names(client, persona):
+    """N13: the backend passes the screen names; without them a heading is the fund code."""
+    _, rid = _approved(client, persona)
+    md = client.get(f"/api/runs/{rid}/narrative").json()["markdown"]
+    part = md.split("## Öneriler", 1)[1].split("\n## ", 1)[0]
+    heads = [line[4:] for line in part.splitlines() if line.startswith("### ")]
+    assert heads and all(" " in h and not h.startswith("fund:") for h in heads)

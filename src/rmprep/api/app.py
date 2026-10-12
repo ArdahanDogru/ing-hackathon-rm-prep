@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from rmprep import edits
+from rmprep.api.names import short_name
 from rmprep.api import schemas
 from rmprep.contracts import (
     NARRATIVE_LANGS,
@@ -126,11 +127,24 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
             raise HTTPException(422, f"lang must be one of {NARRATIVE_LANGS}")
         return lang
 
+    def _names(run_id: str) -> dict[str, str]:
+        """{option_id: screen name} for the headings of the meeting text (N13)."""
+        r = runs.get(run_id)
+        if r is None:
+            return {}
+        out = {}
+        for o in r.options:
+            issuer, short = short_name(o.option.label)
+            out[o.option.option_id] = f"{issuer} {short}".strip()
+        return out
+
     def _text_view(d: NarrativeDraft) -> dict:
         texts[(d.run_id, d.lang)] = d
-        md = d.rm_text if d.status == NarrativeStatus.APPROVED else to_markdown(edits.apply_edits(d))
+        names = _names(d.run_id)
+        md = (d.rm_text if d.status == NarrativeStatus.APPROVED
+              else to_markdown(edits.apply_edits(d), names=names))
         # draft_markdown: the unedited draft, so the web can tell an edited text apart
-        plain = to_markdown(dataclasses.replace(d, rm_edits={}))
+        plain = to_markdown(dataclasses.replace(d, rm_edits={}), names=names)
         return {**d.to_dict(), "markdown": md, "draft_markdown": plain}
 
     def _approved_text(run_id: str, lang: str) -> NarrativeDraft | None:
