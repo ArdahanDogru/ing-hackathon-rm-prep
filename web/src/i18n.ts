@@ -183,6 +183,10 @@ const TR = {
   removeSelection: "Seçimden çıkar",
   fundCard: "Fon kartı",
   warningsTab: "Uyarılar",
+  tpDoc: "Konuşulacaklar",
+  scriptShort: "Söyleyebileceğiniz",
+  dataSource: "Veri",
+  riskShort: "risk",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -367,6 +371,10 @@ const EN: Record<LabelKey, string> = {
   removeSelection: "Remove from the selection",
   fundCard: "Fund card",
   warningsTab: "Warnings",
+  tpDoc: "Talking points",
+  scriptShort: "What you can say",
+  dataSource: "Data",
+  riskShort: "risk",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };
