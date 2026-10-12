@@ -11,7 +11,8 @@ import re
 
 ABBREVIATIONS = (("KISA VADELİ", "KV"), ("BORÇLANMA ARAÇLARI", "BORÇLANMA"))
 SMALL_WORDS = {"ve", "ile", "veya"}
-KEEP_UPPER = {"TL", "KV", "USD", "EUR", "ING", "BIST", "ABD"}
+KEEP_UPPER = {"TL", "KV", "USD", "EUR", "ING", "BIST", "ABD", "PYŞ"}
+ISSUER_WORDS = ("PORTFÖY", "PYŞ")       # the issuer ends with one of these
 
 
 def _tr_lower(word: str) -> str:
@@ -43,9 +44,10 @@ def short_name(label: str) -> tuple[str, str]:
     """(issuer, short label); ("", label) if the label has no "PORTFÖY"."""
     text = re.sub(r"\s+", " ", label).strip()
     words = text.split(" ")
-    if "PORTFÖY" not in words:
+    marks = [i for i, w in enumerate(words) if w in ISSUER_WORDS]
+    if not marks:
         return "", text
-    cut = words.index("PORTFÖY") + 1
+    cut = marks[0] + 1
     issuer = _title(" ".join(words[:cut]))
     rest = [w for w in words[cut:] if w != "FONU"]
     if not rest:

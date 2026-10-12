@@ -40,3 +40,7 @@ def test_option_view_has_short_names(backend, persona):
     v = c.post("/api/runs", json={"persona": persona}).json()
     for o in v["options"].values():
         assert {"issuer", "short_label"} <= set(o) and o["short_label"]
+
+
+def test_short_name_pys_issuer():
+    assert short_name("AZİMUT PYŞ KISA VADELİ BORÇLANMA ARAÇLARI FONU") == ("Azimut PYŞ", "KV Borçlanma")
