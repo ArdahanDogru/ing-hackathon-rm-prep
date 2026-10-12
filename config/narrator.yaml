@@ -14,6 +14,19 @@ llm:
 max_cost_usd_per_day: 5.0         # the user's limit; over it -> template text + banner
 prompt_version: "n6"              # bump on any prompt change (part of the cache key); n6 = N9c (named deposit rates; n5 = N9b flat schema)
 cache_dir: data/narratives
+# N13: one fixed risk note per asset class (D19 classes) for the facts pack; the
+# LLM may use them in oneriler (sentence c) and dikkat. Plain, no promises.
+risk_notes:
+  by_class:
+    nakit_benzeri: {TR: "Getirisi faiz değişimine bağlıdır; mevduat gibi anapara güvencesi yoktur.", EN: "Its return follows interest rates; unlike a deposit, the principal is not insured."}
+    borclanma: {TR: "Faizler yükselirse fonun değeri düşebilir; vade uzadıkça dalgalanma artar.", EN: "If interest rates rise, the fund can lose value; longer maturities move more."}
+    dengeli: {TR: "Birden çok varlık sınıfı taşır; hisse ve tahvil fiyatlarıyla birlikte dalgalanır.", EN: "It holds several asset classes and moves with share and bond prices."}
+    hisse: {TR: "Pay piyasasıyla birlikte kısa sürede belirgin değer kaybı yaşanabilir.", EN: "With the share market it can lose a clear part of its value in a short time."}
+    altin_doviz: {TR: "Altın fiyatı ve kur hareketiyle dalgalanır; TL bazında değer kaybı olabilir.", EN: "It moves with the gold price and the exchange rate; it can lose value in TL."}
+  by_kind:
+    time_deposit: {TR: "Vade dolmadan çekilirse faiz kaybı olabilir.", EN: "Withdrawing before maturity can cost the interest."}
+    deposit: {TR: "Faiz oranı değişebilir; enflasyon sonrası değer kaybı olabilir.", EN: "The rate can change; after inflation it can lose value."}
+
 # v1.4 dashboard brief (docs/web-ui.md "LLM brief"; narrator N10): 1-2 sentences for
 # the RM, no retry, the plain sentence as fallback; same daily cost limit
 brief:
