@@ -122,7 +122,9 @@ constraint_effects:
 
 # --- D19: asset classes, risk fit, recommended top 3 (docs/decision.md section 10) ------
 asset_classes:
-  by_name: {"PARA PİYASASI": nakit_benzeri, "KISA VADELİ": nakit_benzeri, "BORÇLANMA ARACI": borclanma}
+  by_name: {"PARA PİYASASI": nakit_benzeri, "KISA VADELİ": nakit_benzeri, "BORÇLANMA ARACI": borclanma,
+            "ALTIN": altin_doviz, "KIYMETLİ MADENLER": altin_doviz, "ÇOKLU VARLIK": dengeli}
+  by_risk: {participation: [{min_risk: 5, class: hisse}]}   # D19c: participation equity funds
   by_kind: {deposit: nakit_benzeri, time_deposit: nakit_benzeri, money_market: nakit_benzeri,
             debt: borclanma, participation: borclanma, variable: dengeli, mixed: dengeli,
             fund_of_funds: dengeli, equity: hisse, precious_metals: altin_doviz}
