@@ -12,7 +12,7 @@ llm:
   workspace_id_env: ANTHROPIC_WORKSPACE_ID  # the key is org-level: send header anthropic-workspace-id
 
 max_cost_usd_per_day: 5.0         # the user's limit; over it -> template text + banner
-prompt_version: "n7"              # bump on any prompt change (part of the cache key); n7 = N13 (text quality; n6 = N9c)
+prompt_version: "n8"              # bump on any prompt change (part of the cache key); n8 = N13b (dikkat, length; n7 = N13)
 cache_dir: data/narratives
 # N13: one fixed risk note per asset class (D19 classes) for the facts pack; the
 # LLM may use them in oneriler (sentence c) and dikkat. Plain, no promises.
