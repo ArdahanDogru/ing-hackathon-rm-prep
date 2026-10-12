@@ -120,11 +120,13 @@ use for the other options; (c) the main trade-off or risk for this client, \
 from its "risk" line. The options must not read alike.
 - alternatifler: 1-2 sentences per group: the other options of the same kind; \
 and the baseline for comparison.
-- dikkat: the warnings in the facts, in plain words; one watch item per selected \
-option (from its "risk" line, starting with its name); each unmatched priority, \
-named as not covered by the options; and once, that past returns do not show \
-future returns. The client can see this section: no notes about data quality \
-and no names of screens or panes.
+- dikkat: the warnings in the facts, in plain words; then at most one sentence per \
+selected option, starting with its name and only with what oneriler does not say: \
+its access when "access_slow" is true, and its fees if any (nothing for an option \
+without these); each unmatched priority, named as not covered by the options; and \
+once, that past returns do not show future returns. In dikkat do not repeat a \
+sentence or a risk note of oneriler. The client can see this section: no notes \
+about data quality and no names of screens or panes.
 - sorular: questions for the RM to ask the client: the open questions, the \
 explicit constraints (acik_kisitlar) to confirm, and one question per \
 unmatched priority.
@@ -153,6 +155,8 @@ counts, no counts of rejected options, no names of screens or panes. Write \
 sources as TEFAS or TCMB EVDS.
 6. Include the sentence "{disclaimer}" verbatim.
 7. need_tags: only words of oncelikler, at most 3 per option, every selected option.
+Length: aim for about 450 words in total for 3 selected options (fewer for fewer \
+options); ozet at most 3 sentences plus the disclaimer; teklif_metni at most 4 sentences.
 This is decision support for the RM, not investment advice.
 """
 
@@ -222,7 +226,9 @@ def _risk(risk: RiskFacts | None, lang: str) -> dict:
     """N13: the risk line of a selected option for the prompt."""
     if risk is None:
         return {}
-    return {"risk": {"access": risk.access, "fees": {n.quantity: n.value for n in risk.fees},
+    return {"risk": {"access": risk.access,
+                     "access_slow": bool(risk.access_days and risk.access_days > 0),
+                     "fees": {n.quantity: n.value for n in risk.fees},
                      "note": risk.note.get(lang, ""), "cite": list(risk.evidence_ids)}}
 
 

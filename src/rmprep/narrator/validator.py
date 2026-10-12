@@ -260,6 +260,43 @@ def _check_shape(sections, f: Facts) -> list[str]:
     return out
 
 
+STEM = 5             # N13b: a word is compared by its first 5 letters (Turkish suffixes)
+REPEAT_SHARE = 0.8   # share of a dikkat sentence's stems found in one oneriler sentence
+MIN_STEMS = 3        # shorter remainders (a name, one fact) never count as a repeat
+_WORD = re.compile(r"\w+")
+
+
+def _stems(text: str, names: Sequence[str]) -> set[str]:
+    """Stems of the words of a normalized text without the option names; no
+    numbers and no words shorter than 3 letters."""
+    for n in names:
+        text = text.replace(n, " ")
+    return {w[:STEM] for w in _WORD.findall(text) if len(w) >= 3 and not w.isdigit()}
+
+
+def repeats(sentence: str, others: Sequence[str], names: Sequence[str]) -> bool:
+    """N13b: the sentence repeats one of others: at least REPEAT_SHARE of its
+    stems (names removed, at least MIN_STEMS) are in that other sentence. Stems
+    absorb Turkish suffixes; the share is of the sentence itself, so a shortened
+    copy counts, and a sentence with a new fact about the same fund does not."""
+    names = sorted({_norm(n) for n in names}, key=len, reverse=True)
+    mine = _stems(_norm(sentence), names)
+    if len(mine) < MIN_STEMS:
+        return False
+    return any(len(mine & _stems(_norm(o), names)) / len(mine) >= REPEAT_SHARE for o in others)
+
+
+def _check_repeat(sections, f: Facts) -> list[str]:
+    """N13b: no dikkat sentence repeats an oneriler sentence."""
+    named = f.named_options().values()
+    names = [*_named_labels(f), *(o.name for o in named if o.name),
+             *(x for o in named for x in name_forms(o.label))]
+    oneriler = [s.text for sec in sections if sec.key == "oneriler" for s in sec.sentences]
+    return [f"repeat: dikkat: the sentence repeats one of oneriler: \"{_short(s.text)}\""
+            for sec in sections if sec.key == "dikkat" for s in sec.sentences
+            if repeats(s.text, oneriler, names)]
+
+
 def _check_options(sections, f: Facts, r: DecisionResult) -> list[str]:
     """Rule 2: only the named options, by label, id, fund code or (N10b) short
     name. The issuer must be in a short name: a short label alone ("Para
@@ -475,6 +512,7 @@ def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
     out += _check_ing_labels(sections, f)
     out += _check_talking_points(sections)
     out += _check_shape(sections, f)
+    out += _check_repeat(sections, f)
     if need_tags is not None:
         out += _check_need_tags(need_tags, f, r)
     everything = _norm(" ".join(s.text for sec in sections for s in sec.sentences))

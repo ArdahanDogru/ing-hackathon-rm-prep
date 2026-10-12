@@ -122,7 +122,7 @@ TEXTS = {
         "o_risk": "{name}: {note}",
         "o_risk_none": "{name}: başlıca riskini müşteriyle konuşun.",
         "watch_access": "{name}: paraya erişim {access}{fees}.",
-        "watch_none": "{name}: değerini ve riskini düzenli izleyin.",
+        "watch_fees": "{name}: {fees}.",
         "unmatched": "\"{p}\" önceliği seçeneklerin hiçbir ölçütüyle karşılanmıyor.",
         "ask_unmatched": "\"{p}\" önceliğinin müşteri için ne anlama geldiğini sorun.",
         "tp_unmatched": ("Kapsanmayan öncelik", "Seçeneklerin karşılamadığı önceliği konuşun: "
@@ -161,9 +161,8 @@ TEXTS = {
                       "alarak birkaç seçeneği birlikte değerlendirmek istiyorum.",
         "pitch_baseline": "Karşılaştırma için {baseline} ile başlayalım.",
         "pitch_options": "Sizin için öne çıkan seçenekler: {labels}.",
-        "pitch_past": "Konuştuğumuz getiriler geçmiş getirilerdir.",
-        "pitch_close": "Kararı sizin önceliklerinize göre birlikte verelim; "
-                       "sorularınızı memnuniyetle yanıtlarım.",
+        "pitch_past": "Konuştuğumuz getiriler geçmiş getirilerdir; kararı sizin "
+                      "önceliklerinize göre birlikte verelim.",
         "no_assumptions": "Varsayım yok.",
     },
     "EN": {
@@ -180,7 +179,7 @@ TEXTS = {
         "o_risk": "{name}: {note}",
         "o_risk_none": "{name}: discuss its main risk with the client.",
         "watch_access": "{name}: access to the money {access}{fees}.",
-        "watch_none": "{name}: watch its value and risk regularly.",
+        "watch_fees": "{name}: {fees}.",
         "unmatched": "No criterion of the options covers the priority \"{p}\".",
         "ask_unmatched": "Ask what the priority \"{p}\" means for the client.",
         "tp_unmatched": ("Uncovered priority", "Talk about the priority that the options do "
@@ -221,9 +220,8 @@ TEXTS = {
                       "situation (\"{durum}\") and your goal (\"{amac}\").",
         "pitch_baseline": "For comparison, let us start with {baseline}.",
         "pitch_options": "The options that stand out for you: {labels}.",
-        "pitch_past": "The returns we talk about are past returns.",
-        "pitch_close": "We will decide together, based on your priorities; I am glad to "
-                       "answer your questions.",
+        "pitch_past": "The returns we talk about are past returns; we will decide "
+                      "together, based on your priorities.",
         "no_assumptions": "No assumptions.",
     },
 }
@@ -362,7 +360,8 @@ def _own_numbers(o: OptionFacts) -> list[KeyNumber]:
 def _oneriler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
     """N13: per selected option 3 sentences that start with its name: (a) facts,
     real return first; (b) the fit with a client need (+ the RM's option note);
-    (c) the risk of its asset class (+ its warnings)."""
+    (c) the risk of its asset class. Its warnings go to dikkat only (N13b: no
+    repetition)."""
     out, used = [], set()
     for o in f.selected:
         oid, name = [o.option_id], _name(o)
@@ -382,7 +381,6 @@ def _oneriler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
         note = risk.note.get(lang, "") if risk else ""
         text = tx["o_risk"].format(name=name, note=_end(note)) if note else \
             tx["o_risk_none"].format(name=name)
-        text = " ".join([text, *(_end(m) for m in o.warnings)])
         out.append(_sentence(text, oid, risk.evidence_ids if risk else ()))
     return out
 
@@ -412,8 +410,9 @@ def _alternatifler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
 
 
 def _dikkat(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
-    """N13: the warnings, one watch item per selected option (access, fees), the
-    unmatched priorities, the past-return caveat once."""
+    """N13b: the warnings; per selected option at most one sentence, only with
+    what oneriler does not say (slow access, fees), else nothing; the unmatched
+    priorities; the past-return caveat once."""
     whole = [o.option_id for o in f.selected]      # citation of a note about the whole result
     out = []
     for w in f.warnings:
@@ -421,15 +420,19 @@ def _dikkat(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
                              w.evidence_ids))
     for o in f.selected:
         risk = f.risks.get(o.option_id)
-        if risk and risk.access:
-            fees = "".join(f"; {quantity_name(n.quantity, lang)} {fmt_number(n.value, n.unit, lang)}"
-                           for n in risk.fees)
-            out.append(_sentence(tx["watch_access"].format(name=_name(o),
-                                                           access=_lower_first(risk.access),
-                                                           fees=fees),
-                                 [o.option_id], risk.evidence_ids))
+        if risk is None:
+            continue
+        fees = [f"{quantity_name(n.quantity, lang)} {fmt_number(n.value, n.unit, lang)}"
+                for n in risk.fees]
+        slow = bool(risk.access and risk.access_days and risk.access_days > 0)
+        if slow:
+            text = tx["watch_access"].format(name=_name(o), access=_lower_first(risk.access),
+                                             fees="".join(f"; {x}" for x in fees))
+        elif fees:
+            text = tx["watch_fees"].format(name=_name(o), fees="; ".join(fees))
         else:
-            out.append(_sentence(tx["watch_none"].format(name=_name(o)), [o.option_id]))
+            continue
+        out.append(_sentence(text, [o.option_id], risk.evidence_ids))
     out += [_sentence(tx["unmatched"].format(p=p), whole) for p in f.unmatched_priorities]
     out.append(_sentence(tx["past"], whole))       # N9c: no data-quality pointer (client-facing)
     return out
@@ -456,7 +459,7 @@ def _teklif(f: Facts, tx: dict) -> list[NarrativeSentence]:
                              [f.baseline.option_id]))
     out.append(_sentence(tx["pitch_options"].format(labels=_labels(f.selected)),
                          [o.option_id for o in f.selected]))
-    out += [_sentence(tx["pitch_past"]), _sentence(tx["pitch_close"])]
+    out.append(_sentence(tx["pitch_past"]))      # N13b: at most 4 sentences
     return out
 
 

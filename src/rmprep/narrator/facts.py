@@ -109,6 +109,7 @@ class OptionFacts:
 class RiskFacts:
     """N13: the risk line of a selected option."""
     access: str = ""                            # display access text ("Aynı gün"); "" = no data
+    access_days: float | None = None            # N13b: sell valör or term days; None = no data
     fees: tuple[KeyNumber, ...] = ()            # entry / exit fee rows above 0
     note: Mapping[str, str] = dataclasses.field(default_factory=dict)   # lang -> config text
     evidence_ids: tuple[str, ...] = ()
@@ -259,7 +260,10 @@ def _risk(o: ScoredOption, f: OptionFacts, shown: DisplayFacts, config: Decision
     ids += [n.evidence_id for n in fees]
     note = (notes.get("by_class", {}).get(o.option.asset_class)
             or notes.get("by_kind", {}).get(o.option.kind) or {})
-    return RiskFacts(access=access, fees=fees, note=dict(note), evidence_ids=tuple(ids))
+    days = (shown.sell_valor_days.value if shown.sell_valor_days is not None
+            else shown.lock_days)
+    return RiskFacts(access=access, access_days=days, fees=fees, note=dict(note),
+                     evidence_ids=tuple(ids))
 
 
 def unmatched_priorities(priorities, config: DecisionConfig) -> tuple[str, ...]:
