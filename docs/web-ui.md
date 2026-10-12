@@ -307,6 +307,14 @@ Replaces the "Düzenle" of the whole text as Markdown.
   with the edits), web **W11** (pencil, editor, findings, "Orijinale dön",
   approval disabled with the reason while a blocking finding is open).
 
+### Decision record on screen (W12, 2026-10-12)
+
+The "Kanıt" pop-up shows the fetch time (`fetched_at`, Europe/Istanbul) next to
+the date of the value (`as_of`). The meeting text view shows "Onaylandı:
+<time>" from `NarrativeDraft.approved_at`; the dashboard shows the RM decision
+time from `DecisionResult.rm_decided_at` (contract v1.7) in the approval bar
+after approval.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

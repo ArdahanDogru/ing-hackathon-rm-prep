@@ -256,3 +256,33 @@ section titles; the lead adds the `talking_points` title to
 Tests: facts pack without rm warnings; note names; template with 2–3 titled
 talking points and tags for every selected option; Turkish casing in need
 tags; the parser reads titles; no rm warning text in a draft.
+
+## N13: text quality (2026-10-12, from the judge analysis of eval 20261012-201431-full)
+
+The judge gives "tailored" 57 %, "clear_for_rm" 50 %, "balanced" 50 %. Causes
+in the narrator (verified): no per-option risk / access / fee facts (dikkat had
+only the past-return line in 11 of 19 texts); the 6 number slots favour returns
+and repeat market rate and CPI per option; the nominal return leads; the
+past-return caveat appears about 6 times per text; oneriler sentences often do
+not name their fund; unmatched priorities get no instruction.
+
+Changes (prompt version n7):
+1. Facts pack: per option a risk line — access (`access_text` of display
+   facts, valör), fees if any, a fixed risk note per asset class from config
+   (`narrator.yaml risk_notes.<asset_class>`, lead adds the texts), each with a
+   citation; market deposit rate and CPI move to the top level; drop
+   `fund_buyable` from the option numbers; the real 1-year return is a number of
+   the option (not only inside a reason).
+2. Prompt: oneriler = for each selected option 3 sentences that start with its
+   short name: (a) facts, real return first, then nominal; (b) the fit, with a
+   client fact not used for the other options; (c) the main trade-off or risk
+   for this client. dikkat = the warnings plus one watch item per option.
+   Priorities with no matching criterion (`unmatched_priorities` in the pack)
+   are named as not covered and asked about in sorular.
+3. Repetition: the past-return caveat only in dikkat and teklif_metni; ozet at
+   most 3 sentences; talking_points do not repeat profile facts.
+4. `to_markdown`: the screen order (ozet, talking_points, teklif_metni,
+   oneriler with a `###` heading per option, dikkat, then alternatifler,
+   sorular, varsayimlar under "Ek bilgiler").
+Tests with the fake LLM; one live call on P01 TR allowed (about $0.05).
+
