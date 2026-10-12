@@ -153,7 +153,14 @@ export interface NarrativeDraft {
   status: "draft" | "approved";
   rm_text: string;
   need_tags: Record<string, string[]>;
+  /** v1.5: block id → the RM's edited text of that block. */
+  rm_edits: Record<string, string>;
+  /** v1.5: block id → findings "<kind>: <message>"; kinds in BLOCKING_CHECK_KINDS stop the approval. */
+  edit_checks: Record<string, string[]>;
 }
+
+/** Finding kinds that block "Metni onayla" (contract v1.5); "number" only warns. */
+export const BLOCKING_CHECK_KINDS = ["phrase", "option", "internal", "label"] as const;
 
 /** GET /runs/{id}/narrative: the draft plus its Markdown (the approved text when approved)
  * and the unedited draft's Markdown. */

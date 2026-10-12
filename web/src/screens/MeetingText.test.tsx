@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { api, ApiError } from "../api/client";
 import type { NarrativeView, RunView, SectionKey } from "../api/types";
@@ -9,6 +9,14 @@ import { MeetingText } from "./MeetingText";
 const narrative = () => sample("narrative_p01_tr");
 const section = (key: SectionKey, n = narrative()) => n.sections.find((s) => s.key === key);
 const sectionText = (key: SectionKey) => section(key)!.sentences[0].text;
+
+/** The sample with one block edited, as the server returns it (markdown with the edit). */
+function withEdit(n: NarrativeView, block: string, text: string): NarrativeView {
+  return { ...n, rm_edits: { ...n.rm_edits, [block]: text }, markdown: `${n.markdown}\n<!-- ${block} -->\n${text}\n` };
+}
+function withChecks(n: NarrativeView, block: string, findings: string[]): NarrativeView {
+  return { ...n, edit_checks: { ...n.edit_checks, [block]: findings } };
+}
 
 function mockNarrative(n: NarrativeView) {
   return vi.spyOn(api, "narrative").mockResolvedValue(n);
@@ -92,7 +100,8 @@ test("one block per selected option: short name, facts, need tags, its sentences
   expect(blocks[0]).toHaveTextContent(o.short_label);
   expect(blocks[0]).toHaveTextContent(`risk ${o.risk!.level}/7`);
   (n.need_tags[id] ?? []).forEach((tag) => expect(within(blocks[0]).getByText(tag)).toBeInTheDocument());
-  section("oneriler")!.sentences.filter((s) => s.option_ids.includes(id)).forEach((s) => expect(blocks[0]).toHaveTextContent(s.text));
+  // a sentence belongs to the block of its first option (server rule: oneriler:<option_ids[0]>)
+  section("oneriler")!.sentences.filter((s) => s.option_ids[0] === id).forEach((s) => expect(blocks[0]).toHaveTextContent(s.text));
   expect(within(blocks[0]).getByRole("textbox")).toBeInTheDocument();
 });
 
@@ -161,44 +170,115 @@ test("an option note is saved with the general note", async () => {
   expect(notes.mock.calls.at(-1)![2]).toEqual({ [v.result.rm_selected[0]]: "ilk bu fon" });
 });
 
-test("Düzenle, then Metni onayla sends the edited text and shows it formatted", async () => {
-  mockNarrative(narrative());
-  const approve = vi
-    .spyOn(api, "approveNarrative")
-    .mockImplementation(async (_id, _lang, text) => ({ ...narrative(), status: "approved", rm_text: text, markdown: text }));
+test("pencil edits one block; others keep their layout", async () => {
+  mockNarrative(sample("narrative_p01_tr"));
+  const edit = vi.spyOn(api, "editBlock").mockResolvedValue(withEdit(sample("narrative_p01_tr"), "ozet", "Yeni amaç."));
   renderMeeting(sample("run_p01_approved"));
-  await userEvent.click(await screen.findByRole("button", { name: "Düzenle" }));
-  const editor = screen.getByLabelText("Markdown");
-  await userEvent.clear(editor);
-  await userEvent.type(editor, "## Yeni başlık{enter}{enter}Kısa metin.");
+  await userEvent.click(await screen.findByRole("button", { name: /Görüşmenin amacı.*düzenle/i }));
+  expect(screen.getByRole("textbox", { name: /Görüşmenin amacı/ })).toHaveValue(section("ozet")!.sentences.map((x) => x.text).join(" "));
+  await userEvent.clear(screen.getByRole("textbox", { name: /Görüşmenin amacı/ }));
+  await userEvent.type(screen.getByRole("textbox", { name: /Görüşmenin amacı/ }), "Yeni amaç.");
   await userEvent.click(screen.getByRole("button", { name: "Kaydet" }));
-  expect(screen.getByText("Düzenlenmiş metin")).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Yeni başlık" })).toBeInTheDocument();
-  expect(screen.queryAllByTestId("doc-option")).toHaveLength(0);
-  await userEvent.click(screen.getByRole("button", { name: "Metni onayla" }));
-  expect(approve.mock.calls[0][2]).toBe("## Yeni başlık\n\nKısa metin.");
-  expect(await screen.findByText(/Onaylandı/)).toBeInTheDocument();
+  expect(edit).toHaveBeenCalledWith(expect.any(String), "TR", "ozet", "Yeni amaç.");
+  expect(await screen.findByText("düzenlendi")).toBeInTheDocument();
+  expect(screen.getByTestId("document")).toHaveTextContent("Yeni amaç.");
+  expect(screen.getAllByTestId("doc-option").length).toBeGreaterThan(0);
 });
 
-test("Metni onayla without an edit sends the draft Markdown", async () => {
-  mockNarrative(narrative());
+test("Vazgeç closes the editor without a call", async () => {
+  mockNarrative(sample("narrative_p01_tr"));
+  const edit = vi.spyOn(api, "editBlock");
+  renderMeeting(sample("run_p01_approved"));
+  await userEvent.click(await screen.findByRole("button", { name: /Söyleyebileceğiniz.*düzenle/i }));
+  await userEvent.click(screen.getByRole("button", { name: "Vazgeç" }));
+  expect(screen.queryByRole("textbox", { name: /Söyleyebileceğiniz/ })).toBeNull();
+  expect(edit).not.toHaveBeenCalled();
+});
+
+test("each talking point and each option is its own block", async () => {
+  mockNarrative(sample("narrative_p01_tr"));
+  const edit = vi.spyOn(api, "editBlock").mockResolvedValue(sample("narrative_p01_tr"));
+  const v = sample("run_p01_approved");
+  renderMeeting(v);
+  const pencils = await screen.findAllByRole("button", { name: /düzenle/i });
+  const tp = section("talking_points")!.sentences.length;
+  expect(pencils.length).toBeGreaterThanOrEqual(tp + v.result.rm_selected.length);
+  const block = (await screen.findAllByTestId("doc-option"))[1];
+  await userEvent.click(within(block).getByRole("button", { name: /düzenle/i }));
+  await userEvent.click(screen.getByRole("button", { name: "Kaydet" }));
+  expect(edit.mock.calls[0][2]).toBe(`oneriler:${v.result.rm_selected[1]}`);
+});
+
+test("a server error stays in the editor", async () => {
+  mockNarrative(sample("narrative_p01_tr"));
+  vi.spyOn(api, "editBlock").mockRejectedValue(new ApiError(422, "boş metin"));
+  renderMeeting(sample("run_p01_approved"));
+  await userEvent.click(await screen.findByRole("button", { name: /Görüşmenin amacı.*düzenle/i }));
+  await userEvent.click(screen.getByRole("button", { name: "Kaydet" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("boş metin");
+  expect(screen.getByRole("textbox", { name: /Görüşmenin amacı/ })).toBeInTheDocument();
+});
+
+test("a blocking finding disables Metni onayla with the reason", async () => {
+  mockNarrative(withChecks(withEdit(sample("narrative_p01_tr"), "ozet", "Bu fon kesin getiri sağlar."), "ozet", ["phrase: 'kesin getiri' kullanılmamalı"]));
+  renderMeeting(sample("run_p01_approved"));
+  expect(await screen.findByRole("button", { name: "Metni onayla" })).toBeDisabled();
+  expect(screen.getByText(/'kesin getiri' kullanılmamalı/)).toBeInTheDocument();
+  expect(screen.getByTestId("approve-reason")).toBeInTheDocument();
+});
+
+test("a number finding only warns", async () => {
+  mockNarrative(withChecks(withEdit(sample("narrative_p01_tr"), "ozet", "Faiz %99,9."), "ozet", ["number: 99,9 olgularda yok"]));
+  renderMeeting(sample("run_p01_approved"));
+  expect(await screen.findByRole("button", { name: "Metni onayla" })).toBeEnabled();
+  expect(screen.getByText(/99,9 olgularda yok/)).toBeInTheDocument();
+});
+
+test("Orijinale dön sends null", async () => {
+  const edit = vi.spyOn(api, "editBlock").mockResolvedValue(sample("narrative_p01_tr"));
+  mockNarrative(withEdit(sample("narrative_p01_tr"), "ozet", "Yeni amaç."));
+  renderMeeting(sample("run_p01_approved"));
+  await userEvent.click(await screen.findByRole("button", { name: "Orijinale dön" }));
+  expect(edit).toHaveBeenCalledWith(expect.any(String), "TR", "ozet", null);
+  await waitFor(() => expect(screen.queryByText("düzenlendi")).toBeNull());
+});
+
+test("an edited block has no source marks of the replaced sentences", async () => {
+  const n = sample("narrative_p01_tr");
+  const id = sample("run_p01_approved").result.rm_selected[0];
+  mockNarrative(withEdit(n, `oneriler:${id}`, "Kendi cümlem."));
+  renderMeeting(sample("run_p01_approved"));
+  const block = (await screen.findAllByTestId("doc-option"))[0];
+  expect(block).toHaveTextContent("Kendi cümlem.");
+  expect(within(block).queryAllByTestId("src-mark")).toHaveLength(0);
+  const marks = screen.getAllByTestId("src-mark");
+  expect(Math.max(...marks.map((m) => Number(m.textContent)))).toBe(screen.getAllByTestId("source-item").length);
+});
+
+test("Metni onayla sends the composed Markdown; the approved text shows its edits and no pencils", async () => {
+  const d = withEdit(sample("narrative_p01_tr"), "ozet", "Yeni amaç.");
+  mockNarrative(d);
   const approve = vi
     .spyOn(api, "approveNarrative")
-    .mockImplementation(async (_id, _lang, text) => ({ ...narrative(), status: "approved", rm_text: text, markdown: text }));
+    .mockImplementation(async (_id, _lang, text) => ({ ...d, status: "approved", rm_text: text, markdown: text }));
   renderMeeting(sample("run_p01_approved"));
   await userEvent.click(await screen.findByRole("button", { name: "Metni onayla" }));
-  expect(approve.mock.calls[0][2]).toBe(narrative().draft_markdown);
-  expect(await screen.findAllByTestId("doc-option")).not.toHaveLength(0);
+  expect(approve.mock.calls[0][2]).toBe(d.markdown);
+  expect(await screen.findByTestId("doc-status")).toHaveTextContent("Onaylandı");
+  expect(screen.getByTestId("document")).toHaveTextContent("Yeni amaç.");
+  expect(screen.queryAllByRole("button", { name: /düzenle/i })).toHaveLength(0);
   expect(screen.queryByRole("button", { name: "Metni onayla" })).toBeNull();
 });
 
-test("after a reload, an approved unedited text shows the document; an edited one its Markdown", async () => {
-  const d = narrative();
-  mockNarrative({ ...d, status: "approved", rm_text: d.draft_markdown, markdown: d.draft_markdown });
-  const { unmount } = renderMeeting(sample("run_p01_approved"));
-  expect(await screen.findAllByTestId("doc-option")).not.toHaveLength(0);
-  expect(screen.getByTestId("doc-status")).toHaveTextContent("Onaylandı");
-  unmount();
+test("no whole-text Düzenle any more", async () => {
+  mockNarrative(sample("narrative_p01_tr"));
+  renderMeeting(sample("run_p01_approved"));
+  await screen.findByTestId("document");
+  expect(screen.queryByRole("button", { name: "Düzenle" })).toBeNull();
+});
+
+test("after a reload, an approved text with a whole-text edit (before W11) shows as Markdown", async () => {
+  const d = sample("narrative_p01_tr");
   mockNarrative({ ...d, status: "approved", rm_text: "## Kendi metnim", markdown: "## Kendi metnim" });
   renderMeeting(sample("run_p01_approved"));
   expect(await screen.findByRole("heading", { name: "Kendi metnim" })).toBeInTheDocument();

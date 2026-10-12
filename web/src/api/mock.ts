@@ -54,6 +54,17 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
       const text = String(req.text ?? "");
       return { status: 200, body: { ...draft, status: "approved", rm_text: text, markdown: text } };
     }
+    if (method === "PUT" && c === "narrative" && e === "blocks") {
+      // stateless: the sample with this one edit; "kesin getiri" gives a blocking finding to try the guard
+      const block = p[6] ?? "";
+      const draft = load(`narrative_p01_${(d ?? "TR").toLowerCase()}`) as Record<string, unknown> | undefined;
+      if (!draft) return notFound("no narrative sample");
+      const text = req.text as string | null;
+      if (text !== null && !String(text).trim()) return { status: 422, body: { detail: "boş metin" } };
+      const edits = text === null ? {} : { [block]: text };
+      const checks = text && /kesin getiri/i.test(text) ? { [block]: ["phrase: 'kesin getiri' kullanılmamalı"] } : {};
+      return { status: 200, body: { ...draft, rm_edits: edits, edit_checks: checks } };
+    }
     if (method === "GET" && c === "brief") {
       const brief = load(`brief_p01_${(params.get("lang") ?? "TR").toLowerCase()}`);
       return brief === undefined ? { status: 202, body: { status: "running" } } : { status: 200, body: brief };
