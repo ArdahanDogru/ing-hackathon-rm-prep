@@ -641,6 +641,19 @@ Missing SPK risk values are not a cause (3–10 % of the funds of each kind).
   up says so ("Çeşitlendirme: farklı varlık sınıfından en iyi seçenek"); the
   assumptions list the class rule when it applied.
 
+**As built (D19, D19b, 2026-10-12).** With the class rule the engine picks
+from **all** ranked options in score order, not only the group heads (a head
+can hide another class: a long-term debt fund behind a short-term debt head,
+both kind `debt`); so a recommended option can be a group alternative.
+`recommend.min_real_return` (0.0) blocks class-rule picks with a negative real
+1-year return (the last relax step fills by plain score order without it).
+Tuning on 20261010-183835-6813: `per_step` 0.5 and `risk_fit` weight 2.0 (with
+0.25 the Dengeli picks stayed at risk 2); by_name "BORÇLANMA ARACI" →
+borclanma. Measured: P01 unchanged (3× nakit, risk 1); P02 nakit r2 +8,0 ·
+borclanma r2 +8,4 · dengeli r3 +12,8; P04 borclanma r3 +5,9 · nakit r2 +6,7 ·
+dengeli r3 +3,3; P05 3× nakit at risk 2 (its band); P03 dengeli r6 · hisse r7
+· a participation fund r5 +26,3.
+
 **Expected effect** (to be measured): P01 unchanged; P02 and P04 get one
 cash-like option plus options from two other classes inside their band; P03
 unchanged or more varied; P05 at most one cash-like option only if it has the

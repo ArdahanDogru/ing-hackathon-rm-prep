@@ -58,13 +58,14 @@ SOURCE_NAMES = {"tefas": "TEFAS", "tefas_web": "TEFAS", "tefas_detail": "TEFAS",
                 "evds": "TCMB EVDS", "manual": {"TR": "manuel giriş", "EN": "manual entry"}}
 
 # N7: the client need a score part speaks to (persona field), and the part's name
-PART_NEEDS = {"return": "yatirim_amaci", "low_risk": "risk_profili",
+PART_NEEDS = {"return": "yatirim_amaci", "low_risk": "risk_profili", "risk_fit": "risk_profili",
               "liquidity": "likidite_ihtiyaci", "income": "gelir_nakit_akisi_ihtiyaci",
               "principal": "anapara_koruma_tercihi", "simplicity": "risk_profili",
               "quality": "yatirim_ufku"}
 PART_NAMES = {
     "return": {"TR": "getiri", "EN": "return"},
     "low_risk": {"TR": "düşük risk", "EN": "low risk"},
+    "risk_fit": {"TR": "risk uyumu", "EN": "risk fit"},       # D19 (lead, 2026-10-12)
     "liquidity": {"TR": "likidite", "EN": "liquidity"},
     "income": {"TR": "düzenli gelir", "EN": "regular income"},
     "principal": {"TR": "anapara koruma", "EN": "capital protection"},

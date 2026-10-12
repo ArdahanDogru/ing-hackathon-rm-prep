@@ -94,8 +94,8 @@ priorities:
   "likiditeyi koruma": boost:liquidity
   "erişilebilir likidite": boost:liquidity
   "yüksek likidite": boost:liquidity
-  "sınırlı dalgalanma": boost:low_risk
-  "uzun vadeli dayanıklılık": boost:low_risk
+  "sınırlı dalgalanma": boost:risk_fit
+  "uzun vadeli dayanıklılık": boost:risk_fit
   "sermayenin korunması": boost:principal
   "uzun vadeli büyüme": boost:return
   "fırsat maliyetini azaltma": boost:return
@@ -119,6 +119,22 @@ constraint_effects:
   concentration_limit: {diversity: true}
   liquidity_need: {min_liquidity_intensity: 1.0}
   ignore: {}
+
+# --- D19: asset classes, risk fit, recommended top 3 (docs/decision.md section 10) ------
+asset_classes:
+  by_name: {"PARA PİYASASI": nakit_benzeri, "KISA VADELİ": nakit_benzeri, "BORÇLANMA ARACI": borclanma}
+  by_kind: {deposit: nakit_benzeri, time_deposit: nakit_benzeri, money_market: nakit_benzeri,
+            debt: borclanma, participation: borclanma, variable: dengeli, mixed: dengeli,
+            fund_of_funds: dengeli, equity: hisse, precious_metals: altin_doviz}
+  fx: altin_doviz                    # an FX fund (fx tag)
+risk_fit:                            # ASSUMPTION (2026-10-12): bands to check with the mentors
+  bands: {"Muhafazakâr": [1, 2], "Temkinli": [2, 3], "Dengeli": [3, 5], "Agresif": [4, 7]}
+  per_step: 0.5                      # tuned on 20261010-183835-6813: 0.25 kept Dengeli at risk 2
+recommend:
+  max_per_class: 1
+  max_cash_like: 1
+  cash_like: nakit_benzeri
+  profiles: ["Dengeli", "Agresif"]   # also with the diversity priority / concentration_limit
 
 # --- 4. Scoring ----------------------------------------------------------------------
 kinds:   # liquidity / income / simplicity values (0..1)
@@ -164,7 +180,7 @@ principal_value: {deposit: 1.0, time_deposit: 1.0, fund_base: 0.8, fund_step: 0.
 # Raw weight = base + per_level * level (+ appetite terms), then normalized.
 weights:
   return:     {base: 2.0, appetite: 2.0}   # was 1 + appetite (D9, 2026-10-10)
-  low_risk:   {base: 1.0, appetite: -1.0}
+  risk_fit:   {base: 2.0}                  # D19: replaces low_risk {base 1, appetite -1}
   liquidity:  {base: 0.0, level: likidite_ihtiyaci, per_level: 2.0}
   income:     {base: 0.0, level: gelir_nakit_akisi_ihtiyaci, per_level: 2.0}
   principal:  {base: 0.0, level: anapara_koruma_tercihi, per_level: 2.0}
@@ -200,7 +216,7 @@ display:
     term: "Vade sonunda ({days} gün)"
   why:
     liquidity: "Paraya erişim: {access}"
-    low_risk: "SPK risk değeri {risk} / 7"
+    risk_fit: "SPK risk değeri {risk} / 7"
     principal: "SPK risk değeri {risk} / 7"
     income: "Son bir yılda {ret1y} getiri (geçmiş getiri)"
     return: "Son bir yılda {ret1y} getiri (geçmiş getiri)"
@@ -248,7 +264,9 @@ texts:
     "penalty:underperformance": "Stopaj sonrası getiri %{net:.1f}, piyasa mevduat ortalamasının (stopaj sonrası %{benchmark:.1f}) altında; müşteri getiri bekliyor."
     "penalty:real_loss": "Enflasyon sonrası reel kayıp %{loss:.1f}; müşteri anaparanın korunmasını istiyor."
     return: "Yıllıklandırılmış getiri {annual:.1f}% ({period}); adayların %{pct:.0f}'inden iyi."
-    low_risk: "Risk değeri {risk}/7."
+    low_risk: "Risk değeri {risk}/7."        # used only without the D19 risk_fit section
+    risk_fit: "Risk değeri {risk}/7; müşterinin risk aralığı {band_lo}-{band_hi}."
+    class_rule: "Çeşitlendirme: farklı varlık sınıfından en iyi seçenek."
     liquidity: "Likidite (ürün türüne göre): {value:.1f}."
     income: "Düzenli gelir uygunluğu (ürün türüne göre): {value:.1f}."
     principal: "Anapara koruma: {value:.2f}."
@@ -290,6 +308,7 @@ texts:
     liquidity_need: "Yüksek likidite iste"
     ignore: "Dikkate alma"
   assumptions:
+    class_rule: "Öneriler varlık sınıflarına yayıldı: her sınıftan en fazla bir, nakit benzeri en fazla bir seçenek."
     fx_override: "RM döviz fonları kısıtını gerekçeyle kaldırdı (gerekçe RM notunda); döviz fonları ceza ile listede."
     kind_proxy_valor: "Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi."
     real_return_cpi: "Getiriler stopaj sonrası ve yıllık TÜFE'ye (%{cpi:.2f}, {cpi_date}) göre reel olarak hesaplandı."

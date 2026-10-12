@@ -167,6 +167,7 @@ LABELS: dict[str, dict[str, str]] = {
     # score parts (criteria of config/decision.yaml)
     "p_return": {"TR": "Getiri", "EN": "Return"},
     "p_low_risk": {"TR": "Düşük risk", "EN": "Low risk"},
+    "p_risk_fit": {"TR": "Risk uyumu", "EN": "Risk fit"},      # D19
     "p_liquidity": {"TR": "Likidite", "EN": "Liquidity"},
     "p_income": {"TR": "Gelir", "EN": "Income"},
     "p_principal": {"TR": "Anapara koruma", "EN": "Capital protection"},
