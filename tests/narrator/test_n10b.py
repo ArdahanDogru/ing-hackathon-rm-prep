@@ -42,7 +42,7 @@ def _findings(text, config):
     f = build_facts(r, evidence())
     assert set(f.named_options()) == {"deposit:ing_turuncu", "fund:AAL"}
     sections = [NarrativeSection(s.key, (*s.sentences, NarrativeSentence(text, ("fund:AAL",))))
-                if s.key == "oneriler" else s
+                if s.key == "dikkat" else s
                 for s in template_sections(f, "TR", config.disclaimer["TR"])]
     return validate(sections, f, r, config, "TR")
 

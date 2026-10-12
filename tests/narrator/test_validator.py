@@ -60,7 +60,7 @@ def test_template_text_passes(make, lang, config):
 ])
 def test_numbers_must_come_from_the_facts(text, ok, config):
     r, f, sections = _setup(config=config)
-    bad = _with(sections, "oneriler", NarrativeSentence(text, ("fund:BBF",)))
+    bad = _with(sections, "dikkat", NarrativeSentence(text, ("fund:BBF",)))
     findings = _check(bad, f, r, config)
     assert (findings == ()) == ok, findings
     if not ok:
@@ -86,7 +86,7 @@ def test_numbers_in():
 
 def test_a_date_must_be_a_date_of_the_facts(config):
     r, f, sections = _setup(config=config)
-    bad = _with(sections, "oneriler", NarrativeSentence("Veri tarihi 08.10.2026.", ("fund:BBF",)))
+    bad = _with(sections, "dikkat", NarrativeSentence("Veri tarihi 08.10.2026.", ("fund:BBF",)))
     assert _codes(_check(bad, f, r, config)) == {"number"}
 
 
@@ -198,9 +198,9 @@ def test_assumptions_must_be_verbatim(config):
 
 def test_findings_name_section_and_text(config):
     r, f, sections = _setup(config=config)
-    bad = _with(sections, "oneriler", NarrativeSentence("Getiri %77,7 oldu.", ("fund:BBF",)))
+    bad = _with(sections, "dikkat", NarrativeSentence("Getiri %77,7 oldu.", ("fund:BBF",)))
     (finding,) = _check(bad, f, r, config)
-    assert finding.startswith("number: ") and "oneriler" in finding and "77,7" in finding
+    assert finding.startswith("number: ") and "dikkat" in finding and "77,7" in finding
 
 
 @pytest.mark.parametrize("name", ["decision_p02_ready", "decision_p03_ready"])

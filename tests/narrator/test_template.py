@@ -72,7 +72,7 @@ def test_oneriler_one_block_per_selected_option_with_numbers(config):
     sents = _section(d, "oneriler").sentences
     for o in f.selected:
         mine = [s for s in sents if s.option_ids == (o.option_id,)]
-        assert mine and o.label in mine[0].text
+        assert mine and mine[0].text.startswith(o.name)            # N13: the short name
     text = " ".join(s.text for s in sents)
     assert "%52,51" in text                    # BBF 1-year return, Turkish format
     assert "Vade ufkuna uygun." in text        # the RM note of the option
@@ -125,7 +125,10 @@ def test_unknown_language(config):
 def test_markdown_has_every_section_and_sentence(config):
     _, _, d = _draft(p02, "TR", config)
     md = to_markdown(d)
-    assert md.count("\n## ") == len(NARRATIVE_SECTIONS_V13)
+    # N13: ## per main section + "Ek bilgiler"; ### for its three sections and per option
+    assert md.count("\n## ") == 6
+    assert md.count("\n### ") == 3 + len({s.option_ids[0] for sec in d.sections
+                                           if sec.key == "oneriler" for s in sec.sentences})
     for sec in d.sections:
         for s in sec.sentences:
             assert s.text in md
@@ -160,7 +163,8 @@ def test_oneriler_punctuation_and_counts(config):
     text = " ".join(s.text for s in _section(d, "oneriler").sentences)
     assert ".;" not in text and ".." not in text
     assert ",00 (TEFAS" not in text
-    assert "mevduat faizi" in text and "yıllık faiz oranı" not in text
+    assert "yıllık faiz oranı" not in text
+    assert "piyasa mevduat faizi" not in text          # N13: the market rate is not per option
 
 
 @pytest.mark.parametrize("value, unit, lang, out", [
