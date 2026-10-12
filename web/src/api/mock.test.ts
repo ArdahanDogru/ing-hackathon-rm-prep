@@ -31,6 +31,13 @@ test("approval and notes give the approved sample; narrative by lang", () => {
   expect(approved).toMatchObject({ status: "approved", rm_text: "x" });
 });
 
+test("brief: the sample of the language, else 202 running", () => {
+  const brief = { text: "Kısa özet." };
+  const withBrief = (name: string) => (name === "brief_p01_tr" ? brief : undefined);
+  expect(resolveMock("GET", "/api/runs/R01/brief?lang=TR", undefined, withBrief)).toEqual({ status: 200, body: brief });
+  expect(resolveMock("GET", "/api/runs/R01/brief?lang=EN", undefined, withBrief).status).toBe(202);
+});
+
 test("unknown path is 404", () => {
   expect(resolveMock("GET", "/api/nothing", undefined, load).status).toBe(404);
 });

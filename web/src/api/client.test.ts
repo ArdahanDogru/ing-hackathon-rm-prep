@@ -55,3 +55,17 @@ test("run inputs are remembered per run id", () => {
   expect(recallInputs("R9")?.snapshot_id).toBe("S");
   expect(recallInputs("R0")).toBeNull();
 });
+
+test("brief: 202 means running, 200 the brief, an error throws", async () => {
+  const b = { run_id: "R1", lang: "TR", text: "Kısa özet.", source: "llm", model: "claude-haiku-5-5", prompt_version: "b1", checks: [], created_at: "", cost_usd: 0.003, cite: [] };
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce(json({ status: "running" }, 202))
+    .mockResolvedValueOnce(json(b, 200))
+    .mockResolvedValueOnce(json({ detail: "needs_rm_input" }, 422));
+  globalThis.fetch = fetch;
+  expect(await api.brief("R1", "TR")).toBe("running");
+  expect(await api.brief("R1", "EN")).toEqual(b);
+  await expect(api.brief("R1", "TR")).rejects.toEqual(new ApiError(422, "needs_rm_input"));
+  expect(fetch.mock.calls[1][0]).toBe("/api/runs/R1/brief?lang=EN");
+});
