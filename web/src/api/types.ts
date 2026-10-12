@@ -119,6 +119,25 @@ export interface DecisionResult {
   to_confirm: string[];
   recommended: string[]; // v1.6: the engine's top 3 (option ids, in order)
   rm_decided_at: string | null; // v1.7: when the RM approved or rejected (ISO, +03:00)
+  allocation: AllocationBand[]; // v1.8, D20: strategic model allocation bands, in class order
+  allocation_notes: string[]; // v1.8: holding hints from the persona text
+}
+
+/** v1.8 (D20): one asset class of the strategic model allocation. No current shares, no amounts. */
+export interface AllocationBand {
+  asset_class: string;
+  low: number | null; // % of the portfolio; null = no band (dengeli funds)
+  high: number | null;
+  source: string;
+  inferred: boolean; // our inference, not a source value
+  option_id: string | null; // the best scored option of the class for this client
+  note: "" | "ceiling" | "none" | "negative_real";
+}
+
+/** The API's allocation row: the band plus the class label and the note text. */
+export interface AllocationRow extends AllocationBand {
+  label: string;
+  note_text: string;
 }
 
 export type SectionKey =
@@ -284,6 +303,8 @@ export interface RunView {
   client_warnings: Warning[];
   rm_warnings: Warning[];
   rejected_by_rule: RejectedByRule[];
+  allocation: AllocationRow[];
+  allocation_notes: string[];
 }
 
 export interface RunInputs {
