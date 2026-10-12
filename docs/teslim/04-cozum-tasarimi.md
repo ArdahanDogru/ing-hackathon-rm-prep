@@ -1,7 +1,7 @@
 # Çözüm tasarımı
 
 > Teslimat 4 · Taslak (2026-10-12) · Ölçümler: değerlendirme raporu
-> `data/eval/20261012-185154-full` (dondurulmuş anlık görüntü
+> `data/eval/20261012-201431-full` (dondurulmuş anlık görüntü
 > `20261010-183835-6813`) ve maliyet defteri `data/narratives/costs.jsonl`.
 > **[VARSAYIM]** ile işaretli noktalar mentorlarla teyit edilecek.
 
@@ -127,7 +127,7 @@ LLM hiçbir ürünü seçmez, elemez veya puanlamaz; yalnızca karar motorunun
 
 | Çıktı | Model | Ölçülen maliyet | Ölçülen süre |
 |---|---|---|---|
-| Görüşme metni | Claude Sonnet 5.5 (`claude-sonnet-5-5`, effort medium) | yeni metin başına ortalama **0,052 $** (eval, 25 metin); hız testinde 0,049 $ | ortalama 33 sn (en çok 82 sn) |
+| Görüşme metni | Claude Sonnet 5.5 (`claude-sonnet-5-5`, effort medium) | yeni metin başına ortalama **0,042 $** (eval, 25 metin); hız testinde 0,049 $ | ortalama 27 sn (en çok 45 sn) |
 | Pano brief'i | Claude Haiku 5.5 (`claude-haiku-5-5`) | 49 çağrıda ortanca **0,0008 $** (0,0003–0,0013 $) | arka planda |
 | Eval hakemi | Claude Haiku 5.5 | tam pakette 0,008 $ | — |
 
@@ -177,7 +177,7 @@ doğrulayıcı sonucu ve maliyet (`data/narratives/`).
   persona ve kısıt değişiklikleri, kaynak dışlama, bozuk veri ve 13 regresyon
   senaryosu. Kural kontrolleri %100, doğrulayıcı geçiş oranı %100 (25/25
   LLM metni, şablona düşüş yok), yasak ifade 0. Hakemin dil puanları daha
-  düşüktür ("müşteriye uyarlanmış" %62, "RM için açık" %50); bu alan
+  düşüktür ("müşteriye uyarlanmış" %57, "RM için açık" %50); bu alan
   iyileştirme konusudur (bkz. Teslimat 5).
 
 ## 6. Neden bu tasarım?

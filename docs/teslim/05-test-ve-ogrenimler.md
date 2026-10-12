@@ -1,7 +1,7 @@
 # Test ve öğrenimler
 
 > Teslimat 5 · Taslak (2026-10-12) · Sayılar: son tam değerlendirme
-> `data/eval/20261012-185154-full` (dondurulmuş veri anlık görüntüsü
+> `data/eval/20261012-201431-full` (dondurulmuş veri anlık görüntüsü
 > `20261010-183835-6813`, karar yapılandırması `2534f798cc47`, anlatıcı
 > `claude-sonnet-5-5` istem `n6`, hakem `claude-haiku-5-5`) ve önceki tam
 > değerlendirme raporları. **[VARSAYIM]** ile işaretli değerler ölçülmedi.
@@ -62,10 +62,10 @@ Göstergeleri brifin §9.1 sorularından ve §12 kurallarından türettik:
 | Tekrar tutarlılığı | 5 / 5 | %100 | evet |
 | Persona değişikliği beklenen yönde | 21 / 21 | senaryo başına | evet |
 | Çeşitli öneri (D19) | 20 / 20 | %100 | evet |
-| Kanıt toplama / karar süresi (çalıştırma başına ort.) | 0,45 sn / 1,31 sn (en çok 6,46 / 1,97 sn) | yalnızca rapor | — |
-| Görüşme metni süresi | ort. 33,05 sn, medyan 29,8 sn (en çok 81,91 sn) | yalnızca rapor | — |
-| Maliyet | metin başına $0,052; paket $1,30 (sınır $5) | yalnızca rapor | — |
-| Hakem: uyarlanmış / RM için açık / dengeli | %62 / %50 / %50 | yalnızca rapor | — |
+| Kanıt toplama / karar süresi (çalıştırma başına ort.) | 0,42 sn / 1,16 sn (en çok 5,32 / 1,92 sn) | yalnızca rapor | — |
+| Görüşme metni süresi | ort. 27,39 sn (en çok 45,25 sn) | yalnızca rapor | — |
+| Maliyet | metin başına $0,042; paket $1,05 (sınır $5) | yalnızca rapor | — |
+| Hakem: uyarlanmış / RM için açık / dengeli | %57 / %50 / %50 | yalnızca rapor | — |
 
 Bir kontrol yalnızca ilgili senaryoda çalışır; uygulanmayanlar oranlara girmez.
 
@@ -140,10 +140,10 @@ BVF/NJR/KDE, P03 GBV/YZG/YAY, P04 OKT/RPP/EKF, P05 BVF/GBL/KSK. Önceki tam
 raporda (`20261012-104535-full`) P01 ile P04 ve P02 ile P05 aynı seçimi
 almıştı.
 
-Yan etkiler: hakemin "uyarlanmış" puanı %53'ten %62'ye yükseldi (senaryo
+Yan etkiler: hakemin "uyarlanmış" puanı %53'ten %57'ye yükseldi (senaryo
 seti 30'dan 34'e büyüdüğü için bu karşılaştırma yaklaşıktır); kural
 kontrolleri %100'de kaldı. Karar süresi
-ortalama 0,86 sn'den 1,31 sn'ye çıktı, çünkü motor artık yalnızca grup
+ortalama 0,86 sn'den 1,16 sn'ye çıktı, çünkü motor artık yalnızca grup
 başlarından değil tüm sıralı seçeneklerden seçiyor. Kalıcılık için dört
 regresyon senaryosu eklendi (`reg-d19-p02-diverse`, `reg-d19-p04-diverse`,
 `reg-d19-p01-unchanged`, `edit-p05-dengeli`) ve yeni kontrol

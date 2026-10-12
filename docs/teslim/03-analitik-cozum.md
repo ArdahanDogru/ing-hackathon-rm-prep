@@ -268,5 +268,5 @@ sonrası 0,568, en iyi fon 0,837); 5 personanın 4'ü yalnızca nakit benzeri, S
 - `prototype/src/rmprep/decision/` — motor (`scoring.py`, `recommend.py`, `confidence.py`)
 - `prototype/docs/ingest.md` — veri kaynakları ve kalite işaretleri
 - `prototype/data/inbox/manual/` — stopaj, TÜFE ve ING oranları (kaynak URL'leriyle)
-- `prototype/data/eval/20261012-185154-full/report.md` — değerlendirme raporu
+- `prototype/data/eval/20261012-201431-full/report.md` — değerlendirme raporu
 - `prototype/docs/teslim/01-problem-tanimi.md` — problem tanımı
