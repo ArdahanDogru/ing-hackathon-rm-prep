@@ -201,9 +201,12 @@ def user_text(result: DecisionResult, draft: NarrativeDraft,
               evidence: EvidenceSet | None = None) -> str:
     """The per-call part: the client, the RM selection, the option facts (with
     evidence) and the text to grade."""
+    from rmprep.api.names import short_name
     from rmprep.narrator.template import to_markdown
 
     labels = {o.option.option_id: o.option.label for o in result.options}
+    # the screen names as headings, as the RM sees the text (lead fix 2026-10-12)
+    names = {i: " ".join(short_name(lbl)).strip() for i, lbl in labels.items()}
     client = {k: v for k, v in result.persona.to_dict().items() if k != "persona_id"}
     facts = ("" if evidence is None else
              "<option_facts>\n" + option_facts(result, evidence, draft.lang)
@@ -212,7 +215,7 @@ def user_text(result: DecisionResult, draft: NarrativeDraft,
         "<client>\n" + json.dumps(client, ensure_ascii=False, indent=1) + "\n</client>\n\n"
         "<rm_selection>\n" + "\n".join(f"- {labels.get(i, i)}" for i in result.rm_selected)
         + "\n</rm_selection>\n\n" + facts
-        + f"<meeting_text lang=\"{draft.lang}\">\n{to_markdown(draft)}\n</meeting_text>"
+        + f"<meeting_text lang=\"{draft.lang}\">\n{to_markdown(draft, names=names)}\n</meeting_text>"
     )
 
 

@@ -123,6 +123,17 @@ def test_user_text_holds_client_selection_and_text_but_not_the_rubric(approved):
     assert labels[result.rm_selected[0]] in t
 
 
+def test_user_text_headings_use_the_screen_fund_names(approved):
+    """As on the screen (N13): fund headings are short names, not fund codes."""
+    from rmprep.api.names import short_name
+    result, draft, _ = approved
+    t = user_text(result, draft)
+    heads = [line[4:] for line in t.splitlines() if line.startswith("### ")]
+    by_id = {o.option.option_id: o.option.label for o in result.options}
+    names = {" ".join(short_name(by_id[i])).strip() for i in result.rm_selected}
+    assert heads and set(heads) & names
+
+
 _REQ = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
 
 
