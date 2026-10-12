@@ -1,19 +1,19 @@
 {
  "run_id": "R80b1641fa4",
  "lang": "TR",
- "text": "Müşteriniz 62 yaşında emekli girişimci; düzenli gelir, likiditeyi koruma ve sınırlı dalgalanma önceliklerinde, varlığı ağırlıklı olarak TL mevduatta.",
+ "text": "62 yaşındaki emekli girişimci müşteriniz, mevduat yoğunluğunu azaltmak ve düzenli gelir ile sermaye korumayı istiyor. Görüşmede üç üst seçeneği, paraya erişim ve risk koşullarıyla birlikte değerlendiriniz.",
  "source": "llm",
  "model": "claude-haiku-5-5",
  "prompt_version": "b1",
  "checks": [],
- "created_at": "2026-10-13T00:33:35.195675+03:00",
- "cost_usd": 0.00043327500000000006,
+ "created_at": "2026-10-13T00:33:39.810464+03:00",
+ "cost_usd": 0.0010072750000000002,
  "cite": [
   "fund:PPN",
   "fund:IST",
   "fund:AIS",
-  "E2075d858",
-  "E12805994",
-  "Efa7fc2ec"
+  "E06f53164",
+  "E3f036729",
+  "Efc142651"
  ]
 }

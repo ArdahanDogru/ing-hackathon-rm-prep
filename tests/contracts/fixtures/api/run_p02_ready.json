@@ -2,7 +2,7 @@
  "result": {
   "run_id": "R2e53f91bda",
   "config_hash": "ba3e40ad2855",
-  "created_at": "2026-10-13T00:33:36.203604+03:00",
+  "created_at": "2026-10-13T00:37:52.865095+03:00",
   "persona": {
    "persona_id": "P02",
    "profil": "İhracatçı şirket sahibi",
@@ -41988,5 +41988,63 @@
     }
    ]
   }
- ]
+ ],
+ "allocation": [
+  {
+   "asset_class": "nakit_benzeri",
+   "low": 5,
+   "high": 10,
+   "source": "Ata Yatırım, 28.04.2026",
+   "inferred": false,
+   "option_id": "fund:BVF",
+   "note": "",
+   "note_text": "",
+   "label": "Nakit benzeri"
+  },
+  {
+   "asset_class": "borclanma",
+   "low": 30,
+   "high": 40,
+   "source": "Ata Yatırım, 28.04.2026",
+   "inferred": false,
+   "option_id": "fund:NJR",
+   "note": "",
+   "note_text": "",
+   "label": "Borçlanma"
+  },
+  {
+   "asset_class": "hisse",
+   "low": 40,
+   "high": 50,
+   "source": "Ata Yatırım, 28.04.2026",
+   "inferred": false,
+   "option_id": "fund:CPU",
+   "note": "",
+   "note_text": "",
+   "label": "Hisse"
+  },
+  {
+   "asset_class": "altin_doviz",
+   "low": 10,
+   "high": 15,
+   "source": "Ata Yatırım, 28.04.2026",
+   "inferred": false,
+   "option_id": "fund:KZL",
+   "note": "negative_real",
+   "note_text": "Son 1 yıl reel −%12,9: önerilmiyor.",
+   "label": "Altın / döviz"
+  },
+  {
+   "asset_class": "dengeli",
+   "low": null,
+   "high": null,
+   "source": "Ata Yatırım, 28.04.2026",
+   "inferred": false,
+   "option_id": "fund:IRF",
+   "note": "",
+   "note_text": "",
+   "label": "Dengeli (çoklu varlık)"
+  }
+ ],
+ "allocation_notes": []
 }

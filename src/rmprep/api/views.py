@@ -65,7 +65,13 @@ def _fact(f) -> dict | None:
 
 
 # labels that the Streamlit dictionary (rmprep.ui.i18n) does not have
-_MORE_LABELS = {"rule.short_history": {"TR": "Yeterli geçmiş yok", "EN": "Not enough history"}}
+_MORE_LABELS = {"rule.short_history": {"TR": "Yeterli geçmiş yok", "EN": "Not enough history"},
+                # D19 asset classes (D20 allocation rows)
+                "class.nakit_benzeri": {"TR": "Nakit benzeri", "EN": "Cash-like"},
+                "class.borclanma": {"TR": "Borçlanma", "EN": "Bonds / debt"},
+                "class.hisse": {"TR": "Hisse", "EN": "Equity"},
+                "class.altin_doviz": {"TR": "Altın / döviz", "EN": "Gold / FX"},
+                "class.dengeli": {"TR": "Dengeli (çoklu varlık)", "EN": "Multi-asset"}}
 
 
 def _label(key: str, lang: str) -> str:
@@ -79,6 +85,16 @@ class ViewBuilder:
 
     def __init__(self, backend: Backend, config: DecisionConfig, lang: str = "TR") -> None:
         self._backend, self._config, self._lang = backend, config, lang
+
+    def _band(self, b, facts) -> dict:
+        """D20 band with the note text of config allocation.note_texts."""
+        from rmprep.decision.display import tr_percent
+        texts = self._config.raw.get("allocation", {}).get("note_texts", {})
+        note_text = texts.get(b.note, "") if b.note else ""
+        if b.note == "negative_real" and b.option_id and facts[b.option_id].real_1y:
+            note_text = note_text.format(figure=tr_percent(facts[b.option_id].real_1y.value))
+        return {**_to_json(b), "note_text": note_text,
+                "label": _label(f"class.{b.asset_class}", self._lang)}
 
     def __call__(self, r: DecisionResult) -> dict:
         ev = self._backend.evidence(r.snapshot_id, r.excluded_sources)
@@ -174,4 +190,6 @@ class ViewBuilder:
             "client_warnings": [_to_json(w) for w in r.warnings if w.audience == "client"],
             "rm_warnings": [_to_json(w) for w in r.warnings if w.audience == "rm"],
             "rejected_by_rule": sorted(rules.values(), key=lambda x: (-x["count"], x["rule_id"])),
+            "allocation": [self._band(b, facts) for b in r.allocation],      # D20
+            "allocation_notes": list(r.allocation_notes),
         }

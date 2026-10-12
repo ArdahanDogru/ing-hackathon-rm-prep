@@ -147,3 +147,20 @@ def test_allocation_options_are_in_the_view(backend, persona):
     v = ViewBuilder(backend, load_config())(r)
     assert far in v["options"]
     assert v["result"]["allocation"][0]["option_id"] == far if "result" in v else True
+
+
+def test_allocation_rows_have_texts(backend, persona):
+    import dataclasses
+
+    from rmprep.contracts import AllocationBand, Persona
+    r = backend.decide(Persona.from_dict(persona), backend.list_snapshots()[0])
+    oid = r.options[1].option.option_id
+    r = dataclasses.replace(r, allocation=(
+        AllocationBand("hisse", 40.0, 50.0, "Ata Yatırım, 28.04.2026", False, None, "ceiling"),
+        AllocationBand("borclanma", 30.0, 40.0, "Ata Yatırım, 28.04.2026", False, oid, "")),
+        allocation_notes=("not",))
+    v = ViewBuilder(backend, load_config())(r)
+    rows = v["allocation"]
+    assert rows[0]["label"] == "Hisse" and rows[0]["note_text"] == "Risk tavanı nedeniyle uygun fon yok."
+    assert rows[1]["option_id"] == oid and rows[1]["note_text"] == ""
+    assert v["allocation_notes"] == ["not"]
