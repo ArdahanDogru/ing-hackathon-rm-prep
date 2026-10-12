@@ -297,3 +297,17 @@ test("EN labels", () => {
   expect(screen.getAllByText("Comparison").length).toBeGreaterThan(0);
   expect(screen.getByRole("button", { name: "Approve and prepare the text" })).toBeInTheDocument();
 });
+
+test("after approval the bar shows the RM decision time", () => {
+  const v = sample("run_p01_approved");
+  renderDashboard(v);
+  expect(screen.getByTestId("decided-at")).toHaveTextContent(/^Onaylandı: \d{2}\.\d{2}\.\d{4} \d{2}:\d{2}$/);
+  renderDashboard({ ...v, result: { ...v.result, rm_status: "rejected", rm_decided_at: "2026-10-12T09:15:00+03:00" } });
+  expect(screen.getAllByTestId("decided-at")[1]).toHaveTextContent("Reddedildi: 12.10.2026 09:15");
+});
+
+test("a decision without a time (an older run) shows the status only", () => {
+  const v = sample("run_p01_approved");
+  renderDashboard({ ...v, result: { ...v.result, rm_decided_at: null } });
+  expect(screen.getByTestId("decided-at")).toHaveTextContent(/^Onaylandı$/);
+});

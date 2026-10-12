@@ -32,6 +32,7 @@ export interface ProductOption {
   entity: string;
   fund_kind: string;
   fx: boolean;
+  asset_class: string; // v1.6: nakit_benzeri | borclanma | dengeli | hisse | altin_doviz ("" = not set)
 }
 
 export interface ConstraintResult {
@@ -116,6 +117,8 @@ export interface DecisionResult {
   rm_option_notes: Record<string, string>;
   talking_points: TalkingPoint[];
   to_confirm: string[];
+  recommended: string[]; // v1.6: the engine's top 3 (option ids, in order)
+  rm_decided_at: string | null; // v1.7: when the RM approved or rejected (ISO, +03:00)
 }
 
 export type SectionKey =
@@ -157,6 +160,7 @@ export interface NarrativeDraft {
   rm_edits: Record<string, string>;
   /** v1.5: block id → findings "<kind>: <message>"; kinds in BLOCKING_CHECK_KINDS stop the approval. */
   edit_checks: Record<string, string[]>;
+  approved_at: string | null; // v1.7: when the text was approved (ISO, +03:00)
 }
 
 /** Finding kinds that block "Metni onayla" (contract v1.5); "number" only warns. */

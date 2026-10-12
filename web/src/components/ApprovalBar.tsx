@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { OptionView, RunView } from "../api/types";
+import { fmtDateTime } from "../format";
 import { useT } from "../i18n";
 
 /** "Nurol · Para Piyasası (TL)": the issuer's first word and the short name. */
@@ -115,7 +116,11 @@ export function ApprovalBar({
           </>
         ) : (
           <>
-            <span className="font-semibold">{status === "approved" ? t("approved") : t("rejected")}</span>
+            <span data-testid="decided-at" className="font-semibold">
+              {`${status === "approved" ? t("approved") : t("rejected")}${
+                view.result.rm_decided_at ? `: ${fmtDateTime(view.result.rm_decided_at)}` : ""
+              }`}
+            </span>
             {view.result.rm_note && <span className="text-white/80">{view.result.rm_note}</span>}
             {status === "approved" && (
               <Link

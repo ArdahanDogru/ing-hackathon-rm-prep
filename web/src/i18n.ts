@@ -195,6 +195,7 @@ const TR = {
   mustFix: "Düzeltilmeli",
   warnOnly: "Uyarı",
   approveBlocked: "Onay için önce işaretli bölümleri düzeltin.",
+  fetchedAt: "Alındı",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -391,6 +392,7 @@ const EN: Record<LabelKey, string> = {
   mustFix: "Must be fixed",
   warnOnly: "Warning",
   approveBlocked: "Fix the marked sections before the approval.",
+  fetchedAt: "Fetched",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };
