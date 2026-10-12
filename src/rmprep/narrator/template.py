@@ -133,8 +133,6 @@ TEXTS = {
         "client_note": "Müşteri notu: {note}",
         "rm_note": "RM'in görüşme notu: {note}",
         "meeting": "Görüşmede seçtiğiniz {n} seçeneği konuşun.",
-        "meeting_baseline": "Görüşmede seçtiğiniz {n} seçeneği konuşun; "
-                            "karşılaştırma ölçütü {baseline}.",
         "option": "{label} ({kind}{fx}): {reasons}.",
         "option_bare": "{label} ({kind}{fx}).",
         "link": "Müşteriye {label} seçeneğinin {need} (\"{value}\") açısından {part} ile "
@@ -151,15 +149,12 @@ TEXTS = {
         "group": "{kind} grubunda diğer seçenekler: {labels}.",
         "group_empty": "{kind} grubunda seçilenler dışında seçenek yok.",
         "no_groups": "Seçilen seçenekler için aynı türde başka seçenek yok.",
-        "baseline": "Karşılaştırma ölçütü: {label}.",
-        "baseline_numbers": "Karşılaştırma ölçütü: {label}; {items}.",
         "past": "Fon getirileri geçmiş getirilerdir; gelecekteki getiriyi göstermez ve "
                 "değerleri dalgalanabilir.",
         "constraint": "Kısıtı müşteriyle teyit edin: \"{item}\".",
         "ask_priorities": "Öncelikler hâlâ bu sırada mı: {items}?",
         "pitch_goal": "Bugün \"{durum}\" durumunuzu ve \"{amac}\" hedefinizi dikkate "
                       "alarak birkaç seçeneği birlikte değerlendirmek istiyorum.",
-        "pitch_baseline": "Karşılaştırma için {baseline} ile başlayalım.",
         "pitch_options": "Sizin için öne çıkan seçenekler: {labels}.",
         "pitch_past": "Konuştuğumuz getiriler geçmiş getirilerdir; kararı sizin "
                       "önceliklerinize göre birlikte verelim.",
@@ -191,8 +186,6 @@ TEXTS = {
         "client_note": "Client note: {note}",
         "rm_note": "The RM's meeting note: {note}",
         "meeting": "Discuss the {n} options that you selected.",
-        "meeting_baseline": "Discuss the {n} options that you selected; the baseline for "
-                            "comparison is {baseline}.",
         "option": "{label} ({kind}{fx}): {reasons}.",
         "option_bare": "{label} ({kind}{fx}).",
         "link": "Explain to the client that {label} stands out on {part} for their {need} "
@@ -210,15 +203,12 @@ TEXTS = {
         "group": "Other options in the {kind} group: {labels}.",
         "group_empty": "The {kind} group has no options other than the selected ones.",
         "no_groups": "The selected options have no other options of the same kind.",
-        "baseline": "Baseline for comparison: {label}.",
-        "baseline_numbers": "Baseline for comparison: {label}; {items}.",
         "past": "Fund returns are past returns; they do not show future returns, and "
                 "values can go up and down.",
         "constraint": "Confirm the constraint with the client: \"{item}\".",
         "ask_priorities": "Are the priorities still in this order: {items}?",
         "pitch_goal": "Today I would like to look at a few options with you, based on your "
                       "situation (\"{durum}\") and your goal (\"{amac}\").",
-        "pitch_baseline": "For comparison, let us start with {baseline}.",
         "pitch_options": "The options that stand out for you: {labels}.",
         "pitch_past": "The returns we talk about are past returns; we will decide "
                       "together, based on your priorities.",
@@ -306,12 +296,8 @@ def _ozet(f: Facts, tx: dict, disclaimer: str) -> list[NarrativeSentence]:
     if notes:
         out.append(_sentence(" ".join(notes)))
     ids = [o.option_id for o in f.selected]
-    if f.baseline is not None:
-        out.append(_sentence(tx["meeting_baseline"].format(n=len(f.selected),
-                                                           baseline=f.baseline.label),
-                             [*ids, f.baseline.option_id]))
-    else:
-        out.append(_sentence(tx["meeting"].format(n=len(f.selected)), ids))
+    # N13c: no ING deposit as the comparison outside oneriler (an RM-only note)
+    out.append(_sentence(tx["meeting"].format(n=len(f.selected)), ids))
     out.append(_sentence(disclaimer))
     return out
 
@@ -398,15 +384,7 @@ def _alternatifler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
             out.append(_sentence(tx["group_empty"].format(kind=kind), g.selected))
     if not out:
         out.append(_sentence(tx["no_groups"], [o.option_id for o in f.selected]))
-    b = f.baseline
-    if b is not None and b.option_id not in {o.option_id for o in f.selected}:
-        if b.numbers:
-            items = "; ".join(_number(n, tx, lang) for n in b.numbers)
-            out.append(_sentence(tx["baseline_numbers"].format(label=b.label, items=items),
-                                 [b.option_id], [n.evidence_id for n in b.numbers]))
-        else:
-            out.append(_sentence(tx["baseline"].format(label=b.label), [b.option_id]))
-    return out
+    return out          # N13c: no ING deposit baseline here (the comparison is an RM note)
 
 
 def _dikkat(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
@@ -454,9 +432,6 @@ def _sorular(f: Facts, tx: dict) -> list[NarrativeSentence]:
 def _teklif(f: Facts, tx: dict) -> list[NarrativeSentence]:
     out = [_sentence(tx["pitch_goal"].format(durum=f.client["durum"],
                                              amac=f.client["yatirim_amaci"]))]
-    if f.baseline is not None:
-        out.append(_sentence(tx["pitch_baseline"].format(baseline=f.baseline.label),
-                             [f.baseline.option_id]))
     out.append(_sentence(tx["pitch_options"].format(labels=_labels(f.selected)),
                          [o.option_id for o in f.selected]))
     out.append(_sentence(tx["pitch_past"]))      # N13b: at most 4 sentences

@@ -85,8 +85,8 @@ def test_alternatifler_names_the_group_alternatives(config):
     sents = _section(d, "alternatifler").sentences
     ake = f.alternatives[0]
     assert any(ake.label in s.text and "fund:AKE" in s.option_ids for s in sents)
-    base = [s for s in sents if s.option_ids == ("deposit:ing_turuncu",)]
-    assert base and "%23,00" in base[0].text and base[0].evidence_ids == ("E42b47116",)
+    # N13c: no ING deposit baseline in alternatifler (the comparison is an RM-only note)
+    assert not any("deposit:ing_turuncu" in s.option_ids for s in sents)
 
 
 def test_dikkat_has_warnings_a_pane_pointer_and_the_past_return_caveat(config):

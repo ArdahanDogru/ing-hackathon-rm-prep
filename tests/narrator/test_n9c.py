@@ -56,33 +56,33 @@ def test_system_prompt_explains_the_two_rates(lang, config):
     assert MARKET in s and ING in s
 
 
-def test_template_names_the_market_rate(config):
-    r = engine_result("p01")
-    f = build_facts(r, evidence())
-    md = to_markdown(template_draft(f, "TR", config, created_at=CREATED))
-    assert "piyasa mevduat faizi" in md
-    assert "ING mevduat faizi %23,00" in md
+def test_template_names_the_two_rates(config):
+    """The two rates have separate names (N9c); N13c removed the ING baseline
+    sentence from the template, so the names are checked directly."""
+    from rmprep.narrator.template import quantity_name
+
+    assert quantity_name(MARKET, "TR").startswith("piyasa mevduat faizi")
+    assert quantity_name(ING, "TR") == "ING mevduat faizi"
 
 
 # --- validator: the ING name and its numbers ------------------------------------------------
 
-@pytest.mark.parametrize("text, ok", [
-    ("Karşılaştırma için ING Turuncu Hesap (standart) mevduat oranı %43,82.", False),
-    ("Turuncu Hesap %43,82 faiz veriyor.", False),
-    ("ING Turuncu Hesap (standart) %23 faiz veriyor.", True),
-    ("ING Turuncu Hesap %23 veriyor, piyasa ortalaması ise %43,82.", True),
-    ("Piyasa mevduat faizi %43,82.", True),
-    ("ING Turuncu Hesap 100.000-249.999 TL dilimi için geçerlidir.", True),   # no percent
+@pytest.mark.parametrize("text, codes", [
+    # N13c: outside oneriler, ING + the market rate is also a "compare" finding
+    ("Karşılaştırma için ING Turuncu Hesap (standart) mevduat oranı %43,82.", {"label", "compare"}),
+    ("Turuncu Hesap %43,82 faiz veriyor.", {"label", "compare"}),
+    ("ING Turuncu Hesap (standart) %23 faiz veriyor.", set()),
+    ("ING Turuncu Hesap %23 veriyor, piyasa ortalaması ise %43,82.", {"compare"}),
+    ("Piyasa mevduat faizi %43,82.", set()),
+    ("ING Turuncu Hesap 100.000-249.999 TL dilimi için geçerlidir.", set()),   # no percent
 ])
-def test_ing_name_only_with_an_ing_rate(text, ok, config):
+def test_ing_name_only_with_an_ing_rate(text, codes, config):
     r = engine_result("p01")
     f = build_facts(r, evidence())
     sections = _with(list(template_sections(f, "TR", config.disclaimer["TR"])),
                      "alternatifler", NarrativeSentence(text, ("deposit:ing_turuncu",)))
     findings = validate(sections, f, r, config, "TR", need_tags=template_need_tags(f))
-    assert (findings == ()) == ok, findings
-    if not ok:
-        assert _codes(findings) == {"label"}
+    assert _codes(findings) == codes, findings
 
 
 # --- no UI section names, no RM-only facts -----------------------------------------------------
