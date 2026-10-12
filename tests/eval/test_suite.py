@@ -81,3 +81,14 @@ def test_eval_narrator_has_its_own_cache_and_no_daily_limit(root):
     n = eval_narrator(root, load_config(root / "config" / "eval.yaml"), {})
     assert n.cache_dir == root / "data" / "eval" / "narratives"
     assert n.client is None and n.config.max_cost_usd_per_day >= 1e6
+
+
+def test_judge_repeats_from_the_config(root, tmp_path):
+    (root / "config" / "eval.yaml").write_text(eval_yaml() + "judge_repeats: 2\n", encoding="utf-8")
+    judge = CountingJudge(cost=0.0)
+    res = run_suite(root, scenario_files=[write_suite(tmp_path)], only=["reg-x"],
+                    personas_dir=CONTRACT_FIX / "personas", narrator=FakeNarrator(),
+                    judge=judge, write=False, now=lambda: NOW)
+    assert judge.calls == 2 and [g.judge_repeat for g in res.grades] == [0, 1]
+    assert res.meta["judge"]["repeats"] == 2
+    assert res.metrics["judge"]["tailored"]["spread"] == 0.0

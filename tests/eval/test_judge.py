@@ -163,8 +163,9 @@ class CountingJudge:
     def __init__(self, error=None, cost=0.01):
         self.calls, self.error, self.cost = 0, error, cost
 
-    def grade(self, result, draft, rubric):
+    def grade(self, result, draft, rubric, *, evidence=None, repeat=0):
         self.calls += 1
+        self.seen = getattr(self, "seen", []) + [(repeat, evidence is not None)]
         items = {} if self.error else {r.id: ("partly", "r") for r in rubric}
         return Grade(result.run_id, draft.lang, self.model, items, self.cost, self.error)
 
@@ -193,3 +194,66 @@ def test_grade_texts_grades_llm_texts_once_within_the_budget(root, tmp_path):
     assert [g.grade.error for g in graded] == [None, None, "budget: eval limit reached"]
     assert inner.calls == 2
     assert grade_texts(out, None, RUBRIC) == []
+
+
+# --- E10: judge j3 (sections, collapsed sections, option facts) and repeats
+
+def test_j3_system_text_names_all_sections_in_screen_order_and_keeps_the_rubric():
+    from rmprep.eval import judge as j
+    t = system_text(RUBRIC)
+    assert j.PROMPT_VERSION == "j3"
+    order = ["ozet", "talking_points", "teklif_metni", "oneriler", "dikkat",
+             "alternatifler", "sorular", "varsayimlar"]
+    pos = [t.index(f"({k})") for k in order]
+    assert pos == sorted(pos)
+    assert "collapsed" in t and "Ek bilgiler" in t
+    assert "varsayimlar" in t and "word for word" in t and "do not grade its wording" in t
+    assert "<option_facts>" in t and "not available" in t
+    assert "When in doubt between two choices, choose the lower one." in t
+    assert all(DEFINITIONS[r.id] in t for r in RUBRIC)
+    assert len(t.split()) * 1.3 >= 512 * 1.15
+
+
+def test_user_text_with_evidence_holds_the_option_facts(approved):
+    from rmprep.decision import load_config as load_decision
+    from rmprep.decision.display import display_facts
+    from rmprep.narrator.facts import build_facts
+    from tests.eval.conftest import PROJECT as P
+    result, draft, sr = approved
+    ev = sr.runs[0].evidence
+    t = user_text(result, draft, ev)
+    block = t[t.index("<option_facts>"):t.index("</option_facts>")]
+    facts = build_facts(result, ev)
+    shown = display_facts(result, ev, load_decision(P / "config" / "decision.yaml"))
+    for o in facts.selected:
+        assert o.name in block
+        risk = shown[o.option_id].risk
+        assert (f"risk level {risk.value:.0f}" if risk else "risk level: not available") in block
+        access = facts.risks[o.option_id].access
+        assert (f"access: {access}" if access else "access: not available") in block
+    assert "<option_facts>" not in user_text(result, draft)
+
+
+def test_repeats_change_the_cache_key_and_old_versions_do_not_match(approved, tmp_path, monkeypatch):
+    from rmprep.eval import judge as j
+    r, d, _ = approved
+    cj = CachedJudge(CountingJudge(), tmp_path)
+    k0, k1 = cj.key(r, d, RUBRIC, repeat=0), cj.key(r, d, RUBRIC, repeat=1)
+    assert k0 != k1
+    cj.grade(r, d, RUBRIC)                          # cached under j3
+    monkeypatch.setattr(j, "PROMPT_VERSION", "j2")
+    assert cj.key(r, d, RUBRIC) != k0               # a j2 verdict is another file
+    monkeypatch.setattr(j, "PROMPT_VERSION", "j3")
+    assert cj.key(r, d, RUBRIC) == k0
+
+
+def test_grade_texts_grades_each_text_n_times(root, tmp_path):
+    out = runner(root).run([Scenario(id=f"b{p}", group="base", persona=p) for p in ("P01", "P02")])
+    inner = CountingJudge(cost=0.0)
+    graded = grade_texts(out, CachedJudge(inner, tmp_path), RUBRIC, repeats=3)
+    assert [(g.scenario_id, g.judge_repeat) for g in graded] == [
+        ("bP01", 0), ("bP01", 1), ("bP01", 2), ("bP02", 0), ("bP02", 1), ("bP02", 2)]
+    assert inner.calls == 6 and {rep for rep, _ in inner.seen} == {0, 1, 2}
+    assert all(has_ev for _, has_ev in inner.seen)          # the judge gets the evidence
+    grade_texts(out, CachedJudge(inner, tmp_path), RUBRIC, repeats=3)
+    assert inner.calls == 6                                  # all from the cache

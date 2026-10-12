@@ -32,7 +32,8 @@ def test_summary_of_a_small_suite(root):
     assert m["cost"]["narrator_usd"] == 0.01 and m["cost"]["total_usd"] == 0.012
     assert m["texts"] == {"total": 2, "llm": 2, "template": 0}
     assert m["time"]["decide_s"]["n"] == 3 and m["time"]["narrate_s"]["n"] == 2
-    assert m["judge"]["tailored"] == {"yes": 1, "partly": 1, "no": 0, "score": 0.75}
+    assert m["judge"]["tailored"] == {"yes": 1, "partly": 1, "no": 0, "score": 0.75,
+                                      "texts": 2, "spread": None, "disagree": 0}
     assert m["judge"]["balanced"]["score"] == 0.0
     assert m["cost"]["judge_cache"] == {"write_tokens": 700, "read_tokens": 0, "errors": 1}
     assert set(m["groups"]) == {"base", "constraint"}
@@ -79,3 +80,18 @@ def test_same_top3_counts_the_base_personas_with_one_recommended_top3(root):
     same = same_top3(runs)
     assert same["personas"] == 3 and same["top3"] == list(top) and same["count"] >= 2
     assert same_top3([sr for sr in runs if sr.scenario.group != "base"]) is None
+
+
+def test_judge_mean_and_spread_over_repeats(root):
+    runs = runner(root).run([Scenario(id="b", group="base", persona="P01")])
+    checks = run_checks(runs, DCFG, PHRASES)
+    grades = [Grade("R1", "TR", "m", {"tailored": ("yes", ""), "balanced": ("partly", "")}),
+              Grade("R1", "TR", "m", {"tailored": ("no", ""), "balanced": ("partly", "")}),
+              Grade("R2", "TR", "m", {"tailored": ("yes", ""), "balanced": ("yes", "")}),
+              Grade("R2", "TR", "m", {"tailored": ("yes", ""), "balanced": ("yes", "")})]
+    j = summarize(runs, checks, TARGETS, grades)["judge"]
+    assert j["tailored"]["score"] == 0.75 and j["tailored"]["texts"] == 2
+    assert j["tailored"]["spread"] == 0.5 and j["tailored"]["disagree"] == 1
+    assert j["balanced"]["spread"] == 0.0 and j["balanced"]["disagree"] == 0
+    one = summarize(runs, checks, TARGETS, grades[::2])["judge"]
+    assert one["tailored"]["spread"] is None and one["tailored"]["disagree"] == 0
