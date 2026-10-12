@@ -29,7 +29,7 @@ from rmprep.contracts import (
     Persona,
 )
 from rmprep.narrator.config import NarratorConfig
-from rmprep.narrator.facts import ING_RATES, INTERNAL_PARTS, Facts
+from rmprep.narrator.facts import ING_RATES, INTERNAL_PARTS, REAL_RETURN, Facts
 from rmprep.narrator.template import INTERNAL_NAME, tr_lower
 
 SECTIONS = NARRATIVE_SECTIONS_V13
@@ -44,7 +44,7 @@ VERBATIM_SECTIONS = ("varsayimlar",)            # engine text kept as it is
 # N9c: names of screens / panes of the app; the text never points to them
 UI_NAMES = ("Olası sorunlar", "Possible issues", "RM notları", "RM notes")
 _CLAUSE = re.compile(r"[;:]|[.,](?!\d)")        # clause ends; a decimal mark is not one
-_PERCENT = re.compile(r"%\s?\d+(?:[.,]\d+)*|\d+(?:[.,]\d+)*\s?%")
+_PERCENT = re.compile(r"%\s?[-−+]?\d+(?:[.,]\d+)*|[-−+]?\d+(?:[.,]\d+)*\s?%")   # N13b: signs
 
 _IDS = re.compile(r"\bE[0-9a-f]{8}\b|\b(?:deposit|time_deposit|fund):\S+")
 _DATE_TR = re.compile(r"(?<![\w.])(\d{1,2})\.(\d{1,2})\.(\d{4})(?![\w])")
@@ -398,8 +398,10 @@ def _check_ing_labels(sections, f: Facts) -> list[str]:
     names = _ing_names(f)
     if not names:
         return []
-    rates = {n.value for o in f.named_options().values() for n in o.numbers
-             if n.name in ING_RATES}
+    # ING rates, and (N13b) the real return of an ING deposit option itself
+    rates = {abs(n.value) for o in f.named_options().values() for n in o.numbers
+             if n.name in ING_RATES
+             or (o.kind in ("deposit", "time_deposit") and n.quantity == REAL_RETURN)}
     out = []
     for sec in sections:
         if sec.key in VERBATIM_SECTIONS:

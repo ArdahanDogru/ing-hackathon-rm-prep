@@ -108,3 +108,21 @@ def test_prompt_n8(lang, config):
     for words in ("450 words", "teklif_metni at most 4 sentences", "does not say",
                   "do not repeat"):
         assert words in s, words
+
+
+# --- label rule: signed percents (live n8 text: "ING Turuncu Hesap ... %-8,29") ---------------
+
+@pytest.mark.parametrize("text, ok", [
+    ("ING Turuncu Hesap (standart) reel getirisi %{real}.", True),    # the ING real return
+    ("ING Turuncu Hesap (standart) getirisi %-43,82.", False),        # a signed market rate
+    ("ING Turuncu Hesap (standart) getirisi -%43,82.", False),
+])
+def test_label_rule_reads_signed_percents(text, ok, f02, r02, config):
+    base = f02.baseline
+    real = next(n.value for n in base.numbers if n.quantity == "real_return_1y")
+    text = text.format(real=f"{real:.2f}".replace(".", ","))
+    sections = list(template_sections(f02, "TR", config.disclaimer["TR"]))
+    s = [NarrativeSection("alternatifler", (*x.sentences, NarrativeSentence(text, (base.option_id,))))
+         if x.key == "alternatifler" else x for x in sections]
+    findings = validate(s, f02, r02, config, "TR")
+    assert (findings == ()) is ok, findings
