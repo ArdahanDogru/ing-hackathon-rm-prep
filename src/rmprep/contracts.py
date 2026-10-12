@@ -230,6 +230,8 @@ class SourceStatus:
 # (docs/decision.md section 10, D19).
 # v1.7 (2026-10-12): approval times, DecisionResult.rm_decided_at and
 # NarrativeDraft.approved_at (deliverable 6, the decision record).
+# v1.8 (2026-10-13): model allocation bands, DecisionResult.allocation and
+# allocation_notes (docs/decision.md section 11, D20).
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -415,6 +417,27 @@ class TalkingPoint:
 
 
 @dataclass(frozen=True)
+class AllocationBand:
+    """v1.8: one asset class of the strategic model allocation (D20)."""
+
+    asset_class: str            # a D19 class
+    low: float | None           # % of the portfolio; None = no band (dengeli funds)
+    high: float | None
+    source: str                 # short source text ("Ata Yatırım, 28.04.2026" / "çıkarım")
+    inferred: bool              # the band is our inference, not a source value
+    option_id: str | None       # the best scored option of the class for this client
+    note: str                   # "" | "ceiling" | "none" | "negative_real" (texts in config)
+
+    def __post_init__(self) -> None:
+        if not self.asset_class.strip():
+            raise ValueError("asset_class must be non-empty")
+        if (self.low is None) != (self.high is None):
+            raise ValueError("low and high are both set or both None")
+        if self.low is not None and not 0 <= self.low <= self.high <= 100:
+            raise ValueError(f"band must satisfy 0 <= low <= high <= 100, got {self.low}-{self.high}")
+
+
+@dataclass(frozen=True)
 class DataQualityNote:
     message: str            # e.g. "tefas_web: 1,613 values need check"
     flags: tuple[str, ...] = ()                 # Flag values involved
@@ -445,6 +468,8 @@ class DecisionResult:
     to_confirm: tuple[str, ...] = ()                # v1.3, D16: commands for the RM
     recommended: tuple[str, ...] = ()               # v1.6, D19: the engine's top 3 (option ids, in order)
     rm_decided_at: datetime | None = None           # v1.7: when the RM approved / rejected (Europe/Istanbul)
+    allocation: tuple[AllocationBand, ...] = ()     # v1.8, D20: model bands per asset class
+    allocation_notes: tuple[str, ...] = ()          # v1.8, D20: holding hints from the persona text
 
     @property
     def persona_id(self) -> str:
@@ -483,6 +508,9 @@ class DecisionResult:
             raise ValueError("a recommended option appears twice")
         if not set(self.recommended) <= set(ids):
             raise ValueError("recommended names options that are not scored")
+        for band in self.allocation:
+            if band.option_id is not None and band.option_id not in ids:
+                raise ValueError(f"allocation {band.asset_class} names an option that is not scored")
         if len(self.talking_points) > 3:
             raise ValueError("at most 3 talking points")
         for tp in self.talking_points:

@@ -75,5 +75,7 @@
  "talking_points": [],
  "to_confirm": [],
  "recommended": [],
- "rm_decided_at": null
+ "rm_decided_at": null,
+ "allocation": [],
+ "allocation_notes": []
 }

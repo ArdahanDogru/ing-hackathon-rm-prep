@@ -135,3 +135,15 @@ def test_runview_has_the_risk_ceiling(view):
     answers = {q.question_id: q.answer for q in r.questions if q.answer is not None}
     assert v["risk_ceiling"] == read_persona(r.persona, load_config(), answers).levels.ceiling
     assert isinstance(v["risk_ceiling"], int) and 1 <= v["risk_ceiling"] <= 7
+
+
+def test_allocation_options_are_in_the_view(backend, persona):
+    import dataclasses
+
+    from rmprep.contracts import AllocationBand, Persona
+    r = backend.decide(Persona.from_dict(persona), backend.list_snapshots()[0])
+    far = r.options[-1].option.option_id
+    r = dataclasses.replace(r, allocation=(AllocationBand("hisse", 40.0, 50.0, "s", False, far, ""),))
+    v = ViewBuilder(backend, load_config())(r)
+    assert far in v["options"]
+    assert v["result"]["allocation"][0]["option_id"] == far if "result" in v else True

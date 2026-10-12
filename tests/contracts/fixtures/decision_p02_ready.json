@@ -332,5 +332,7 @@
   "Yatırım tutarını sorun: 100.000–249.999 TL dilimi varsayıldı."
  ],
  "recommended": [],
- "rm_decided_at": null
+ "rm_decided_at": null,
+ "allocation": [],
+ "allocation_notes": []
 }

@@ -138,6 +138,8 @@ class ViewBuilder:
         shown_ids = {o.option.option_id for o in top} | {i for c in cats for i in c["option_ids"]}
         if baseline is not None:
             shown_ids.add(baseline.option.option_id)
+        # D20: the best option of each allocation class is shown in the "Dağılım" view
+        shown_ids.update(b.option_id for b in r.allocation if b.option_id)
         by_id = {o.option.option_id: o for o in r.options}
 
         rules: dict[str, dict] = {}
