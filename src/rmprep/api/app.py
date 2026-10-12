@@ -107,7 +107,10 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     def approval(run_id: str, req: schemas.ApprovalRequest):
         if _changes(_run(run_id).persona):      # every backend, not only RealBackend
             raise ValueError("a test run (edited persona) cannot be approved or rejected")
-        return _view(backend.approve(run_id, RmStatus(req.status), req.note, tuple(req.selected)))
+        view = _view(backend.approve(run_id, RmStatus(req.status), req.note, tuple(req.selected)))
+        for lang in NARRATIVE_LANGS:              # the texts of an earlier decision no longer apply
+            texts.pop((run_id, lang), None)
+        return view
 
     @app.put("/api/runs/{run_id}/notes")
     def notes(run_id: str, req: schemas.NotesRequest):

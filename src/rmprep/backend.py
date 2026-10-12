@@ -98,6 +98,7 @@ class RealBackend:
         selected = tuple(selected_option_ids) if status == RmStatus.APPROVED else ()
         new = dataclasses.replace(result, rm_status=status, rm_note=note, rm_selected=selected,
                                   rm_option_notes={})
+        self._forget_texts(run_id)               # texts and edits of an earlier decision
         saved = self._save(new, inputs)
         if status == RmStatus.APPROVED:
             self._prefetch(run_id, "TR")
@@ -137,6 +138,20 @@ class RealBackend:
             except Exception:
                 pass                   # the background draft failed: make it again now
         return self._with_edits(self._draft_now(run_id, lang))
+
+    def _forget_texts(self, run_id: str) -> None:
+        """A new approval or rejection replaces the earlier decision of the run:
+        its approved texts, block edits and waiting drafts no longer apply."""
+        folder = self._paths.root / "data" / "narratives"
+        with self._lock:
+            for lang in NARRATIVE_LANGS:
+                self._narratives.pop((run_id, lang), None)
+                self._edits.pop((run_id, lang), None)
+                job = self._pending.pop((run_id, lang), None)
+                if job is not None:
+                    job.cancel()
+                for name in (f"{run_id}-{lang}-approved.json", f"{run_id}-{lang}-edits.json"):
+                    (folder / name).unlink(missing_ok=True)
 
     # --- per-block edits (contract v1.5) ------------------------------------------
 

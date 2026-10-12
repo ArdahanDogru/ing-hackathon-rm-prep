@@ -148,6 +148,8 @@ class FakeBackend:
         selected = tuple(selected_option_ids) if status == RmStatus.APPROVED else ()
         new = dataclasses.replace(result, rm_status=status, rm_note=note, rm_selected=selected,
                                   rm_option_notes={})
+        for lang in ("TR", "EN"):                # texts of an earlier decision no longer apply
+            self._narratives.pop((run_id, lang), None)
         self.saved[run_id] = new
         return self._replace(new)
 

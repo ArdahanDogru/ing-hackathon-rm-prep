@@ -225,3 +225,20 @@ def test_edits_survive_a_restart(backend, tmp_path):
     again._narrator_obj = FakeNarrator()
     again.decide(r.persona, r.snapshot_id)
     assert again.draft_narrative(r.run_id, "TR").rm_edits == {"ozet": "Yeni metin."}
+
+
+def test_a_new_approval_clears_old_edits_and_texts(backend, tmp_path):
+    backend._narrator_obj = FakeNarrator()
+    r = _approved(backend)
+    backend.wait_for_background()
+    backend.draft_narrative(r.run_id, "TR")
+    backend.edit_narrative(r.run_id, "TR", "ozet", "Eski seçime göre metin.")
+    backend.approve_narrative(r.run_id, "TR", "# Eski onaylı metin")
+    other = tuple(o.option.option_id for o in r.options[1:3])
+    backend.approve(r.run_id, RmStatus.APPROVED, "yeni seçim", other)
+    backend.wait_for_background()
+    d = backend.draft_narrative(r.run_id, "TR")
+    assert d.status.value == "draft" and d.rm_edits == {} and d.rm_text == ""
+    folder = tmp_path / "data" / "narratives"
+    assert not (folder / f"{r.run_id}-TR-edits.json").exists()
+    assert not (folder / f"{r.run_id}-TR-approved.json").exists()
