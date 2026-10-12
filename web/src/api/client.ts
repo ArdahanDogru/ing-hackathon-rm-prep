@@ -4,6 +4,7 @@ import type {
   EvidenceItem,
   GlossaryTerm,
   Lang,
+  NarrativeBrief,
   NarrativeView,
   Persona,
   RunInputs,
@@ -31,17 +32,27 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     init.body = JSON.stringify(body);
   }
   const res = await fetch(BASE + path, init);
-  if (!res.ok) {
-    let detail = res.statusText || `HTTP ${res.status}`;
-    try {
-      const data = await res.json();
-      if (data && typeof data.detail === "string") detail = data.detail;
-    } catch {
-      // not JSON: keep the status text
-    }
-    throw new ApiError(res.status, detail);
-  }
+  if (!res.ok) throw await apiError(res);
   return (await res.json()) as T;
+}
+
+async function apiError(res: Response): Promise<ApiError> {
+  let detail = res.statusText || `HTTP ${res.status}`;
+  try {
+    const data = await res.json();
+    if (data && typeof data.detail === "string") detail = data.detail;
+  } catch {
+    // not JSON: keep the status text
+  }
+  return new ApiError(res.status, detail);
+}
+
+/** GET /runs/{id}/brief: the brief, or "running" (202) while its background job runs. */
+async function brief(runId: string, lang: Lang): Promise<NarrativeBrief | "running"> {
+  const res = await fetch(`${BASE}/runs/${enc(runId)}/brief?lang=${lang}`);
+  if (res.status === 202) return "running";
+  if (!res.ok) throw await apiError(res);
+  return (await res.json()) as NarrativeBrief;
 }
 
 export const api = {
@@ -63,6 +74,7 @@ export const api = {
     `${BASE}/runs/${enc(runId)}/card.md${lang === "TR" ? "" : `?lang=${lang}`}`,
   evidence: (snapshotId: string, evidenceId: string) =>
     request<EvidenceItem>("GET", `/evidence/${enc(snapshotId)}/${enc(evidenceId)}`),
+  brief,
   glossary: (lang: Lang, runId: string) => request<GlossaryTerm[]>("GET", `/glossary?lang=${lang}&run_id=${enc(runId)}`),
 };
 

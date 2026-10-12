@@ -187,6 +187,8 @@ const TR = {
   scriptShort: "Söyleyebileceğiniz",
   dataSource: "Veri",
   riskShort: "risk",
+  aiSummary: "AI özeti",
+  aiCites: "AI özetinin dayanakları",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -375,6 +377,8 @@ const EN: Record<LabelKey, string> = {
   scriptShort: "What you can say",
   dataSource: "Data",
   riskShort: "risk",
+  aiSummary: "AI summary",
+  aiCites: "What the AI summary rests on",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };

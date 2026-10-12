@@ -1,6 +1,6 @@
 // Test access to the API samples (tests/contracts/fixtures/api/, written by the
 // lead with `python -m rmprep.api.samples`): the contract between API and web.
-import type { EvidenceItem, GlossaryTerm, NarrativeView, Persona, RunView, SourceStatus } from "../api/types";
+import type { EvidenceItem, GlossaryTerm, NarrativeBrief, NarrativeView, Persona, RunView, SourceStatus } from "../api/types";
 
 const files = import.meta.glob("../../../tests/contracts/fixtures/api/*.json", { eager: true, import: "default" });
 
@@ -17,6 +17,7 @@ interface Samples {
   narrative_p01_en: NarrativeView;
   glossary: GlossaryTerm[];
   evidence_item: EvidenceItem;
+  brief_p01_tr: NarrativeBrief;
 }
 
 function find(name: string): unknown {

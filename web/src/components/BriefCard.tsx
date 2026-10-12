@@ -1,7 +1,44 @@
 // Brief card (B4 item 3): who the client is, the brief, the data line, readiness n / 3.
-import { useState } from "react";
-import type { Persona, RunView } from "../api/types";
-import { useT } from "../i18n";
+import { useContext, useEffect, useState } from "react";
+import { api } from "../api/client";
+import type { Lang, NarrativeBrief, Persona, RunView } from "../api/types";
+import { LangContext, useT } from "../i18n";
+
+const POLL_MS = 2000;
+const POLL_MAX = 10;
+
+/** The LLM brief of a ready run, or null: asked at once, then every 2 s while it runs,
+ * at most 10 calls. A template brief, an error or 10 "running" answers give null (the
+ * plain sentence stays). */
+export function useLlmBrief(runId: string, lang: Lang, enabled: boolean): NarrativeBrief | null {
+  const [brief, setBrief] = useState<NarrativeBrief | null>(null);
+  useEffect(() => {
+    setBrief(null);
+    if (!enabled) return;
+    let done = false;
+    let calls = 0;
+    const stop = () => {
+      done = true;
+      clearInterval(timer);
+    };
+    const ask = () => {
+      if (done || calls >= POLL_MAX) return stop();
+      calls += 1;
+      api.brief(runId, lang).then(
+        (b) => {
+          if (done || b === "running") return;
+          if (b.source === "llm") setBrief(b);
+          stop();
+        },
+        stop, // no brief: the plain sentence stays (the brief is not worth an error message)
+      );
+    };
+    const timer = setInterval(ask, POLL_MS);
+    ask();
+    return stop;
+  }, [runId, lang, enabled]);
+  return brief;
+}
 
 /** The plain brief (the LLM brief's fallback): durum + yatirim_amaci. */
 export function plainBrief(p: Persona): string {
@@ -17,25 +54,28 @@ export function snapshotDate(id: string): string {
 
 export function BriefCard({
   view,
-  brief,
   confirmOpen,
   onEdit,
+  onEvidence,
 }: {
   view: RunView;
-  brief: string;
   confirmOpen: number;
   onEdit?: () => void;
+  onEvidence?: (id: string) => void;
 }) {
   const t = useT();
+  const lang = useContext(LangContext);
   const [showSources, setShowSources] = useState(false);
   const r = view.result;
   const p = r.persona;
+  const llm = useLlmBrief(r.run_id, lang, r.state === "ready");
+  const cite = llm?.cite ?? [];
   const low = (x: string) => x.toLocaleLowerCase("tr");
   const ready = r.state === "ready";
   const steps = [true, ready, ready && confirmOpen === 0];
   const done = steps.filter(Boolean).length;
   const ceiling = view.risk_ceiling;
-  const sources = 1 + (p.rm_notu.trim() ? 1 : 0);
+  const sources = 1 + (p.rm_notu.trim() ? 1 : 0) + cite.length;
 
   return (
     <section data-testid="brief-card" className="mb-6 rounded-2xl bg-white px-[26px] py-[22px] shadow-sm">
@@ -57,7 +97,15 @@ export function BriefCard({
             ))}
           </p>
           <p data-testid="brief-text" className="mb-1.5 mt-3.5 max-w-[70ch] text-[17px] leading-relaxed">
-            {brief}
+            {llm ? llm.text : plainBrief(p)}
+            {llm && (
+              <span
+                title={`${llm.model} · ${llm.prompt_version}`}
+                className="ml-2 inline-block rounded-full bg-[#EEF2F9] px-2 py-0.5 align-[2px] text-[11px] font-semibold text-cobalt"
+              >
+                {t("aiSummary")}
+              </span>
+            )}
           </p>
           <div className="text-[13px] text-muted">
             {`${t("dataAsOf")}: ${snapshotDate(r.snapshot_id)} · ${t("engine")} · `}
@@ -85,7 +133,34 @@ export function BriefCard({
               {p.rm_notu.trim() && (
                 <>
                   <dt className="font-semibold">{t("fileNote")}</dt>
-                  <dd>{p.rm_notu}</dd>
+                  <dd className="mb-2">{p.rm_notu}</dd>
+                </>
+              )}
+              {cite.length > 0 && (
+                <>
+                  <dt className="font-semibold">{t("aiCites")}</dt>
+                  <dd className="flex flex-wrap gap-1.5">
+                    {cite.map((c) =>
+                      view.options[c] ? (
+                        <span key={c} title={view.options[c].label} className="rounded-full bg-white px-2 py-0.5 text-xs">
+                          {view.options[c].short_label}
+                        </span>
+                      ) : onEvidence && /^E[0-9a-f]+$/i.test(c) ? (
+                        <button
+                          key={c}
+                          type="button"
+                          className="rounded-full border border-gray-300 bg-white px-2 py-0.5 font-mono text-[11px]"
+                          onClick={() => onEvidence(c)}
+                        >
+                          {c}
+                        </button>
+                      ) : (
+                        <span key={c} className="rounded-full bg-white px-2 py-0.5 font-mono text-[11px]">
+                          {c}
+                        </span>
+                      ),
+                    )}
+                  </dd>
                 </>
               )}
             </dl>

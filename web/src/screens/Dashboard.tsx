@@ -5,7 +5,7 @@ import { api } from "../api/client";
 import type { Persona, RunView } from "../api/types";
 import { Agenda } from "../components/Agenda";
 import { ApprovalBar } from "../components/ApprovalBar";
-import { BriefCard, plainBrief } from "../components/BriefCard";
+import { BriefCard } from "../components/BriefCard";
 import { DetailsPanel } from "../components/DetailsPanel";
 import { EvidencePopup } from "../components/EvidencePopup";
 import { FundCard, FundDrawer } from "../components/FundCard";
@@ -82,9 +82,9 @@ export function Dashboard({
       {view.test_run && <TestBanner view={view} onReset={onPersona && (() => onPersona(null))} />}
       <BriefCard
         view={view}
-        brief={plainBrief(r.persona)}
         confirmOpen={openConfirms}
         onEdit={onPersona && (() => setEditing(true))}
+        onEvidence={setEvidenceId}
       />
       {error && (
         <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-white p-3 text-sm">

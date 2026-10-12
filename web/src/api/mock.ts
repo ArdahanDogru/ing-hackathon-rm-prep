@@ -54,6 +54,10 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
       const text = String(req.text ?? "");
       return { status: 200, body: { ...draft, status: "approved", rm_text: text, markdown: text } };
     }
+    if (method === "GET" && c === "brief") {
+      const brief = load(`brief_p01_${(params.get("lang") ?? "TR").toLowerCase()}`);
+      return brief === undefined ? { status: 202, body: { status: "running" } } : { status: 200, body: brief };
+    }
     if (method === "GET" && c === "card.md") {
       return { status: 200, body: "# Görüşme kartı (mock)\n", type: "text/markdown; charset=utf-8" };
     }
