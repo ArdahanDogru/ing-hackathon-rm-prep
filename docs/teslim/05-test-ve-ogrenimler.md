@@ -167,6 +167,28 @@ regresyon senaryosu eklendi (`reg-d19-p02-diverse`, `reg-d19-p04-diverse`,
 | N9c | Piyasa ortalaması (%43,82) ile ING oranı (%23) pakette aynı adı taşıyordu | Piyasa oranı ING ürün adının yanına yazılabilirdi | Adlandırılmış olgular + etiket kuralı | ING adı olan cümlede yalnızca ING oranı |
 | N10 | Panodaki özet canlı denemede 389 karakter (sınır 280) | Özet şablona düşüyordu | Sınır istemde kelimeyle (≈40); sığan tam cümleler tutulur | Kesik cümle yok; aşım doğrulayıcıda kalır |
 
+### Değerlendirmenin kendi hatası: eski metin önbelleği (2026-10-12)
+
+D19 sonrasında değerlendirme, görüşme metni için hâlâ eski kuralla (grup
+başları) seçim yapıyordu; ekranda RM'e önerilen ilk 3 ise motorun yeni
+`recommended` listesiydi. Seçim kuralı düzeltilip paket yeniden
+çalıştırıldığında **anlatıcı maliyeti 0 $** çıktı: P02–P05 için seçim değiştiği
+hâlde hiçbir yeni metin üretilmemişti. Neden: metin önbelleğinin anahtarı
+yalnızca çalıştırma kimliği, dil, istem sürümü ve modeldi; RM seçimi ve notları
+anahtarda yoktu, bu yüzden aynı çalıştırma için eski seçimin metni döndü ve
+kontroller eski metni değerlendirdi. Aynı sorun uygulamada da olabilirdi: bir
+çalıştırma başka bir seçimle yeniden onaylanırsa eski metin veya eski blok
+düzenlemeleri görünebilirdi.
+
+İyileştirme: (1) değerlendirme artık panodaki öneriyi seçiyor; (2) önbellek
+anahtarına modelin gördüğü olgu paketinin özeti (sha256, 10 karakter) eklendi
+(N12) — seçim, onay notu veya seçenek notu değişince yeni metin üretiliyor;
+(3) bir çalıştırmanın yeni onayı, önceki onaylı metni, blok düzenlemelerini ve
+bekleyen taslakları siliyor. Her biri testle korunuyor. Sonraki geçerli
+çalıştırma (`20261012-201431-full`) 25 yeni metin üretti (1,04 $) ve tüm
+hedefleri karşıladı. Öğrenim: maliyet ve süre gibi "beklenmedik derecede iyi"
+ölçümler de bir hatanın işareti olabilir.
+
 ## 6. Öğrenimler
 
 1. **Geçmiş getiri tek başına baskın olur.** Bir yıllık veri, piyasa
