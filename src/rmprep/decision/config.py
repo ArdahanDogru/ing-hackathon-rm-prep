@@ -25,6 +25,14 @@ DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "decision.yaml"
 # option kinds scored from a rate row (risk 1, quality 1); not fund kinds
 DEPOSIT_KINDS = ("deposit", "time_deposit")
 CRITERIA = ("return", "low_risk", "liquidity", "income", "principal", "simplicity", "quality")
+
+
+def criteria(c: Mapping[str, Any]) -> tuple[str, ...]:
+    """The criteria of a config: with the risk_fit section (D19) risk_fit replaces
+    low_risk."""
+    if "risk_fit" in c:
+        return tuple("risk_fit" if k == "low_risk" else k for k in CRITERIA)
+    return CRITERIA
 LEVEL_FIELDS = ("likidite_ihtiyaci", "gelir_nakit_akisi_ihtiyaci", "anapara_koruma_tercihi")
 SAFE_LEVEL_FIELDS = ("yatirim_ufku", *LEVEL_FIELDS, "doviz_maruz_kalma_tercihi")
 PENALTY_RULES = ("principal", "liquidity", "fx_exposure", "risk_unknown", "track_record",
@@ -39,7 +47,7 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
 WARNING_CODES = ("concentration", "fx_exposure", "risk_estimate", "low_stability",
                  "deposit_vs_market", "no_fx_deposit_data")
 TALKING_CODES = ("deposit_real", "best_alternative", "access", "risk_fit")
-_D9_SECTIONS = ("talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
+_D9_SECTIONS = ("asset_classes", "risk_fit", "recommend", "talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
                 "fund_detail", "constraint_rules", "short_history")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
@@ -54,6 +62,10 @@ class ConfigError(ValueError):
 @dataclass(frozen=True)
 class DecisionConfig:
     raw: Mapping[str, Any]      # the checked config, as parsed (do not change it)
+
+    @property
+    def criteria(self) -> tuple[str, ...]:
+        return criteria(self.raw)
 
     def fund_kind(self, category: str) -> str | None:
         """fund_kind of an umbrella type; None if not in the universe or unknown."""
@@ -148,9 +160,9 @@ def _check(c: dict) -> None:
 
     _keys(c["texts"], "texts", TEXT_SECTIONS)
     _keys(c["texts"]["reasons"], "texts.reasons",
-          (*CRITERIA, *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"),
-          ("return_real", "return_net", "penalty:real_loss", "penalty:underperformance",
-           "liquidity_valor", "fees"))
+          (*criteria(c), *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"),
+          ("low_risk", "risk_fit", "class_rule", "return_real", "return_net",
+           "penalty:real_loss", "penalty:underperformance", "liquidity_valor", "fees"))
     if "real_loss" in c["penalties"] and "penalty:real_loss" not in c["texts"]["reasons"]:
         raise ConfigError("texts.reasons: penalties.real_loss needs penalty:real_loss")
     _check_d9(c)
@@ -208,7 +220,7 @@ def _check_persona_tables(c: dict) -> None:
     _table_keys(c["priorities"], "priorities")
     for phrase, effect in c["priorities"].items():
         kind, _, arg = str(effect).partition(":")
-        ok = ((kind == "boost" and arg in CRITERIA) or (effect == "diversity")
+        ok = ((kind == "boost" and arg in criteria(c)) or (effect == "diversity")
               or (kind == "note" and arg in c["texts"]["assumptions"]))
         if not ok:
             raise ConfigError(f"priorities.{phrase}: unknown effect {effect!r}")
@@ -241,7 +253,7 @@ def _check_scoring(c: dict) -> None:
         _num(v, f"principal_value.{k}", 0, 1)
 
     weights = c["weights"]
-    _keys(weights, "weights", CRITERIA)
+    _keys(weights, "weights", criteria(c))
     for crit, w in weights.items():
         path = f"weights.{crit}"
         _keys(w, path, ("base",), ("appetite", "level", "per_level"))
@@ -270,7 +282,7 @@ def _check_scoring(c: dict) -> None:
           ("pool", "diversity_pool_cap", "why", "access"))
     if ("pool" in d) != ("diversity_pool_cap" in d):
         raise ConfigError("display: pool and diversity_pool_cap go together")
-    _check_display_texts(d)
+    _check_display_texts(d, criteria(c))
     for k, v in d.items():
         if k in ("why", "access"):
             continue
@@ -311,7 +323,58 @@ def _check_scoring(c: dict) -> None:
     _num(c["warnings"]["deposit_vs_market_points"], "warnings.deposit_vs_market_points", 0)
 
 
-def _check_display_texts(d: Mapping[str, Any]) -> None:
+def _check_d19(c: dict) -> None:
+    """Optional D19 sections: asset_classes, risk_fit, recommend."""
+    classes: set[str] = set()
+    if "asset_classes" in c:
+        ac = c["asset_classes"]
+        _keys(ac, "asset_classes", ("by_name", "by_kind", "fx"))
+        kinds = {"deposit", "time_deposit", *(k for k in c["fund_kinds"].values() if k)}
+        by_kind = ac["by_kind"]
+        _keys(by_kind, "asset_classes.by_kind", sorted(kinds))
+        for path, table in (("asset_classes.by_name", ac["by_name"]),
+                            ("asset_classes.by_kind", by_kind)):
+            if not isinstance(table, Mapping):
+                raise ConfigError(f"{path}: must be a mapping")
+            for k, v in table.items():
+                if not isinstance(k, str) or not k.strip() or not isinstance(v, str) or not v:
+                    raise ConfigError(f"{path}.{k}: a non-empty text -> a class name")
+        if not isinstance(ac["fx"], str) or not ac["fx"]:
+            raise ConfigError("asset_classes.fx: must be a class name")
+        classes = {*by_kind.values(), *ac["by_name"].values(), ac["fx"]}
+
+    if "risk_fit" in c:
+        rf = c["risk_fit"]
+        _keys(rf, "risk_fit", ("bands", "per_step"))
+        _keys(rf["bands"], "risk_fit.bands", tuple(c["risk_profiles"]))
+        for name, band in rf["bands"].items():
+            ok = (isinstance(band, list) and len(band) == 2
+                  and all(isinstance(x, int) and not isinstance(x, bool) for x in band)
+                  and 1 <= band[0] <= band[1] <= 7)
+            if not ok:
+                raise ConfigError(f"risk_fit.bands.{name}: [low, high] with 1 <= low <= high <= 7")
+        _num(rf["per_step"], "risk_fit.per_step", 0, 1)
+
+    if "recommend" in c:
+        rec = c["recommend"]
+        _keys(rec, "recommend", ("max_per_class", "max_cash_like", "cash_like", "profiles"))
+        for key in ("max_per_class", "max_cash_like"):
+            v = rec[key]
+            if not isinstance(v, int) or isinstance(v, bool) or v < 1:
+                raise ConfigError(f"recommend.{key}: must be an integer >= 1")
+        if "asset_classes" not in c:
+            raise ConfigError("recommend: needs the asset_classes section")
+        if rec["cash_like"] not in classes:
+            raise ConfigError(f"recommend.cash_like: {rec['cash_like']!r} is not a class of "
+                              "asset_classes")
+        if not isinstance(rec["profiles"], list) or not set(rec["profiles"]) <= set(
+                c["risk_profiles"]):
+            raise ConfigError("recommend.profiles: a list of risk_profiles names")
+        _text(c, "reasons", "class_rule", "the recommend section")
+        _text(c, "assumptions", "class_rule", "the recommend section")
+
+
+def _check_display_texts(d: Mapping[str, Any], crits: tuple[str, ...]) -> None:
     """Optional web UI texts (D17): display.why (criterion -> text) needs
     display.access (texts of the "Paraya erişim" value)."""
     if "why" in d:
@@ -319,8 +382,8 @@ def _check_display_texts(d: Mapping[str, Any]) -> None:
         if not isinstance(why, Mapping):
             raise ConfigError("display.why: must be a mapping criterion -> text")
         for crit, text in why.items():
-            if crit not in CRITERIA or not isinstance(text, str) or not text.strip():
-                raise ConfigError(f"display.why.{crit}: a criterion of {CRITERIA} with a text")
+            if crit not in crits or not isinstance(text, str) or not text.strip():
+                raise ConfigError(f"display.why.{crit}: a criterion of {crits} with a text")
         if "access" not in d:
             raise ConfigError("display.access: display.why needs the access texts")
     if "access" in d:
@@ -456,6 +519,8 @@ def _check_d9(c: dict) -> None:
         for section, key in (("constraint", "short_history"),
                              ("data_quality", "removed_no_data")):
             _text(c, section, key, "the short_history section")
+
+    _check_d19(c)
 
     if "talking_points" in c:       # D18
         tp = c["talking_points"]

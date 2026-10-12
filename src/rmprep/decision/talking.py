@@ -56,15 +56,17 @@ def _access_ids(f: DisplayFacts) -> list[str]:
 
 
 def talking_points(options: Sequence[ScoredOption], persona: Persona, levels: Levels,
-                   evidence: EvidenceSet, config: DecisionConfig) -> tuple[TalkingPoint, ...]:
+                   evidence: EvidenceSet, config: DecisionConfig,
+                   top: Sequence[ScoredOption] | None = None) -> tuple[TalkingPoint, ...]:
     """At most 3 points in talking_points.order, each only if its condition holds
-    and its figure has evidence; () without the config section."""
+    and its figure has evidence; () without the config section. top: the
+    recommended options (D19); default the first three group heads."""
     c = config.raw
     tp = c.get("talking_points")
     if tp is None:
         return ()
     idx = EvidenceIndex(evidence)
-    top = top_heads(options, 3)
+    top = tuple(top) if top is not None else top_heads(options, 3)
     facts = {o.option.option_id: facts_of(o.option, idx, config) for o in top}
     texts = tp["texts"]
     out: list[TalkingPoint] = []

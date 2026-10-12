@@ -8,6 +8,7 @@ excluded source counts as absent.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
@@ -92,6 +93,25 @@ def stopaj_entities(config: DecisionConfig) -> list[str]:
             *st.get("fund_by_kind", {}).values()]
 
 
+def asset_class(kind: str, fund_kind: str, name: str, fx: bool,
+                config: DecisionConfig) -> str:
+    """Asset class of an option (config asset_classes, D19): an FX fund -> fx;
+    then by_name (Turkish upper case, whole words); then by_kind. "" without
+    the section."""
+    ac = config.raw.get("asset_classes")
+    if ac is None:
+        return ""
+    if kind == "fund":
+        if fx:
+            return ac["fx"]
+        upper = _tr_upper(name)
+        for phrase, cls in ac["by_name"].items():
+            if re.search(r"(?<!\w)" + re.escape(_tr_upper(phrase)) + r"(?!\w)", upper):
+                return cls
+        return ac["by_kind"][fund_kind]
+    return ac["by_kind"][kind]
+
+
 def _tr_upper(s: str) -> str:
     return s.replace("i", "İ").replace("ı", "I").upper()
 
@@ -105,7 +125,8 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
     rate = idx.get(dep["quantity"], f"{dep['entity_prefix']}, {dep['tier']}")
     if rate is not None:
         option = ProductOption(option_id=dep["option_id"], kind="deposit", label=dep["label"],
-                               entity=rate.entity)
+                               entity=rate.entity,
+                               asset_class=asset_class("deposit", "", "", False, config))
         candidates.append(Candidate(option, {dep["quantity"]: rate}))
 
     missing_td = None
@@ -117,7 +138,9 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
             missing_td = entity
         else:
             option = ProductOption(option_id=td["option_id"], kind="time_deposit",
-                                   label=f"{td['label']} ({td['term']})", entity=entity)
+                                   label=f"{td['label']} ({td['term']})", entity=entity,
+                                   asset_class=asset_class("time_deposit", "", "", False,
+                                                           config))
             candidates.append(Candidate(option, {td["quantity"]: rate}))
 
     cpi, stopaj = None, {}
@@ -148,9 +171,10 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
             serbest.append(code)
             continue
         name = _tr_upper(info.name)
+        fx = any(w in name for w in fx_words)
         option = ProductOption(option_id=f"fund:{code}", kind="fund", label=info.name,
-                               entity=code, fund_kind=kind,
-                               fx=any(w in name for w in fx_words))
+                               entity=code, fund_kind=kind, fx=fx,
+                               asset_class=asset_class("fund", kind, info.name, fx, config))
         values = {q: d for q, d in idx.quantities_of(code).items() if q.startswith(FUND_PREFIX)}
         if used is not None and not any(used(q) for q in values):
             no_data.append(code)        # never listed: nothing to show as evidence
