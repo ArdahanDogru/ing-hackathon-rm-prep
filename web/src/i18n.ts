@@ -196,6 +196,11 @@ const TR = {
   warnOnly: "Uyarı",
   approveBlocked: "Onay için önce işaretli bölümleri düzeltin.",
   fetchedAt: "Alındı",
+  viewAllocation: "Dağılım",
+  noBand: "hedef bant yok",
+  inferredTip: "Kaynak yok: Muhafazakâr–Dengeli arası çıkarım",
+  allocFooter: "Gösterge model dağılım (stratejik), tutar değildir. Kaynak:",
+  allocBand: "Model bant",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -393,6 +398,11 @@ const EN: Record<LabelKey, string> = {
   warnOnly: "Warning",
   approveBlocked: "Fix the marked sections before the approval.",
   fetchedAt: "Fetched",
+  viewAllocation: "Allocation",
+  noBand: "no target band",
+  inferredTip: "No source: inferred between Muhafazakâr and Dengeli",
+  allocFooter: "Indicative model allocation (strategic), not amounts. Source:",
+  allocBand: "Model band",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };
