@@ -94,10 +94,11 @@ def stopaj_entities(config: DecisionConfig) -> list[str]:
 
 
 def asset_class(kind: str, fund_kind: str, name: str, fx: bool,
-                config: DecisionConfig) -> str:
+                config: DecisionConfig, risk: float | None = None) -> str:
     """Asset class of an option (config asset_classes, D19): an FX fund -> fx;
-    then by_name (Turkish upper case, whole words); then by_kind. "" without
-    the section."""
+    then by_name (Turkish upper case, whole words); then by_risk (D19c: the
+    fund's SPK risk row, first rule with risk >= min_risk; an estimated risk
+    does not count); then by_kind. "" without the section."""
     ac = config.raw.get("asset_classes")
     if ac is None:
         return ""
@@ -108,6 +109,10 @@ def asset_class(kind: str, fund_kind: str, name: str, fx: bool,
         for phrase, cls in ac["by_name"].items():
             if re.search(r"(?<!\w)" + re.escape(_tr_upper(phrase)) + r"(?!\w)", upper):
                 return cls
+        if risk is not None:
+            for rule in ac.get("by_risk", {}).get(fund_kind, ()):
+                if risk >= rule["min_risk"]:
+                    return rule["class"]
         return ac["by_kind"][fund_kind]
     return ac["by_kind"][kind]
 
@@ -171,11 +176,13 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
             serbest.append(code)
             continue
         name = _tr_upper(info.name)
+        values = {q: d for q, d in idx.quantities_of(code).items() if q.startswith(FUND_PREFIX)}
+        risk_row = values.get("fund_risk_level")
         fx = any(w in name for w in fx_words)
         option = ProductOption(option_id=f"fund:{code}", kind="fund", label=info.name,
                                entity=code, fund_kind=kind, fx=fx,
-                               asset_class=asset_class("fund", kind, info.name, fx, config))
-        values = {q: d for q, d in idx.quantities_of(code).items() if q.startswith(FUND_PREFIX)}
+                               asset_class=asset_class("fund", kind, info.name, fx, config,
+                                                   risk_row.value if risk_row else None))
         if used is not None and not any(used(q) for q in values):
             no_data.append(code)        # never listed: nothing to show as evidence
             continue
