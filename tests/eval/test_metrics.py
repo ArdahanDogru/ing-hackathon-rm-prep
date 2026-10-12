@@ -63,3 +63,19 @@ def test_without_llm_texts_the_text_targets_are_not_measured(root):
     assert "| Narrator validator pass rate | n/a | ≥ 95 % | n/a |" in md
     assert "| Forbidden phrases | n/a | 0 | n/a |" in md
     assert "n/a: no graded text" in md
+
+
+def test_same_top3_counts_the_base_personas_with_one_recommended_top3(root):
+    import dataclasses
+    from rmprep.eval.metrics import same_top3
+    runs = runner(root).run([Scenario(id=p, group="base", persona=p) for p in ("P01", "P02", "P04")]
+                            + [Scenario(id="e", group="persona_edit", persona="P01")])
+    ref = runs[0].runs[0].result
+    top = tuple(o.option.option_id for o in ref.options if o.option.kind != "deposit")[:3]
+    for sr in runs:                      # hand-made: every base persona gets the same top 3
+        r = sr.runs[0].result
+        if all(i in {o.option.option_id for o in r.options} for i in top):
+            sr.runs[0] = dataclasses.replace(sr.runs[0], result=dataclasses.replace(r, recommended=top))
+    same = same_top3(runs)
+    assert same["personas"] == 3 and same["top3"] == list(top) and same["count"] >= 2
+    assert same_top3([sr for sr in runs if sr.scenario.group != "base"]) is None

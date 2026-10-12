@@ -203,6 +203,11 @@ def to_markdown(result) -> str:
     regressions = [sr for sr in result.runs if sr.scenario.group == "regression"]
     if regressions:
         L += ["## Error analysis cases (regression scenarios)", ""]
+        same = m.get("same_top3")
+        if same is not None:
+            L += [f"Diverse recommendations (D19): {same['count']} of {same['personas']} base "
+                  f"personas share the same recommended top 3 in this run (before D19: 4 of 5).",
+                  ""]
         for sr in regressions:
             sc = by_id[sr.scenario.id]
             failed = sorted({c.check for c in sc.all() if c.status == FAIL})

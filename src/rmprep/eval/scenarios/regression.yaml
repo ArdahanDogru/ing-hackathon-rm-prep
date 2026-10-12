@@ -105,3 +105,35 @@ scenarios:
     exclude_sources: [tefas_detail]
     narrate: false
     expect: {options_without_evidence: {equals: 0}, rejected: {equals: {short_history: 0}}}
+
+  - id: reg-d19-p02-diverse
+    group: regression
+    description: >-
+      Case 8 (error analysis 2026-10-12), D19 diverse recommendations: before D19,
+      4 of 5 personas had the same top 3 (Nurol Para Piyasası, İstanbul KV
+      Borçlanma, Ak Para Piyasası Katılım, all cash-like at SPK risk 1), P02 (Dengeli)
+      among them. After D19: nakit r2 +8,0 · borclanma r2 +8,4 · dengeli r3 +12,8
+      (real 1-year returns, %).
+    persona: P02
+    needs: [D19]
+    narrate: false
+    expect: {recommended_cash_like: {at_most: 1}, recommended_classes: {at_least: 2}}
+  - id: reg-d19-p04-diverse
+    group: regression
+    description: >-
+      Case 8 for P04 (Dengeli, concentration limit): before D19 the same 3 cash-like
+      funds at risk 1. After D19: borclanma r3 +5,9 · nakit r2 +6,7 · dengeli r3 +3,3.
+    persona: P04
+    needs: [D19]
+    narrate: false
+    expect: {recommended_cash_like: {at_most: 1}, recommended_classes: {at_least: 2}}
+  - id: reg-d19-p01-unchanged
+    group: regression
+    description: >-
+      Case 8 for P01 (Muhafazakâr, no diversity priority): the class rule does not
+      apply; before and after D19 the plain score order (3 cash-like funds, risk 1).
+    persona: P01
+    needs: [D19]
+    narrate: false
+    expect: {recommended_plain_order: true}
+

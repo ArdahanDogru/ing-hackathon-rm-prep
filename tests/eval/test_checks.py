@@ -393,3 +393,87 @@ def test_display_facts_of_rejected_options_do_not_count(root):
     run2 = dataclasses.replace(run, narratives={"TR": text(
         run, NarrativeSentence(f"Getiri %{_tr1(value)}.", (run.result.options[1].option.option_id,)))})
     assert check_no_invented_data(Context(sr.scenario, run2, DCFG, PHRASES)).status == FAIL
+
+
+# --- E9: diverse recommendations (D19, docs/decision.md section 10)
+
+def _diverse(sr, run=None):
+    from rmprep.eval.checks import check_diverse_recommendations
+    return check_diverse_recommendations(Context(sr.scenario, run or sr.runs[0], DCFG, PHRASES))
+
+
+def test_diverse_recommendations_pass_for_a_dengeli_persona(root):
+    sr = one(root, Scenario(id="p02", group="base", persona="P02"))
+    assert sr.runs[0].result.recommended
+    assert _diverse(sr).status == PASS
+
+
+def test_diverse_recommendations_do_not_apply_to_a_muhafazakar_persona(root):
+    sr = one(root, Scenario(id="p01", group="base", persona="P01"))
+    c = _diverse(sr)
+    assert c.status == NA and "Muhafazakâr" in c.details[0]
+
+
+def test_two_cash_like_recommendations_fail(root):
+    sr = one(root, Scenario(id="p02", group="base", persona="P02"))
+    run = sr.runs[0]
+    cash = [o.option.option_id for o in run.result.options
+            if o.option.asset_class == "nakit_benzeri" and o.option.kind != "deposit"]
+    assert len(cash) >= 2
+    other = [o.option.option_id for o in run.result.options
+             if o.option.asset_class not in ("nakit_benzeri", "") and o.option.kind != "deposit"]
+    bad = with_result(run, recommended=(cash[0], cash[1], other[0]))
+    c = _diverse(sr, bad)
+    assert c.status == FAIL and "nakit_benzeri" in c.details[0]
+
+
+def test_one_class_only_fails_when_the_result_has_more(root):
+    sr = one(root, Scenario(id="p04", group="base", persona="P04"))
+    run = sr.runs[0]
+    by_class = {}
+    for o in run.result.options:
+        if o.option.kind != "deposit":
+            by_class.setdefault(o.option.asset_class, []).append(o.option.option_id)
+    cls, ids = next((k, v) for k, v in by_class.items() if k != "nakit_benzeri" and len(v) >= 3)
+    c = _diverse(sr, with_result(run, recommended=tuple(ids[:3])))
+    assert c.status == FAIL and "asset class" in " ".join(c.details)
+
+
+def test_a_recommendation_above_the_risk_ceiling_fails(root):
+    sr = one(root, Scenario(id="p02", group="base", persona="P02"))
+    run = sr.runs[0]
+    rej = next(x for x in run.result.rejected if any(c.rule_id == "risk_ceiling" for c in x.failed))
+    bad_opt = ScoredOption(option=rej.option, score=0.0, score_parts={}, constraints=(),
+                           confidence=0.5, stability=0.5, evidence_ids=tuple(
+                               i for c in rej.failed for i in c.evidence_ids))
+    run2 = with_result(run, options=run.result.options + (bad_opt,),
+                       recommended=run.result.recommended[:2] + (rej.option.option_id,))
+    c = _diverse(sr, run2)
+    assert c.status == FAIL and "risk ceiling" in " ".join(c.details)
+
+
+def test_a_class_rule_pick_with_a_negative_real_return_fails(root, extra_rows):
+    from tests.eval.test_regression import d9_rows
+    extra_rows += d9_rows()
+    sr = one(root, Scenario(id="p02", group="base", persona="P02"))
+    run = sr.runs[0]
+    facts = _display(run)
+    plain = {o.option.option_id for o in __import__("rmprep.grouping", fromlist=["x"])
+             .top_heads(run.result.options, 3)}
+    neg = [o.option.option_id for o in run.result.options
+           if o.option.kind != "deposit" and o.option.option_id not in plain
+           and facts[o.option.option_id].real_1y is not None
+           and facts[o.option.option_id].real_1y.value < 0]
+    if not neg:
+        pytest.skip("no option with a negative real return on this fixture")
+    keep = [i for i in run.result.recommended if i != neg[0]][:2]
+    c = _diverse(sr, with_result(run, recommended=tuple(keep) + (neg[0],)))
+    assert c.status == FAIL and "real" in " ".join(c.details)
+
+
+def test_recommendation_metrics(root):
+    from rmprep.eval.checks import metric_values
+    sr = one(root, Scenario(id="p01", group="base", persona="P01"))
+    m = metric_values(sr.runs[0], DCFG)
+    assert m["recommended_plain_order"] is True
+    assert m["recommended_cash_like"] >= 0 and m["recommended_classes"] >= 1

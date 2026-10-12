@@ -5,7 +5,7 @@ the judge scores, and each target of config/eval.yaml met or not."""
 from __future__ import annotations
 
 import statistics
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterable
 from typing import Any
 
@@ -28,6 +28,20 @@ def _stats(xs: list[float]) -> dict[str, float] | None:
         return None
     return {"n": len(xs), "mean": statistics.fmean(xs), "max": max(xs),
             "median": statistics.median(xs)}
+
+
+def same_top3(runs: list[ScenarioRun]) -> dict[str, Any] | None:
+    """D19 error case: how many base personas share the most common recommended
+    top 3 (before D19: 4 of 5). None without a ready base run."""
+    from rmprep.grouping import recommended
+
+    tops = [tuple(x.option.option_id for x in recommended(sr.runs[0].result))
+            for sr in runs if sr.scenario.group == "base" and sr.runs
+            and sr.runs[0].result.state.value == "ready"]
+    if not tops:
+        return None
+    top, n = Counter(tops).most_common(1)[0]
+    return {"count": n, "personas": len(tops), "top3": list(top)}
 
 
 def summarize(runs: list[ScenarioRun], checks: list[ScenarioChecks], targets: Targets,
@@ -101,4 +115,5 @@ def summarize(runs: list[ScenarioRun], checks: list[ScenarioChecks], targets: Ta
                   "llm": sum(1 for d in narratives if d.source == "llm"),
                   "template": sum(1 for d in narratives if d.source == "template")},
         "judge": judge,
+        "same_top3": same_top3(runs),
     }

@@ -28,3 +28,11 @@ scenarios:
     edit: {doviz_maruz_kalma_tercihi: "Henüz karar vermedi, görüşmede konuşulacak"}
     compare_to: base-p01
     expect: {state: ready, shortlist: same}     # the safe FX level is P01's own level (Sınırlı)
+  - id: edit-p05-dengeli
+    group: persona_edit
+    description: "risk Temkinli -> Dengeli: the D19 class rule applies (Jury-Challenge style)"
+    persona: P05
+    edit: {risk_profili: "Dengeli"}
+    compare_to: base-p05
+    expect: {recommended_cash_like: {at_most: 1}, recommended_classes: {at_least: 2}}
+
