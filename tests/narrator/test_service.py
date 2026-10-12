@@ -10,7 +10,7 @@ from rmprep.contracts import TR_TZ, NarrativeDraft
 from rmprep.narrator.facts import build_facts
 from rmprep.narrator.llm import LlmError, LlmReply
 from rmprep.narrator.prompt import sections_json
-from rmprep.narrator.service import Narrator
+from rmprep.narrator.service import Narrator, facts_hash
 from rmprep.narrator.template import (
     BANNER,
     banner,
@@ -147,7 +147,8 @@ def test_cache_hit_makes_no_call(make, config, tmp_path):
     assert again.draft(p02(), evidence(), "TR") == first
     assert len(llm.requests) == 1
     (path,) = tmp_path.glob("R02examp1e0-*.json")
-    assert path.name == f"R02examp1e0-TR-{config.prompt_version}-{config.model}.json"
+    assert path.name == (f"R02examp1e0-TR-{config.prompt_version}-{config.model}-"
+                         f"{facts_hash(build_facts(p02(), evidence()))}.json")
     assert NarrativeDraft.from_dict(json.loads(path.read_text(encoding="utf-8"))) == first
 
 
@@ -236,3 +237,39 @@ def test_from_root_reads_the_key_from_dotenv(tmp_path, monkeypatch, config):
     assert n.config == config
     (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=sk-test\n", encoding="utf-8")
     assert isinstance(narrator_from_root(tmp_path).client, AnthropicClient)
+
+
+# --- N12: the cache key holds a hash of the facts (selection, notes) ---------------------
+
+def test_facts_hash_is_short_and_stable():
+    h = facts_hash(build_facts(p02(), evidence()))
+    assert len(h) == 10 and int(h, 16) >= 0
+    assert h == facts_hash(build_facts(p02(), evidence()))
+
+
+@pytest.mark.parametrize("change", [
+    lambda r: dataclasses.replace(r, rm_selected=("fund:AAL",), rm_option_notes={}),
+    lambda r: dataclasses.replace(r, rm_note="Başka bir onay notu."),
+    lambda r: dataclasses.replace(r, rm_option_notes={"fund:BBF": "Başka not."}),
+])
+def test_other_selection_or_note_makes_a_new_text(change, make, config):
+    """The eval bug: an approved run with another selection (same run id) got
+    the old text from the cache."""
+    other = change(p02())
+    n, llm = make(good(config=config), reply(sections_json(
+        template_sections(build_facts(other, evidence()), "TR", config.disclaimer["TR"]),
+        template_need_tags(build_facts(other, evidence())))))
+    first = n.draft(p02(), evidence(), "TR")
+    second = n.draft(other, evidence(), "TR")
+    assert len(llm.requests) == 2
+    assert first.run_id == second.run_id and second.source == "llm"
+    assert n.draft(other, evidence(), "TR") == second       # the new text is cached
+    assert len(llm.requests) == 2
+
+
+def test_approved_text_files_are_not_cache_files(make, config, tmp_path):
+    """RealBackend keeps <run_id>-<lang>-approved.json in the same folder."""
+    (tmp_path / "R02examp1e0-TR-approved.json").write_text("not a draft", encoding="utf-8")
+    n, llm = make(good(config=config))
+    assert n.draft(p02(), evidence(), "TR").source == "llm"
+    assert (tmp_path / "R02examp1e0-TR-approved.json").read_text(encoding="utf-8") == "not a draft"

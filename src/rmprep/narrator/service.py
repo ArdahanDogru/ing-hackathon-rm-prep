@@ -7,6 +7,7 @@ no call is made."""
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
 import os
 from collections.abc import Callable
@@ -58,7 +59,7 @@ class Narrator:
         f = build_facts(r, ev)              # raises for a result that is not approved
         if lang not in NARRATIVE_LANGS:
             raise ValueError(f"lang must be one of {NARRATIVE_LANGS}, got {lang!r}")
-        path = self._path(r.run_id, lang)
+        path = self._path(r.run_id, lang, f)
         if path.exists():
             return NarrativeDraft.from_dict(json.loads(path.read_text(encoding="utf-8")))
         if self.client is None:
@@ -166,8 +167,11 @@ class Narrator:
 
     # --- helpers ----------------------------------------------------------------
 
-    def _path(self, run_id: str, lang: str) -> Path:
-        return self.cache_dir / f"{run_id}-{lang}-{self.config.prompt_version}-{self.config.model}.json"
+    def _path(self, run_id: str, lang: str, f: Facts) -> Path:
+        """N12: the facts hash is in the key, so another selection or note of the
+        same run id gets its own text (the old key served the old text)."""
+        c = self.config
+        return self.cache_dir / f"{run_id}-{lang}-{c.prompt_version}-{c.model}-{facts_hash(f)}.json"
 
     def _check(self, reply: LlmReply, f: Facts, r: DecisionResult, lang: str):
         """(sections, need tags, findings) of a reply."""
@@ -216,6 +220,13 @@ class Narrator:
         path.write_text(json.dumps(d.to_dict(), ensure_ascii=False, indent=1) + "\n",
                         encoding="utf-8", newline="\n")
         return d
+
+
+def facts_hash(f: Facts) -> str:
+    """First 10 hex digits of the sha256 of the facts (sorted JSON): the
+    selection, the notes and every fact the text rests on."""
+    data = json.dumps(f.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()[:10]
 
 
 def narrator_from_root(root: Path | str) -> Narrator:
