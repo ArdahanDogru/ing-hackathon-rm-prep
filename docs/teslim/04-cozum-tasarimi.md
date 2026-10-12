@@ -1,8 +1,9 @@
 # Çözüm tasarımı
 
-> Teslimat 4 · Taslak (2026-10-12) · Ölçümler: değerlendirme raporu
-> `data/eval/20261012-201431-full` (dondurulmuş anlık görüntü
-> `20261010-183835-6813`) ve maliyet defteri `data/narratives/costs.jsonl`.
+> Teslimat 4 · Taslak (2026-10-13) · Ölçümler: son değerlendirme raporu
+> `data/eval/20261013-004507-full` (dondurulmuş anlık görüntü
+> `20261010-183835-6813`, anlatıcı istemi `n9`, hakem `j3`) ve maliyet
+> defteri `data/narratives/costs.jsonl`.
 > **[VARSAYIM]** ile işaretli noktalar mentorlarla teyit edilecek.
 
 ## 1. Mimari özeti
@@ -30,7 +31,7 @@ flowchart TB
     subgraph DEC["Karar motoru · deterministik · config/decision.yaml"]
         RULES["Sert kurallar<br/>alıma kapalı, risk tavanı,<br/>açık kısıtlar, kısa geçmiş"]
         SCORE["Puanlama<br/>stopaj ve TÜFE sonrası reel getiri,<br/>risk uyumu, likidite, gelir, cezalar"]
-        OUT["Önerilen ilk 3, konuşma noktaları,<br/>sorular, varsayımlar, uyarılar (müşteri / RM)"]
+        OUT["Önerilen ilk 3, model dağılım bantları,<br/>konuşma noktaları, sorular, varsayımlar,<br/>uyarılar (müşteri / RM)"]
     end
 
     API["FastAPI + RealBackend<br/>orkestrasyon; yalnızca 127.0.0.1"]
@@ -41,8 +42,8 @@ flowchart TB
     end
 
     subgraph WEB["Web uygulaması · React"]
-        DASH["Pano: brief, gündem,<br/>öneriler tablosu, Teyit edin"]
-        FUND["Fon kartı + kanıt penceresi"]
+        DASH["Pano: brief, gündem, öneriler<br/>(Tablo · Kartlar · Dağılım), Teyit edin"]
+        FUND["Fon kartı + kanıt penceresi<br/>(alınma zamanı)"]
         MT["Görüşme metni<br/>blok blok düzenleme"]
     end
 
@@ -82,15 +83,17 @@ kaynak adresi ve tarihiyle birlikte elle girilir; kodda vergi oranı yoktur.
 | Anlık görüntü | Ham veriyi değişmez ve özetli (SHA-256) saklar | Dosya sistemi | Deterministik | `ingest/snapshot.py` |
 | Kalite kontrolleri | Aralık dışı, bayat, çakışan, yinelenen değerlere bayrak | Saf fonksiyonlar | Deterministik | `ingest/quality.py` |
 | Kanıt deposu | Her değeri kimliğiyle saklar, Parquet'e aktarır | DuckDB | Deterministik | `ingest/store.py`, `ingest/pipeline.py` |
-| Karar motoru | Evren, sert kurallar, puan, güven ve kararlılık, önerilen 3, sorular, uyarılar | Python, YAML | Deterministik | `src/rmprep/decision/`, `config/decision.yaml` |
+| Karar motoru | Evren, sert kurallar, puan, güven ve kararlılık, önerilen 3, sorular, uyarılar; eksik risk değeri için varlık sınıfı tahmini (D21) | Python, YAML | Deterministik | `src/rmprep/decision/`, `config/decision.yaml` |
+| Model dağılım bantları | Risk profiline göre sınıf başına stratejik bant (kaynak: Ata Yatırım, 28.04.2026), sınıfın en iyi seçeneği, not (`ceiling` / `none` / `negative_real`), persona metninden mevcut durum ipucu. Mevcut pay ve tutar yok (D20) | Python, YAML; React görünümü | Deterministik | `decision/allocation.py`, `config/decision.yaml` `allocation`, `web/src/components/OptionsAllocation.tsx` |
 | Gruplama | Kısa liste grupları ve önerilen ilk 3'ün tek kuralı | Python | Deterministik | `src/rmprep/grouping.py` |
 | Orkestrasyon | Çalıştırma, onay, arka plan işleri (2 iş parçacığı), kayıt | Python | Deterministik | `src/rmprep/backend.py` |
 | JSON API | Görünüm modelleri (sıra, yıldız, uygunluk halkası); iş kuralı eklemez | FastAPI, uvicorn | Deterministik | `src/rmprep/api/` |
-| Web uygulaması | Pano, fon kartı, kanıt penceresi, görüşme metni, yazdırma | React, TypeScript, Tailwind, Vite | Arayüz + insan kararı | `web/` |
+| Web uygulaması | Pano, öneriler (Tablo, Kartlar, Dağılım), fon kartı, kanıt penceresi (değer, kaynak, tarih, alınma zamanı), görüşme metni, onay zamanları, yazdırma | React, TypeScript, Tailwind, Vite | Arayüz + insan kararı | `web/` |
+| Onay zamanları | RM'in karar zamanı (`DecisionResult.rm_decided_at`) ve metin onay zamanı (`NarrativeDraft.approved_at`), Türkiye saatiyle; kartta ve ekranda (sözleşme v1.7) | Python | Deterministik | `contracts.py`, `backend.py`, `ui/card.py` |
 | Brief | Pano için RM'e 1–2 cümle | Claude Haiku 5.5 | LLM + kod denetimi | `narrator/brief.py`, `rmprep/brief.py` |
 | Görüşme metni | 8 bölümlü hazırlık metni ve konuşma metni | Claude Sonnet 5.5 | LLM + kod denetimi | `narrator/` (`facts`, `prompt`, `llm`, `validator`, `template`, `service`) |
 | Blok düzenleme kontrolü | RM'in değiştirdiği bloğu yeniden denetler | Python | Deterministik | `src/rmprep/edits.py`, `narrator/blocks.py` |
-| Eval paketi | Senaryolar, kural kontrolleri, rapor; dil kalitesi için hakem | Python + Claude Haiku 5.5 | Deterministik + LLM hakem | `src/rmprep/eval/`, `config/eval.yaml` |
+| Eval paketi | Senaryolar, kural kontrolleri, rapor; dil kalitesi için hakem (`j3`: ekran bağlamını ve seçenek olgularını görür) | Python + Claude Haiku 5.5 | Deterministik + LLM hakem | `src/rmprep/eval/`, `config/eval.yaml` |
 
 ## 3. LLM'in rolü ve sınırları
 
@@ -98,12 +101,22 @@ LLM hiçbir ürünü seçmez, elemez veya puanlamaz; yalnızca karar motorunun
 çıktısını Türkçe (veya İngilizce) metne çevirir.
 
 - **Girdi: olgu paketi (kod).** Persona bağlamı, RM'in onayladığı seçim,
-  her seçeneğin gerekçeleri ve kanıt kimlikli sayıları, grup alternatifleri,
-  yalnızca müşteriye yönelik uyarılar, varsayımlar ve sorular. Elenen
+  her seçeneğin gerekçeleri ve kanıt kimlikli sayıları (reel 1 yıllık getiri
+  dahil), grup alternatifleri, yalnızca müşteriye yönelik uyarılar,
+  varsayımlar ve sorular. Her seçenek bir **risk satırı** da taşır: erişim
+  (valör veya vade), varsa ücretler ve varlık sınıfına göre sabit bir risk
+  notu (`config/narrator.yaml` `risk_notes`; ör. borçlanma: "Faizler
+  yükselirse fonun değeri düşebilir; vade uzadıkça dalgalanma artar."). Elenen
   ürünler adla girmez; RM'e özel uyarılar pakete hiç girmez.
 - **Çıktı: yapılandırılmış JSON.** API'nin `json_schema` biçimi kullanılır.
   Her cümle seçenek ve kanıt kimliklerini taşır; her öneri için müşteri
-  önceliklerinden 1–3 ihtiyaç etiketi gelir.
+  önceliklerinden 1–3 ihtiyaç etiketi gelir. İstem `n9` öneriler bölümünü
+  biçimler: her seçenek için fonun adıyla başlayan 3 cümle — (a) olgular,
+  önce reel getiri; (b) bu müşteriye uyum, başka seçenekte kullanılmayan bir
+  müşteri olgusuyla; (c) ana ödünleşim veya risk. "Geçmiş getiri" uyarısı
+  yalnızca dikkat ve teklif metninde yer alır. Markdown ekran sırasını izler
+  (özet, konuşma noktaları, teklif metni, öneriler, dikkat; sonra "Ek
+  bilgiler").
 - **Doğrulayıcı (kod).** Metin şu durumlarda reddedilir:
   - olgu paketinde olmayan bir sayı veya tarih; iç değer (puan, sayım,
     bayrak adı);
@@ -114,22 +127,32 @@ LLM hiçbir ürünü seçmez, elemez veya puanlamaz; yalnızca karar motorunun
   - kaynaksız cümle veya var olmayan kimlik (konuşma noktaları, öneriler,
     alternatifler, dikkat);
   - ING ürün adının yanında ING'ye ait olmayan bir oran (etiket kuralı);
+  - öneriler bölümünde fonun adıyla başlamayan cümle (`shape`);
+  - öneriler bölümündeki bir cümleyi tekrar eden dikkat cümlesi (`repeat`:
+    cümlenin sözcük köklerinin en az %80'i tek bir öneri cümlesinde);
+  - öneriler dışında ING mevduatını piyasa mevduat ortalamasıyla
+    karşılaştıran cümle (`compare`; bu karşılaştırma RM'e özel bir nottur);
   - müşteri önceliği olmayan ihtiyaç etiketi, eksik bölüm, eksik varsayım,
     eksik "yatırım tavsiyesi değildir" cümlesi.
 - **Hata yolu.** Bulgularla bir kez yeniden denenir; ikinci hatada olgu
   paketinden kurulan şablon metin ve "Otomatik metin doğrulanamadı" bandı
   gösterilir. Brief için tekrar yoktur; hata veya API sorununda personanın
-  düz cümlesi kalır.
-- **Önbellek ve maliyet.** Metin (çalıştırma, dil, istem sürümü, model)
-  anahtarıyla diske yazılır; aynı çalıştırma ikinci çağrı yapmaz. Sistem
+  düz cümlesi kalır. Her denemenin bulguları maliyet defterine yazılır; ilk
+  denemedeki bulgular türe göre sayılır
+  (`rmprep.narrator.service.findings_by_kind`). Son tam değerlendirmede 19
+  yeni metnin 3'ü ilk denemede kaldı (2 sayı, 1 boş bölüm), üçü de tekrarda
+  geçti.
+- **Önbellek ve maliyet.** Metin (çalıştırma, dil, istem sürümü, model, olgu
+  paketinin özeti) anahtarıyla diske yazılır; aynı çalıştırma ve aynı seçim
+  ikinci çağrı yapmaz, başka bir seçim yeni metin üretir (N12). Sistem
   istemi önbelleğe alınır. Günlük sınır **5 ABD doları**dır; aşılırsa şablon
   metin gelir. Her çağrı maliyet defterine yazılır.
 
 | Çıktı | Model | Ölçülen maliyet | Ölçülen süre |
 |---|---|---|---|
-| Görüşme metni | Claude Sonnet 5.5 (`claude-sonnet-5-5`, effort medium) | yeni metin başına ortalama **0,042 $** (eval, 25 metin); hız testinde 0,049 $ | ortalama 27 sn (en çok 45 sn) |
+| Görüşme metni | Claude Sonnet 5.5 (`claude-sonnet-5-5`, effort medium, istem `n9`) | yeni metin başına ortalama **0,046 $** (eval, 25 metin); hız testinde 0,049 $ | ortalama 27 sn (en çok 57 sn) |
 | Pano brief'i | Claude Haiku 5.5 (`claude-haiku-5-5`) | 49 çağrıda ortanca **0,0008 $** (0,0003–0,0013 $) | arka planda |
-| Eval hakemi | Claude Haiku 5.5 | tam pakette 0,008 $ | — |
+| Eval hakemi | Claude Haiku 5.5 (`j3`) | tam pakette 0,009 $ | — |
 
 Tasarım belgesindeki brief tahmini (yaklaşık 0,003 $) ölçülen değerin
 üstündedir; tabloda ölçülen değer kullanılmıştır.
@@ -142,16 +165,17 @@ Tasarım belgesindeki brief tahmini (yaklaşık 0,003 $) ölçülen değerin
 | 2 | "Teyit edin" maddelerini (ör. yatırım tutarı dilimi) müşteriyle kontrol eder | Motor eksik değeri sessizce tahmin etmez; güvenli düzeyi seçer ve varsayım olarak yazar. Liste onayı engellemez, açık madde sayısını hatırlatır |
 | 3 | Bir kaynağı dışlar veya personayı düzenler | Dışlanan kaynak notlarda görünür. Düzenlenmiş persona **test çalıştırmasıdır** ve onaylanamaz (arka uç reddeder) |
 | 4 | Açık kısıtı gerekçeyle kaldırır (P02 döviz sınırı) | Kaldırma yalnızca RM yanıtıyla olur ve varsayım olarak kayda geçer |
-| 5 | Önerilen ilk 3'ten seçimi yapar, not ekler, onaylar veya reddeder | Ret not ister. Görüşme metni yalnızca onaylı çalıştırma için üretilir |
+| 5 | Önerilen ilk 3'ten seçimi yapar, not ekler, onaylar veya reddeder | Ret not ister. Karar zamanı kaydedilir ve onay çubuğunda görünür. Görüşme metni yalnızca onaylı çalıştırma için üretilir |
 | 6 | Metni blok blok düzenler; "Orijinale dön" ile geri alır | Her blok yeniden denetlenir. Yasak ifade, izin dışı seçenek, iç bilgi ve ING etiket bulguları onayı **engeller**; olgu dışı sayı yalnızca uyarır |
-| 7 | "Metni onayla" | Engelleyici bulgu açıkken onay reddedilir; onaydan sonra düzenleme kapanır. Kart ve PDF onaylı metni kullanır |
+| 7 | "Metni onayla" | Engelleyici bulgu açıkken onay reddedilir; onaydan sonra düzenleme kapanır. Onay zamanı kaydedilir. Kart ve PDF onaylı metni ve iki onay zamanını gösterir |
 | 8 | "RM notu · yalnızca sizin için" bölümünü okur | RM'e özel uyarılar (ör. ING oranı ile piyasa farkı) olgu paketine girmez, müşteri metninde yer almaz |
 
 Sistemin müşteriye bir iletim kanalı yoktur: uygulama yerel çalışır ve
 çıktıyı yalnızca RM görür. Karar kaydı şunları tutar: çalıştırma kimliği,
 yapılandırma özeti, anlık görüntü, dışlanan kaynaklar, kullanılan persona,
-RM durumu, seçim ve notlar (`data/runs/`); onaylı metin, model, istem sürümü,
-doğrulayıcı sonucu ve maliyet (`data/narratives/`).
+RM durumu, seçim, notlar ve karar zamanı (`data/runs/`); onaylı metin, model,
+istem sürümü, doğrulayıcı sonucu, maliyet ve onay zamanı (`data/narratives/`).
+Zamanlar Türkiye saatiyledir (`Europe/Istanbul`, sözleşme v1.7).
 
 ## 5. Güvenilirlik
 
@@ -165,20 +189,24 @@ doğrulayıcı sonucu ve maliyet (`data/narratives/`).
   aynı `run_id`'yi ve aynı sonucu verir. Metin önbellekten aynen gelir
   (eval: 5/5 tekrar senaryosu).
 - **İzlenebilirlik.** Her sayı bir kanıt kimliğine bağlıdır; ekrandaki "K"
-  işareti değeri, kaynağı, tarihi ve bayrakları açar. Eval'de "her seçenek
-  ve her cümle kanıt gösterir" kontrolü 39/39 çalıştırmada geçti.
+  işareti değeri, kaynağı, tarihi, bayrakları ve değerin kaynaktan alınma
+  zamanını ("Alındı: …") açar. Eval'de "her seçenek ve her cümle kanıt
+  gösterir" kontrolü 39/39 çalıştırmada geçti.
 - **Kalıcılık.** Onaylı ve reddedilmiş çalıştırmalar, blok düzenlemeleri ve
   onaylı metinler diske yazılır; sunucu yeniden başlarsa aynı girdi aynı
-  kimliği verir ve kayıt geri yüklenir.
-- **Testler.** `pytest` 1.636 test toplar; hiçbir test ağa çıkmaz (LLM
-  testleri sahte istemciyle çalışır). Web uygulamasının ayrıca Vitest
-  testleri vardır.
+  kimliği verir ve kayıt geri yüklenir. RM'in karar zamanı ve metin onay
+  zamanı kayıtla birlikte saklanır; denetçi kimin neyi ne zaman onayladığını
+  karttan okur.
+- **Testler.** `pytest` 90 dosyada 1.774 test toplar (2026-10-13 sayımı);
+  hiçbir test ağa çıkmaz (LLM testleri sahte istemciyle çalışır). Web
+  uygulamasının ayrıca Vitest testleri vardır.
 - **Eval paketi.** 34 senaryo, 39 çalıştırma: temel personalar, jüri tarzı
   persona ve kısıt değişiklikleri, kaynak dışlama, bozuk veri ve 13 regresyon
-  senaryosu. Kural kontrolleri %100, doğrulayıcı geçiş oranı %100 (25/25
-  LLM metni, şablona düşüş yok), yasak ifade 0. Hakemin dil puanları daha
-  düşüktür ("müşteriye uyarlanmış" %57, "RM için açık" %50); bu alan
-  iyileştirme konusudur (bkz. Teslimat 5).
+  senaryosu. Son tam çalışmada (`20261013-004507-full`) kural kontrolleri
+  %100, doğrulayıcı geçiş oranı %100 (25/25 LLM metni, şablona düşüş yok),
+  yasak ifade 0. Hakemin dil puanları daha düşüktür ("müşteriye uyarlanmış"
+  %52, "RM için açık" %50, "dengeli" %60). Nesnel metin ölçüleri iyileşti,
+  hakem puanı belirgin değişmedi; ayrıntı ve nedenleri Teslimat 5'tedir.
 
 ## 6. Neden bu tasarım?
 
@@ -219,7 +247,11 @@ yalnızca yapım içindir; ürün çalışırken kullanılmaz.
 **Üretimde değiştireceklerimiz.**
 
 - Banka sistemleri: müşteri portföyü ve tutarı, gerçek ürün raf listesi,
-  ING oranlarının ve stopaj tablosunun resmî akışla gelmesi.
+  ING oranlarının ve stopaj tablosunun resmî akışla gelmesi. Mevcut portföy
+  girdisiyle Dağılım görünümü bantlarla bir boşluk analizi yapabilir; bugün
+  yalnızca bantları ve sınıfın en iyi seçeneğini gösterir.
+- Dağılım bantlarının bankanın kendi model portföyleriyle değişmesi
+  **[VARSAYIM]**.
 - Kimlik doğrulama, rol yetkisi ve kayıtların merkezi, değiştirilemez bir
   denetim deposuna yazılması.
 - KAP bildirimleri: KAP otomatik erişimi engellediği için prototipte yoktur;

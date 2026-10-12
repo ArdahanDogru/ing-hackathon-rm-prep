@@ -50,7 +50,7 @@ veriye dayandığı sonradan gösterilemiyor.
 | Gösterge | Bugün | Çözümle | Nasıl ölçtük |
 |---|---|---|---|
 | Hazırlık süresi | **[VARSAYIM]** görüşme başına ~60 dk | analiz 1–7 sn, görüşme metni 20–30 sn; RM'in okuma ve onayı | sistem zamanı (ölçüldü) |
-| Kısıt ihlali | elle kontrol | 30 test senaryosunda **0** | değerlendirme paketi |
+| Kısıt ihlali | elle kontrol | 34 test senaryosunda **0** | değerlendirme paketi |
 | Tutarlılık | kişiye bağlı | aynı girdi → aynı sonuç ve aynı metin (%100) | tekrar testleri |
 | İzlenebilirlik | yok / dağınık | her sayı kaynak, tarih ve kanıt kimliğiyle | kanıt kaydı |
 | Uyarlama | genel metin | 5 personada 5 farklı öneri seti (önce: 4'ü yalnızca nakit benzeri, risk 1); müşteri önceliklerine bağlı gerekçe | değerlendirme paketi |

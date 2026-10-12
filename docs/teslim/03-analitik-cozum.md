@@ -1,9 +1,10 @@
 # Analitik çözüm
 
-> Teslimat 3 · Taslak (2026-10-12) · Sayılar: dondurulmuş veri anlık görüntüsü
-> `20261010-183835-6813`, karar yapılandırması `2534f798cc47`. Örnekler salt
-> okunur `decide()` çalışmalarından alındı (P01 `Rc42670a01a`, P02
-> `Rd1c6b9c98e`). **[VARSAYIM]** ile işaretli değerler mentorlarla teyit edilecek.
+> Teslimat 3 · Taslak (2026-10-13) · Sayılar: dondurulmuş veri anlık görüntüsü
+> `20261010-183835-6813`, karar yapılandırması `9279d0a6c847` (D20 ve D21
+> dahil). Örnekler salt okunur `decide()` çalışmalarından alındı (P01
+> `Rea147e65c0`, P02 `R2b9ee9ca01`; son tam değerlendirmeyle aynı kimlikler).
+> **[VARSAYIM]** ile işaretli değerler mentorlarla teyit edilecek.
 
 ## 1. Kısa özet
 
@@ -25,7 +26,9 @@ flowchart LR
   H --> S[Puan = Σ ağırlık × kriter − ceza]
   S --> R[Sıralama + sınıf kuralı<br/>önerilen ilk 3]
   R --> C[Güven · istikrar · uyarılar]
+  R --> A[Model dağılım bantları<br/>sınıf başına en iyi seçenek]
   C --> RM[RM inceler ve onaylar]
+  A --> RM
   RM --> N[LLM yalnızca metni yazar]
 ```
 
@@ -41,7 +44,7 @@ evrene girmez.
 |---|---|---|
 | Geçmiş getiri (1a, 3a, 6a, 1y, 3y, 5y) | ufka uygun dönem yıllıklandırılır; dönem yoksa bir kısa dönem | TEFAS fon getirileri sayfası |
 | Stopaj ve TÜFE sonrası reel getiri | `return` kriteri, `real_loss` cezası | stopaj: CK 10041 / CK 11444 (RG 33286) oranları, elle girilen tablo; TÜFE: TÜİK, Eylül 2026 yıllık %29,73 |
-| SPK risk değeri (1–7) | risk tavanı, `risk_fit`, anapara koruma | TEFAS fon getirileri ve fon detay sayfaları |
+| SPK risk değeri (1–7) | risk tavanı, `risk_fit`, anapara koruma; değer yoksa varlık sınıfından tahmin (D21) | TEFAS fon getirileri ve fon detay sayfaları |
 | Satış valörü (gün) | likidite değeri, `liquidity_need` kuralı | TEFAS fon detay sayfası |
 | Giriş / çıkış komisyonu | net getiriden ufka yayılarak düşülür | TEFAS fon detay (anlık görüntüde yalnızca 1 fonda değer var) |
 | Fon büyüklüğü, yatırımcı sayısı | `quality` kriteri, `fund_size` cezası | TEFAS fon detay |
@@ -92,8 +95,16 @@ kanıt kimliğiyle görünür.
 | `liquidity_need` (P05) | satış valörü 3 günden uzun veya vade 91 günden uzun |
 | `short_history` | yalnızca 1 aylık getiri var (Agresif müşteride elenmez, ceza alır) |
 
-Risk değeri olmayan bir fon elenmez: türündeki en yüksek risk varsayılır, ceza
-ve düşük güven alır.
+Risk değeri olmayan bir fon elenmez: bir risk değeri tahmin edilir, fon ceza
+ve düşük güven alır. **Tahmin (D21):** aynı varlık sınıfındaki bilinen SPK risk
+değerlerinin üst çeyreği (0,75 yüzdelik, yukarı yuvarlanmış). Bu anlık
+görüntüde: nakit benzeri 2, borçlanma 3, hisse 6, dengeli 6, altın/döviz 6.
+Sınıfta 5'ten az bilinen değer varsa eski kural kalır (şemsiye türündeki en
+yüksek risk). Önceki kural yalnızca şemsiye türüne bakıyordu: risk değeri
+olmayan bir altın katılım fonu (KZL) Katılım türünden 1–2 tahmini aldı ve
+Muhafazakâr müşterinin 2 olan tavanının içinde kaldı. Hata D20 dağılım
+çalışması sırasında bulundu. Şimdi KZL'nin tahmini 6'dır; P01'in altın/döviz
+satırında "Risk tavanı nedeniyle uygun fon yok." yazar.
 
 ### 3.2 Puanlama
 
@@ -134,14 +145,53 @@ Agresif 4–7. Bantlar yapılandırmada açıkça varsayım olarak işaretlidir.
 
 Ürünler beş varlık sınıfına ayrılır: `nakit_benzeri`, `borclanma`, `dengeli`,
 `hisse`, `altin_doviz` (şemsiye türünden ve ad sözcüklerinden; ör. "PARA
-PİYASASI", "KISA VADELİ" → nakit benzeri). Müşteri Dengeli veya Agresif ise ya
+PİYASASI", "KISA VADELİ" → nakit benzeri; "ALTIN", "KIYMETLİ MADENLER" →
+altın/döviz). Müşteri Dengeli veya Agresif ise ya
 da çeşitlendirme isterse, motor ilk 3'ü puan sırasıyla seçer: her sınıftan en
 fazla bir, nakit benzeri en fazla bir seçenek. Bu kural, geçmiş 1 yıllık reel
 getirisi negatif olan bir seçeneği seçmez (`min_real_return` 0). Üçten az sınıf
 varsa kural adım adım gevşer. Muhafazakâr ve Temkinli müşteride, çeşitlendirme
 önceliği yoksa, sade puan sırası kalır.
 
-### 3.4 Çalışılmış örnek: P02 (Dengeli, 1–3 yıl, likidite / gelir / anapara Orta)
+### 3.4 Model dağılım bantları (D20)
+
+RM, müşterinin risk profili için **stratejik bir model dağılımı** görür: her
+varlık sınıfı için bir yüzde bandı ve o sınıfta bu müşteriye en iyi seçenek.
+Ekranda bu, "Öneriler" bölümünün üçüncü görünümü **Dağılım**'dır.
+
+| Sınıf | Muhafazakâr | Temkinli * | Dengeli | Agresif |
+|---|---|---|---|---|
+| nakit benzeri | %10–20 | %5–20 | %5–10 | %0–5 |
+| borçlanma | %60–70 | %40–60 | %30–40 | %5–10 |
+| hisse | %10–20 | %20–40 | %40–50 | %70–85 |
+| altın / döviz | %5–10 | %5–15 | %10–15 | %5–10 |
+| dengeli | — | — | — | — |
+
+- **Kaynak:** Ata Yatırım, "Yatırım Portföyü Oluşturma Stratejileri ve
+  Rehberi", 28.04.2026, "Risk Profillerine Göre Örnek Portföy Yapıları"
+  tablosu. Kaynaktaki altın/emtia sütunu bizim altın/döviz sınıfımızdır.
+  \* Temkinli için kaynakta bant yoktur; bant Muhafazakâr ile Dengeli
+  arasından bizim çıkarımımızdır ve ekranda "*" ile işaretlidir
+  **[VARSAYIM]**. Dengeli (çoklu varlık) fonlar bir varlık sınıfı değil, bir
+  fon türüdür; bantsız listelenir.
+- **En iyi seçenek:** sınıftaki, katı kurallardan geçen ve en yüksek puanı
+  alan seçenek. Not, ilk uyan kurala göre yazılır: `ceiling` (sınıfta fon var
+  ama hiçbiri risk tavanının altında değil), `none` (puanlanan seçenek yok),
+  `negative_real` (en iyi seçeneğin son 1 yıl reel getirisi negatif, ör. "Son
+  1 yıl reel −%5,3: önerilmiyor.").
+- **Mevcut durum ipucu:** persona metninde bir anahtar ifade varsa nitel bir
+  not çıkar ve "Teyit edin" listesine "Mevcut portföy dağılımını sorun."
+  eklenir. Örnek P01: "Dosyaya göre varlık TL mevduat ağırlıklı: nakit
+  benzeri bandı aşılıyor olabilir."
+- **Mevcut paylar ve tutarlar yoktur.** Personalar müşterinin varlık
+  dağılımını vermez ve brif ek müşteri verisi toplamayı yasaklar. Bu yüzden
+  motor bir boşluk analizi yapmaz; mevcut portföy girdisi gelecek iştir.
+
+Bu anlık görüntüde P01'de hisse ve altın/döviz satırları `ceiling` notu
+alır; P03 ve P04'te altın/döviz satırı `negative_real` notu alır. Bantlar
+puana ve önerilen ilk 3'e girmez; yalnızca RM'e bir çerçeve verir.
+
+### 3.5 Çalışılmış örnek: P02 (Dengeli, 1–3 yıl, likidite / gelir / anapara Orta)
 
 Ağırlıklar: `return` 0,339 · `risk_fit` 0,203 · `liquidity` 0,203 (Orta + "erişilebilir
 likidite") · `income` 0,102 · `principal` 0,102 · `quality` 0,051.
@@ -187,6 +237,10 @@ ağırlık vermez; ağırlıkları biz seçeriz ve açıkça gösteririz.
   çıktı, çünkü Dengeli öneriler risk 2'de kalıyordu.
 - Getiri sinyali **geçmiş getiridir**; bir tahmin değildir. Yüzdelik sıra
   göreli bir ölçüdür.
+- Risk tahmini (D21) veriden gelir, ama yine bir tahmindir: üst çeyrek
+  ihtiyatlı bir seçimdir ve tahmini riskli fonlar güven puanında × 0,7 alır.
+- Dağılım bantları (D20) stratejik bir çerçevedir; taktik kurum görüşleri
+  (ör. yüksek TL faizinde daha çok nakit) bandın dışında kalabilir.
 - RM onayları biriktiğinde (`data/runs/`) ağırlıklar bir modelle ayarlanabilir.
 
 ## 5. Varsayımlar
@@ -205,12 +259,18 @@ Motorun P01–P05 sonuçlarına yazdığı varsayımlar:
 - "32 günlük vade her ay yenilenir; oranlar değişebilir."
 - Sınıf kuralı uygulandığında: "Öneriler varlık sınıflarına yayıldı: her
   sınıftan en fazla bir, nakit benzeri en fazla bir seçenek."
+- Risk değeri tahmin edildiğinde (D21): "Risk değeri olmayan fonlarda aynı
+  varlık sınıfındaki bilinen risk değerlerinin üst çeyreği (yukarı
+  yuvarlanmış) kullanıldı."
 - Persona varsayımları, ör. P04: "\"kuşaklar arası planlama\" için kanıt yok;
   puana katılmadı."
 
-Ek olarak: risk bantları **[VARSAYIM]**; varlık sınıfı şemsiye türünden ve fon
-adından türetilen bir yaklaşık değerdir; stopaj oranları 31.12.2026'ya kadar
-geçerlidir.
+Ek olarak: risk bantları **[VARSAYIM]**; Temkinli dağılım bandı kaynakta yok,
+bizim çıkarımımızdır **[VARSAYIM]**; dağılım bantları tek bir kamuya açık
+kaynaktan gelir ve mentorlarla teyit edilecek **[VARSAYIM]**; varlık sınıfı
+şemsiye türünden ve fon adından türetilen bir yaklaşık değerdir; müşterinin
+mevcut portföyü bilinmez (yalnızca P01 metninde nitel bir cümle var); stopaj
+oranları 31.12.2026'ya kadar geçerlidir.
 
 ## 6. Belirsizlik yönetimi
 
@@ -218,13 +278,19 @@ geçerlidir.
 her tahminin katsayısı. Katsayılar: işaretsiz 1,0; `needs_check` ve
 `manual_entry` 0,9; `stale` 0,7; `conflict` 0,6; tahmini risk × 0,7; ufuktan
 kısa getiri dönemi × 0,8; valör yerine ürün türü × 0,8. P01'de 141 seçeneğin
-102'si 0,90, risk değeri tahmin edilen 27'si 0,63 güven taşır.
+102'si 0,90, risk değeri tahmin edilen 27'si 0,63 güven taşır. Tahmini risk
+artık varlık sınıfından gelir (D21, bölüm 3.1); bu, tahmini riskin tavanı
+aşıp aşmadığını değiştirir, güven katsayısını değiştirmez.
 
 **İstikrar (0–1):** motor sıralamayı 30 kez yeniden hesaplar; her seferinde 7
 ağırlıktan veya 8 ceza üst sınırından birini × 0,8 ya da × 1,2 yapar. İstikrar,
 seçeneğin ilk 20'de kaldığı çalışmaların oranıdır. İlk 3'te 0,5'in altı
-`low_stability` uyarısı verir. Bu çalışmada beş personanın tüm önerilerinde
-istikrar 0,97 veya üzeridir.
+`low_stability` uyarısı verir. Bu çalışmada ilk 20 içindeki tüm önerilerin
+istikrarı 0,97 veya üzeridir. Bir sınır var: sınıf kuralı tüm sıradan seçer,
+bu yüzden bir öneri ilk 20'nin dışından gelebilir. P03'ün üçüncü önerisi OKT
+(borçlanma, 60. sıra) böyledir: ölçü ona 0 verir, ama `low_stability` uyarısı
+yalnızca sıranın başına baktığı için uyarı çıkmaz. Sınıf kuralıyla gelen
+öneriler için istikrar ölçüsü henüz anlamlı değildir.
 
 **Eksik ve çelişen veri** "Olası sorunlar" panelinde not olur. P01 örnekleri:
 TEFAS getiri sayfasından 847 değer `needs_check`; 6 fonun alım durumu yok (alıma açık sayıldı);
@@ -235,7 +301,7 @@ kullanılır ve not düşülür.
 sıralamayı durdurur. Engelleyici olmayanlar güvenli düzeyle devam eder ve
 "Teyit edin" panelinde komut olarak görünür; ör. tüm personalarda "Yatırım
 tutarını sorun: 100.000-249.999 TL dilimi varsayıldı.", P02'de döviz düzeyi
-sorusu.
+sorusu, P01'de dağılım ipucu nedeniyle "Mevcut portföy dağılımını sorun."
 
 **Uyarılar:** ör. "ING standart mevduat oranı (%23.00) piyasa ortalamasının
 (%43.82) 20.8 puan altında."
@@ -254,19 +320,21 @@ Kural sayılarının toplamı elenen sayısından büyüktür, çünkü bir fon 
 kurala takılabilir. Örnek: P05'te TFF ve ZSF hem risk tavanını (6 > 3) hem
 satış valörü sınırını (4 > 3 gün) aşar; iki gerekçe de listede görünür.
 
-**Doğrulama:** değerlendirme paketi 34 senaryo ve 39 çalışmada risk tavanı
-üzerinde, alıma kapalı veya kısıt ihlal eden **0** seçenek buldu; aynı girdi 5
-tekrarın 5'inde aynı sonucu verdi. Hata analizi motoru değiştirdi: nominal
+**Doğrulama:** son tam değerlendirme (`20261013-004507-full`, D20 ve D21
+dahil) 34 senaryo ve 39 çalışmada risk tavanı üzerinde, alıma kapalı veya
+kısıt ihlal eden **0** seçenek buldu; aynı girdi 5 tekrarın 5'inde aynı
+sonucu verdi. Hata analizi motoru değiştirdi: nominal
 getiriyle P01'de Turuncu tabanı tüm fonların üzerindeydi (0,912; reel getiri
 sonrası 0,568, en iyi fon 0,837); 5 personanın 4'ü yalnızca nakit benzeri, SPK risk 1 fonlar alıyordu
 (sınıf kuralı sonrası 5 farklı set).
 
 ## Kaynak dosyalar
 
-- `prototype/docs/decision.md` — karar katmanının tasarımı (bölüm 2–6, 10)
+- `prototype/docs/decision.md` — karar katmanının tasarımı (bölüm 2–6, 10;
+  bölüm 11 dağılım bantları D20; bölüm 8 satır D21)
 - `prototype/config/decision.yaml` — tüm tablolar, ağırlıklar, cezalar, metinler
 - `prototype/src/rmprep/decision/` — motor (`scoring.py`, `recommend.py`, `confidence.py`)
 - `prototype/docs/ingest.md` — veri kaynakları ve kalite işaretleri
 - `prototype/data/inbox/manual/` — stopaj, TÜFE ve ING oranları (kaynak URL'leriyle)
-- `prototype/data/eval/20261012-201431-full/report.md` — değerlendirme raporu
+- `prototype/data/eval/20261013-004507-full/report.md` — son değerlendirme raporu
 - `prototype/docs/teslim/01-problem-tanimi.md` — problem tanımı
