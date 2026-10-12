@@ -126,10 +126,13 @@ def test_template_first_sentence_leads_with_the_real_return(f02, r02, config):
     assert first.text.index("reel") < first.text.index("1 yıllık getiri")
 
 
-def test_template_dikkat_has_a_watch_item_per_option(f02, r02, config):
+def test_template_dikkat_watch_items_only_for_new_facts(f02, r02, config):
+    """N13b replaces "one watch item per option": only slow access or fees."""
     dikkat = _section(template_sections(f02, "TR", config.disclaimer["TR"]), "dikkat")
     for oid in r02.rm_selected:
-        assert any(s.option_ids[:1] == (oid,) for s in dikkat.sentences)
+        risk = f02.risks[oid]
+        expected = bool(risk.fees or (risk.access_days or 0) > 0)
+        assert any(s.option_ids == (oid,) for s in dikkat.sentences) is expected
 
 
 def test_template_repetition(f02, r02, config):
