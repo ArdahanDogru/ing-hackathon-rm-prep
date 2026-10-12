@@ -505,6 +505,7 @@ funds, with `entities`).
 | D17 | (web UI) **display facts** (section 9): `rmprep.decision.display.display_facts(result, evidence, config) -> dict[str, DisplayFacts]` for every scored and rejected option; config `display.why: {<criterion>: <text with {access} {risk} {ret1y}>}` OPTIONAL | facts for every option; returns cite their rows; real 1-year = net of stopaj, then CPI (no fees); no CPI → none; time deposit `lock_days` = `term_days`; `why` uses the persona's own wording, no score numbers |
 | D18 | (web UI) **talking points** (contract v1.3, section 9): config `talking_points: {order, deposit_keywords, texts}` OPTIONAL (without it: none) | P01 gets `deposit_real` first, without ING numbers; no deposit point without the keyword; figures in Turkish format with a sign; each point cites evidence and only scored options; `needs_rm_input` → none |
 | D19 | (2026-10-12, error analysis) **diverse recommendations** (section 10): `asset_class` per option, criterion `risk_fit` with profile bands instead of `low_risk`, `DecisionResult.recommended` with the class rule; config sections OPTIONAL until the lead adds them (without them: the old behaviour, `recommended` = the first three group heads) | P01 top 3 unchanged; P02 and P04 at most one `nakit_benzeri` in `recommended` and at least two classes; a fund inside the band beats an equal fund below it; Muhafazakâr unchanged by the class rule; `recommended` ⊆ scored options, ≤ 3; the reason text names the class rule; talking points use `recommended` |
+| D20 | (2026-10-13) **model allocation bands** (section 11): `DecisionResult.allocation` (AllocationBand per class: band, source, inferred, best option, note) and `allocation_notes` (holding hints) + the to_confirm item; config `allocation` OPTIONAL until the lead adds it | bands per profile from config; dengeli without band; best option per class in score order within the hard rules; note `ceiling` for P01 hisse; `negative_real` for gold; P01 gets the deposit hint and the to_confirm item; P02 none; without config allocation = () |
 | D6 *(optional, after the MVO)* | Jev text mapper (below) | — |
 
 After D5 the lead wires `python -m rmprep decide --persona P01 [--snapshot ID]
@@ -663,6 +664,58 @@ cash-like option plus options from two other classes inside their band; P03
 unchanged or more varied; P05 at most one cash-like option only if it has the
 diversity priority (it has not, so unchanged unless its band moves the
 order). The eval gets regression scenarios for these (E9).
+
+## 11. Model allocation bands (D20, approved by the user 2026-10-13)
+
+The RM sees, for the client's risk profile, a **strategic model allocation as
+bands** (min–max % per asset class of D19) and the best option of each class
+for this client. **No current shares and no amounts**: the personas do not give
+the client's holdings (only P01 has a sentence, "Varlığı TL mevduat
+ağırlıklı"), and the brief forbids collecting more client data. A current-
+portfolio input with a gap analysis is **future work** (it needs the bank's
+holdings data).
+
+**Bands (config `allocation.bands`, % per class):**
+
+| Class | Muhafazakâr | Temkinli * | Dengeli | Agresif |
+|---|---|---|---|---|
+| nakit_benzeri | 10–20 | 5–20 | 5–10 | 0–5 |
+| borclanma | 60–70 | 40–60 | 30–40 | 5–10 |
+| hisse | 10–20 | 20–40 | 40–50 | 70–85 |
+| altin_doviz | 5–10 | 5–15 | 10–15 | 5–10 |
+| dengeli | — | — | — | — |
+
+Source: Ata Yatırım, "Yatırım Portföyü Oluşturma Stratejileri ve Rehberi",
+28.04.2026, table "Risk Profillerine Göre Örnek Portföy Yapıları"
+(https://atayatirim.com.tr/blog/yatirim-portfoyu-olusturma-stratejileri-ve-rehberi);
+its gold/commodity column is our altin_doviz (no public FX band). Cross-checks:
+Schwab risk profiles, Vanguard LifeStrategy, SPK BES Standart Fon limits.
+\* Temkinli has no source: our inference between Muhafazakâr and Dengeli,
+marked `inferred: true`. `dengeli` (multi-asset funds) has no band: these funds
+are a fund type, not an asset class; they are listed without a target. The bands
+are strategic; tactical house views (e.g. more cash at high TL rates) can be
+outside them. To be confirmed with the mentors (question 6).
+
+**Engine output (contract v1.8):** `DecisionResult.allocation:
+tuple[AllocationBand, ...]` in class order, each with `asset_class`, `low`,
+`high` (None for dengeli), `source` (short text), `inferred`, `option_id` (the
+best scored option of the class for this client, in score order, None if
+none), and `note` (config texts, first that applies): `ceiling` — the class has
+funds but none within the client's risk ceiling ("risk tavanı nedeniyle uygun
+fon yok"); `none` — no scored option; `negative_real` — the best option has a
+negative real 1-year return ("son 1 yıl reel −%13: önerilmiyor" with the
+figure). `DecisionResult.allocation_notes: tuple[str, ...]` holds qualitative
+holding hints from the persona text (config `allocation.holding_hints`:
+keyword in `durum` → text, e.g. "mevduat ağırlıklı" → "Dosyaya göre varlık TL
+mevduat ağırlıklı: nakit benzeri bandı aşılıyor olabilir."); when a hint
+applies, `to_confirm` gets "Mevcut portföy dağılımını sorun." Without the config
+section: `allocation` = () (no change).
+
+**Screen (W13):** the "Öneriler" switch gets a third view **Dağılım**: one row
+per class with the band as a bar, the source (a "*" for an inferred band with
+its tooltip), the best option (short name, real 1-year return, risk) or the
+note, and the holding hints above the rows. A click on an option opens the fund
+card. The meeting text does not change in this step.
 
 ## Later / optional
 

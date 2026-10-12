@@ -315,6 +315,15 @@ the date of the value (`as_of`). The meeting text view shows "Onaylandı:
 time from `DecisionResult.rm_decided_at` (contract v1.7) in the approval bar
 after approval.
 
+### Model allocation view (W13, 2026-10-13)
+
+"Öneriler" switch: Tablo | Kartlar | **Dağılım** (docs/decision.md section 11):
+one row per asset class — band bar (low–high %), source ("*" = our inference,
+tooltip), the best option (short name, real 1-year return, SPK risk; a click
+opens the fund card) or the note; the holding hints above the rows. No current
+shares, no amounts. The current-portfolio input with a gap analysis is future
+work.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no
