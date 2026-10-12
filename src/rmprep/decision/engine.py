@@ -22,6 +22,7 @@ from rmprep.decision.config import DecisionConfig
 from rmprep.decision.notes import build_notes, build_warnings, source_notes
 from rmprep.decision.persona import read_persona
 from rmprep.decision.scoring import score_options
+from rmprep.decision.display import facts_of
 from rmprep.decision.recommend import class_rule_applies, choose
 from rmprep.decision.talking import talking_points
 from rmprep.decision.universe import EvidenceIndex, build_universe
@@ -130,7 +131,18 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
         for r in scoring.scored)
     # recommended top 3 with the class rule (D19); the reason of an option the rule
     # moved up says so
-    rec_ids, moved = choose(options, levels, config)
+    idx = EvidenceIndex(evidence)
+    nets = {f.option.option_id: f.net_return for f in scoring.features}
+
+    def real_of(o: ScoredOption) -> float | None:
+        """Real 1-year return (percent; display facts), else the net return."""
+        real = facts_of(o.option, idx, config).real_1y
+        if real is not None:
+            return real.value
+        net = nets.get(o.option.option_id)
+        return net * 100 if net is not None else None
+
+    rec_ids, moved = choose(options, levels, config, real_of)
     if moved:
         text = config.raw["texts"]["reasons"]["class_rule"]
         options = tuple(_with_class_reason(o, text) if o.option.option_id in moved else o
