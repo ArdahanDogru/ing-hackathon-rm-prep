@@ -1,18 +1,18 @@
 {
- "run_id": "Rc42670a01a",
+ "run_id": "R80b1641fa4",
  "lang": "EN",
  "sections": [
   {
    "key": "ozet",
    "sentences": [
     {
-     "text": "The client is a 62-year-old retired entrepreneur (Emekli girişimci) with a conservative risk profile whose assets are mostly TL deposits (Varlığı TL mevduat ağırlıklı), and who wants to understand alternatives that could reduce the deposit concentration of the current portfolio.",
+     "text": "The client is a 62-year-old retired entrepreneur with a conservative risk profile, whose assets are mostly TL deposits, and who wants to understand alternatives that could reduce deposit concentration.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "The aim of the meeting is to discuss three TL funds against the ING Turuncu Hesap (standart) comparison, with the focus on regular income and preserving capital.",
+     "text": "The aim of the meeting is to discuss three TL funds with a 1-3 year horizon, in line with the client's goal of regular income and capital preservation.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
@@ -29,7 +29,7 @@
    "key": "oneriler",
    "sentences": [
     {
-     "text": "Nurol Portföy Para Piyasası (TL) has a real 1-year return of 7.36%, a nominal return of 47.60% and a risk level of 1 (as of 2026-10-09).",
+     "text": "Nurol Portföy Para Piyasası (TL) shows a real 1-year return of 7.36% after withholding tax and inflation, a nominal return of 47.60%, and a risk level of 1.",
      "option_ids": [
       "fund:PPN"
      ],
@@ -40,7 +40,7 @@
      "title": ""
     },
     {
-     "text": "Nurol Portföy Para Piyasası (TL) fits the client's priority of düzenli gelir, since the client wants a high regular cash flow and asked about monthly cash flow.",
+     "text": "Nurol Portföy Para Piyasası (TL) fits the client's wish for regular income, since the client asked about monthly cash flow.",
      "option_ids": [
       "fund:PPN"
      ],
@@ -50,7 +50,7 @@
      "title": ""
     },
     {
-     "text": "Nurol Portföy Para Piyasası (TL) follows interest rates, so unlike a deposit its principal is not insured, which matters for a client who wants high principal protection.",
+     "text": "Nurol Portföy Para Piyasası (TL) follows interest rates and, unlike a deposit, its principal is not insured.",
      "option_ids": [
       "fund:PPN"
      ],
@@ -60,7 +60,7 @@
      "title": ""
     },
     {
-     "text": "İstanbul Portföy KV Borçlanma (TL) has a real 1-year return of 7.06%, a nominal return of 47.14% and a risk level of 1.",
+     "text": "İstanbul Portföy KV Borçlanma (TL) shows a real 1-year return of 7.06%, a nominal return of 47.14%, and a risk level of 1.",
      "option_ids": [
       "fund:IST"
      ],
@@ -71,7 +71,7 @@
      "title": ""
     },
     {
-     "text": "İstanbul Portföy KV Borçlanma (TL) suits the 1-3 year horizon and the wish for limited fluctuation (sınırlı dalgalanma) with a risk level within the client's 1-2 range.",
+     "text": "İstanbul Portföy KV Borçlanma (TL) suits the client's 1-3 year horizon and the wish for limited fluctuation, as the client avoids high-risk products.",
      "option_ids": [
       "fund:IST"
      ],
@@ -81,7 +81,7 @@
      "title": ""
     },
     {
-     "text": "İstanbul Portföy KV Borçlanma (TL) also follows interest rates and its principal is not insured, so check the client's tolerance given the stated wish to avoid high-risk products.",
+     "text": "İstanbul Portföy KV Borçlanma (TL) also follows interest rates, so the client should know that the principal is not insured as a deposit is.",
      "option_ids": [
       "fund:IST"
      ],
@@ -91,7 +91,7 @@
      "title": ""
     },
     {
-     "text": "Ak Portföy Para Piyasası Katılım has a real 1-year return of 6.50%, a nominal return of 46.26% and a risk level of 1.",
+     "text": "Ak Portföy Para Piyasası Katılım shows a real 1-year return of 6.50%, a nominal return of 46.26%, and a risk level of 1.",
      "option_ids": [
       "fund:AIS"
      ],
@@ -102,7 +102,7 @@
      "title": ""
     },
     {
-     "text": "Ak Portföy Para Piyasası Katılım is the participation-type option and gives same-day access, supporting the priority of likiditeyi koruma.",
+     "text": "Ak Portföy Para Piyasası Katılım is a participation-type option that also gives same-day access, in line with the client's medium liquidity need.",
      "option_ids": [
       "fund:AIS"
      ],
@@ -112,7 +112,7 @@
      "title": ""
     },
     {
-     "text": "Ak Portföy Para Piyasası Katılım follows interest rates and its principal is not insured, unlike a deposit, so explain this difference clearly.",
+     "text": "Ak Portföy Para Piyasası Katılım follows interest rates, and its principal is not insured unlike a deposit.",
      "option_ids": [
       "fund:AIS"
      ],
@@ -127,27 +127,24 @@
    "key": "alternatifler",
    "sentences": [
     {
-     "text": "In the money market group the other options are ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU and ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU; in the debt group they are AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU and OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU.",
+     "text": "In the money market group, the other options are ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU and ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU.",
      "option_ids": [
       "fund:GO6",
       "fund:ZBJ",
-      "fund:HVT",
-      "fund:BRR",
-      "fund:OSD"
+      "fund:HVT"
      ],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "In the participation group the others are GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU and NUROL PORTFÖY PARA PİYASASI KATILIM FONU; for comparison, ING Turuncu Hesap (standart) pays 23.00% with a real return of -8.29%.",
+     "text": "In the debt group, the others are AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU and OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU; in the participation group, GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU and NUROL PORTFÖY PARA PİYASASI KATILIM FONU.",
      "option_ids": [
+      "fund:BRR",
+      "fund:OSD",
       "fund:GPN",
-      "fund:NSP",
-      "deposit:ing_turuncu"
+      "fund:NSP"
      ],
-     "evidence_ids": [
-      "E42b47116"
-     ],
+     "evidence_ids": [],
      "title": ""
     }
    ]
@@ -156,13 +153,13 @@
    "key": "dikkat",
    "sentences": [
     {
-     "text": "Past fund returns do not show future returns, and the fund principal is not insured like a deposit.",
+     "text": "Past returns do not show future returns, and fund returns can change.",
      "option_ids": [
-      "fund:PPN"
+      "fund:PPN",
+      "fund:IST",
+      "fund:AIS"
      ],
-     "evidence_ids": [
-      "E06f53164"
-     ],
+     "evidence_ids": [],
      "title": ""
     }
    ]
@@ -171,13 +168,13 @@
    "key": "sorular",
    "sentences": [
     {
-     "text": "Ask how much of the monthly cash flow the client expects to cover from these funds, and how often money is needed.",
+     "text": "Ask the client how much monthly cash flow is needed and how regularly it is needed.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "Confirm that the client wishes to avoid high-risk products (yüksek riskli ürünlerden kaçınma).",
+     "text": "Confirm that the client still wants to avoid high-risk products.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
@@ -188,19 +185,19 @@
    "key": "teklif_metni",
    "sentences": [
     {
-     "text": "You want regular income while protecting your capital, and you would like to rely less on deposits.",
+     "text": "You told us that regular income and protecting your capital matter most, and that your assets are mostly in TL deposits.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "We could look at three TL funds with a risk level of 1 and same-day access, next to your current Turuncu Hesap.",
+     "text": "We can look at three TL funds with a low risk level and same-day access, to see whether they could help with your monthly cash flow.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "Past returns do not show the future, and unlike a deposit the fund principal is not insured.",
+     "text": "Past returns do not show future returns, and the fund principal is not insured like a deposit.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
@@ -252,7 +249,7 @@
    "key": "talking_points",
    "sentences": [
     {
-     "text": "Market average deposit interest gives a real annual return of +%4,9 after stopaj and inflation, which is the level the funds are compared with.",
+     "text": "The market average deposit rate gives about +4.9% real return per year after withholding tax and inflation, according to TCMB EVDS data.",
      "option_ids": [],
      "evidence_ids": [
       "E0382c2e7",
@@ -262,7 +259,15 @@
      "title": "Mevduatta reel getiri"
     },
     {
-     "text": "All three proposed funds give access on the same day (Aynı gün), which suits the client's medium liquidity need.",
+     "text": "The client asked about monthly cash flow, so regular income is the central topic of the conversation.",
+     "option_ids": [
+      "fund:PPN"
+     ],
+     "evidence_ids": [],
+     "title": "Aylık nakit akışı"
+    },
+    {
+     "text": "For all three selected funds, the money is available the same day, which supports the client's wish to keep liquidity.",
      "option_ids": [],
      "evidence_ids": [
       "E06f53164",
@@ -270,42 +275,28 @@
       "Efc142651"
      ],
      "title": "Paraya erişim"
-    },
-    {
-     "text": "Nurol Portföy Para Piyasası (TL) returned +%7,4 after inflation over the last year, and the client asked about monthly cash flow.",
-     "option_ids": [
-      "fund:PPN"
-     ],
-     "evidence_ids": [
-      "E2075d858",
-      "Eb39e0ab5"
-     ],
-     "title": "Alternatif"
     }
    ]
   }
  ],
  "source": "llm",
  "model": "claude-sonnet-5-5",
- "prompt_version": "n8",
+ "prompt_version": "n9",
  "checks": [],
- "created_at": "2026-10-13T00:15:14.215366+03:00",
- "cost_usd": 0.0472475,
+ "created_at": "2026-10-13T00:34:24.855914+03:00",
+ "cost_usd": 0.0449945,
  "status": "draft",
  "rm_text": "",
  "need_tags": {
   "fund:PPN": [
    "düzenli gelir",
-   "likiditeyi koruma",
-   "sınırlı dalgalanma"
+   "likiditeyi koruma"
   ],
   "fund:IST": [
-   "düzenli gelir",
-   "likiditeyi koruma",
-   "sınırlı dalgalanma"
+   "sınırlı dalgalanma",
+   "düzenli gelir"
   ],
   "fund:AIS": [
-   "düzenli gelir",
    "likiditeyi koruma",
    "sınırlı dalgalanma"
   ]
@@ -313,6 +304,6 @@
  "rm_edits": {},
  "edit_checks": {},
  "approved_at": null,
- "markdown": "# Meeting text · Rc42670a01a\n\n## Summary\n\nThe client is a 62-year-old retired entrepreneur (Emekli girişimci) with a conservative risk profile whose assets are mostly TL deposits (Varlığı TL mevduat ağırlıklı), and who wants to understand alternatives that could reduce the deposit concentration of the current portfolio. The aim of the meeting is to discuss three TL funds against the ING Turuncu Hesap (standart) comparison, with the focus on regular income and preserving capital. This text is meeting preparation for the RM; it is not investment advice.\n\n## Talking points\n\n- **Mevduatta reel getiri:** Market average deposit interest gives a real annual return of +%4,9 after stopaj and inflation, which is the level the funds are compared with.\n- **Paraya erişim:** All three proposed funds give access on the same day (Aynı gün), which suits the client's medium liquidity need.\n- **Alternatif:** Nurol Portföy Para Piyasası (TL) returned +%7,4 after inflation over the last year, and the client asked about monthly cash flow.\n\n## Proposal script\n\nYou want regular income while protecting your capital, and you would like to rely less on deposits. We could look at three TL funds with a risk level of 1 and same-day access, next to your current Turuncu Hesap. Past returns do not show the future, and unlike a deposit the fund principal is not insured.\n\n## Options to discuss\n\n### Nurol Portföy Para Piyasası (TL)\n\n- Nurol Portföy Para Piyasası (TL) has a real 1-year return of 7.36%, a nominal return of 47.60% and a risk level of 1 (as of 2026-10-09).\n- Nurol Portföy Para Piyasası (TL) fits the client's priority of düzenli gelir, since the client wants a high regular cash flow and asked about monthly cash flow.\n- Nurol Portföy Para Piyasası (TL) follows interest rates, so unlike a deposit its principal is not insured, which matters for a client who wants high principal protection.\n\n### İstanbul Portföy KV Borçlanma (TL)\n\n- İstanbul Portföy KV Borçlanma (TL) has a real 1-year return of 7.06%, a nominal return of 47.14% and a risk level of 1.\n- İstanbul Portföy KV Borçlanma (TL) suits the 1-3 year horizon and the wish for limited fluctuation (sınırlı dalgalanma) with a risk level within the client's 1-2 range.\n- İstanbul Portföy KV Borçlanma (TL) also follows interest rates and its principal is not insured, so check the client's tolerance given the stated wish to avoid high-risk products.\n\n### Ak Portföy Para Piyasası Katılım\n\n- Ak Portföy Para Piyasası Katılım has a real 1-year return of 6.50%, a nominal return of 46.26% and a risk level of 1.\n- Ak Portföy Para Piyasası Katılım is the participation-type option and gives same-day access, supporting the priority of likiditeyi koruma.\n- Ak Portföy Para Piyasası Katılım follows interest rates and its principal is not insured, unlike a deposit, so explain this difference clearly.\n\n## Points to watch\n\n- Past fund returns do not show future returns, and the fund principal is not insured like a deposit.\n\n## Additional information\n\n### Alternatives\n\n- In the money market group the other options are ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU and ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU; in the debt group they are AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU and OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU.\n- In the participation group the others are GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU and NUROL PORTFÖY PARA PİYASASI KATILIM FONU; for comparison, ING Turuncu Hesap (standart) pays 23.00% with a real return of -8.29%.\n\n### Questions\n\n- Ask how much of the monthly cash flow the client expects to cover from these funds, and how often money is needed.\n- Confirm that the client wishes to avoid high-risk products (yüksek riskli ürünlerden kaçınma).\n\n### Assumptions\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n",
- "draft_markdown": "# Meeting text · Rc42670a01a\n\n## Summary\n\nThe client is a 62-year-old retired entrepreneur (Emekli girişimci) with a conservative risk profile whose assets are mostly TL deposits (Varlığı TL mevduat ağırlıklı), and who wants to understand alternatives that could reduce the deposit concentration of the current portfolio. The aim of the meeting is to discuss three TL funds against the ING Turuncu Hesap (standart) comparison, with the focus on regular income and preserving capital. This text is meeting preparation for the RM; it is not investment advice.\n\n## Talking points\n\n- **Mevduatta reel getiri:** Market average deposit interest gives a real annual return of +%4,9 after stopaj and inflation, which is the level the funds are compared with.\n- **Paraya erişim:** All three proposed funds give access on the same day (Aynı gün), which suits the client's medium liquidity need.\n- **Alternatif:** Nurol Portföy Para Piyasası (TL) returned +%7,4 after inflation over the last year, and the client asked about monthly cash flow.\n\n## Proposal script\n\nYou want regular income while protecting your capital, and you would like to rely less on deposits. We could look at three TL funds with a risk level of 1 and same-day access, next to your current Turuncu Hesap. Past returns do not show the future, and unlike a deposit the fund principal is not insured.\n\n## Options to discuss\n\n### Nurol Portföy Para Piyasası (TL)\n\n- Nurol Portföy Para Piyasası (TL) has a real 1-year return of 7.36%, a nominal return of 47.60% and a risk level of 1 (as of 2026-10-09).\n- Nurol Portföy Para Piyasası (TL) fits the client's priority of düzenli gelir, since the client wants a high regular cash flow and asked about monthly cash flow.\n- Nurol Portföy Para Piyasası (TL) follows interest rates, so unlike a deposit its principal is not insured, which matters for a client who wants high principal protection.\n\n### İstanbul Portföy KV Borçlanma (TL)\n\n- İstanbul Portföy KV Borçlanma (TL) has a real 1-year return of 7.06%, a nominal return of 47.14% and a risk level of 1.\n- İstanbul Portföy KV Borçlanma (TL) suits the 1-3 year horizon and the wish for limited fluctuation (sınırlı dalgalanma) with a risk level within the client's 1-2 range.\n- İstanbul Portföy KV Borçlanma (TL) also follows interest rates and its principal is not insured, so check the client's tolerance given the stated wish to avoid high-risk products.\n\n### Ak Portföy Para Piyasası Katılım\n\n- Ak Portföy Para Piyasası Katılım has a real 1-year return of 6.50%, a nominal return of 46.26% and a risk level of 1.\n- Ak Portföy Para Piyasası Katılım is the participation-type option and gives same-day access, supporting the priority of likiditeyi koruma.\n- Ak Portföy Para Piyasası Katılım follows interest rates and its principal is not insured, unlike a deposit, so explain this difference clearly.\n\n## Points to watch\n\n- Past fund returns do not show future returns, and the fund principal is not insured like a deposit.\n\n## Additional information\n\n### Alternatives\n\n- In the money market group the other options are ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU and ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU; in the debt group they are AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU and OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU.\n- In the participation group the others are GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU and NUROL PORTFÖY PARA PİYASASI KATILIM FONU; for comparison, ING Turuncu Hesap (standart) pays 23.00% with a real return of -8.29%.\n\n### Questions\n\n- Ask how much of the monthly cash flow the client expects to cover from these funds, and how often money is needed.\n- Confirm that the client wishes to avoid high-risk products (yüksek riskli ürünlerden kaçınma).\n\n### Assumptions\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n"
+ "markdown": "# Meeting text · R80b1641fa4\n\n## Summary\n\nThe client is a 62-year-old retired entrepreneur with a conservative risk profile, whose assets are mostly TL deposits, and who wants to understand alternatives that could reduce deposit concentration. The aim of the meeting is to discuss three TL funds with a 1-3 year horizon, in line with the client's goal of regular income and capital preservation. This text is meeting preparation for the RM; it is not investment advice.\n\n## Talking points\n\n- **Mevduatta reel getiri:** The market average deposit rate gives about +4.9% real return per year after withholding tax and inflation, according to TCMB EVDS data.\n- **Aylık nakit akışı:** The client asked about monthly cash flow, so regular income is the central topic of the conversation.\n- **Paraya erişim:** For all three selected funds, the money is available the same day, which supports the client's wish to keep liquidity.\n\n## Proposal script\n\nYou told us that regular income and protecting your capital matter most, and that your assets are mostly in TL deposits. We can look at three TL funds with a low risk level and same-day access, to see whether they could help with your monthly cash flow. Past returns do not show future returns, and the fund principal is not insured like a deposit.\n\n## Options to discuss\n\n### Nurol Portföy Para Piyasası (TL)\n\n- Nurol Portföy Para Piyasası (TL) shows a real 1-year return of 7.36% after withholding tax and inflation, a nominal return of 47.60%, and a risk level of 1.\n- Nurol Portföy Para Piyasası (TL) fits the client's wish for regular income, since the client asked about monthly cash flow.\n- Nurol Portföy Para Piyasası (TL) follows interest rates and, unlike a deposit, its principal is not insured.\n\n### İstanbul Portföy KV Borçlanma (TL)\n\n- İstanbul Portföy KV Borçlanma (TL) shows a real 1-year return of 7.06%, a nominal return of 47.14%, and a risk level of 1.\n- İstanbul Portföy KV Borçlanma (TL) suits the client's 1-3 year horizon and the wish for limited fluctuation, as the client avoids high-risk products.\n- İstanbul Portföy KV Borçlanma (TL) also follows interest rates, so the client should know that the principal is not insured as a deposit is.\n\n### Ak Portföy Para Piyasası Katılım\n\n- Ak Portföy Para Piyasası Katılım shows a real 1-year return of 6.50%, a nominal return of 46.26%, and a risk level of 1.\n- Ak Portföy Para Piyasası Katılım is a participation-type option that also gives same-day access, in line with the client's medium liquidity need.\n- Ak Portföy Para Piyasası Katılım follows interest rates, and its principal is not insured unlike a deposit.\n\n## Points to watch\n\n- Past returns do not show future returns, and fund returns can change.\n\n## Additional information\n\n### Alternatives\n\n- In the money market group, the other options are ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU and ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU.\n- In the debt group, the others are AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU and OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU; in the participation group, GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU and NUROL PORTFÖY PARA PİYASASI KATILIM FONU.\n\n### Questions\n\n- Ask the client how much monthly cash flow is needed and how regularly it is needed.\n- Confirm that the client still wants to avoid high-risk products.\n\n### Assumptions\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n",
+ "draft_markdown": "# Meeting text · R80b1641fa4\n\n## Summary\n\nThe client is a 62-year-old retired entrepreneur with a conservative risk profile, whose assets are mostly TL deposits, and who wants to understand alternatives that could reduce deposit concentration. The aim of the meeting is to discuss three TL funds with a 1-3 year horizon, in line with the client's goal of regular income and capital preservation. This text is meeting preparation for the RM; it is not investment advice.\n\n## Talking points\n\n- **Mevduatta reel getiri:** The market average deposit rate gives about +4.9% real return per year after withholding tax and inflation, according to TCMB EVDS data.\n- **Aylık nakit akışı:** The client asked about monthly cash flow, so regular income is the central topic of the conversation.\n- **Paraya erişim:** For all three selected funds, the money is available the same day, which supports the client's wish to keep liquidity.\n\n## Proposal script\n\nYou told us that regular income and protecting your capital matter most, and that your assets are mostly in TL deposits. We can look at three TL funds with a low risk level and same-day access, to see whether they could help with your monthly cash flow. Past returns do not show future returns, and the fund principal is not insured like a deposit.\n\n## Options to discuss\n\n### Nurol Portföy Para Piyasası (TL)\n\n- Nurol Portföy Para Piyasası (TL) shows a real 1-year return of 7.36% after withholding tax and inflation, a nominal return of 47.60%, and a risk level of 1.\n- Nurol Portföy Para Piyasası (TL) fits the client's wish for regular income, since the client asked about monthly cash flow.\n- Nurol Portföy Para Piyasası (TL) follows interest rates and, unlike a deposit, its principal is not insured.\n\n### İstanbul Portföy KV Borçlanma (TL)\n\n- İstanbul Portföy KV Borçlanma (TL) shows a real 1-year return of 7.06%, a nominal return of 47.14%, and a risk level of 1.\n- İstanbul Portföy KV Borçlanma (TL) suits the client's 1-3 year horizon and the wish for limited fluctuation, as the client avoids high-risk products.\n- İstanbul Portföy KV Borçlanma (TL) also follows interest rates, so the client should know that the principal is not insured as a deposit is.\n\n### Ak Portföy Para Piyasası Katılım\n\n- Ak Portföy Para Piyasası Katılım shows a real 1-year return of 6.50%, a nominal return of 46.26%, and a risk level of 1.\n- Ak Portföy Para Piyasası Katılım is a participation-type option that also gives same-day access, in line with the client's medium liquidity need.\n- Ak Portföy Para Piyasası Katılım follows interest rates, and its principal is not insured unlike a deposit.\n\n## Points to watch\n\n- Past returns do not show future returns, and fund returns can change.\n\n## Additional information\n\n### Alternatives\n\n- In the money market group, the other options are ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU and ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU.\n- In the debt group, the others are AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU and OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU; in the participation group, GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU and NUROL PORTFÖY PARA PİYASASI KATILIM FONU.\n\n### Questions\n\n- Ask the client how much monthly cash flow is needed and how regularly it is needed.\n- Confirm that the client still wants to avoid high-risk products.\n\n### Assumptions\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n"
 }

@@ -1,17 +1,19 @@
 {
- "run_id": "Rc42670a01a",
+ "run_id": "R80b1641fa4",
  "lang": "TR",
- "text": "62 yaşında muhafazakâr emekli girişimci; düzenli gelir ve sermaye korumayı önceliklendiriyor, mevduat yoğunluğunu azaltmak istiyor. Görüşmede NUROL PPN, İSTANBUL IST ve AK AIS fonlarının uygunluğu ile aynı gün paraya erişim ele alınabilir.",
+ "text": "Müşteriniz 62 yaşında emekli girişimci; düzenli gelir, likiditeyi koruma ve sınırlı dalgalanma önceliklerinde, varlığı ağırlıklı olarak TL mevduatta.",
  "source": "llm",
  "model": "claude-haiku-5-5",
  "prompt_version": "b1",
  "checks": [],
- "created_at": "2026-10-12T17:53:09.619629+03:00",
- "cost_usd": 0.0009434249999999999,
+ "created_at": "2026-10-13T00:33:35.195675+03:00",
+ "cost_usd": 0.00043327500000000006,
  "cite": [
   "fund:PPN",
   "fund:IST",
   "fund:AIS",
-  "E06f53164"
+  "E2075d858",
+  "E12805994",
+  "Efa7fc2ec"
  ]
 }

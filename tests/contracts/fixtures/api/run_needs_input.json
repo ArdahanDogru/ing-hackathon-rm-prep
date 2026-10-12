@@ -1,8 +1,8 @@
 {
  "result": {
-  "run_id": "R80a84a067f",
-  "config_hash": "2534f798cc47",
-  "created_at": "2026-10-13T00:14:08.576262+03:00",
+  "run_id": "R5bbf52af30",
+  "config_hash": "ba3e40ad2855",
+  "created_at": "2026-10-13T00:33:38.019234+03:00",
   "persona": {
    "persona_id": "P01",
    "profil": "Emekli girişimci",
@@ -64,12 +64,15 @@
   "rm_option_notes": {},
   "talking_points": [],
   "to_confirm": [
-   "Yatırım tutarını sorun: 100.000-249.999 TL dilimi varsayıldı."
+   "Yatırım tutarını sorun: 100.000-249.999 TL dilimi varsayıldı.",
+   "Mevcut portföy dağılımını sorun."
   ],
   "recommended": [],
   "rm_decided_at": null,
   "allocation": [],
-  "allocation_notes": []
+  "allocation_notes": [
+   "Dosyaya göre varlık TL mevduat ağırlıklı: nakit benzeri bandı aşılıyor olabilir."
+  ]
  },
  "test_run": true,
  "persona_changes": [
@@ -92,6 +95,11 @@
  "to_confirm": [
   {
    "text": "Yatırım tutarını sorun: 100.000-249.999 TL dilimi varsayıldı.",
+   "question_id": null,
+   "choices": []
+  },
+  {
+   "text": "Mevcut portföy dağılımını sorun.",
    "question_id": null,
    "choices": []
   }

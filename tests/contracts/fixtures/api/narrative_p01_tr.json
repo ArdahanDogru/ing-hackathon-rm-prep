@@ -1,12 +1,18 @@
 {
- "run_id": "Rc42670a01a",
+ "run_id": "R80b1641fa4",
  "lang": "TR",
  "sections": [
   {
    "key": "ozet",
    "sentences": [
     {
-     "text": "Emekli girişimci müşterinin varlığı TL mevduat ağırlıklı; görüşmenin amacı düzenli gelir ve sermayenin korunmasını önceleyen, mevduat yoğunluğunu azaltabilecek seçenekleri konuşmaktır.",
+     "text": "62 yaşındaki emekli girişimci, varlığı TL mevduat ağırlıklı; düzenli gelir ve sermayenin korunmasını önceliklendiriyor ve mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor.",
+     "option_ids": [],
+     "evidence_ids": [],
+     "title": ""
+    },
+    {
+     "text": "Görüşmenin amacı, seçilen üç düşük riskli TL fonunu müşterinin aylık nakit akışı sorusu çerçevesinde ele almaktır.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
@@ -23,7 +29,7 @@
    "key": "oneriler",
    "sentences": [
     {
-     "text": "Nurol Portföy Para Piyasası (TL) fonunda enflasyon sonrası reel getiri %7,4, nominal getiri %47,6 ve risk seviyesi 1/7'dir.",
+     "text": "Nurol Portföy Para Piyasası (TL): enflasyon sonrası reel getirisi %7,36, nominal getirisi %47,60, risk düzeyi 1/7.",
      "option_ids": [
       "fund:PPN"
      ],
@@ -34,7 +40,7 @@
      "title": ""
     },
     {
-     "text": "Nurol Portföy Para Piyasası (TL) fonu, müşterinin aylık nakit akışı sorusu ve yüksek gelir ihtiyacı açısından son bir yıllık getirisiyle öne çıkıyor.",
+     "text": "Nurol Portföy Para Piyasası (TL), düzenli gelir ihtiyacınız ve aylık nakit akışı sorunuz için son bir yılda en yüksek reel getiriyi sunan seçenek olarak öne çıkıyor.",
      "option_ids": [
       "fund:PPN"
      ],
@@ -44,7 +50,7 @@
      "title": ""
     },
     {
-     "text": "Nurol Portföy Para Piyasası (TL) fonunun getirisi faiz değişimine bağlıdır; mevduat gibi anapara güvencesi yoktur.",
+     "text": "Nurol Portföy Para Piyasası (TL) için getirisi faiz değişimine bağlıdır; mevduat gibi anapara güvencesi yoktur.",
      "option_ids": [
       "fund:PPN"
      ],
@@ -54,7 +60,7 @@
      "title": ""
     },
     {
-     "text": "İstanbul Portföy KV Borçlanma (TL) fonunda reel getiri %7,1, nominal getiri %47,14 ve risk seviyesi 1/7'dir.",
+     "text": "İstanbul Portföy KV Borçlanma (TL): enflasyon sonrası reel getirisi %7,06, nominal getirisi %47,14, risk düzeyi 1/7.",
      "option_ids": [
       "fund:IST"
      ],
@@ -65,27 +71,28 @@
      "title": ""
     },
     {
-     "text": "İstanbul Portföy KV Borçlanma (TL) fonu, 1-3 yıllık yatırım ufkunda kısa vadeli borçlanma araçlarıyla çeşitlenme arayan ve anaparayı önemseyen müşteriye uyar.",
+     "text": "İstanbul Portföy KV Borçlanma (TL), 1-3 yıllık ufkunuzda sınırlı dalgalanma önceliğinize uygun, kısa vadeli borçlanma araçlarına dayalı bir seçenek.",
      "option_ids": [
       "fund:IST"
      ],
      "evidence_ids": [
-      "E12805994"
+      "E5f8c417b"
      ],
      "title": ""
     },
     {
-     "text": "İstanbul Portföy KV Borçlanma (TL) fonunda da faiz değişimi getiriyi etkiler ve anapara güvencesi yoktur.",
+     "text": "İstanbul Portföy KV Borçlanma (TL) de faiz değişimine bağlı getiri taşır ve anapara güvencesi yoktur; fon büyüklüğü diğerlerine göre daha küçüktür.",
      "option_ids": [
       "fund:IST"
      ],
      "evidence_ids": [
-      "E3f036729"
+      "E3f036729",
+      "E340fc2f7"
      ],
      "title": ""
     },
     {
-     "text": "Ak Portföy Para Piyasası Katılım fonunda reel getiri %6,5, nominal getiri %46,26 ve risk seviyesi 1/7'dir.",
+     "text": "Ak Portföy Para Piyasası Katılım: enflasyon sonrası reel getirisi %6,50, nominal getirisi %46,26, risk düzeyi 1/7.",
      "option_ids": [
       "fund:AIS"
      ],
@@ -96,22 +103,23 @@
      "title": ""
     },
     {
-     "text": "Ak Portföy Para Piyasası Katılım fonu, sınırlı dalgalanma önceliği ve yüksek riskli ürünlerden kaçınma kısıtı yanında katılım yapısıyla portföyü çeşitlendirir.",
+     "text": "Ak Portföy Para Piyasası Katılım, mevduat dışına çıkarken katılım türü bir fon ve geniş yatırımcı tabanı arayan, yüksek anapara koruma tercihli bir müşteri için seçenek olabilir.",
      "option_ids": [
       "fund:AIS"
      ],
      "evidence_ids": [
-      "Ec4ee1814"
+      "Ea77df75c"
      ],
      "title": ""
     },
     {
-     "text": "Ak Portföy Para Piyasası Katılım fonunun getirisi de faiz değişimine bağlıdır; anapara güvencesi yoktur.",
+     "text": "Ak Portföy Para Piyasası Katılım için getirisi faiz değişimine bağlıdır ve mevduat gibi anapara güvencesi yoktur; üç seçenek içinde reel getirisi en düşüktür.",
      "option_ids": [
       "fund:AIS"
      ],
      "evidence_ids": [
-      "Efc142651"
+      "Efc142651",
+      "Efa7fc2ec"
      ],
      "title": ""
     }
@@ -121,27 +129,24 @@
    "key": "alternatifler",
    "sentences": [
     {
-     "text": "Para piyasası grubunda ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU ve ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU; borçlanma grubunda AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU ve OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU değerlendirilebilir.",
+     "text": "Para piyasası grubunda ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU ve ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU de aynı türden seçeneklerdir.",
      "option_ids": [
       "fund:GO6",
       "fund:ZBJ",
-      "fund:HVT",
-      "fund:BRR",
-      "fund:OSD"
+      "fund:HVT"
      ],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "Katılım grubunda GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU ve NUROL PORTFÖY PARA PİYASASI KATILIM FONU var; karşılaştırma için ING Turuncu Hesap (standart) mevduatında faiz %23, reel getiri %-8,3'tür.",
+     "text": "Borçlanma grubunda AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU ve OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU; katılım grubunda GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU ve NUROL PORTFÖY PARA PİYASASI KATILIM FONU var.",
      "option_ids": [
+      "fund:BRR",
+      "fund:OSD",
       "fund:GPN",
-      "fund:NSP",
-      "deposit:ing_turuncu"
+      "fund:NSP"
      ],
-     "evidence_ids": [
-      "E42b47116"
-     ],
+     "evidence_ids": [],
      "title": ""
     }
    ]
@@ -150,11 +155,11 @@
    "key": "dikkat",
    "sentences": [
     {
-     "text": "Geçmiş getiriler gelecekteki getiriyi göstermez.",
-     "option_ids": [],
-     "evidence_ids": [
-      "E2075d858"
+     "text": "Fon getirileri geçmiş getirilerdir; geçmiş getiri gelecekteki getiriyi göstermez.",
+     "option_ids": [
+      "fund:PPN"
      ],
+     "evidence_ids": [],
      "title": ""
     }
    ]
@@ -163,13 +168,13 @@
    "key": "sorular",
    "sentences": [
     {
-     "text": "Aylık nakit akışı ihtiyacınızı hangi tutar ve sıklıkta düşünüyorsunuz, diye sorun.",
+     "text": "Aylık nakit akışı ihtiyacınız yaklaşık ne kadar ve hangi sıklıkta para çekmeyi düşünüyorsunuz, teyit edin.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "Yüksek riskli ürünlerden kaçınma kısıtınızın geçerli olduğunu teyit edin.",
+     "text": "Yüksek riskli ürünlerden kaçınma kısıtınızın hâlâ geçerli olduğunu teyit edin.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
@@ -180,13 +185,13 @@
    "key": "teklif_metni",
    "sentences": [
     {
-     "text": "Düzenli gelir ve sermayenizi korumak istediğinizi biliyoruz; mevduat ağırlıklı portföyünüzü düşük riskli, paranıza aynı gün erişebileceğiniz fonlarla çeşitlendirmeyi birlikte değerlendirebiliriz.",
+     "text": "Düzenli gelir ve sermayenizi korumak istediğinizi biliyoruz; mevduat ağırlıklı portföyünüzü çeşitlendirmek için düşük riskli, aynı gün erişilebilen üç fonu birlikte değerlendirelim.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
     },
     {
-     "text": "Fonların geçmiş getirisi geleceği göstermez ve anapara güvencesi yoktur.",
+     "text": "Fon getirilerinin geçmiş getiri olduğunu ve gelecekteki sonucu göstermediğini unutmayalım.",
      "option_ids": [],
      "evidence_ids": [],
      "title": ""
@@ -238,7 +243,7 @@
    "key": "talking_points",
    "sentences": [
     {
-     "text": "Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor; müşterinin mevduat ağırlıklı portföyünü bu açıdan konuşun.",
+     "text": "Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor.",
      "option_ids": [],
      "evidence_ids": [
       "E0382c2e7",
@@ -248,7 +253,7 @@
      "title": "Mevduatta reel getiri"
     },
     {
-     "text": "Seçilen üç fonda da paraya erişim aynı gün; müşterinin likiditeyi koruma önceliğiyle ilişkilendirin.",
+     "text": "Seçilen üç fonun üçünde de paraya erişim aynı gün; bu, likiditeyi koruma isteğinizle uyumlu.",
      "option_ids": [],
      "evidence_ids": [
       "E06f53164",
@@ -262,26 +267,30 @@
  ],
  "source": "llm",
  "model": "claude-sonnet-5-5",
- "prompt_version": "n8",
+ "prompt_version": "n9",
  "checks": [],
- "created_at": "2026-10-13T00:14:51.842460+03:00",
- "cost_usd": 0.0843347,
+ "created_at": "2026-10-13T00:34:04.991738+03:00",
+ "cost_usd": 0.0422599,
  "status": "draft",
  "rm_text": "",
  "need_tags": {
   "fund:PPN": [
-   "düzenli gelir"
+   "düzenli gelir",
+   "likiditeyi koruma",
+   "sınırlı dalgalanma"
   ],
   "fund:IST": [
+   "düzenli gelir",
    "sınırlı dalgalanma"
   ],
   "fund:AIS": [
-   "likiditeyi koruma"
+   "likiditeyi koruma",
+   "sınırlı dalgalanma"
   ]
  },
  "rm_edits": {},
  "edit_checks": {},
  "approved_at": null,
- "markdown": "# Görüşme metni · Rc42670a01a\n\n## Özet\n\nEmekli girişimci müşterinin varlığı TL mevduat ağırlıklı; görüşmenin amacı düzenli gelir ve sermayenin korunmasını önceleyen, mevduat yoğunluğunu azaltabilecek seçenekleri konuşmaktır. Bu metin RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir.\n\n## Müşteriyle konuşulacaklar\n\n- **Mevduatta reel getiri:** Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor; müşterinin mevduat ağırlıklı portföyünü bu açıdan konuşun.\n- **Paraya erişim:** Seçilen üç fonda da paraya erişim aynı gün; müşterinin likiditeyi koruma önceliğiyle ilişkilendirin.\n\n## Teklif metni\n\nDüzenli gelir ve sermayenizi korumak istediğinizi biliyoruz; mevduat ağırlıklı portföyünüzü düşük riskli, paranıza aynı gün erişebileceğiniz fonlarla çeşitlendirmeyi birlikte değerlendirebiliriz. Fonların geçmiş getirisi geleceği göstermez ve anapara güvencesi yoktur.\n\n## Öneriler\n\n### Nurol Portföy Para Piyasası (TL)\n\n- Nurol Portföy Para Piyasası (TL) fonunda enflasyon sonrası reel getiri %7,4, nominal getiri %47,6 ve risk seviyesi 1/7'dir.\n- Nurol Portföy Para Piyasası (TL) fonu, müşterinin aylık nakit akışı sorusu ve yüksek gelir ihtiyacı açısından son bir yıllık getirisiyle öne çıkıyor.\n- Nurol Portföy Para Piyasası (TL) fonunun getirisi faiz değişimine bağlıdır; mevduat gibi anapara güvencesi yoktur.\n\n### İstanbul Portföy KV Borçlanma (TL)\n\n- İstanbul Portföy KV Borçlanma (TL) fonunda reel getiri %7,1, nominal getiri %47,14 ve risk seviyesi 1/7'dir.\n- İstanbul Portföy KV Borçlanma (TL) fonu, 1-3 yıllık yatırım ufkunda kısa vadeli borçlanma araçlarıyla çeşitlenme arayan ve anaparayı önemseyen müşteriye uyar.\n- İstanbul Portföy KV Borçlanma (TL) fonunda da faiz değişimi getiriyi etkiler ve anapara güvencesi yoktur.\n\n### Ak Portföy Para Piyasası Katılım\n\n- Ak Portföy Para Piyasası Katılım fonunda reel getiri %6,5, nominal getiri %46,26 ve risk seviyesi 1/7'dir.\n- Ak Portföy Para Piyasası Katılım fonu, sınırlı dalgalanma önceliği ve yüksek riskli ürünlerden kaçınma kısıtı yanında katılım yapısıyla portföyü çeşitlendirir.\n- Ak Portföy Para Piyasası Katılım fonunun getirisi de faiz değişimine bağlıdır; anapara güvencesi yoktur.\n\n## Dikkat\n\n- Geçmiş getiriler gelecekteki getiriyi göstermez.\n\n## Ek bilgiler\n\n### Alternatifler\n\n- Para piyasası grubunda ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU ve ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU; borçlanma grubunda AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU ve OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU değerlendirilebilir.\n- Katılım grubunda GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU ve NUROL PORTFÖY PARA PİYASASI KATILIM FONU var; karşılaştırma için ING Turuncu Hesap (standart) mevduatında faiz %23, reel getiri %-8,3'tür.\n\n### Sorular\n\n- Aylık nakit akışı ihtiyacınızı hangi tutar ve sıklıkta düşünüyorsunuz, diye sorun.\n- Yüksek riskli ürünlerden kaçınma kısıtınızın geçerli olduğunu teyit edin.\n\n### Varsayımlar\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n",
- "draft_markdown": "# Görüşme metni · Rc42670a01a\n\n## Özet\n\nEmekli girişimci müşterinin varlığı TL mevduat ağırlıklı; görüşmenin amacı düzenli gelir ve sermayenin korunmasını önceleyen, mevduat yoğunluğunu azaltabilecek seçenekleri konuşmaktır. Bu metin RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir.\n\n## Müşteriyle konuşulacaklar\n\n- **Mevduatta reel getiri:** Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor; müşterinin mevduat ağırlıklı portföyünü bu açıdan konuşun.\n- **Paraya erişim:** Seçilen üç fonda da paraya erişim aynı gün; müşterinin likiditeyi koruma önceliğiyle ilişkilendirin.\n\n## Teklif metni\n\nDüzenli gelir ve sermayenizi korumak istediğinizi biliyoruz; mevduat ağırlıklı portföyünüzü düşük riskli, paranıza aynı gün erişebileceğiniz fonlarla çeşitlendirmeyi birlikte değerlendirebiliriz. Fonların geçmiş getirisi geleceği göstermez ve anapara güvencesi yoktur.\n\n## Öneriler\n\n### Nurol Portföy Para Piyasası (TL)\n\n- Nurol Portföy Para Piyasası (TL) fonunda enflasyon sonrası reel getiri %7,4, nominal getiri %47,6 ve risk seviyesi 1/7'dir.\n- Nurol Portföy Para Piyasası (TL) fonu, müşterinin aylık nakit akışı sorusu ve yüksek gelir ihtiyacı açısından son bir yıllık getirisiyle öne çıkıyor.\n- Nurol Portföy Para Piyasası (TL) fonunun getirisi faiz değişimine bağlıdır; mevduat gibi anapara güvencesi yoktur.\n\n### İstanbul Portföy KV Borçlanma (TL)\n\n- İstanbul Portföy KV Borçlanma (TL) fonunda reel getiri %7,1, nominal getiri %47,14 ve risk seviyesi 1/7'dir.\n- İstanbul Portföy KV Borçlanma (TL) fonu, 1-3 yıllık yatırım ufkunda kısa vadeli borçlanma araçlarıyla çeşitlenme arayan ve anaparayı önemseyen müşteriye uyar.\n- İstanbul Portföy KV Borçlanma (TL) fonunda da faiz değişimi getiriyi etkiler ve anapara güvencesi yoktur.\n\n### Ak Portföy Para Piyasası Katılım\n\n- Ak Portföy Para Piyasası Katılım fonunda reel getiri %6,5, nominal getiri %46,26 ve risk seviyesi 1/7'dir.\n- Ak Portföy Para Piyasası Katılım fonu, sınırlı dalgalanma önceliği ve yüksek riskli ürünlerden kaçınma kısıtı yanında katılım yapısıyla portföyü çeşitlendirir.\n- Ak Portföy Para Piyasası Katılım fonunun getirisi de faiz değişimine bağlıdır; anapara güvencesi yoktur.\n\n## Dikkat\n\n- Geçmiş getiriler gelecekteki getiriyi göstermez.\n\n## Ek bilgiler\n\n### Alternatifler\n\n- Para piyasası grubunda ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU ve ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU; borçlanma grubunda AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU ve OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU değerlendirilebilir.\n- Katılım grubunda GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU ve NUROL PORTFÖY PARA PİYASASI KATILIM FONU var; karşılaştırma için ING Turuncu Hesap (standart) mevduatında faiz %23, reel getiri %-8,3'tür.\n\n### Sorular\n\n- Aylık nakit akışı ihtiyacınızı hangi tutar ve sıklıkta düşünüyorsunuz, diye sorun.\n- Yüksek riskli ürünlerden kaçınma kısıtınızın geçerli olduğunu teyit edin.\n\n### Varsayımlar\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n"
+ "markdown": "# Görüşme metni · R80b1641fa4\n\n## Özet\n\n62 yaşındaki emekli girişimci, varlığı TL mevduat ağırlıklı; düzenli gelir ve sermayenin korunmasını önceliklendiriyor ve mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor. Görüşmenin amacı, seçilen üç düşük riskli TL fonunu müşterinin aylık nakit akışı sorusu çerçevesinde ele almaktır. Bu metin RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir.\n\n## Müşteriyle konuşulacaklar\n\n- **Mevduatta reel getiri:** Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor.\n- **Paraya erişim:** Seçilen üç fonun üçünde de paraya erişim aynı gün; bu, likiditeyi koruma isteğinizle uyumlu.\n\n## Teklif metni\n\nDüzenli gelir ve sermayenizi korumak istediğinizi biliyoruz; mevduat ağırlıklı portföyünüzü çeşitlendirmek için düşük riskli, aynı gün erişilebilen üç fonu birlikte değerlendirelim. Fon getirilerinin geçmiş getiri olduğunu ve gelecekteki sonucu göstermediğini unutmayalım.\n\n## Öneriler\n\n### Nurol Portföy Para Piyasası (TL)\n\n- Nurol Portföy Para Piyasası (TL): enflasyon sonrası reel getirisi %7,36, nominal getirisi %47,60, risk düzeyi 1/7.\n- Nurol Portföy Para Piyasası (TL), düzenli gelir ihtiyacınız ve aylık nakit akışı sorunuz için son bir yılda en yüksek reel getiriyi sunan seçenek olarak öne çıkıyor.\n- Nurol Portföy Para Piyasası (TL) için getirisi faiz değişimine bağlıdır; mevduat gibi anapara güvencesi yoktur.\n\n### İstanbul Portföy KV Borçlanma (TL)\n\n- İstanbul Portföy KV Borçlanma (TL): enflasyon sonrası reel getirisi %7,06, nominal getirisi %47,14, risk düzeyi 1/7.\n- İstanbul Portföy KV Borçlanma (TL), 1-3 yıllık ufkunuzda sınırlı dalgalanma önceliğinize uygun, kısa vadeli borçlanma araçlarına dayalı bir seçenek.\n- İstanbul Portföy KV Borçlanma (TL) de faiz değişimine bağlı getiri taşır ve anapara güvencesi yoktur; fon büyüklüğü diğerlerine göre daha küçüktür.\n\n### Ak Portföy Para Piyasası Katılım\n\n- Ak Portföy Para Piyasası Katılım: enflasyon sonrası reel getirisi %6,50, nominal getirisi %46,26, risk düzeyi 1/7.\n- Ak Portföy Para Piyasası Katılım, mevduat dışına çıkarken katılım türü bir fon ve geniş yatırımcı tabanı arayan, yüksek anapara koruma tercihli bir müşteri için seçenek olabilir.\n- Ak Portföy Para Piyasası Katılım için getirisi faiz değişimine bağlıdır ve mevduat gibi anapara güvencesi yoktur; üç seçenek içinde reel getirisi en düşüktür.\n\n## Dikkat\n\n- Fon getirileri geçmiş getirilerdir; geçmiş getiri gelecekteki getiriyi göstermez.\n\n## Ek bilgiler\n\n### Alternatifler\n\n- Para piyasası grubunda ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU ve ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU de aynı türden seçeneklerdir.\n- Borçlanma grubunda AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU ve OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU; katılım grubunda GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU ve NUROL PORTFÖY PARA PİYASASI KATILIM FONU var.\n\n### Sorular\n\n- Aylık nakit akışı ihtiyacınız yaklaşık ne kadar ve hangi sıklıkta para çekmeyi düşünüyorsunuz, teyit edin.\n- Yüksek riskli ürünlerden kaçınma kısıtınızın hâlâ geçerli olduğunu teyit edin.\n\n### Varsayımlar\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n",
+ "draft_markdown": "# Görüşme metni · R80b1641fa4\n\n## Özet\n\n62 yaşındaki emekli girişimci, varlığı TL mevduat ağırlıklı; düzenli gelir ve sermayenin korunmasını önceliklendiriyor ve mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor. Görüşmenin amacı, seçilen üç düşük riskli TL fonunu müşterinin aylık nakit akışı sorusu çerçevesinde ele almaktır. Bu metin RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir.\n\n## Müşteriyle konuşulacaklar\n\n- **Mevduatta reel getiri:** Piyasa ortalamasındaki mevduat faizi stopaj ve enflasyon sonrası yıllık +%4,9 reel getiri veriyor.\n- **Paraya erişim:** Seçilen üç fonun üçünde de paraya erişim aynı gün; bu, likiditeyi koruma isteğinizle uyumlu.\n\n## Teklif metni\n\nDüzenli gelir ve sermayenizi korumak istediğinizi biliyoruz; mevduat ağırlıklı portföyünüzü çeşitlendirmek için düşük riskli, aynı gün erişilebilen üç fonu birlikte değerlendirelim. Fon getirilerinin geçmiş getiri olduğunu ve gelecekteki sonucu göstermediğini unutmayalım.\n\n## Öneriler\n\n### Nurol Portföy Para Piyasası (TL)\n\n- Nurol Portföy Para Piyasası (TL): enflasyon sonrası reel getirisi %7,36, nominal getirisi %47,60, risk düzeyi 1/7.\n- Nurol Portföy Para Piyasası (TL), düzenli gelir ihtiyacınız ve aylık nakit akışı sorunuz için son bir yılda en yüksek reel getiriyi sunan seçenek olarak öne çıkıyor.\n- Nurol Portföy Para Piyasası (TL) için getirisi faiz değişimine bağlıdır; mevduat gibi anapara güvencesi yoktur.\n\n### İstanbul Portföy KV Borçlanma (TL)\n\n- İstanbul Portföy KV Borçlanma (TL): enflasyon sonrası reel getirisi %7,06, nominal getirisi %47,14, risk düzeyi 1/7.\n- İstanbul Portföy KV Borçlanma (TL), 1-3 yıllık ufkunuzda sınırlı dalgalanma önceliğinize uygun, kısa vadeli borçlanma araçlarına dayalı bir seçenek.\n- İstanbul Portföy KV Borçlanma (TL) de faiz değişimine bağlı getiri taşır ve anapara güvencesi yoktur; fon büyüklüğü diğerlerine göre daha küçüktür.\n\n### Ak Portföy Para Piyasası Katılım\n\n- Ak Portföy Para Piyasası Katılım: enflasyon sonrası reel getirisi %6,50, nominal getirisi %46,26, risk düzeyi 1/7.\n- Ak Portföy Para Piyasası Katılım, mevduat dışına çıkarken katılım türü bir fon ve geniş yatırımcı tabanı arayan, yüksek anapara koruma tercihli bir müşteri için seçenek olabilir.\n- Ak Portföy Para Piyasası Katılım için getirisi faiz değişimine bağlıdır ve mevduat gibi anapara güvencesi yoktur; üç seçenek içinde reel getirisi en düşüktür.\n\n## Dikkat\n\n- Fon getirileri geçmiş getirilerdir; geçmiş getiri gelecekteki getiriyi göstermez.\n\n## Ek bilgiler\n\n### Alternatifler\n\n- Para piyasası grubunda ONE PORTFÖY PARA PİYASASI (TL) FONU, ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU ve ALLBATROSS PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU de aynı türden seçeneklerdir.\n- Borçlanma grubunda AK PORTFÖY İKİNCİ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU ve OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU; katılım grubunda GARANTİ PORTFÖY PARA PİYASASI KATILIM (TL) FONU ve NUROL PORTFÖY PARA PİYASASI KATILIM FONU var.\n\n### Sorular\n\n- Aylık nakit akışı ihtiyacınız yaklaşık ne kadar ve hangi sıklıkta para çekmeyi düşünüyorsunuz, teyit edin.\n- Yüksek riskli ürünlerden kaçınma kısıtınızın hâlâ geçerli olduğunu teyit edin.\n\n### Varsayımlar\n\n- Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.\n- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.\n- Mevduat için 100.000-249.999 TL diliminin standart oranı kullanıldı (tutar bilinmiyor; hoş geldin oranı geçicidir).\n- Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.\n- Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.\n- 32 günlük vade her ay yenilenir; oranlar değişebilir.\n"
 }

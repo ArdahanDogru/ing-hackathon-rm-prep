@@ -15,11 +15,6 @@
   "explanation": "Tüketici Fiyat Endeksi: tüketicilerin satın aldığı mal ve hizmetlerin fiyatlarındaki ortalama değişim. Yıllık TÜFE, yıllık enflasyon oranıdır."
  },
  {
-  "term": "anapara",
-  "form": "anapara",
-  "explanation": "Yatırılan ilk tutar; getiri veya kayıp eklenmeden önceki para."
- },
- {
   "term": "para_piyasasi_fonu",
   "form": "para piyasası",
   "explanation": "Çok kısa vadeli, düşük riskli araçlara (repo, kısa vadeli mevduat ve bonolar) yatırım yapan fon. Genelde aynı gün paraya çevrilebilir."
@@ -28,6 +23,16 @@
   "term": "nominal_getiri",
   "form": "nominal",
   "explanation": "Vergi ve enflasyon dikkate alınmadan, yayımlandığı haliyle getiri oranı."
+ },
+ {
+  "term": "risk_degeri",
+  "form": "risk düzeyi",
+  "explanation": "Fonun fiyat dalgalanmasına göre 1 (en düşük) ile 7 (en yüksek) arasında verilen risk sınıfı. Yüksek değer, değerin kısa sürede daha çok inip çıkabileceği anlamına gelir."
+ },
+ {
+  "term": "anapara",
+  "form": "anapara",
+  "explanation": "Yatırılan ilk tutar; getiri veya kayıp eklenmeden önceki para."
  },
  {
   "term": "katilim_fonu",

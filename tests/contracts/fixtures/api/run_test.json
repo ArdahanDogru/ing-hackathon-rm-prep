@@ -1,8 +1,8 @@
 {
  "result": {
-  "run_id": "Rc2f8a5862b",
-  "config_hash": "2534f798cc47",
-  "created_at": "2026-10-13T00:14:07.513635+03:00",
+  "run_id": "R123493038e",
+  "config_hash": "ba3e40ad2855",
+  "created_at": "2026-10-13T00:33:37.182096+03:00",
   "persona": {
    "persona_id": "P01",
    "profil": "Emekli girişimci",
@@ -25730,7 +25730,8 @@
    }
   ],
   "to_confirm": [
-   "Yatırım tutarını sorun: 100.000-249.999 TL dilimi varsayıldı."
+   "Yatırım tutarını sorun: 100.000-249.999 TL dilimi varsayıldı.",
+   "Mevcut portföy dağılımını sorun."
   ],
   "recommended": [
    "fund:PPN",
@@ -25738,8 +25739,56 @@
    "fund:AIS"
   ],
   "rm_decided_at": null,
-  "allocation": [],
-  "allocation_notes": []
+  "allocation": [
+   {
+    "asset_class": "nakit_benzeri",
+    "low": 10,
+    "high": 20,
+    "source": "Ata Yatırım, 28.04.2026",
+    "inferred": false,
+    "option_id": "fund:PPN",
+    "note": ""
+   },
+   {
+    "asset_class": "borclanma",
+    "low": 60,
+    "high": 70,
+    "source": "Ata Yatırım, 28.04.2026",
+    "inferred": false,
+    "option_id": "fund:OSD",
+    "note": ""
+   },
+   {
+    "asset_class": "hisse",
+    "low": 10,
+    "high": 20,
+    "source": "Ata Yatırım, 28.04.2026",
+    "inferred": false,
+    "option_id": null,
+    "note": "ceiling"
+   },
+   {
+    "asset_class": "altin_doviz",
+    "low": 5,
+    "high": 10,
+    "source": "Ata Yatırım, 28.04.2026",
+    "inferred": false,
+    "option_id": "fund:KZL",
+    "note": "negative_real"
+   },
+   {
+    "asset_class": "dengeli",
+    "low": null,
+    "high": null,
+    "source": "Ata Yatırım, 28.04.2026",
+    "inferred": false,
+    "option_id": "fund:KCV",
+    "note": ""
+   }
+  ],
+  "allocation_notes": [
+   "Dosyaya göre varlık TL mevduat ağırlıklı: nakit benzeri bandı aşılıyor olabilir."
+  ]
  },
  "test_run": true,
  "persona_changes": [
@@ -26259,6 +26308,137 @@
    "selected": false,
    "rm_note": ""
   },
+  "fund:KCV": {
+   "option_id": "fund:KCV",
+   "label": "KUVEYT TÜRK PORTFÖY ÇOKLU VARLIK KATILIM FONU",
+   "kind": "fund",
+   "issuer": "Kuveyt Türk Portföy",
+   "short_label": "Çoklu Varlık Katılım",
+   "category_key": "participation",
+   "category_label": "Katılım",
+   "fx": false,
+   "returns": {
+    "3m": {
+     "value": 5.8142,
+     "evidence_id": "Edf31b7ad"
+    },
+    "6m": {
+     "value": 17.8274,
+     "evidence_id": "E820e9ff6"
+    },
+    "1y": {
+     "value": 49.1763,
+     "evidence_id": "Ee97bd420"
+    },
+    "real_1y": {
+     "value": 8.356160872581508,
+     "evidence_id": "Ee97bd420"
+    }
+   },
+   "category_avg": {
+    "3m": 6.4698692307692305,
+    "6m": 12.599042222222222,
+    "1y": 35.42616790123457,
+    "real_1y": -0.4152971080487128
+   },
+   "rank": {
+    "position": 8,
+    "of": 81
+   },
+   "stars": 5,
+   "better_than_pct": 90,
+   "risk": {
+    "level": 2,
+    "evidence_id": "Ecda0e1b3"
+   },
+   "access": {
+    "days": 2,
+    "lock_days": null,
+    "label": "2 iş günü",
+    "evidence_id": "Efcac750d"
+   },
+   "match": 5.8,
+   "why": [
+    [
+     "düzenli gelir",
+     "Son bir yılda +%49,2 getiri (geçmiş getiri)"
+    ],
+    [
+     "likiditeyi koruma",
+     "Paraya erişim: 2 iş günü"
+    ],
+    [
+     "sınırlı dalgalanma",
+     "SPK risk değeri 2 / 7"
+    ]
+   ],
+   "warnings": [],
+   "data_notes": [],
+   "selected": false,
+   "rm_note": ""
+  },
+  "fund:KZL": {
+   "option_id": "fund:KZL",
+   "label": "KUVEYT TÜRK PORTFÖY ALTIN KATILIM FONU",
+   "kind": "fund",
+   "issuer": "Kuveyt Türk Portföy",
+   "short_label": "Altın Katılım",
+   "category_key": "participation",
+   "category_label": "Katılım",
+   "fx": false,
+   "returns": {
+    "3m": {
+     "value": 6.6023,
+     "evidence_id": "E8a233cc4"
+    },
+    "6m": {
+     "value": -4.9525,
+     "evidence_id": "Eb31f66ca"
+    },
+    "1y": {
+     "value": 15.7752,
+     "evidence_id": "E5d17b5d7"
+    },
+    "real_1y": {
+     "value": -12.884806906652269,
+     "evidence_id": "E5d17b5d7"
+    }
+   },
+   "category_avg": {
+    "3m": 6.4698692307692305,
+    "6m": 12.599042222222222,
+    "1y": 35.42616790123457,
+    "real_1y": -0.4152971080487128
+   },
+   "rank": {
+    "position": 68,
+    "of": 81
+   },
+   "stars": 2,
+   "better_than_pct": 16,
+   "risk": null,
+   "access": {
+    "days": 1,
+    "lock_days": null,
+    "label": "1 iş günü",
+    "evidence_id": "Eed1855a5"
+   },
+   "match": 1.0,
+   "why": [
+    [
+     "düzenli gelir",
+     "Son bir yılda +%15,8 getiri (geçmiş getiri)"
+    ],
+    [
+     "likiditeyi koruma",
+     "Paraya erişim: 1 iş günü"
+    ]
+   ],
+   "warnings": [],
+   "data_notes": [],
+   "selected": false,
+   "rm_note": ""
+  },
   "fund:NSP": {
    "option_id": "fund:NSP",
    "label": "NUROL PORTFÖY PARA PİYASASI KATILIM FONU",
@@ -26631,6 +26811,11 @@
  "to_confirm": [
   {
    "text": "Yatırım tutarını sorun: 100.000-249.999 TL dilimi varsayıldı.",
+   "question_id": null,
+   "choices": []
+  },
+  {
+   "text": "Mevcut portföy dağılımını sorun.",
    "question_id": null,
    "choices": []
   }
