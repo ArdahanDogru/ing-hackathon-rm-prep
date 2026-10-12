@@ -135,6 +135,7 @@ recommend:
   max_cash_like: 1
   cash_like: nakit_benzeri
   profiles: ["Dengeli", "Agresif"]   # also with the diversity priority / concentration_limit
+  min_real_return: 0.0               # D19b: no class-rule pick with a negative real 1-year return (%)
 
 # --- 4. Scoring ----------------------------------------------------------------------
 kinds:   # liquidity / income / simplicity values (0..1)
