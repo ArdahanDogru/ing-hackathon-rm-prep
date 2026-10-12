@@ -66,7 +66,7 @@ class Narrator:
             return self._template(f, lang, (f"llm: no API key ({self.config.api_key_env})",), 0.0)
 
         cost, previous, findings = 0.0, None, ()
-        for _ in range(ATTEMPTS):
+        for attempt in range(1, ATTEMPTS + 1):
             spent, limit = self.spent_today(), self.config.max_cost_usd_per_day
             if spent >= limit:
                 budget = f"budget: daily limit ${limit:.2f} reached (${spent:.2f} spent today)"
@@ -76,8 +76,9 @@ class Narrator:
                 reply = self.client.complete(request)
             except LlmError as e:
                 return self._template(f, lang, (*findings, f"llm: {e.kind}: {e.message}"), cost)
-            cost += self._ledger_add(run_id=r.run_id, lang=lang, reply=reply)
             sections, tags, findings = self._check(reply, f, r, lang)
+            cost += self._ledger_add(run_id=r.run_id, lang=lang, reply=reply,
+                                     attempt=attempt, findings=findings)
             if not findings:
                 draft = NarrativeDraft(
                     run_id=r.run_id, lang=lang, sections=sections, source="llm",
@@ -125,8 +126,6 @@ class Narrator:
             reply = self.client.complete(brief_request(bf, lang, self.config))
         except LlmError as e:
             return self._plain(r, lang, (f"llm: {e.kind}: {e.message}",))
-        cost = self._ledger_add(run_id=r.run_id, lang=lang, reply=reply, kind="brief",
-                                prices=(cfg.price_input_per_mtok, cfg.price_output_per_mtok))
         if reply.stop_reason == "refusal":
             findings = (f"llm: refusal ({reply.refusal_category or 'no category'})",)
         elif reply.stop_reason == "max_tokens":
@@ -140,6 +139,9 @@ class Narrator:
                 findings = validate_brief(text, cite, bf, r, self.config, lang)
             except ValueError as e:
                 findings = (f"format: {e}",)
+        cost = self._ledger_add(run_id=r.run_id, lang=lang, reply=reply, kind="brief",
+                                prices=(cfg.price_input_per_mtok, cfg.price_output_per_mtok),
+                                attempt=1, findings=findings)
         if findings:
             return self._save_brief(path, self._plain(r, lang, findings, cost))
         return self._save_brief(path, NarrativeBrief(
@@ -197,7 +199,10 @@ class Narrator:
         return (tokens_in * p_in + reply.output_tokens * p_out) / 1e6
 
     def _ledger_add(self, *, run_id: str, lang: str, reply: LlmReply,
-                    prices: tuple[float, float] | None = None, kind: str = "text") -> float:
+                    prices: tuple[float, float] | None = None, kind: str = "text",
+                    attempt: int = 1, findings=()) -> float:
+        """Append one call to the ledger; N13d: with its attempt number and the
+        validator findings of its text ([] = passed), so a retry shows why."""
         now = self.clock().astimezone(TR_TZ)
         cost = self._cost(reply, prices)
         row = {"date": now.date().isoformat(), "at": now.isoformat(), "run_id": run_id,
@@ -205,7 +210,8 @@ class Narrator:
                "input_tokens": reply.input_tokens,
                "output_tokens": reply.output_tokens,
                "cache_write_tokens": reply.cache_write_tokens,
-               "cache_read_tokens": reply.cache_read_tokens, "cost_usd": cost}
+               "cache_read_tokens": reply.cache_read_tokens, "cost_usd": cost,
+               "attempt": attempt, "findings": list(findings)}
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         with open(self.cache_dir / LEDGER, "a", encoding="utf-8", newline="\n") as fh:
             fh.write(json.dumps(row) + "\n")
@@ -220,6 +226,28 @@ class Narrator:
         path.write_text(json.dumps(d.to_dict(), ensure_ascii=False, indent=1) + "\n",
                         encoding="utf-8", newline="\n")
         return d
+
+
+def findings_by_kind(ledger: Path | str, attempt: int = 1, kind: str = "text") -> dict[str, int]:
+    """N13d: over the cost ledger, the attempts of one number (1 = first) of one
+    kind ("text" | "brief"): how many there were, how many failed, and per
+    finding kind ("phrase", "number", ...) how many attempts had it. Rows from
+    before N13d (no attempt field) are left out."""
+    out = {"attempts": 0, "failed": 0}
+    path = Path(ledger)
+    if not path.exists():
+        return out
+    for line in path.read_text(encoding="utf-8").splitlines():
+        row = json.loads(line) if line.strip() else {}
+        if row.get("attempt") != attempt or row.get("kind", "text") != kind:
+            continue
+        out["attempts"] += 1
+        found = row.get("findings") or []
+        if found:
+            out["failed"] += 1
+        for k in dict.fromkeys(x.split(":", 1)[0].strip() for x in found):
+            out[k] = out.get(k, 0) + 1
+    return out
 
 
 def facts_hash(f: Facts) -> str:
