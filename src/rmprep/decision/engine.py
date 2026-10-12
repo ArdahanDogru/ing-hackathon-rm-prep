@@ -17,6 +17,7 @@ from rmprep.contracts import (
     Persona,
     ScoredOption,
 )
+from rmprep.decision.allocation import allocation, holding_notes
 from rmprep.decision.confidence import confidence, stability
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.notes import build_notes, build_warnings, source_notes
@@ -106,6 +107,13 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
     cfg_hash = config_hash(config)
     standard = standard_assumption_items(config, evidence)
     keys = tuple(k for k, _ in standard) + reading.assumption_keys
+    hints = holding_notes(persona, config)
+
+    def confirm(keys: tuple[str, ...]) -> tuple[str, ...]:
+        """to_confirm of the assumption keys, then the holding question (D20)."""
+        holding = (config.raw["allocation"]["holding_confirm"],) if hints else ()
+        return to_confirm(config, keys) + holding
+
     common = dict(
         run_id=run_id(cfg_hash, persona, evidence.snapshot_id, evidence.excluded_sources,
                       answers),
@@ -113,7 +121,8 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
         snapshot_id=evidence.snapshot_id, excluded_sources=evidence.excluded_sources,
         questions=reading.questions,
         assumptions=tuple(text for _, text in standard) + reading.assumptions,
-        to_confirm=to_confirm(config, keys),
+        to_confirm=confirm(keys),
+        allocation_notes=hints,
     )
     if reading.levels is None:
         return DecisionResult(state=DecisionState.NEEDS_RM_INPUT,
@@ -150,7 +159,7 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
     if class_rule_applies(levels, config):
         texts = config.raw["texts"]["assumptions"]
         common["assumptions"] += (texts["class_rule"],)
-        common["to_confirm"] = to_confirm(config, keys + ("class_rule",))
+        common["to_confirm"] = confirm(keys + ("class_rule",))
     by_id = {o.option.option_id: o for o in options}
     estimates = {f.option.option_id: f.risk for f in scoring.features if f.risk_estimated}
     warnings = build_warnings(options, levels, reading.questions, evidence, config, estimates)
@@ -176,4 +185,7 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
                           talking_points=talking_points(
                               options, persona, levels, evidence, config,
                               top=[by_id[i] for i in rec_ids]),
-                          recommended=rec_ids, **common)
+                          recommended=rec_ids,
+                          allocation=allocation(options, scoring.rejected, levels, config,
+                                                real_of, estimates),
+                          **common)

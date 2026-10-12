@@ -49,6 +49,16 @@ def render(result: DecisionResult) -> str:
     if len(funds) > shown:
         lines.append(f"\n{len(funds) - shown} more scored options outside the groups")
 
+    if r.allocation:
+        lines.append("\nallocation:")
+        lines += [f"  {n}" for n in r.allocation_notes]
+        for b in r.allocation:
+            band = "-" if b.low is None else f"{b.low:g}-{b.high:g} %{'*' if b.inferred else ''}"
+            best = b.option_id or "-"
+            note = f" ({b.note})" if b.note else ""
+            source = f"  ({b.source})" if b.low is not None else ""
+            lines.append(f"  {b.asset_class} {band}{source}  best {best}{note}")
+
     if r.rejected:
         ids = [x.option.option_id for x in r.rejected]
         more = ", ..." if len(ids) > REJECTED_SHOWN else ""
