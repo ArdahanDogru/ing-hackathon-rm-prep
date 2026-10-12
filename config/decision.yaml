@@ -139,6 +139,10 @@ recommend:
   profiles: ["Dengeli", "Agresif"]   # also with the diversity priority / concentration_limit
   min_real_return: 0.0               # D19b: no class-rule pick with a negative real 1-year return (%)
 
+# D21: a fund without an SPK risk row gets the upper quartile of the known risk values of
+# its asset class in the snapshot (rounded up); fewer than min_known values -> old kind rule
+risk_estimate: {by_class_quantile: 0.75, min_known: 5}
+
 # --- D20: model allocation bands (docs/decision.md section 11) ---------------------------
 # Source: Ata Yatırım, "Yatırım Portföyü Oluşturma Stratejileri ve Rehberi", 28.04.2026,
 # table "Risk Profillerine Göre Örnek Portföy Yapıları"; its gold/commodity column is our
@@ -291,6 +295,7 @@ texts:
     low_risk: "Risk değeri {risk}/7."        # used only without the D19 risk_fit section
     risk_fit: "Risk değeri {risk}/7; müşterinin risk aralığı {band_lo}-{band_hi}."
     class_rule: "Çeşitlendirme: farklı varlık sınıfından en iyi seçenek."
+    "penalty:risk_unknown_class": "Risk değeri yok; varlık sınıfının üst çeyreği ({risk}) varsayıldı."
     liquidity: "Likidite (ürün türüne göre): {value:.1f}."
     income: "Düzenli gelir uygunluğu (ürün türüne göre): {value:.1f}."
     principal: "Anapara koruma: {value:.2f}."
@@ -332,6 +337,7 @@ texts:
     liquidity_need: "Yüksek likidite iste"
     ignore: "Dikkate alma"
   assumptions:
+    risk_estimate_class: "Risk değeri olmayan fonlarda aynı varlık sınıfındaki bilinen risk değerlerinin üst çeyreği (yukarı yuvarlanmış) kullanıldı."
     class_rule: "Öneriler varlık sınıflarına yayıldı: her sınıftan en fazla bir, nakit benzeri en fazla bir seçenek."
     fx_override: "RM döviz fonları kısıtını gerekçeyle kaldırdı (gerekçe RM notunda); döviz fonları ceza ile listede."
     kind_proxy_valor: "Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi."
