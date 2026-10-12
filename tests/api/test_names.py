@@ -52,3 +52,14 @@ def test_narrator_name_forms_accept_every_issuer_word():
     forms = name_forms("AZİMUT PYŞ KISA VADELİ BORÇLANMA ARAÇLARI FONU")
     assert "azimut pyş kv borçlanma" in forms and "azimut kv borçlanma" in forms
     assert name_forms("NUROL PORTFÖY PARA PİYASASI (TL) FONU")
+
+
+@pytest.mark.parametrize("label,issuer,short", [
+    ("BV PORTFÖY PARA PİYASASI (TL) FON", "BV Portföy", "Para Piyasası (TL)"),
+    ("QNB PORTFÖY PARA PİYASASI FONU", "QNB Portföy", "Para Piyasası"),
+    ("HSBC PORTFÖY ALTIN FONU", "HSBC Portföy", "Altın"),
+    ("TEB PORTFÖY PARA PİYASASI FONU", "TEB Portföy", "Para Piyasası"),
+    ("İŞ PORTFÖY TEMKİNLİ DEĞİŞKEN FON", "İş Portföy", "Temkinli Değişken"),
+])
+def test_short_name_acronyms_and_final_fon(label, issuer, short):
+    assert short_name(label) == (issuer, short)

@@ -11,7 +11,8 @@ import re
 
 ABBREVIATIONS = (("KISA VADELİ", "KV"), ("BORÇLANMA ARAÇLARI", "BORÇLANMA"))
 SMALL_WORDS = {"ve", "ile", "veya"}
-KEEP_UPPER = {"TL", "KV", "USD", "EUR", "ING", "BIST", "ABD", "PYŞ"}
+KEEP_UPPER = {"TL", "KV", "USD", "EUR", "ING", "BIST", "ABD", "PYŞ", "TEB"}
+VOWELS = set("AEIİOÖUÜ")
 ISSUER_WORDS = ("PORTFÖY", "PYŞ")       # the issuer ends with one of these
 
 
@@ -31,7 +32,7 @@ def _title(text: str) -> str:
     out = []
     for i, token in enumerate(text.split(" ")):
         core = token.strip("()")
-        if core in KEEP_UPPER:
+        if core in KEEP_UPPER or (core.isalpha() and len(core) <= 5 and not set(core) & VOWELS):
             out.append(token)
         elif i > 0 and _tr_lower(core) in SMALL_WORDS:
             out.append(token.replace(core, _tr_lower(core)))
@@ -50,6 +51,8 @@ def short_name(label: str) -> tuple[str, str]:
     cut = marks[0] + 1
     issuer = _title(" ".join(words[:cut]))
     rest = [w for w in words[cut:] if w != "FONU"]
+    if rest and rest[-1] == "FON":               # some labels end with "FON" instead of "FONU"
+        rest = rest[:-1]
     if not rest:
         return issuer, text
     body = " ".join(rest)
