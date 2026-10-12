@@ -19,6 +19,7 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import date
 
+from rmprep.api.names import short_name
 from rmprep.contracts import (
     BRIEF_MAX_CHARS,
     NARRATIVE_SECTIONS_V13,
@@ -201,20 +202,60 @@ def _without_labels(text: str, labels: Sequence[str]) -> str:
     return text
 
 
+_BRACKET = re.compile(r"\s*\(.*?\)")
+
+
+def name_forms(label: str) -> tuple[str, ...]:
+    """N10b: the short names of a fund as a text may write them, normalized
+    (Turkish lower case, one space), longest first: the issuer with or without
+    "Portföy" + a body (the screen's short label of rmprep.api.names, the same
+    with "KV" written out, or the full fund type), brackets dropped. () for a
+    label without an issuer (a deposit): a fund type alone is not a name."""
+    issuer, short = short_name(label)
+    if not issuer:
+        return ()
+    core = _norm(issuer)
+    port = _norm("PORTFÖY")
+    issuers = {core}
+    if core.endswith(" " + port):
+        issuers.add(core[:-len(port) - 1])
+    words = re.sub(r"\s+", " ", label).strip().split(" ")
+    full = " ".join(x for x in words[words.index("PORTFÖY") + 1:] if x != "FONU")
+    bodies = {_norm(_BRACKET.sub("", b)) for b in (short, short.replace("KV", "Kısa Vadeli"), full)}
+    return tuple(sorted({f"{i} {b}" for i in issuers for b in bodies if b and i},
+                        key=len, reverse=True))
+
+
+def _has_form(text: str, form: str) -> bool:
+    return re.search(rf"(?<!\w){re.escape(form)}(?!\w)", text) is not None
+
+
 def _check_options(sections, f: Facts, r: DecisionResult) -> list[str]:
+    """Rule 2: only the named options, by label, id, fund code or (N10b) short
+    name. The issuer must be in a short name: a short label alone ("Para
+    Piyasası", "Altın") is a fund type, and whether it is unique depends on the
+    run. The short names of the named options are taken out first, so "AK Para
+    Piyasası Katılım" (allowed) does not count as "AK Para Piyasası"."""
     named = f.named_options()
     named_labels = _named_labels(f)
+    named_forms = sorted({x for o in named.values() for x in name_forms(o.label)},
+                         key=len, reverse=True)
     others = [o.option for o in r.options if o.option.option_id not in named]
     others += [x.option for x in r.rejected]
+    other_forms = {o.option_id: name_forms(o.label) for o in others}
     out = []
     for sec in sections:
         for s in sec.sentences:
             text = _without_labels(s.text, named_labels)
+            short_text = text
+            for form in named_forms:
+                short_text = re.sub(rf"(?<!\w){re.escape(form)}(?!\w)", " ", short_text)
             raw = s.text
             for o in named.values():
                 raw = raw.replace(o.label, " ")
             for o in others:
                 if (_norm(o.label) in text or o.option_id in raw
+                        or any(_has_form(short_text, x) for x in other_forms[o.option_id])
                         or (o.kind == "fund" and o.entity
                             and re.search(rf"(?<![\w]){re.escape(o.entity)}(?![\w])", raw))):
                     out.append(f"option: {sec.key}: names {o.option_id}, which is not a selected "
