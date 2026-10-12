@@ -69,3 +69,14 @@ test("brief: 202 means running, 200 the brief, an error throws", async () => {
   await expect(api.brief("R1", "TR")).rejects.toEqual(new ApiError(422, "needs_rm_input"));
   expect(fetch.mock.calls[1][0]).toBe("/api/runs/R1/brief?lang=EN");
 });
+
+test("editBlock: PUT the block with its text or null", async () => {
+  const fetch = vi.fn().mockImplementation(async () => json({}));
+  globalThis.fetch = fetch;
+  await api.editBlock("R1", "TR", "oneriler:fund:PPN", "Yeni.");
+  await api.editBlock("R1", "EN", "ozet", null);
+  expect(fetch.mock.calls[0][0]).toBe("/api/runs/R1/narrative/TR/blocks/oneriler%3Afund%3APPN");
+  expect(fetch.mock.calls[0][1].method).toBe("PUT");
+  expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ text: "Yeni." });
+  expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ text: null });
+});

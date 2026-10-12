@@ -189,6 +189,12 @@ const TR = {
   riskShort: "risk",
   aiSummary: "AI özeti",
   aiCites: "AI özetinin dayanakları",
+  editBlock: "düzenle",
+  blockEdited: "düzenlendi",
+  restoreBlock: "Orijinale dön",
+  mustFix: "Düzeltilmeli",
+  warnOnly: "Uyarı",
+  approveBlocked: "Onay için önce işaretli bölümleri düzeltin.",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -379,6 +385,12 @@ const EN: Record<LabelKey, string> = {
   riskShort: "risk",
   aiSummary: "AI summary",
   aiCites: "What the AI summary rests on",
+  editBlock: "edit",
+  blockEdited: "edited",
+  restoreBlock: "Restore the original",
+  mustFix: "Must be fixed",
+  warnOnly: "Warning",
+  approveBlocked: "Fix the marked sections before the approval.",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };

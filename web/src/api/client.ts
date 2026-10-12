@@ -74,6 +74,9 @@ export const api = {
     `${BASE}/runs/${enc(runId)}/card.md${lang === "TR" ? "" : `?lang=${lang}`}`,
   evidence: (snapshotId: string, evidenceId: string) =>
     request<EvidenceItem>("GET", `/evidence/${enc(snapshotId)}/${enc(evidenceId)}`),
+  /** PUT one block of the meeting text: its edited text, or null to restore the original. */
+  editBlock: (runId: string, lang: Lang, blockId: string, text: string | null) =>
+    request<NarrativeView>("PUT", `/runs/${enc(runId)}/narrative/${lang}/blocks/${enc(blockId)}`, { text }),
   brief,
   glossary: (lang: Lang, runId: string) => request<GlossaryTerm[]>("GET", `/glossary?lang=${lang}&run_id=${enc(runId)}`),
 };
