@@ -32,7 +32,8 @@ def _stats(xs: list[float]) -> dict[str, float] | None:
 
 def same_top3(runs: list[ScenarioRun]) -> dict[str, Any] | None:
     """D19 error case: how many base personas share the most common recommended
-    top 3 (before D19: 4 of 5). None without a ready base run."""
+    top 3 (before D19: 2 — P01 = P04 and P02 = P05; 4 of 5 had only cash-like
+    funds at SPK risk 1). None without a ready base run."""
     from rmprep.grouping import recommended
 
     tops = [tuple(x.option.option_id for x in recommended(sr.runs[0].result))

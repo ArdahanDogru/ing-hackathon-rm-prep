@@ -110,9 +110,9 @@ scenarios:
     group: regression
     description: >-
       Case 8 (error analysis 2026-10-12), D19 diverse recommendations: before D19,
-      4 of 5 personas had the same top 3 (Nurol Para Piyasası, İstanbul KV
-      Borçlanma, Ak Para Piyasası Katılım, all cash-like at SPK risk 1), P02 (Dengeli)
-      among them. After D19: nakit r2 +8,0 · borclanma r2 +8,4 · dengeli r3 +12,8
+      4 of 5 personas got only cash-like funds at SPK risk 1 as their top 3
+      (P01 = P04 and P02 = P05 identical; İstanbul KV Borçlanma and Ak Para
+      Piyasası Katılım in all four), P02 (Dengeli) among them. After D19: nakit r2 +8,0 · borclanma r2 +8,4 · dengeli r3 +12,8
       (real 1-year returns, %).
     persona: P02
     needs: [D19]

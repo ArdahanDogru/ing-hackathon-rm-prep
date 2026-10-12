@@ -33,8 +33,9 @@ veriye dayandığı sonradan gösterilemiyor.
    değer kaybettiğini görmeyebilir.
 3. **Yalnızca getiriye bakan bir sıralama herkese aynı ürünü önerir.** Son bir
    yılda TL nakit benzeri fonlar reel olarak hisse (≈ %0) ve altın (−%13)
-   fonlarını geride bıraktı. İlk sürümümüzde 5 personanın 4'ü aynı üç fonu
-   aldı — Dengeli bir ihracatçı da, Muhafazakâr bir emekli de. Risk bütçesi ve
+   fonlarını geride bıraktı. İlk sürümümüzde 5 personanın 4'ü yalnızca SPK risk
+   değeri 1 olan nakit benzeri fonlar aldı (iki çift tamamen aynı listeyi aldı) —
+   Dengeli bir ihracatçı da, Muhafazakâr bir emekli de. Risk bütçesi ve
    çeşitlendirme ayrı sinyaller olarak eklenince her personanın öneri seti
    farklılaştı (bkz. Test ve öğrenimler).
 4. **Sektör bu adıma yatırım yapıyor.** UBS her görüşme öncesi otomatik
@@ -52,7 +53,7 @@ veriye dayandığı sonradan gösterilemiyor.
 | Kısıt ihlali | elle kontrol | 30 test senaryosunda **0** | değerlendirme paketi |
 | Tutarlılık | kişiye bağlı | aynı girdi → aynı sonuç ve aynı metin (%100) | tekrar testleri |
 | İzlenebilirlik | yok / dağınık | her sayı kaynak, tarih ve kanıt kimliğiyle | kanıt kaydı |
-| Uyarlama | genel metin | 5 personada 5 farklı öneri seti (önce: 4'ü aynıydı); müşteri önceliklerine bağlı gerekçe | değerlendirme paketi |
+| Uyarlama | genel metin | 5 personada 5 farklı öneri seti (önce: 4'ü yalnızca nakit benzeri, risk 1); müşteri önceliklerine bağlı gerekçe | değerlendirme paketi |
 
 Daha az hazırlık süresi RM'e müşteri başına daha fazla zaman bırakır; reel ve
 vergi sonrası karşılaştırma müşteriye daha doğru bir tablo sunar; kayıt ise

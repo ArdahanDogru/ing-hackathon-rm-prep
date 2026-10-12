@@ -206,7 +206,8 @@ def to_markdown(result) -> str:
         same = m.get("same_top3")
         if same is not None:
             L += [f"Diverse recommendations (D19): {same['count']} of {same['personas']} base "
-                  f"personas share the same recommended top 3 in this run (before D19: 4 of 5).",
+                  f"personas share the most common recommended top 3 in this run (before D19: 2 "
+                  f"— P01 = P04 and P02 = P05; 4 of 5 had only cash-like funds at SPK risk 1).",
                   ""]
         for sr in regressions:
             sc = by_id[sr.scenario.id]

@@ -592,9 +592,13 @@ Texts: `talking_points.texts.<code>: {label, text}` with `{figure}`, `{label}`,
 ## 10. Diverse recommendations: asset classes and risk fit (D19, approved by the user 2026-10-12)
 
 **Finding (error analysis, 2026-10-12).** On the frozen eval snapshot, four of
-five personas got the same top 3 (Nurol Para Piyasası, İstanbul KV Borçlanma,
-Ak Para Piyasası Katılım, all SPK risk 1): P01 Muhafazakâr, but also P02 and P04
-(Dengeli, ceiling 5) and P05 (Temkinli). Causes:
+five personas got only cash-like funds at SPK risk 1 as their top 3: P01
+Muhafazakâr, but also P02 and P04 (Dengeli, ceiling 5) and P05 (Temkinli).
+Two pairs had identical sets (P01 = P04: Nurol Para Piyasası, İstanbul KV
+Borçlanma, Ak Para Piyasası Katılım; P02 = P05: One Portföy Para Piyasası,
+İstanbul KV Borçlanma, Ak Para Piyasası Katılım); İstanbul KV Borçlanma and Ak
+Para Piyasası Katılım were in all four. (Corrected 2026-10-12: an earlier text
+said "the same top 3" for all four.) Causes:
 
 1. The market of the last year: TL cash-like funds had the best real returns
    (+7–9 %); balanced funds +3 %, equity about 0 %, gold −13 % (TÜFE and stopaj
