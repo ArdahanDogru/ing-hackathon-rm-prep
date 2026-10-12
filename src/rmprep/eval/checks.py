@@ -374,9 +374,21 @@ def forbidden_hits(d: NarrativeDraft, phrases: Mapping[str, tuple[str, ...]],
                    labels: tuple[str, ...] = ()) -> list[str]:
     """Forbidden phrases in the text; option labels are removed first (a fund
     name such as "GARANTİ PORTFÖY ..." is not a guarantee)."""
+    from rmprep.api.names import short_name
+    from rmprep.narrator.validator import name_forms
+
     every = list(dict.fromkeys(p for ps in phrases.values() for p in ps))
     text = tr_norm(" ".join(s.text for _, s in sentences(d)))
-    for label in sorted({tr_norm(x) for x in labels if x}, key=len, reverse=True):
+    # full labels, the short screen names (n8 texts use them) and the issuers alone
+    # ("Garanti Portföy" is a company, not a guarantee); lead fix 2026-10-12
+    names = {tr_norm(x) for x in labels if x}
+    for label in labels:
+        if label:
+            names.update(tr_norm(f) for f in name_forms(label))
+            issuer, _ = short_name(label)
+            if issuer:
+                names.add(tr_norm(issuer))
+    for label in sorted(names, key=len, reverse=True):
         text = text.replace(label, " ")
     return [p for p in every if tr_norm(p) in text]
 

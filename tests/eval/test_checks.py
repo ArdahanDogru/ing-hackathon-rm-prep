@@ -250,6 +250,21 @@ def test_forbidden_phrases_but_not_inside_a_fund_name(p01):
     assert check_forbidden_phrases(Context(p01.scenario, run2, DCFG, PHRASES)).status == PASS
 
 
+def test_forbidden_phrases_skip_short_fund_names(p01):
+    """n8 texts name funds by their screen names ("Garanti Portföy Blockchain ...")."""
+    run = p01.runs[0]
+    fund = run.result.options[1]
+    named = dataclasses.replace(fund.option, label="GARANTİ PORTFÖY BLOCKCHAİN TEKNOLOJİLERİ DEĞİŞKEN FON")
+    run2 = with_result(run, options=(run.result.options[0], dataclasses.replace(fund, option=named))
+                       + run.result.options[2:])
+    for sentence in ("Garanti Portföy Blockchain Teknolojileri Değişken fonun riski 6 / 7'dir.",
+                     "Garanti Portföy fonunda paraya erişim 3 iş günüdür."):
+        run3 = dataclasses.replace(run2, narratives={"TR": text(run, NarrativeSentence(sentence))})
+        assert check_forbidden_phrases(Context(p01.scenario, run3, DCFG, PHRASES)).status == PASS
+    run4 = dataclasses.replace(run2, narratives={"TR": text(run, NarrativeSentence("Getiri garantilidir."))})
+    assert check_forbidden_phrases(Context(p01.scenario, run4, DCFG, PHRASES)).status == FAIL
+
+
 def test_traceability(p01):
     run = p01.runs[0]
     assert check_traceability(ctx(p01)).status == PASS
