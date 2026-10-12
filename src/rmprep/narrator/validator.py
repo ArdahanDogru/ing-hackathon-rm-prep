@@ -413,6 +413,19 @@ def validate_brief(text: str, cite: Sequence[str], f: Facts, r: DecisionResult,
     return tuple(x.replace(": ozet:", ": brief:", 1) for x in out)
 
 
+def block_findings(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
+                   config: NarratorConfig) -> list[str]:
+    """N11: the rules that apply to one edited block of the meeting text: number,
+    option (short names too), phrase, internal, label. No structure or citation
+    rules: a block is part of a text that passed them."""
+    out = _check_numbers(sections, f)
+    out += _check_options(sections, f, r)
+    out += _check_phrases(sections, f, config)
+    out += _check_internal_names(sections)
+    out += _check_ing_labels(sections, f)
+    return out
+
+
 def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
              config: NarratorConfig, lang: str,
              need_tags: Mapping[str, Sequence[str]] | None = None) -> tuple[str, ...]:
