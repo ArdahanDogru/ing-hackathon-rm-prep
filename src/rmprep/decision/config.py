@@ -328,7 +328,7 @@ def _check_d19(c: dict) -> None:
     classes: set[str] = set()
     if "asset_classes" in c:
         ac = c["asset_classes"]
-        _keys(ac, "asset_classes", ("by_name", "by_kind", "fx"))
+        _keys(ac, "asset_classes", ("by_name", "by_kind", "fx"), ("by_risk",))
         kinds = {"deposit", "time_deposit", *(k for k in c["fund_kinds"].values() if k)}
         by_kind = ac["by_kind"]
         _keys(by_kind, "asset_classes.by_kind", sorted(kinds))
@@ -342,6 +342,21 @@ def _check_d19(c: dict) -> None:
         if not isinstance(ac["fx"], str) or not ac["fx"]:
             raise ConfigError("asset_classes.fx: must be a class name")
         classes = {*by_kind.values(), *ac["by_name"].values(), ac["fx"]}
+        by_risk = ac.get("by_risk", {})         # D19c: fund_kind -> [{min_risk, class}]
+        if not isinstance(by_risk, Mapping):
+            raise ConfigError("asset_classes.by_risk: must be a mapping fund_kind -> list")
+        for kind, rules in by_risk.items():
+            path = f"asset_classes.by_risk.{kind}"
+            if kind not in kinds - {"deposit", "time_deposit"} or not isinstance(rules, list):
+                raise ConfigError(f"{path}: a fund kind with a list of rules")
+            for i, rule in enumerate(rules):
+                _keys(rule, f"{path}[{i}]", ("min_risk", "class"))
+                v = rule["min_risk"]
+                if not isinstance(v, int) or isinstance(v, bool) or not 1 <= v <= 7:
+                    raise ConfigError(f"{path}[{i}].min_risk: an integer 1..7")
+                if not isinstance(rule["class"], str) or not rule["class"]:
+                    raise ConfigError(f"{path}[{i}].class: a class name")
+                classes.add(rule["class"])
 
     if "risk_fit" in c:
         rf = c["risk_fit"]

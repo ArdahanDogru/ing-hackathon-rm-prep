@@ -306,3 +306,57 @@ def test_floor_is_optional_and_checked(d19_raw, d19_config):
     d19_raw["recommend"]["min_real_return"] = "0"
     with pytest.raises(ConfigError, match="recommend.min_real_return"):
         parse_config(d19_raw)
+
+
+# --- D19c: risk-based class split (by_risk) -------------------------------------------------------
+
+def _by_risk(d19_raw):
+    d19_raw["asset_classes"]["by_risk"] = {"participation": [{"min_risk": 5, "class": "hisse"}]}
+    return parse_config(d19_raw)
+
+
+@pytest.mark.parametrize("risk,cls", [(5, "hisse"), (6, "hisse"), (2, "borclanma"),
+                                      (None, "borclanma")])
+def test_participation_class_by_risk(d19_raw, risk, cls):
+    funds = {"KTL": dict(kind="participation", name="X PORTFÖY TEKNOLOJİ KATILIM FONU",
+                         risk=risk, returns={"1y": 30.0}, **BASE)}
+    u = build_universe(_ev(funds), _by_risk(d19_raw))
+    assert u.by_id["fund:KTL"].option.asset_class == cls
+
+
+def test_by_name_comes_before_by_risk(d19_raw):
+    funds = {"KPP": dict(kind="participation", name="X PORTFÖY PARA PİYASASI KATILIM FONU",
+                         risk=5, returns={"1y": 30.0}, **BASE)}
+    u = build_universe(_ev(funds), _by_risk(d19_raw))
+    assert u.by_id["fund:KPP"].option.asset_class == "nakit_benzeri"
+
+
+def test_an_estimated_risk_does_not_count(d19_raw):
+    # no risk row: the scoring estimates the risk from the kind (here 6), the class does not
+    funds = {"K6": dict(kind="participation", name="K6 KATILIM FONU", risk=6,
+                        returns={"1y": 30.0}, **BASE),
+             "KNR": dict(kind="participation", name="KNR KATILIM FONU", returns={"1y": 30.0},
+                         **BASE)}
+    cfg = _by_risk(d19_raw)
+    r = _decide(cfg, "P03", funds=funds)
+    by_id = {o.option.option_id: o.option for o in r.options}
+    assert by_id["fund:KNR"].asset_class == "borclanma"
+
+
+def test_without_by_risk_nothing_changes(d19_config):
+    funds = {"KTL": dict(kind="participation", name="X KATILIM FONU", risk=5,
+                         returns={"1y": 30.0}, **BASE)}
+    u = build_universe(_ev(funds), d19_config)
+    assert u.by_id["fund:KTL"].option.asset_class == "borclanma"
+
+
+@pytest.mark.parametrize("value,match", [
+    ({"gold": [{"min_risk": 5, "class": "hisse"}]}, "asset_classes.by_risk"),
+    ({"participation": [{"min_risk": 8, "class": "hisse"}]}, "asset_classes.by_risk"),
+    ({"participation": [{"min_risk": 5}]}, "asset_classes.by_risk"),
+    ({"participation": {"min_risk": 5, "class": "hisse"}}, "asset_classes.by_risk"),
+])
+def test_bad_by_risk_is_an_error(d19_raw, value, match):
+    d19_raw["asset_classes"]["by_risk"] = value
+    with pytest.raises(ConfigError, match=match):
+        parse_config(d19_raw)
