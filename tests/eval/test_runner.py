@@ -6,7 +6,7 @@ from rmprep.backend import RealBackend
 from rmprep.contracts import DecisionState, RmStatus
 from rmprep.eval.runner import Runner
 from rmprep.eval.scenario import EvidenceEdit, Scenario, load_scenario_file
-from rmprep.grouping import groups
+from rmprep.grouping import groups, recommended
 from tests.eval.conftest import CONTRACT_FIX, SNAP, T0, FakeNarrator
 
 
@@ -36,7 +36,7 @@ scenarios:
         [run] = sr.runs
         assert run.result.state == DecisionState.READY and run.result.snapshot_id == SNAP
         assert run.result.persona_id == sr.scenario.persona and run.errors == []
-        heads = tuple(g.head.option.option_id for g in groups(run.result.options))[:3]
+        heads = tuple(o.option.option_id for o in recommended(run.result))   # D19: what the RM sees
         assert run.approved.rm_status == RmStatus.APPROVED and run.approved.rm_selected == heads
         assert run.approved.run_id == run.result.run_id
         assert set(run.narratives) == set(sr.scenario.langs)
@@ -216,3 +216,18 @@ def test_budget_left_counts_texts_and_other_costs(root):
     r.add_cost(0.25)
     assert r.budget_left() == 4.25
     assert runner(root).budget_left() == float("inf")
+
+
+def test_the_default_selection_is_the_engine_recommendation(root):
+    """The eval approves what the dashboard proposes: grouping.recommended (D19)."""
+    import dataclasses
+
+    from rmprep.grouping import recommended
+    base = one(root, Scenario(id="b", group="base", persona="P03")).runs[0]
+    r = base.result
+    assert base.approved.rm_selected == tuple(o.option.option_id for o in recommended(r))[:3]
+    # a result whose engine choice differs from the group heads: the choice wins
+    alt = tuple(o.option.option_id for o in r.options if o.option.kind != "deposit")[-2:]
+    chosen = dataclasses.replace(r, recommended=alt)
+    rec = runner(root)._approve(Scenario(id="c", group="g", persona="P03"), chosen, [])
+    assert rec.rm_selected == alt

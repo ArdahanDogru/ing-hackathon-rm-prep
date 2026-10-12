@@ -33,7 +33,7 @@ from rmprep.contracts import (
 from rmprep.eval.scenario import (
     Scenario, ScenarioError, apply_evidence_edits, edit_persona, resolve_top, top_placeholders,
 )
-from rmprep.grouping import groups
+from rmprep.grouping import groups, recommended
 
 EDIT_SEP = "~"
 
@@ -200,7 +200,8 @@ class Runner:
                 return None
             selected = s.select
         else:
-            selected = tuple(g.head.option.option_id for g in groups(r.options))[:s.select_top]
+            # what the dashboard proposes (D19 recommended, else the group heads; lead fix 2026-10-12)
+            selected = tuple(o.option.option_id for o in recommended(r, s.select_top))
             if not selected and r.options:      # only the deposit baseline is left
                 selected = (r.options[0].option.option_id,)
             if not selected:
