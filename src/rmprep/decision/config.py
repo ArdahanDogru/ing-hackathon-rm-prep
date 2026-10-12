@@ -47,7 +47,7 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
 WARNING_CODES = ("concentration", "fx_exposure", "risk_estimate", "low_stability",
                  "deposit_vs_market", "no_fx_deposit_data")
 TALKING_CODES = ("deposit_real", "best_alternative", "access", "risk_fit")
-_D9_SECTIONS = ("asset_classes", "risk_fit", "recommend", "talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
+_D9_SECTIONS = ("allocation", "asset_classes", "risk_fit", "recommend", "talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
                 "fund_detail", "constraint_rules", "short_history")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
@@ -390,6 +390,50 @@ def _check_d19(c: dict) -> None:
             raise ConfigError("recommend.profiles: a list of risk_profiles names")
         _text(c, "reasons", "class_rule", "the recommend section")
         _text(c, "assumptions", "class_rule", "the recommend section")
+
+    if "allocation" in c:           # D20: model allocation bands
+        if "asset_classes" not in c:
+            raise ConfigError("allocation: needs the asset_classes section")
+        _check_allocation(c, classes)
+
+
+def _check_allocation(c: dict, classes: set[str]) -> None:
+    al = c["allocation"]
+    _keys(al, "allocation", ("classes", "profiles", "note_texts", "holding_hints",
+                             "holding_confirm"))
+    order = al["classes"]
+    if (not isinstance(order, list) or not order or len(set(order)) != len(order)
+            or not set(order) <= classes):
+        raise ConfigError(f"allocation.classes: different classes of asset_classes {sorted(classes)}")
+    _keys(al["profiles"], "allocation.profiles", tuple(c["risk_profiles"]))
+    for name, p in al["profiles"].items():
+        path = f"allocation.profiles.{name}"
+        _keys(p, path, ("source", "inferred", "bands"))
+        if not isinstance(p["source"], str) or not p["source"].strip():
+            raise ConfigError(f"{path}.source: a non-empty text")
+        if not isinstance(p["inferred"], bool):
+            raise ConfigError(f"{path}.inferred: true or false")
+        if not isinstance(p["bands"], Mapping):
+            raise ConfigError(f"{path}.bands: a mapping class -> [low, high]")
+        for cls, band in p["bands"].items():
+            ok = (cls in order and isinstance(band, list) and len(band) == 2
+                  and all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in band)
+                  and 0 <= band[0] <= band[1] <= 100)
+            if not ok:
+                raise ConfigError(f"{path}.bands.{cls}: a class of allocation.classes -> "
+                                  "[low, high] with 0 <= low <= high <= 100")
+    _keys(al["note_texts"], "allocation.note_texts", ("ceiling", "none", "negative_real"))
+    hints = al["holding_hints"]
+    if not isinstance(hints, Mapping) or not all(
+            isinstance(k, str) and k.strip() and isinstance(v, str) and v.strip()
+            for k, v in hints.items()):
+        raise ConfigError("allocation.holding_hints: a mapping keyword -> text")
+    for key in ("holding_confirm",):
+        if not isinstance(al[key], str) or not al[key].strip():
+            raise ConfigError(f"allocation.{key}: a non-empty text")
+    for key, text in al["note_texts"].items():
+        if not isinstance(text, str) or not text.strip():
+            raise ConfigError(f"allocation.note_texts.{key}: a non-empty text")
 
 
 def _check_display_texts(d: Mapping[str, Any], crits: tuple[str, ...]) -> None:
