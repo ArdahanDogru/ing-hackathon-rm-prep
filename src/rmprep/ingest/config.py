@@ -134,6 +134,7 @@ class TefasDetailSource(SourceConfig):
     optional_fields: dict[str, str]  # same, but no value -> no row
     flag_needs_check: bool
     status: StatusMap | None = None
+    holdings_quantity: str | None = None   # I8: varlikData rows; None -> no holdings rows
 
     def page_url(self, code: str) -> str:
         return self.url.replace("{code}", code)
@@ -485,7 +486,8 @@ def _parse_tefas_detail(name, s, path, quantities) -> TefasDetailSource:
     _check_keys(s, path, _COMMON_REQUIRED | {"url", "user_agent", "value_fields"},
                 _COMMON_OPTIONAL | {"timeout_seconds", "min_interval_s", "max_fail_share",
                                     "max_funds", "funds_from", "exclude_categories",
-                                    "optional_fields", "flag_needs_check", "status"})
+                                    "optional_fields", "flag_needs_check", "status",
+                                    "holdings_quantity"})
     url = _tefas_url(s["url"], f"{path}.url")
     if "{code}" not in url:
         raise ConfigError(f"{path}.url: must contain {{code}} for the fund code")
@@ -524,6 +526,8 @@ def _parse_tefas_detail(name, s, path, quantities) -> TefasDetailSource:
         optional_fields=optional,
         flag_needs_check=_bool(s.get("flag_needs_check", True), f"{path}.flag_needs_check"),
         status=_status_map(s["status"], f"{path}.status", quantities) if "status" in s else None,
+        holdings_quantity=(_quantity_ref(s["holdings_quantity"], f"{path}.holdings_quantity",
+                                         quantities) if "holdings_quantity" in s else None),
     )
 
 

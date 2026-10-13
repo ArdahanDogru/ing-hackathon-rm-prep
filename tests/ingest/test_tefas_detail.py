@@ -9,7 +9,10 @@ from tests.ingest.conftest import (
     T0,
     TEFAS_WEB_FUNDS,
     FakeEvds,
+    add_holdings,
     detail_page,
+    holding,
+    set_varlik,
     tefas_web_page,
 )
 from rmprep.contracts import Flag
@@ -405,3 +408,122 @@ def test_no_status_block_gives_no_fund_buyable(tmp_path, config_raw):
     del config_raw["sources"]["tefas_detail"]["status"]
     pts = _points(tmp_path, parse_config(config_raw))
     assert not [p for p in pts if p.quantity == "fund_buyable"]
+
+
+# --- holdings from varlikData (I8) -----------------------------------------------------------
+
+HOLD = "fund_holding_share"
+
+
+def _holdings_cfg(config_raw):
+    return parse_config(add_holdings(config_raw))
+
+
+def _holdings(pts):
+    return {p.entity: p for p in pts if p.quantity == HOLD}
+
+
+def test_config_holdings_quantity_is_optional(cfg, config_raw):
+    assert cfg.sources["tefas_detail"].holdings_quantity is None
+    assert _holdings_cfg(config_raw).sources["tefas_detail"].holdings_quantity == HOLD
+
+
+def test_config_rejects_unknown_holdings_quantity(config_raw):
+    config_raw["sources"]["tefas_detail"]["holdings_quantity"] = "fund_holdings"
+    with pytest.raises(ConfigError, match=r"tefas_detail\.holdings_quantity: unknown quantity"):
+        parse_config(config_raw)
+
+
+def test_holdings_rows_from_real_page(tmp_path, config_raw):
+    cfg = _holdings_cfg(config_raw)
+    rec, pts = _status_points(tmp_path, cfg, {"MAC": detail_page("MAC")})
+    assert rec.status == "ok" and rec.rejected_rows == ()
+    held = _holdings(pts)
+    assert {e: p.value for e, p in held.items()} == {
+        "MAC/Hisse Senedi": 95.78, "MAC/Takasbank Para Piyasas\u0131": 4.22}
+    p = held["MAC/Hisse Senedi"]
+    price = next(q for q in pts if q.quantity == "fund_price")
+    assert p.unit == "pct" and p.as_of == price.as_of and p.flags == price.flags
+    assert p.source == "tefas_detail" and p.source_url == price.source_url
+    assert p.raw_ref == f"{SID}/payloads/tefas_detail/MAC.html.gz#varlikData[0]"
+    assert p.note == "Hisse Senedi"
+
+
+def test_holdings_negative_share_is_kept(tmp_path, config_raw):
+    page = set_varlik(detail_page("ZBJ"), [holding("ZBJ", "Repo", -3.5),
+                                           holding("ZBJ", "Ters-Repo", 103.5)])
+    _, pts = _status_points(tmp_path, _holdings_cfg(config_raw), {"ZBJ": page})
+    assert {e: p.value for e, p in _holdings(pts).items()} == {
+        "ZBJ/Repo": -3.5, "ZBJ/Ters-Repo": 103.5}
+
+
+def test_holding_type_is_kept_verbatim(tmp_path, config_raw):
+    kind = "K�ymetli  Madenler "                 # broken letter, two spaces, end space
+    page = set_varlik(detail_page("ZBJ"), [holding("ZBJ", kind, 5)])
+    _, pts = _status_points(tmp_path, _holdings_cfg(config_raw), {"ZBJ": page})
+    [p] = _holdings(pts).values()
+    assert p.entity == f"ZBJ/{kind}" and p.note == kind
+
+
+@pytest.mark.parametrize("rows", [None, []])
+def test_page_without_holdings_gives_no_holdings_rows(tmp_path, config_raw, rows):
+    page = set_varlik(detail_page("ZBJ"), rows)
+    rec, pts = _status_points(tmp_path, _holdings_cfg(config_raw), {"ZBJ": page})
+    assert rec.status == "ok" and rec.rejected_rows == ()
+    assert _holdings(pts) == {}
+    assert _value(pts, "ZBJ", "fund_price") == 5.439421
+
+
+@pytest.mark.parametrize("share,reason", [
+    ("abc", "varlikData[1]: portfoyOrani: not a number: 'abc'; no fund_holding_share row"),
+    (None, "varlikData[1]: portfoyOrani: no value; no fund_holding_share row"),
+])
+def test_bad_share_is_noted_but_does_not_fail_the_page(tmp_path, config_raw, share, reason):
+    # 1 of 2 pages = 50 % > max_fail_share, so a page failure would fail the source
+    page = set_varlik(detail_page("ZBJ"), [holding("ZBJ", "Repo", 10),
+                                           holding("ZBJ", "Hisse Senedi", share)])
+    rec, pts = _status_points(tmp_path, _holdings_cfg(config_raw),
+                              {"ZBJ": page, "MAC": detail_page("MAC")})
+    assert rec.status == "ok"
+    assert rec.rejected_rows == ({"fund": "ZBJ", "reason": reason},)
+    held = _holdings(pts)
+    assert held["ZBJ/Repo"].value == 10 and "ZBJ/Hisse Senedi" not in held
+    assert "MAC/Hisse Senedi" in held
+
+
+def test_holding_of_another_fund_is_skipped(tmp_path, config_raw):
+    page = set_varlik(detail_page("ZBJ"), [holding("ZBJ", "Repo", 10),
+                                           holding("XYZ", "Hisse Senedi", 90)])
+    rec, pts = _status_points(tmp_path, _holdings_cfg(config_raw), {"ZBJ": page})
+    assert rec.rejected_rows == ({"fund": "ZBJ", "reason": "varlikData[1]: fund 'XYZ', "
+                                  "not 'ZBJ'; no fund_holding_share row"},)
+    assert list(_holdings(pts)) == ["ZBJ/Repo"]
+
+
+@pytest.mark.parametrize("kind,reason", [
+    ("", "varlikData[0]: kiymetTip: no value; no fund_holding_share row"),
+    ("A|B", "varlikData[0]: kiymetTip 'A|B' has '|'; no fund_holding_share row"),
+])
+def test_bad_holding_type_is_noted(tmp_path, config_raw, kind, reason):
+    page = set_varlik(detail_page("ZBJ"), [holding("ZBJ", kind, 10)])
+    rec, pts = _status_points(tmp_path, _holdings_cfg(config_raw), {"ZBJ": page})
+    assert rec.rejected_rows == ({"fund": "ZBJ", "reason": reason},)
+    assert _holdings(pts) == {}
+
+
+def test_no_holdings_quantity_gives_no_holdings_rows(tmp_path, cfg):
+    page = set_varlik(detail_page("ZBJ"), [holding("ZBJ", "Repo", "abc")])
+    rec, pts = _status_points(tmp_path, cfg, {"ZBJ": page})
+    assert rec.rejected_rows == ()                     # not read, so not noted
+    assert not [p for p in pts if p.quantity == HOLD]
+
+
+def test_holdings_rows_for_fallback_keep_origin(tmp_path, config_raw):
+    cfg = _holdings_cfg(config_raw)
+    src = _src(cfg)
+    _, snap, _ = _fetch(tmp_path, src)
+    pts = tefas_detail.parse(cfg, src, snap, out_snapshot_id="20261010-090000-0002",
+                             out_date=date(2026, 10, 10))
+    held = _holdings(pts)
+    assert held and {p.snapshot_id for p in held.values()} == {"20261010-090000-0002"}
+    assert all(p.raw_ref.startswith(f"{SID}/") for p in held.values())

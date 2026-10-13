@@ -90,15 +90,51 @@ def _number(field: str, raw: Any, required: bool) -> float | None:
     return x
 
 
+Holding = tuple[int, str, float]     # (index in varlikData, kiymetTip, portfoyOrani)
+
+
+def _holdings(src: TefasDetailSource, text: str,
+              code: str) -> tuple[list[Holding], list[str]]:
+    """I8: the varlikData rows of this fund, and notes for rows that give no
+    row. No varlikData, null or an empty list -> nothing. The texts are kept
+    verbatim (the page has broken Turkish letters, U+FFFD)."""
+    m = re.search(r'"varlikData":', text)
+    if not src.holdings_quantity or m is None:
+        return [], []
+    try:
+        rows, _ = json.JSONDecoder().raw_decode(text, m.end())
+    except json.JSONDecodeError:
+        return [], [f"varlikData is not JSON; no {src.holdings_quantity} rows"]
+    if not isinstance(rows, list):
+        return [], []
+    out: list[Holding] = []
+    notes: list[str] = []
+    for i, row in enumerate(rows):
+        row = row if isinstance(row, dict) else {}
+        kind = row.get("kiymetTip")
+        try:
+            if row.get("fonKodu") != code:
+                raise PageError(f"fund {row.get('fonKodu')!r}, not {code!r}")
+            if not isinstance(kind, str) or not kind.strip():
+                raise PageError("kiymetTip: no value")
+            if "|" in kind:
+                raise PageError(f"kiymetTip {kind!r} has '|'")     # '|' separates id parts
+            out.append((i, kind, _number("portfoyOrani", row.get("portfoyOrani"), True)))
+        except PageError as e:
+            notes.append(f"varlikData[{i}]: {e}; no {src.holdings_quantity} row")
+    return out, notes
+
+
 def parse_page(src: TefasDetailSource, html: str,
-               code: str) -> tuple[dict[str, float | None], list[str]]:
-    """(configured field ("bilgiData.sonFiyat") -> value, notes). None = no value,
-    no row. Notes are problems that do not fail the page (an unknown status
-    text). Raises PageError with the reason if the page fails."""
-    text = flight_text(html)
+               code: str) -> tuple[dict[str, float | None], list[str], list[Holding]]:
+    """(configured field ("bilgiData.sonFiyat") -> value, notes, holdings). None
+    = no value, no row. Notes are problems that do not fail the page (an
+    unknown status text, a bad holdings row). Raises PageError with the reason
+    if the page fails."""
+    page = flight_text(html)
     objects = {}
     for name in DETAIL_OBJECTS:
-        obj = _find_object(text, name)
+        obj = _find_object(page, name)
         if obj is None:
             raise PageError(f"no {name} on the page")
         if obj.get("fonKodu") != code:
@@ -121,7 +157,8 @@ def parse_page(src: TefasDetailSource, html: str,
             what = f"unknown {field} {text!r}" if isinstance(text, str) and text.strip()                 else f"{field}: no value"
             notes.append(f"{what}; no {src.status.quantity} row")
         values[field] = flag
-    return values, notes
+    holdings, holding_notes = _holdings(src, page, code)
+    return values, notes + holding_notes, holdings
 
 
 def _read_page(data: bytes) -> str:
@@ -175,7 +212,7 @@ def fetch(
             payloads.append(writer.add_payload(src.name, f"{code}.html.gz",
                                                gzip.compress(resp.content, mtime=0),
                                                meta={"fund": code, "url": url}))
-            _, notes = parse_page(src, _read_page(resp.content), code)
+            _, notes, _ = parse_page(src, _read_page(resp.content), code)
             rejected.extend({"fund": code, "reason": n} for n in notes)
         except httpx.HTTPError as e:
             failed += 1
@@ -212,19 +249,20 @@ def parse(cfg: Config, src: TefasDetailSource, snap: Snapshot, *,
     for payload in rec.payloads:
         code = payload.meta["fund"]
         try:
-            values, _ = parse_page(
+            values, _, holdings = parse_page(
                 src, _read_page(gzip.decompress(snap.read_payload(payload.path))), code)
         except PageError:
             continue
-        for field, value in values.items():
-            if value is None:
-                continue
-            quantity = quantities[field]
+        rows = [(quantities[field], code, value, f"fonKodu={code};field={field}",
+                 "as_of assumed = previous business day (the page shows no date)")
+                for field, value in values.items() if value is not None]
+        rows += [(src.holdings_quantity, f"{code}/{kind}", share, f"varlikData[{i}]", kind)
+                 for i, kind, share in holdings]
+        for quantity, entity, value, locator, note in rows:
             points.append(DataPoint.create(
-                quantity=quantity, entity=code, value=value,
+                quantity=quantity, entity=entity, value=value,
                 unit=cfg.quantities[quantity].unit, as_of=as_of, source=src.name,
                 source_url=payload.meta["url"], fetched_at=rec.fetched_at, snapshot_id=sid,
-                raw_ref=raw_ref(snap.snapshot_id, payload.path, f"fonKodu={code};field={field}"),
-                flags=flags,
-                note="as_of assumed = previous business day (the page shows no date)"))
+                raw_ref=raw_ref(snap.snapshot_id, payload.path, locator),
+                flags=flags, note=note))
     return points
