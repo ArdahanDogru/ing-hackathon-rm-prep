@@ -170,7 +170,10 @@ writer; `parse(cfg, src, snap, ...) -> list[DataPoint]` is pure.
    - null / "-" values give no row; risk "0" gives a row flagged out_of_range.
    - Fewer than `min_funds` (1000) funds → the page changed → source fails.
    - `flag_needs_check: true` adds `needs_check` to every row until the
-     scraper has a stable record.
+     scraper has a stable record. Set to `false` for `tefas_web` and
+     `tefas_detail` on 2026-10-14 (the user): 12 snapshots without a format
+     change. The flag is added at parse time, so a replay of an older snapshot
+     also has no `needs_check` rows now.
 3. **Manual CSV** in `data/inbox/manual/`: columns `quantity, entity, value, unit,
    as_of, source_url, note`. Rows without `source_url` or `as_of` are rejected
    (logged in manifest with row number + reason, not stored). Accepted rows get
@@ -412,6 +415,27 @@ Task Scheduler job and the "Veriyi yenile" button of the web app (W14).
   2026-10-14 00:56 → snapshot `20261014-005625-c76a` (813 detail pages; 2
   pages "Server disconnected", 1 HTTP 404; a new status text "Fon Alımına
   Kapalı, Fon Bozumuna Açık" on 4 funds, now mapped to `fund_buyable` 0).
+
+I7 (approved by the user 2026-10-14): an end date for manual rows. The stopaj
+rates are valid until 31.12.2026 (CK 11444), and no source publishes them in a
+form a program can read, so they stay manual with an automatic warning when
+they expire (brief rule 7: a current source or a confirmation note to the RM).
+
+- Manual CSV: optional column `valid_until` (same date formats as `as_of`;
+  empty = no end date). A bad date → the row is rejected with the reason. A
+  file without the column works as before.
+- `parse`: when the snapshot date (Turkey time) is after `valid_until`, the
+  row gets the flag `stale` and the note gets `valid until <DD.MM.YYYY>;
+  check the current value` (after the row's own note, with the usual note
+  separator). On or before the date: no flag. Pure (the snapshot date, not
+  the clock), so replay gives the same result.
+- The same check at fetch and replay (like the other manual checks).
+- Data (lead): the `withholding_tax_rate` rows get `valid_until` 31.12.2026.
+  The decision layer turns a stale stopaj row into an RM warning (D22,
+  docs/decision.md section 12).
+- Tests: a row after its end date is `stale` with the note; on the end date
+  it is not; an empty `valid_until`; a bad date rejects the row; a file
+  without the column; replay identical.
 
 ## Noted for later (decided 2026-10-09, not to be done now)
 

@@ -718,6 +718,30 @@ its tooltip), the best option (short name, real 1-year return, risk) or the
 note, and the holding hints above the rows. A click on an option opens the fund
 card. The meeting text does not change in this step.
 
+## 12. Stale tax and inflation inputs (D22, approved by the user 2026-10-14)
+
+The real return (4.1b) uses one stopaj row per product type and the annual
+TÜFE row. These inputs are manual or monthly; a stopaj row gets the flag
+`stale` after its end date (docs/ingest.md I7) or when it is older than the
+quantity's `max_age_days`. Until now a stale input only lowered the confidence
+(× 0.7) and gave a generic data-quality note.
+
+- New `DecisionWarning` code `stale_tax_input`, audience RM only (it never
+  goes into the client text). One warning per result when any stopaj row or
+  the TÜFE row that the result used for a real return is flagged `stale`;
+  `evidence_ids` = those rows; `option_ids` empty (the whole result).
+- Text from config (`texts.warnings.stale_tax_input`, lead): "Vergi veya
+  enflasyon verisi güncel değil ({entities}); reel getiriler bu değerlerle
+  hesaplandı. Güncel oranı teyit edin." `{entities}` = the entity names of
+  the stale rows, joined with ", ".
+- `to_confirm` gets "Güncel stopaj oranını ve TÜFE'yi teyit edin." (config
+  `to_confirm.stale_tax_input`) once per result, with the same condition.
+- No change to scores or ranking; the confidence factor stays.
+- A `needs_rm_input` result has no warnings (section 6), so no change there.
+- Tests: a stale stopaj row gives the warning and the to_confirm item; a
+  stale TÜFE row too; fresh rows give neither; a stale row of a product type
+  that no scored option uses gives nothing; the warning is RM-only.
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only
