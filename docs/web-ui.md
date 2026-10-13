@@ -134,7 +134,9 @@ pass on the pre-meeting screens of top firms and an NN/G / Carbon review gave
 the new design; the user chose it with mockups. Final mockup:
 `docs/web-ui/mockups/redesign-v4.html` (tab 3 "B4"; tabs 4 and 5 option "A";
 tabs 1 and 2 hold the research with sources; the firm images load from the
-vendors' sites, two of them only from a local copy). **Where this section and
+vendors' sites, two of them only from a local copy). Local copies of all 21
+research screenshots: `docs/web-ui/research-imgs/` (`sf_` Salesforce, `ms_`
+Microsoft, `jump_` Jump, `zocks_` Zocks, `wb_` Wealthbox). **Where this section and
 the screen sections above differ, this section wins.**
 
 ### Research behind it (sources in the mockup, tabs 1 and 2)
