@@ -40,7 +40,9 @@ def _fmt_value(v: float | None) -> str:
     return f"{v:,.6f}".rstrip("0").rstrip(".")
 
 
-def format_evidence(ev: EvidenceSet) -> str:
+def format_evidence(ev: EvidenceSet, rows: bool = True) -> str:
+    """The snapshot, the source status, the datapoints (unless `rows` is False:
+    only their count, e.g. for the daily ingest log) and the flag counts."""
     lines = [f"snapshot {ev.snapshot_id}  created {ev.created_at.isoformat()}"]
     if ev.excluded_sources:
         lines.append(f"excluded at read time: {', '.join(sorted(ev.excluded_sources))}")
@@ -68,8 +70,11 @@ def format_evidence(ev: EvidenceSet) -> str:
             lines.append(f"           rejected {where}: {r.get('reason', '')}")
 
     pts = ev.datapoints
-    lines.append(f"\ndatapoints ({len(pts)}):")
-    if pts:
+    if not rows:
+        lines.append(f"\n{len(pts)} datapoints")
+    else:
+        lines.append(f"\ndatapoints ({len(pts)}):")
+    if pts and rows:
         rows = [["id", "source", "quantity", "entity", "as_of", "value", "unit", "flags"]]
         rows += [[p.id, p.source, p.quantity, p.entity, p.as_of.isoformat(),
                   _fmt_value(p.value), p.unit, ",".join(p.sorted_flags())] for p in pts]
@@ -167,7 +172,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", type=Path, default=Path.cwd(),
                         help="project folder with config/ and data/ (default: current folder)")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("ingest", help="fetch all enabled sources into a new snapshot")
+    p_ingest = sub.add_parser("ingest", help="fetch all enabled sources into a new snapshot")
+    p_ingest.add_argument("--summary", action="store_true",
+                          help="print the source status and flag counts, not every datapoint")
     p_replay = sub.add_parser("replay", help="rebuild store + export from a snapshot (offline)")
     p_replay.add_argument("snapshot_id")
     p_show = sub.add_parser("show", help="show the evidence of a snapshot")
@@ -205,7 +212,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "ingest":
             ev = ingest(paths)
-            print(format_evidence(ev))
+            print(format_evidence(ev, rows=not args.summary))
         elif args.command == "replay":
             ev = replay(paths, args.snapshot_id)
             print(f"replayed {ev.snapshot_id}: {len(ev.datapoints)} datapoints")

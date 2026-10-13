@@ -337,6 +337,7 @@ sources:
         "TEFAS'ta işlem görüyor": 1
         "TEFAS'ta işlem görmüyor": 0
         "Fon Alımına Kapalı, Fon Bozumuna Kapalı": 0
+        "Fon Alımına Kapalı, Fon Bozumuna Açık": 0     # seen 2026-10-14 (4 funds): sell only
 
   manual:
     adapter: manual
