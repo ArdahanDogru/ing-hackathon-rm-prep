@@ -135,6 +135,14 @@ quantities:
     min: 0
     max: 1
     conflict_tolerance: 0.0
+  # Share of one asset type in a fund's portfolio, % (I8; entity "<code>/<kiymetTip>");
+  # negative = borrowing (Repo).
+  fund_holding_share:
+    unit: pct
+    max_age_days: 5
+    min: -100
+    max: 200
+    conflict_tolerance: 0.01
 
 sources:
   evds:
@@ -331,6 +339,8 @@ sources:
       profilData.riskDegeri: fund_risk_level
       profilData.girisKomisyonu: fund_entry_fee
       profilData.cikisKomisyonu: fund_exit_fee
+    # I8 (2026-10-14): one row per varlikData entry (asset type and portfolio share)
+    holdings_quantity: fund_holding_share
     # Trade status text -> fund_buyable (0/1). Texts match after Turkish lower
     # case and space collapsing. Unknown or empty text -> no row and a
     # rejected-row note (the page does not fail). Texts seen in the first live
