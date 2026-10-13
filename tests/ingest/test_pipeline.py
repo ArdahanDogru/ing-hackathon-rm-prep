@@ -122,6 +122,19 @@ def test_replay_keeps_cpi_annual_change_row(tmp_path, config_raw):
     assert replay(paths, ev.snapshot_id) == ev
 
 
+def test_replay_keeps_valid_until_stale_flag(tmp_path, config_raw):
+    text = ("quantity;entity;value;unit;as_of;source_url;note;valid_until\n"
+            "withholding_tax_rate;TRY deposit up to 6M;17,5;pct;01.07.2026;"
+            "https://www.gib.gov.tr/;CK 11444;08.10.2026\n")
+    paths = make_project(tmp_path / "proj", config_raw, manual_text=text)
+    ev = run(paths)
+    [p] = by(ev, source="manual")
+    assert Flag.STALE in p.flags and "valid until 08.10.2026" in p.note
+    os.remove(paths.db)
+    shutil.rmtree(paths.root / "data/inbox")
+    assert replay(paths, ev.snapshot_id) == ev
+
+
 def test_replay_twice_is_idempotent(paths):
     ev = run(paths)
     replay(paths, ev.snapshot_id)

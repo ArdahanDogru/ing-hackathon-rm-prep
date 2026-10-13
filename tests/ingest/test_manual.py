@@ -98,6 +98,73 @@ def test_unfilled_withholding_template_is_fully_rejected(cfg):
                for r in rejected)
 
 
+# --- I7: valid_until ---------------------------------------------------------------------
+
+VALID_UNTIL_CSV = (
+    "quantity;entity;value;unit;as_of;source_url;note;valid_until\n"
+    "withholding_tax_rate;TRY deposit up to 6M;17,5;pct;01.07.2026;https://www.gib.gov.tr/;"
+    "CK 11444;08.10.2026\n"                                       # row 2: one day before T0
+    "withholding_tax_rate;TRY deposit 6M-1Y;15;pct;01.07.2026;https://www.gib.gov.tr/;"
+    ";09.10.2026\n"                                               # row 3: on the end date
+    "deposit_rate;Bank A 3M TRY;45,5;pct;01.10.2026;https://bank-a.example/;;\n"   # row 4: empty
+    "withholding_tax_rate;TRY deposit 1Y+;10;pct;01.07.2026;https://www.gib.gov.tr/;"
+    ";2026-09-30\n"                                               # row 5: ISO date, no own note
+)
+
+
+def _valid_until_points(tmp_path, cfg, inbox, **kw):
+    (inbox / "tax.csv").write_text(VALID_UNTIL_CSV, encoding="utf-8")
+    _, snap = _fetch(tmp_path, cfg, inbox)
+    return {p.entity: p for p in manual.parse(cfg, cfg.sources["manual"], snap, **kw)}
+
+
+def test_row_after_valid_until_is_stale_with_note(tmp_path, cfg, inbox):
+    p = _valid_until_points(tmp_path, cfg, inbox)["TRY deposit up to 6M"]
+    assert p.flags == {Flag.MANUAL_ENTRY, Flag.STALE}
+    assert p.note == "CK 11444; valid until 08.10.2026; check the current value"
+    assert p.value == 17.5 and p.as_of == date(2026, 7, 1)
+
+
+def test_row_without_own_note_gets_only_the_end_date_note(tmp_path, cfg, inbox):
+    p = _valid_until_points(tmp_path, cfg, inbox)["TRY deposit 1Y+"]
+    assert p.flags == {Flag.MANUAL_ENTRY, Flag.STALE}
+    assert p.note == "valid until 30.09.2026; check the current value"
+
+
+def test_row_on_valid_until_date_is_not_stale(tmp_path, cfg, inbox):
+    p = _valid_until_points(tmp_path, cfg, inbox)["TRY deposit 6M-1Y"]
+    assert p.flags == {Flag.MANUAL_ENTRY} and p.note == ""
+
+
+def test_empty_valid_until_means_no_end_date(tmp_path, cfg, inbox):
+    p = _valid_until_points(tmp_path, cfg, inbox)["Bank A 3M TRY"]
+    assert p.flags == {Flag.MANUAL_ENTRY}
+
+
+def test_valid_until_uses_out_date_for_fallback(tmp_path, cfg, inbox):
+    # Rows re-emitted for a newer snapshot are checked against that snapshot's date.
+    pts = _valid_until_points(tmp_path, cfg, inbox, out_snapshot_id="20261010-090000-0002",
+                              out_date=date(2026, 10, 10))
+    assert Flag.STALE in pts["TRY deposit 6M-1Y"].flags
+
+
+def test_bad_valid_until_rejects_row(tmp_path, cfg, inbox):
+    (inbox / "x.csv").write_text(
+        "quantity;entity;value;unit;as_of;source_url;valid_until\n"
+        "deposit_rate;Bank A;45;pct;01.10.2026;https://a.example/;31.13.2026\n",
+        encoding="utf-8")
+    rec, snap = _fetch(tmp_path, cfg, inbox)
+    assert rec.rejected_rows == ({"file": "x.csv", "row": 2,
+                                  "reason": "bad valid_until '31.13.2026'"},)
+    assert manual.parse(cfg, cfg.sources["manual"], snap) == []
+
+
+def test_file_without_valid_until_column_has_no_stale_rows(tmp_path, cfg, inbox):
+    shutil.copy(RATES, inbox / "rates.csv")
+    _, snap = _fetch(tmp_path, cfg, inbox)
+    assert all(Flag.STALE not in p.flags for p in manual.parse(cfg, cfg.sources["manual"], snap))
+
+
 def test_replay_parse_gives_same_accepted_rows(tmp_path, cfg, inbox):
     shutil.copy(RATES, inbox / "rates.csv")
     _, snap = _fetch(tmp_path, cfg, inbox)

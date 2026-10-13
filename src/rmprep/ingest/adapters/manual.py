@@ -1,7 +1,8 @@
 """Manual CSV adapter: values entered by hand (bank deposit rates, withholding tax).
 
-Columns: quantity, entity, value, unit, as_of, source_url[, note].
-A row is rejected (recorded in the manifest, not stored) if it has no
+Columns: quantity, entity, value, unit, as_of, source_url[, note, valid_until].
+`valid_until` (I7, optional, empty = no end date): after that date (the snapshot
+date, not the clock) the row is flagged `stale` with a note. A row is rejected (recorded in the manifest, not stored) if it has no
 source_url or as_of, or any other field is invalid. Accepted rows are flagged
 `manual_entry`. The same validation runs at fetch and at replay, so the
 accepted set is identical.
@@ -22,7 +23,7 @@ from rmprep.ingest.parsing import ParseError, detect_decimal, parse_date, parse_
 from rmprep.ingest.snapshot import Snapshot, SnapshotWriter, SourceRecord, raw_ref
 
 REQUIRED_COLUMNS = ("quantity", "entity", "value", "unit", "as_of", "source_url")
-OPTIONAL_COLUMNS = ("note",)
+OPTIONAL_COLUMNS = ("note", "valid_until")
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,7 @@ class ManualRow:
     as_of: date
     source_url: str
     note: str
+    valid_until: date | None = None
 
 
 def parse_file(data: bytes, name: str, cfg: Config,
@@ -99,6 +101,13 @@ def parse_file(data: bytes, name: str, cfg: Config,
         except ParseError:
             reasons.append(f"bad value {get(row, 'value')!r}")
 
+        valid_until = None
+        if get(row, "valid_until"):
+            try:
+                valid_until = parse_date(get(row, "valid_until"))
+            except ParseError:
+                reasons.append(f"bad valid_until {get(row, 'valid_until')!r}")
+
         unit = get(row, "unit")
         if expected_unit and unit and unit != expected_unit:
             reasons.append(f"unit {unit!r} does not match quantity unit {expected_unit!r}")
@@ -108,7 +117,8 @@ def parse_file(data: bytes, name: str, cfg: Config,
         else:
             accepted.append(ManualRow(
                 locator=f"row={n}", quantity=quantity, entity=entity, value=value,
-                unit=expected_unit, as_of=as_of, source_url=url, note=get(row, "note")))
+                unit=expected_unit, as_of=as_of, source_url=url, note=get(row, "note"),
+                valid_until=valid_until))
     return accepted, rejected
 
 
@@ -154,15 +164,21 @@ def parse(cfg: Config, src: ManualSource, snap: Snapshot, *,
     if rec is None or rec.status != "ok":
         raise ValueError(f"{snap.snapshot_id}: source {src.name!r} has no ok record")
     sid = out_snapshot_id or snap.snapshot_id
+    day = out_date or snap.created_at.astimezone(TR_TZ).date()
     points = []
     for p in rec.payloads:
         name = p.path.rsplit("/", 1)[-1]
         accepted, _ = parse_file(snap.read_payload(p.path), name, cfg, src)
         for row in accepted:
-            points.append(DataPoint.create(
+            point = DataPoint.create(
                 quantity=row.quantity, entity=row.entity, value=row.value, unit=row.unit,
                 as_of=row.as_of, source=src.name, source_url=row.source_url,
                 fetched_at=rec.fetched_at, snapshot_id=sid,
                 raw_ref=raw_ref(snap.snapshot_id, p.path, row.locator),
-                flags=[Flag.MANUAL_ENTRY], note=row.note))
+                flags=[Flag.MANUAL_ENTRY], note=row.note)
+            if row.valid_until is not None and day > row.valid_until:
+                point = point.with_flags(
+                    Flag.STALE,
+                    note=f"valid until {row.valid_until:%d.%m.%Y}; check the current value")
+            points.append(point)
     return points
