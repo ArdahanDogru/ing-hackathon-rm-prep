@@ -168,10 +168,17 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
         texts = config.raw["texts"]["assumptions"]
         common["assumptions"] += (texts["class_rule"],)
         extra_keys.append("class_rule")
-    common["to_confirm"] = confirm(keys + tuple(extra_keys))
     by_id = {o.option.option_id: o for o in options}
     estimates = {f.option.option_id: f.risk for f in scoring.features if f.risk_estimated}
-    warnings = build_warnings(options, levels, reading.questions, evidence, config, estimates)
+    # D22: the stopaj and CPI rows of the scored options' real (net) returns
+    rr = config.raw.get("real_return")
+    real_inputs = [] if rr is None else [
+        f.rows[q] for f in scoring.features if f.net_return is not None
+        for q in (rr["stopaj"]["quantity"], rr["cpi"]["quantity"]) if q in f.rows]
+    warnings = build_warnings(options, levels, reading.questions, evidence, config, estimates,
+                              real_inputs)
+    # to_confirm: assumption keys, then warning codes with an entry (D22)
+    common["to_confirm"] = confirm(keys + tuple(extra_keys) + tuple(w.code for w in warnings))
 
     used: set[str] = set()
     for o in options:
