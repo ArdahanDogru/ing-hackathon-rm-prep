@@ -178,6 +178,11 @@ sources:
         entity: CPI general index (2025=100)
         frequency: monthly
         verified: true
+        # I5 (2026-10-14): 13 months for the 12-month change; the row has the entity
+        # of the manual cpi_annual row, so the conflict check compares the two.
+        # Checked: 137.23 (2026-9) / 105.78 (2025-9) - 1 = 29.73 % = the manual row.
+        lookback_days: 400
+        annual_change: {quantity: cpi_annual, entity: "TÜFE yıllık değişim (TÜİK)"}
       # Codes below were found with `rmprep evds-find` / `evds-info` on 2026-10-09
       # (EVDS metadata name in the comment).
       - code: TP.APIFON4            # "TCMB Ağırlıklı Ortalama Fonlama Maliyeti", İŞ GÜNÜ

@@ -350,6 +350,12 @@ a check when the app opens. Ingest lock: docs/ingest.md I6.
   - error: "Veri alınamadı: {error}" and "Tekrar dene".
   Fresh data and no job: no line (the "Veri" menu shows the snapshot date).
   EN labels as well. The newest snapshot stays the default when the app opens.
+- As built (2026-10-14): web `web@279eb6f` (a 404 from GET gives no line; a
+  409 from POST reads GET again). API: `src/rmprep/api/ingest_job.py`
+  `IngestControl`, passed to `create_app(..., ingest=)` by `serve.py`; it is not
+  part of the frozen Backend protocol, so tests and the FakeBackend have no
+  `/api/ingest` (404). A refresh from the web app also writes start, exit and
+  error lines to `data/logs/ingest.log`.
 
 ### Not in this redesign (later, with data)
 

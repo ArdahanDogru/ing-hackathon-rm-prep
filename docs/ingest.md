@@ -373,6 +373,15 @@ manual `cpi_annual` row is no longer the only source. Checked 2026-10-14:
 - Tests: a payload with 13 months gives the row (value, as_of, raw_ref, note);
   12 months gives no row; replay is identical; per-series lookback in the
   request start date; config errors (unknown quantity, bad lookback).
+- As built (merged 2026-10-14, `ingest@75c6223`): `annual_change` is allowed
+  only on a `monthly` series (config error otherwise); `raw_ref` keeps the
+  usual form `<snapshot>/<payload path>#<code>:<M>/<M−12>`; the manifest
+  request of EVDS gets `series_start_dates` {code: date} only for series with
+  their own `lookback_days` (`start_date` stays the source value); a zero
+  index at M − 12 also gives no row; the note uses ASCII "- 1". Live check
+  2026-10-14 (EVDS and manual only, temp folder): EVDS row 29.7315 (as_of
+  2026-09-30), manual row 29.73, no conflict flag. The snapshots before I5
+  keep only the manual row.
 
 I6 (approved by the user 2026-10-14): one ingest at a time, for the daily
 Task Scheduler job and the "Veriyi yenile" button of the web app (W14).
@@ -389,6 +398,20 @@ Task Scheduler job and the "Veriyi yenile" button of the web app (W14).
 - Tests: a second ingest while the lock exists raises `IngestBusy`; the lock
   is removed after success and after an exception; a stale lock is replaced;
   `ingest_status`; the CLI exit code 3.
+- As built (merged 2026-10-14, `ingest@a3d81d9`): `Paths.lock`,
+  `ingest_status(paths, now=None)`, `LOCK_STALE_AFTER` = 2 h (exactly 2 h is
+  still active); the stale-lock warning goes to the logger
+  `rmprep.ingest.pipeline`. Known limit: two ingests that find the same stale
+  lock at the same moment can both replace it (acceptable for one daily job
+  and one button). The lead added the CLI exit code 3 (`tests/cli/
+  test_ingest_cli.py`) and `rmprep ingest --summary` (the source status and
+  flag counts only; the daily log uses it).
+- Daily job: `scripts/schedule_ingest.ps1` registers the Task Scheduler task
+  "rmprep daily ingest" (07:30, a missed start runs when the laptop is on);
+  `scripts/run_ingest.cmd` logs to `data/logs/ingest.log`. First run
+  2026-10-14 00:56 → snapshot `20261014-005625-c76a` (813 detail pages; 2
+  pages "Server disconnected", 1 HTTP 404; a new status text "Fon Alımına
+  Kapalı, Fon Bozumuna Açık" on 4 funds, now mapped to `fund_buyable` 0).
 
 ## Noted for later (decided 2026-10-09, not to be done now)
 

@@ -20,6 +20,7 @@ from rmprep.ingest.config import ConfigError, EvdsSource, load_config
 from rmprep.ingest.pipeline import (
     EvidenceSet,
     ExclusionError,
+    IngestBusy,
     Paths,
     build_evidence,
     ingest,
@@ -232,6 +233,9 @@ def main(argv: list[str] | None = None) -> int:
             web.serve(paths.root, args.port, personas_dir=args.personas)
         elif args.command in ("evds-find", "evds-info"):
             return _evds_meta(paths, args)
+    except IngestBusy as e:   # I6: the daily job or the web app's refresh runs
+        print(str(e), file=sys.stderr)
+        return 3
     except (ConfigError, SnapshotError, ExclusionError, EvdsParseError, ValueError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2

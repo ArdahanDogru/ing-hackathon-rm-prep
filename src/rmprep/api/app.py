@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from rmprep import edits
+from rmprep.api.ingest_job import IngestControl
 from rmprep.api.names import short_name
 from rmprep.api import schemas
 from rmprep.contracts import (
@@ -30,6 +31,7 @@ from rmprep.contracts import (
     RmStatus,
     _to_json,
 )
+from rmprep.ingest.pipeline import IngestBusy
 from rmprep.narrator.template import to_markdown
 from rmprep.ui import card, glossary
 
@@ -42,9 +44,11 @@ ViewFn = Callable[[DecisionResult], dict]
 def create_app(backend: Backend, *, views: ViewFn | None = None,
                narrative_timeout_s: float = 120.0,
                glossary_path: Path | str = GLOSSARY,
-               static_dir: Path | None = None) -> FastAPI:
+               static_dir: Path | None = None,
+               ingest: IngestControl | None = None) -> FastAPI:
     """static_dir: the built web app (web/dist); its index.html answers every
-    non-API path, so the client-side routes (/meeting/..., /print/...) work."""
+    non-API path, so the client-side routes (/meeting/..., /print/...) work.
+    ingest: the data age and refresh (W14); None = /api/ingest answers 404."""
     app = FastAPI(title="rmprep", docs_url="/api/docs", openapi_url="/api/openapi.json")
     runs: dict[str, DecisionResult] = {}
     texts: dict[tuple[str, str], NarrativeDraft] = {}   # (run_id, lang) -> last draft / approved text
@@ -82,6 +86,22 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     @app.get("/api/snapshots")
     def snapshots():
         return backend.list_snapshots()
+
+    def _ingest() -> IngestControl:
+        if ingest is None:
+            raise HTTPException(404, "no data refresh in this server")
+        return ingest
+
+    @app.get("/api/ingest")
+    def ingest_state():
+        return _ingest().status()
+
+    @app.post("/api/ingest", status_code=202)
+    def ingest_start():
+        try:
+            return _ingest().start()
+        except IngestBusy as e:
+            raise HTTPException(409, str(e)) from e
 
     @app.get("/api/snapshots/{snapshot_id}/sources")
     def sources(snapshot_id: str):
