@@ -78,6 +78,36 @@ def detail_page(fixture: str, code: str | None = None, **fields) -> bytes:
     return html.encode("utf-8")
 
 
+_VARLIK_RE = re.compile(r',\\"varlikData\\":\[[^\]]*\]')
+
+
+def set_varlik(page: bytes, rows: list[dict] | None) -> bytes:
+    """A detail page with its varlikData list replaced by `rows` (I8); None
+    removes the key. Quotes are escaped as in the page (see detail_page)."""
+    html = page.decode("utf-8")
+    new = "" if rows is None else ',"varlikData":' + json.dumps(rows, ensure_ascii=False)
+    html, n = _VARLIK_RE.subn(lambda m: new.replace('"', '\\"'), html)
+    assert n == 1
+    return html.encode("utf-8")
+
+
+def holding(code: str, kind: str, share) -> dict:
+    """One varlikData row as on the page."""
+    return {"fonKodu": code, "fonUnvan": "ÖRNEK FON", "kiymetTip": kind, "portfoyOrani": share}
+
+
+TEST_HOLDINGS_QUANTITY = {"unit": "pct", "max_age_days": 5, "min": -100, "max": 200,
+                          "conflict_tolerance": 0.01}
+
+
+def add_holdings(config_raw: dict) -> dict:
+    """config_raw with the I8 holdings rows switched on for tefas_detail."""
+    config_raw["quantities"].setdefault("fund_holding_share",
+                                        copy.deepcopy(TEST_HOLDINGS_QUANTITY))
+    config_raw["sources"]["tefas_detail"]["holdings_quantity"] = "fund_holding_share"
+    return config_raw
+
+
 def default_detail_pages() -> dict[str, bytes]:
     """Detail pages for the three funds of the fixture tefas_web page."""
     return {"AAL": detail_page("ZBJ", "AAL"), "IGL": detail_page("IPB", "IGL"),

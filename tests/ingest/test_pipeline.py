@@ -8,7 +8,7 @@ import duckdb
 import pytest
 import yaml
 
-from tests.ingest.conftest import FIXTURES, KEY, T0, FakeEvds, add_cpi_annual
+from tests.ingest.conftest import FIXTURES, KEY, T0, FakeEvds, add_cpi_annual, add_holdings
 from rmprep.cli import main
 from rmprep.contracts import EntityInfo, Flag
 from rmprep.ingest.pipeline import ExclusionError, Paths, build_evidence, ingest, replay
@@ -132,6 +132,16 @@ def test_replay_keeps_valid_until_stale_flag(tmp_path, config_raw):
     assert Flag.STALE in p.flags and "valid until 08.10.2026" in p.note
     os.remove(paths.db)
     shutil.rmtree(paths.root / "data/inbox")
+    assert replay(paths, ev.snapshot_id) == ev
+
+
+def test_replay_keeps_holdings_rows(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_holdings(config_raw))
+    ev = run(paths)
+    held = by(ev, source="tefas_detail", quantity="fund_holding_share")
+    assert {p.entity.split("/")[0] for p in held} == {"AAL", "IGL", "ZZZ"}
+    os.remove(paths.db)
+    os.remove(paths.config)
     assert replay(paths, ev.snapshot_id) == ev
 
 
