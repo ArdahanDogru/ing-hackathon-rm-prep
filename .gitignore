@@ -13,6 +13,8 @@ data/runs/
 data/cards/
 data/narratives/
 data/eval/
+data/logs/
+data/.ingest.lock
 .superpowers/
 web/node_modules/
 web/dist/
