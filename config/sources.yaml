@@ -278,7 +278,7 @@ sources:
     user_agent: rmprep-hackathon-prototype/0.1 (ING hackathon; one request per day)
     timeout_seconds: 30
     min_funds: 1000          # fewer funds -> the page changed -> source fails
-    flag_needs_check: true   # set to false once the scraper has a stable record
+    flag_needs_check: false  # 2026-10-14 (user): stable since 2026-10-09 (12 snapshots); was true
     # field in the page data -> quantity
     value_fields:
       getiri1a: fund_return_1m
@@ -313,7 +313,7 @@ sources:
     # max_funds: 20          # limit the fund list for trials
     funds_from: tefas_web
     exclude_categories: ["Serbest Şemsiye Fonu"]
-    flag_needs_check: true   # set to false once the source has a stable record
+    flag_needs_check: false  # 2026-10-14 (user): stable since 2026-10-10 (12 snapshots); was true
     # "<page data object>.<field>" -> quantity. Required: a page without the
     # value is a rejected row. Valör: the page shows fonGeriAlisValor as
     # "Fon Alış Valörü" and fonSatisValor as "Fon Satış Valörü".
