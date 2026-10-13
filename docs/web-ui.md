@@ -327,6 +327,30 @@ opens the fund card) or the note; the holding hints above the rows. No current
 shares, no amounts. The current-portfolio input with a gap analysis is future
 work.
 
+### Data freshness and refresh (W14, 2026-10-14)
+
+Approved by the user 2026-10-14: a daily ingest (Task Scheduler, 07:30, "run
+as soon as possible after a missed start"; `scripts/schedule_ingest.ps1`) and
+a check when the app opens. Ingest lock: docs/ingest.md I5.
+
+- **API (lead):** `GET /api/ingest` → `{latest_snapshot, created_at (ISO,
+  Europe/Istanbul), age_hours, stale (age_hours >= 24), running, started_at,
+  finished_at, error}`. `POST /api/ingest` → starts the ingest in a background
+  thread (one at a time) and returns 202 with the status; 409 when an ingest
+  already runs (this server or another process, e.g. the scheduled job).
+- **Web (`ing-web`):** a line above the dashboard, only in these states:
+  - stale, not running: "Veri {n} gün önce alındı ({date})." and the button
+    **"Veriyi yenile"** with the hint "yaklaşık 15 dakika sürer";
+  - running: "Veri alınıyor… (başladı {time})"; the page asks `GET
+    /api/ingest` every 15 s;
+  - finished, a newer snapshot exists than the one on screen: "Yeni veri hazır
+    ({date})." and the button **"Yeni veriyle aç"**: it reloads the snapshot
+    list and selects the newest. No automatic switch: a run on screen does not
+    change under the RM;
+  - error: "Veri alınamadı: {error}" and "Tekrar dene".
+  Fresh data and no job: no line (the "Veri" menu shows the snapshot date).
+  EN labels as well. The newest snapshot stays the default when the app opens.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no
