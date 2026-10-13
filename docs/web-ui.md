@@ -331,7 +331,7 @@ work.
 
 Approved by the user 2026-10-14: a daily ingest (Task Scheduler, 07:30, "run
 as soon as possible after a missed start"; `scripts/schedule_ingest.ps1`) and
-a check when the app opens. Ingest lock: docs/ingest.md I5.
+a check when the app opens. Ingest lock: docs/ingest.md I6.
 
 - **API (lead):** `GET /api/ingest` → `{latest_snapshot, created_at (ISO,
   Europe/Istanbul), age_hours, stale (age_hours >= 24), running, started_at,

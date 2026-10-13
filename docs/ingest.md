@@ -344,7 +344,7 @@ must see it.
 - Later (decision D12): `fund_buyable = 0` → rejected (new hard rule
   `not_buyable`); a missing row → a data-quality note, not a rejection.
 
-I4 (approved by the user 2026-10-14): annual TÜFE from EVDS, so that the
+I5 (approved by the user 2026-10-14): annual TÜFE from EVDS, so that the
 manual `cpi_annual` row is no longer the only source. Checked 2026-10-14:
 `TP.TUKFIY2025.GENEL` starts in 2005; 137.23 (2026-9) / 105.78 (2025-9) − 1 =
 29.73 %, the value of the manual row.
@@ -361,7 +361,7 @@ manual `cpi_annual` row is no longer the only source. Checked 2026-10-14:
   `<code>:<M>/<M−12>` (e.g. `TP.TUKFIY2025.GENEL:2026-9/2025-9`), the series'
   flags (`unverified_series` if not verified), note `12-month change of
   <code>: <index M> (<M>) / <index M−12> (<M−12>) − 1`.
-- No M − 12 observation (e.g. the snapshots made before I4 hold only 4
+- No M − 12 observation (e.g. the snapshots made before I5 hold only 4
   months) → **no row at all**, not a `missing` row: a `missing` row with a
   newer `as_of` would hide the manual row in `EvidenceIndex` and remove TÜFE
   from old snapshots on replay.
@@ -374,7 +374,7 @@ manual `cpi_annual` row is no longer the only source. Checked 2026-10-14:
   12 months gives no row; replay is identical; per-series lookback in the
   request start date; config errors (unknown quantity, bad lookback).
 
-I5 (approved by the user 2026-10-14): one ingest at a time, for the daily
+I6 (approved by the user 2026-10-14): one ingest at a time, for the daily
 Task Scheduler job and the "Veriyi yenile" button of the web app (W14).
 
 - Lock file `data/.ingest.lock` (in `Paths.root`), created with exclusive
