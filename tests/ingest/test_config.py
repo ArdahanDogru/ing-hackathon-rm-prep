@@ -3,7 +3,9 @@ from pathlib import Path
 
 import pytest
 
+from tests.ingest.conftest import CPI_ANNUAL_ENTITY, add_cpi_annual
 from rmprep.ingest.config import (
+    AnnualChange,
     ConfigError,
     EvdsSource,
     ManualSource,
@@ -145,6 +147,51 @@ def test_duplicate_series_code_rejected(raw):
     series = raw["sources"]["evds"]["series"]
     series.append(dict(series[0]))
     assert "duplicate series code" in _error(raw)
+
+
+# --- EVDS series options of I5 (lookback_days, annual_change) ---------------------------
+
+def test_series_options_default_to_none(raw):
+    s = parse_config(raw).sources["evds"].series[0]
+    assert s.lookback_days is None and s.annual_change is None
+
+
+def test_series_lookback_and_annual_change_parsed(raw):
+    s = parse_config(add_cpi_annual(raw)).sources["evds"].series[-1]
+    assert s.lookback_days == 400
+    assert s.annual_change == AnnualChange(quantity="cpi_annual", entity=CPI_ANNUAL_ENTITY)
+
+
+@pytest.mark.parametrize("bad", [0, -5, 1.5, "400", True])
+def test_series_bad_lookback_rejected(raw, bad):
+    add_cpi_annual(raw)["sources"]["evds"]["series"][-1]["lookback_days"] = bad
+    assert "sources.evds.series[4].lookback_days: must be a positive integer" in _error(raw)
+
+
+def test_annual_change_unknown_quantity_rejected(raw):
+    add_cpi_annual(raw)["sources"]["evds"]["series"][-1]["annual_change"]["quantity"] = "cpi_yoy"
+    assert "sources.evds.series[4].annual_change.quantity: unknown quantity 'cpi_yoy'" \
+        in _error(raw)
+
+
+def test_annual_change_needs_quantity_and_entity(raw):
+    del add_cpi_annual(raw)["sources"]["evds"]["series"][-1]["annual_change"]["entity"]
+    assert "sources.evds.series[4].annual_change: missing key(s) ['entity']" in _error(raw)
+
+
+def test_annual_change_unknown_key_rejected(raw):
+    add_cpi_annual(raw)["sources"]["evds"]["series"][-1]["annual_change"]["unit"] = "pct"
+    assert "sources.evds.series[4].annual_change: unknown key(s) ['unit']" in _error(raw)
+
+
+def test_annual_change_must_be_mapping(raw):
+    add_cpi_annual(raw)["sources"]["evds"]["series"][-1]["annual_change"] = "cpi_annual"
+    assert "sources.evds.series[4].annual_change: must be a mapping" in _error(raw)
+
+
+def test_annual_change_only_for_monthly_series(raw):
+    add_cpi_annual(raw)["sources"]["evds"]["series"][-1]["frequency"] = "daily"
+    assert "sources.evds.series[4].annual_change: needs frequency monthly" in _error(raw)
 
 
 # --- TEFAS columns ----------------------------------------------------------------------

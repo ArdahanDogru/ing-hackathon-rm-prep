@@ -1,9 +1,11 @@
+import json
 from datetime import date, timedelta
 
 import httpx
 import pytest
 
-from tests.ingest.conftest import FIXTURES, KEY, T0, FakeEvds
+from tests.ingest.conftest import (CPI_ANNUAL_ENTITY, CPI_CODE, FIXTURES, KEY, T0, FakeEvds,
+                                   add_cpi_annual)
 from rmprep.ingest.adapters import evds
 from rmprep.ingest.config import parse_config
 from rmprep.contracts import Flag
@@ -234,6 +236,135 @@ def test_value_parsing(raw, expected):
             ("null" if raw is None else f'"{raw}"' if isinstance(raw, str) else raw)).encode()
     [(_, _, v)] = evds.parse_payload(body, "TP.X")
     assert v == expected
+
+
+# --- I5: per-series lookback and annual change ---------------------------------------------
+
+CPI_SID = "20261009-150000-0001"
+CPI_PAYLOAD = f"payloads/evds/{CPI_CODE}.json"
+
+
+def _cpi_cfg(config_raw):
+    return parse_config(add_cpi_annual(config_raw))
+
+
+def _annual(points):
+    return [p for p in points if p.quantity == "cpi_annual"]
+
+
+def test_series_lookback_overrides_source_lookback(tmp_path, config_raw):
+    fake = FakeEvds()
+    rec, _ = _fetch(tmp_path, _cpi_cfg(config_raw), fake)
+    urls = [str(r.url) for r in fake.requests]
+    assert f"series={CPI_CODE}&startDate=01-09-2025&endDate=09-10-2026&type=json" in urls[2]
+    assert "startDate=01-06-2026" in urls[0] and "startDate=01-06-2026" in urls[1]
+    assert rec.request["start_date"] == "2026-06-01"
+    assert rec.request["series_start_dates"] == {CPI_CODE: "2025-09-01"}
+
+
+def test_request_has_no_series_start_dates_without_override(tmp_path, cfg):
+    rec, _ = _fetch(tmp_path, cfg, FakeEvds())
+    assert "series_start_dates" not in rec.request
+
+
+def test_annual_change_row_from_13_months(tmp_path, config_raw):
+    cfg = _cpi_cfg(config_raw)
+    _, snap = _fetch(tmp_path, cfg, FakeEvds())
+    [p] = _annual(evds.parse(cfg, cfg.sources["evds"], snap))
+    assert p.value == (137.23 / 105.78 - 1) * 100          # full float, about 29.73
+    assert round(p.value, 2) == 29.73
+    assert p.entity == CPI_ANNUAL_ENTITY and p.unit == "pct"
+    assert p.as_of == date(2026, 9, 30)
+    assert p.source == "evds" and p.source_url == cfg.sources["evds"].source_url
+    assert p.fetched_at == T0 and p.snapshot_id == CPI_SID
+    assert p.raw_ref == f"{CPI_SID}/{CPI_PAYLOAD}#{CPI_CODE}:2026-9/2025-9"
+    assert p.flags == frozenset()                         # the series is verified
+    assert p.note == f"12-month change of {CPI_CODE}: 137.23 (2026-9) / 105.78 (2025-9) - 1"
+
+
+def test_annual_change_keeps_index_rows(tmp_path, config_raw):
+    cfg = _cpi_cfg(config_raw)
+    _, snap = _fetch(tmp_path, cfg, FakeEvds())
+    pts = _by_entity(evds.parse(cfg, cfg.sources["evds"], snap))
+    assert len(pts["CPI general index (2025=100)"]) == 13
+
+
+def test_annual_change_of_unverified_series_is_flagged(tmp_path, config_raw):
+    add_cpi_annual(config_raw)["sources"]["evds"]["series"][-1]["verified"] = False
+    cfg = parse_config(config_raw)
+    _, snap = _fetch(tmp_path, cfg, FakeEvds())
+    [p] = _annual(evds.parse(cfg, cfg.sources["evds"], snap))
+    assert p.flags == {Flag.UNVERIFIED_SERIES}
+
+
+def _cpi_body(items):
+    return json.dumps({"totalCount": len(items), "items": items}).encode()
+
+
+def _cpi_items():
+    return json.loads((FIXTURES / "evds" / f"{CPI_CODE}.json").read_bytes())["items"]
+
+
+class CpiOnly(FakeEvds):
+    """Serves `body` for the CPI series and the fixtures for the others."""
+
+    def __init__(self, body):
+        super().__init__()
+        self.cpi = body
+
+    def __call__(self, request):
+        if CPI_CODE in str(request.url):
+            self.requests.append(request)
+            return httpx.Response(200, content=self.cpi)
+        return super().__call__(request)
+
+
+def test_12_months_give_no_annual_row(tmp_path, config_raw):
+    cfg = _cpi_cfg(config_raw)
+    _, snap = _fetch(tmp_path, cfg, CpiOnly(_cpi_body(_cpi_items()[1:])))   # 2025-10 .. 2026-9
+    pts = evds.parse(cfg, cfg.sources["evds"], snap)
+    assert _annual(pts) == []                                # no row, not a missing row
+    assert len(_by_entity(pts)["CPI general index (2025=100)"]) == 12
+
+
+def test_annual_change_uses_latest_month_with_value(tmp_path, config_raw):
+    items = _cpi_items() + [{"Tarih": "2026-10", "TP_TUKFIY2025_GENEL": None}]
+    cfg = _cpi_cfg(config_raw)
+    _, snap = _fetch(tmp_path, cfg, CpiOnly(_cpi_body(items)))
+    [p] = _annual(evds.parse(cfg, cfg.sources["evds"], snap))
+    assert p.as_of == date(2026, 9, 30)
+
+
+def test_null_value_12_months_back_gives_no_annual_row(tmp_path, config_raw):
+    items = _cpi_items()
+    items[0]["TP_TUKFIY2025_GENEL"] = None
+    cfg = _cpi_cfg(config_raw)
+    _, snap = _fetch(tmp_path, cfg, CpiOnly(_cpi_body(items)))
+    assert _annual(evds.parse(cfg, cfg.sources["evds"], snap)) == []
+
+
+def test_zero_value_12_months_back_gives_no_annual_row(tmp_path, config_raw):
+    items = _cpi_items()
+    items[0]["TP_TUKFIY2025_GENEL"] = "0"
+    cfg = _cpi_cfg(config_raw)
+    _, snap = _fetch(tmp_path, cfg, CpiOnly(_cpi_body(items)))
+    assert _annual(evds.parse(cfg, cfg.sources["evds"], snap)) == []
+
+
+def test_annual_change_row_for_fallback_keeps_origin(tmp_path, config_raw):
+    cfg = _cpi_cfg(config_raw)
+    _, snap = _fetch(tmp_path, cfg, FakeEvds())
+    [p] = _annual(evds.parse(cfg, cfg.sources["evds"], snap,
+                             out_snapshot_id="20261010-090000-0002", out_date=date(2026, 10, 10)))
+    assert p.snapshot_id == "20261010-090000-0002"
+    assert p.raw_ref.startswith(f"{CPI_SID}/") and p.fetched_at == T0
+    assert p.as_of == date(2026, 9, 30)
+
+
+def test_failed_cpi_series_gives_no_annual_missing_row(cfg, config_raw):
+    cfg = _cpi_cfg(config_raw)
+    pts = evds.missing_points(cfg, cfg.sources["evds"], CPI_SID, T0, note="EVDS failed")
+    assert _annual(pts) == []
 
 
 def test_forbidden_key_fails(tmp_path, cfg):

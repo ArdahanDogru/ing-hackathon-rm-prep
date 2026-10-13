@@ -132,6 +132,25 @@ TEST_EVDS_SERIES = [
      "entity": "TRY deposit rate, weighted average", "frequency": "weekly", "verified": False},
 ]
 
+# I5: the 2025=100 CPI series with 13 months (2025-9 .. 2026-9) and its annual
+# change. Index 105.78 (2025-9) and 137.23 (2026-9), as checked on 2026-10-14.
+CPI_CODE = "TP.TUKFIY2025.GENEL"
+CPI_ANNUAL_ENTITY = "TÜFE yıllık değişim (TÜİK)"
+TEST_CPI_ANNUAL_QUANTITY = {"unit": "pct", "max_age_days": 45, "min": -50, "max": 500,
+                            "conflict_tolerance": 0.01}
+TEST_CPI_SERIES = {
+    "code": CPI_CODE, "quantity": "cpi_index", "entity": "CPI general index (2025=100)",
+    "frequency": "monthly", "verified": True, "lookback_days": 400,
+    "annual_change": {"quantity": "cpi_annual", "entity": CPI_ANNUAL_ENTITY},
+}
+
+
+def add_cpi_annual(config_raw: dict) -> dict:
+    """config_raw with the I5 CPI series added as the last EVDS series."""
+    config_raw["quantities"].setdefault("cpi_annual", copy.deepcopy(TEST_CPI_ANNUAL_QUANTITY))
+    config_raw["sources"]["evds"]["series"].append(copy.deepcopy(TEST_CPI_SERIES))
+    return config_raw
+
 
 # tefas_detail source and its quantities for tests, so tests do not depend on
 # whether (or how) config/sources.yaml has them.

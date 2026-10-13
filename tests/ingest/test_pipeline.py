@@ -8,7 +8,7 @@ import duckdb
 import pytest
 import yaml
 
-from tests.ingest.conftest import FIXTURES, KEY, T0, FakeEvds
+from tests.ingest.conftest import FIXTURES, KEY, T0, FakeEvds, add_cpi_annual
 from rmprep.cli import main
 from rmprep.contracts import EntityInfo, Flag
 from rmprep.ingest.pipeline import ExclusionError, Paths, build_evidence, ingest, replay
@@ -110,6 +110,16 @@ def test_replay_gives_identical_output(paths):
         assert store.points(ev.snapshot_id) == before_points
     assert parquet_rows(parquet) == before_rows
     assert parquet.read_bytes() == before_bytes
+
+
+def test_replay_keeps_cpi_annual_change_row(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_cpi_annual(config_raw))
+    ev = run(paths)
+    [annual] = by(ev, source="evds", quantity="cpi_annual")
+    assert round(annual.value, 2) == 29.73
+    os.remove(paths.db)
+    os.remove(paths.config)
+    assert replay(paths, ev.snapshot_id) == ev
 
 
 def test_replay_twice_is_idempotent(paths):
