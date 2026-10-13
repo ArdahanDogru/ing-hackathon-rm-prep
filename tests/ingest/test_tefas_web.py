@@ -136,8 +136,10 @@ def test_parse_skips_null_and_dash(tmp_path, cfg):
     assert igl == {"fund_return_1m", "fund_return_ytd"}       # nulls and risk "-" skipped
 
 
-def test_parse_flags_needs_check_by_default(tmp_path, cfg):
-    pts = _points(tmp_path, cfg)
+def test_parse_flags_needs_check_when_switched_on(tmp_path, config_raw):
+    # Set explicitly: the real config switches the flag off (2026-10-14).
+    config_raw["sources"]["tefas_web"]["flag_needs_check"] = True
+    pts = _points(tmp_path, parse_config(config_raw))
     assert pts and all(p.flags == {Flag.NEEDS_CHECK} for p in pts)
 
 
