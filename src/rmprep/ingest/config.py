@@ -42,12 +42,21 @@ class Quantity:
 
 
 @dataclass(frozen=True)
+class AnnualChange:
+    """I5: the 12-month change of a monthly index series, as its own quantity."""
+    quantity: str
+    entity: str
+
+
+@dataclass(frozen=True)
 class EvdsSeries:
     code: str
     quantity: str
     entity: str
     frequency: Literal["daily", "weekly", "monthly"]
     verified: bool
+    lookback_days: int | None = None           # None -> the source's lookback_days
+    annual_change: AnnualChange | None = None
 
     @property
     def is_placeholder(self) -> bool:
@@ -311,7 +320,8 @@ def _parse_evds(name, s, path, quantities) -> EvdsSource:
     for i, item in enumerate(s["series"]):
         p = f"{path}.series[{i}]"
         item = _mapping(item, p)
-        _check_keys(item, p, {"code", "quantity", "verified"}, {"entity", "frequency"})
+        _check_keys(item, p, {"code", "quantity", "verified"},
+                    {"entity", "frequency", "lookback_days", "annual_change"})
         code = _str(item["code"], f"{p}.code")
         if code in seen:
             raise ConfigError(f"{p}.code: duplicate series code {code!r}")
@@ -319,12 +329,17 @@ def _parse_evds(name, s, path, quantities) -> EvdsSource:
         verified = _bool(item["verified"], f"{p}.verified")
         if code.startswith(VERIFY_PREFIX) and verified:
             raise ConfigError(f"{p}: placeholder code {code!r} cannot be verified: true")
+        frequency = _choice(item.get("frequency", "daily"), f"{p}.frequency", FREQUENCIES)
+        lookback = item.get("lookback_days")
         series.append(EvdsSeries(
             code=code,
             quantity=_quantity_ref(item["quantity"], f"{p}.quantity", quantities),
             entity=_str(item.get("entity", code), f"{p}.entity"),
-            frequency=_choice(item.get("frequency", "daily"), f"{p}.frequency", FREQUENCIES),
+            frequency=frequency,
             verified=verified,
+            lookback_days=None if lookback is None else _pos_int(lookback, f"{p}.lookback_days"),
+            annual_change=(None if "annual_change" not in item else _parse_annual_change(
+                item["annual_change"], f"{p}.annual_change", frequency, quantities)),
         ))
     timeout = _num(s.get("timeout_seconds", 20), f"{path}.timeout_seconds")
     if timeout <= 0:
@@ -337,6 +352,18 @@ def _parse_evds(name, s, path, quantities) -> EvdsSource:
         timeout_seconds=timeout,
         series=tuple(series),
     )
+
+
+def _parse_annual_change(v: Any, path: str, frequency: str,
+                         quantities: dict[str, Quantity]) -> AnnualChange:
+    v = _mapping(v, path)
+    _check_keys(v, path, {"quantity", "entity"}, set())
+    if frequency != "monthly":
+        # The change compares month M with month M - 12; other frequencies have
+        # no single observation per month.
+        raise ConfigError(f"{path}: needs frequency monthly, got {frequency!r}")
+    return AnnualChange(quantity=_quantity_ref(v["quantity"], f"{path}.quantity", quantities),
+                        entity=_str(v["entity"], f"{path}.entity"))
 
 
 def _parse_tefas(name, s, path, quantities) -> TefasSource:

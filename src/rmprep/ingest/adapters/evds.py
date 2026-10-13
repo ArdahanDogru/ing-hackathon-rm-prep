@@ -80,6 +80,9 @@ def fetch(
     source fails and no payload is stored."""
     start = request_start(today, src.lookback_days)
     real = [s for s in src.series if not s.is_placeholder]
+    # I5: a series may look back further than the source (CPI needs 13 months).
+    starts = {s.code: request_start(today, s.lookback_days) if s.lookback_days else start
+              for s in real}
     request: dict[str, Any] = {
         "base_url": src.base_url,
         "start_date": start.isoformat(),
@@ -87,6 +90,8 @@ def fetch(
         "series": [s.code for s in real],
         "auth": "HTTP header 'key' (value not stored)",
     }
+    if own := {s.code: starts[s.code].isoformat() for s in real if s.lookback_days}:
+        request["series_start_dates"] = own
 
     def failed(error: str) -> SourceRecord:
         return SourceRecord(status="failed", on_failure=src.on_failure,
@@ -97,7 +102,7 @@ def fetch(
 
     received: list[tuple[EvdsSeries, str, bytes]] = []
     for s in real:
-        url = series_url(src, s.code, start, today)
+        url = series_url(src, s.code, starts[s.code], today)
         try:
             resp = client.get(url, headers={"key": api_key}, timeout=src.timeout_seconds)
         except httpx.HTTPError as e:
@@ -239,7 +244,41 @@ def parse(
             points.append(_point(
                 cfg, src, s, value=v, as_of=as_of, fetched_at=rec.fetched_at,
                 snapshot_id=sid, ref=raw_ref(snap.snapshot_id, payload.path, f"items[{idx}]")))
+        if s.annual_change:
+            points.extend(_annual_change(cfg, src, s, observations, fetched_at=rec.fetched_at,
+                                         snapshot_id=sid, snap_id=snap.snapshot_id,
+                                         payload_path=payload.path))
     return points
+
+
+def _month(d: date) -> str:
+    """EVDS month label, e.g. "2026-9"."""
+    return f"{d.year}-{d.month}"
+
+
+def _annual_change(cfg: Config, src: EvdsSource, s: EvdsSeries,
+                   observations: list[Observation], *, fetched_at: datetime,
+                   snapshot_id: str, snap_id: str, payload_path: str) -> list[DataPoint]:
+    """I5: one row with the 12-month change of the latest month M, or no row if
+    the payload has no value for M - 12 (no `missing` row: a newer as_of would
+    hide the manual row of the same quantity)."""
+    by_month = {(as_of.year, as_of.month): (as_of, v) for _, as_of, v in observations}
+    m_date, m_value = max(by_month.values())
+    base = by_month.get((m_date.year - 1, m_date.month))
+    if base is None or base[1] == 0:
+        return []
+    b_date, b_value = base
+    ac = s.annual_change
+    flags = set() if s.verified else {Flag.UNVERIFIED_SERIES}
+    return [DataPoint.create(
+        quantity=ac.quantity, entity=ac.entity, value=(m_value / b_value - 1) * 100,
+        unit=cfg.quantities[ac.quantity].unit, as_of=m_date, source=src.name,
+        source_url=src.source_url, fetched_at=fetched_at, snapshot_id=snapshot_id,
+        raw_ref=raw_ref(snap_id, payload_path, f"{s.code}:{_month(m_date)}/{_month(b_date)}"),
+        flags=flags,
+        note=(f"12-month change of {s.code}: {m_value!r} ({_month(m_date)}) / "
+              f"{b_value!r} ({_month(b_date)}) - 1"),
+    )]
 
 
 def missing_points(cfg: Config, src: EvdsSource, snapshot_id: str,
