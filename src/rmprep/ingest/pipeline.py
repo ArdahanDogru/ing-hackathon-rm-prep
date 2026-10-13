@@ -1,6 +1,7 @@
 """Ingest, replay and read-time evidence building.
 
 ingest  = fetch every enabled source -> snapshot -> build_evidence -> DuckDB + Parquet
+          (one at a time: lock file data/.ingest.lock, IngestBusy, ingest_status)
 replay  = build_evidence from an existing snapshot -> DuckDB + Parquet (offline)
 build_evidence(snapshot, exclude_sources) = parse -> drop excluded sources -> checks
                                             (+ entities from the same payloads)
@@ -12,11 +13,13 @@ sources.yaml. Everything after the snapshot is written reads the snapshot only.
 from __future__ import annotations
 
 import dataclasses
+import json
+import logging
 import os
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -46,10 +49,19 @@ _PARSERS = {"evds": evds.parse, "tefas": tefas.parse, "tefas_web": tefas_web.par
             "tefas_detail": tefas_detail.parse, "manual": manual.parse}
 # Adapters that also give EntityInfo (fund names and types) from their payloads.
 _ENTITY_READERS = {"tefas_web": tefas_web.entities}
+_log = logging.getLogger(__name__)
 
 
 class ExclusionError(ValueError):
     """Exclude list names a source that the snapshot does not have."""
+
+
+class IngestBusy(RuntimeError):
+    """Another ingest holds the lock (I6). `started_at` is ISO, Turkey time."""
+
+    def __init__(self, started_at: str):
+        super().__init__(f"another ingest is running since {started_at}")
+        self.started_at = started_at
 
 
 @dataclass(frozen=True)
@@ -76,8 +88,78 @@ class Paths:
     def export(self) -> Path:
         return self.root / "data" / "export"
 
+    @property
+    def lock(self) -> Path:
+        return self.root / "data" / ".ingest.lock"
+
     def inbox(self, rel: str) -> Path:
         return self.root / rel
+
+
+# --- ingest lock (I6) -----------------------------------------------------------------
+
+LOCK_STALE_AFTER = timedelta(hours=2)
+
+
+def _lock_started_at(lock: Path) -> datetime:
+    """Start time in the lock file; the file time if the content is not readable
+    (e.g. the other ingest has created the file but not written it yet)."""
+    try:
+        started = datetime.fromisoformat(json.loads(lock.read_text(encoding="utf-8"))["started_at"])
+        if started.tzinfo is not None:
+            return started.astimezone(TR_TZ)
+    except (ValueError, KeyError, TypeError):
+        pass
+    return datetime.fromtimestamp(lock.stat().st_mtime, TR_TZ)
+
+
+def _iso(dt: datetime) -> str:
+    return dt.astimezone(TR_TZ).isoformat(timespec="seconds")
+
+
+def _acquire_lock(paths: Paths, now: Callable[[], datetime]) -> str:
+    """Create the lock with exclusive create; replace a stale lock. Returns the
+    lock content, so that release removes only our own lock."""
+    paths.lock.parent.mkdir(parents=True, exist_ok=True)
+    body = json.dumps({"pid": os.getpid(), "started_at": _iso(now())})
+    for _ in range(3):
+        try:
+            with open(paths.lock, "x", encoding="utf-8") as f:
+                f.write(body)
+            return body
+        except FileExistsError:
+            pass
+        try:
+            started = _lock_started_at(paths.lock)
+        except FileNotFoundError:           # the other ingest has just finished
+            continue
+        if now() - started <= LOCK_STALE_AFTER:
+            raise IngestBusy(_iso(started))
+        _log.warning("replacing stale ingest lock from %s (older than %s)",
+                     _iso(started), LOCK_STALE_AFTER)
+        paths.lock.unlink(missing_ok=True)
+    raise IngestBusy(_iso(now()))
+
+
+def _release_lock(paths: Paths, body: str) -> None:
+    try:
+        if paths.lock.read_text(encoding="utf-8") == body:
+            paths.lock.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def ingest_status(paths: Paths, *, now: Callable[[], datetime] | None = None) -> dict:
+    """{"running": bool, "started_at": ISO str | None} from the lock file; a
+    stale lock counts as not running."""
+    now = now or (lambda: datetime.now(TR_TZ))
+    try:
+        started = _lock_started_at(paths.lock)
+    except FileNotFoundError:
+        return {"running": False, "started_at": None}
+    if now() - started > LOCK_STALE_AFTER:
+        return {"running": False, "started_at": None}
+    return {"running": True, "started_at": _iso(started)}
 
 
 # --- ingest ------------------------------------------------------------------------
@@ -96,8 +178,18 @@ def ingest(
     now: Callable[[], datetime] | None = None,
     sleep: Callable[[float], None] = time.sleep,
 ) -> EvidenceSet:
-    """`sleep` is for the wait between tefas_detail requests (tests pass a fake)."""
+    """`sleep` is for the wait between tefas_detail requests (tests pass a fake).
+    Raises IngestBusy if another ingest runs (lock file, I6)."""
     now = now or (lambda: datetime.now(TR_TZ))
+    lock = _acquire_lock(paths, now)
+    try:
+        return _ingest(paths, env=env, client=client, now=now, sleep=sleep)
+    finally:
+        _release_lock(paths, lock)
+
+
+def _ingest(paths: Paths, *, env: Mapping[str, str] | None, client: httpx.Client | None,
+            now: Callable[[], datetime], sleep: Callable[[float], None]) -> EvidenceSet:
     raw = load_raw(paths.config)
     cfg = parse_config(raw)
     env = load_env(paths) if env is None else env
