@@ -767,8 +767,9 @@ cash).
     (fund shares: no look-through) and `ignore` ("Diğer", futures margin
     cash). The 40 texts of 2026-10-14 and their classes are in the analysis
     script `scripts/analysis/varlik_impact.py` (lead).
-- Matching: lower case, then keep only `a-z0-9` (the page's broken letters
-  drop out); two labels with the same folded key are a config error. An
+- Matching: lower case, then keep only `a-z0-9` (simple and robust to
+  spelling variants; the pages themselves have correct Turkish letters); two
+  labels with the same folded key are a config error. An
   unknown text → `ignore` for this fund and one data-quality note per text
   (`unknown_holding_type`, with the count).
 - Shares: the sum per class of the positive shares, without `ignore`, as %

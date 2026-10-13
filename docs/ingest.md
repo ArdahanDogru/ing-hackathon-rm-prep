@@ -172,8 +172,10 @@ writer; `parse(cfg, src, snap, ...) -> list[DataPoint]` is pure.
    - `flag_needs_check: true` adds `needs_check` to every row until the
      scraper has a stable record. Set to `false` for `tefas_web` and
      `tefas_detail` on 2026-10-14 (the user): 12 snapshots without a format
-     change. The flag is added at parse time, so a replay of an older snapshot
-     also has no `needs_check` rows now.
+     change. A replay parses with the config **stored in the snapshot**
+     (`build_evidence` → `snap.config_raw`), so older snapshots keep their
+     `needs_check` rows; only snapshots made after the change have none. The
+     same holds for every config change (I5, I7, I8).
 3. **Manual CSV** in `data/inbox/manual/`: columns `quantity, entity, value, unit,
    as_of, source_url, note`. Rows without `source_url` or `as_of` are rejected
    (logged in manifest with row number + reason, not stored). Accepted rows get
@@ -441,8 +443,9 @@ I8 (approved by the user 2026-10-14, item 2 option A): the holdings of each
 fund. The fund detail page that `tefas_detail` already downloads has
 `varlikData`: a list of `{fonKodu, fonUnvan, kiymetTip, portfoyOrani}` (the
 asset type and its share of the portfolio, %). On 2026-10-14: 775 of 814 pages
-have it, 40 different `kiymetTip` texts. The page itself has broken Turkish
-letters in these texts (U+FFFD, e.g. `K�ymetli Madenler`); keep them verbatim.
+have it, 40 different `kiymetTip` texts, kept verbatim. (Correction by
+`ing-ingest`: the pages have correct Turkish letters; the `K�ymetli` seen at
+design time was a Windows console display problem.)
 
 - New optional source key `holdings_quantity` (a quantity name; start
   `fund_holding_share`, unit `pct`). Absent → no holdings rows (old configs
@@ -461,6 +464,18 @@ letters in these texts (U+FFFD, e.g. `K�ymetli Madenler`); keep them verbatim.
 - Tests: a page with `varlikData` (rows, entities, negative share), a page
   without it, a bad share, another fund's row, no `holdings_quantity` in the
   config, replay identical.
+- As built (merged 2026-10-14, `ingest@c8f40e3`): an empty `kiymetTip` and a
+  `kiymetTip` with `|` (the id hash separator) also give no row and a
+  rejected-row note; `varlikData` that is null or not a list gives no rows.
+  Read-only check of snapshot `20261014-005625-c76a`: 813 pages, no repeated
+  `kiymetTip` within a fund, no `|`, no row of another fund, all shares
+  numeric. Config added by the lead (`bde2708`). The holdings appear only in
+  snapshots made with this config (the replay rule above): the first one is
+  the next ingest after 2026-10-14 02:00.
+- I7 as built (`ingest@1c4d758`): fallback rows are checked against the new
+  snapshot date. Data: the stopaj CSV has `valid_until` 31.12.2026 **before**
+  `note`, because the manual CSV puts extra `;` fields of an unquoted note
+  into the last column.
 
 ## Noted for later (decided 2026-10-09, not to be done now)
 
