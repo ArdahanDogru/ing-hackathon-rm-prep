@@ -88,12 +88,12 @@ test("the holding hints above the rows and the footer with the source", async ()
   expect(view).not.toHaveTextContent(/fazla|eksik|mevcut/i);
 });
 
-test("no allocation: no Dağılım button, a remembered choice falls back to the table", () => {
+test("no allocation: no Dağılım button, a remembered choice falls back to the cards", () => {
   localStorage.setItem("rmprep.view.oneriler", "allocation");
   const v = sample("run_p01_ready");
   renderDashboard({ ...v, allocation: [], allocation_notes: [] });
   expect(screen.queryByRole("button", { name: "Dağılım" })).toBeNull();
-  expect(screen.getAllByTestId("compare-head").length).toBeGreaterThan(0);
+  expect(screen.getAllByTestId("option-card").length).toBeGreaterThan(0);
 });
 
 test("EN labels", async () => {

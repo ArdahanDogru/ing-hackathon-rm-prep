@@ -7,6 +7,7 @@ import { Dashboard } from "./Dashboard";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => vi.restoreAllMocks());
+const tableView = () => localStorage.setItem("rmprep.view.oneriler", "table"); // the cards view is the default
 
 // --- plan W7 -------------------------------------------------------------------
 
@@ -57,8 +58,17 @@ test("open Teyit edin items remind but do not block approval", () => {
   expect(screen.getByRole("button", { name: "Onayla ve metni hazırla" })).toBeEnabled();
 });
 
-test("Öneriler: table by default, deposit column last, short names, full name on hover", () => {
+test("Öneriler: cards by default", () => {
   const v = sample("run_p01_ready");
+  renderDashboard(v);
+  expect(screen.getByRole("button", { name: "Kartlar" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getAllByTestId("option-card")).toHaveLength(v.top.length);
+  expect(screen.queryByRole("table")).toBeNull();
+});
+
+test("the table: deposit column last, short names, full name on hover", () => {
+  const v = sample("run_p01_ready");
+  tableView();
   renderDashboard(v);
   const heads = screen.getAllByTestId("compare-head");
   expect(heads).toHaveLength(v.top.length + 1);
@@ -69,6 +79,7 @@ test("Öneriler: table by default, deposit column last, short names, full name o
 
 test("the table rows: match, return, real, risk, access, category, why", () => {
   const v = sample("run_p01_ready");
+  tableView();
   renderDashboard(v);
   const table = screen.getByRole("table");
   for (const row of ["Uygunluk", "1 yıl getiri", "Reel", "SPK risk", "Paraya erişim", "Kategorisinde", "Neden bu müşteri"])
@@ -77,18 +88,19 @@ test("the table rows: match, return, real, risk, access, category, why", () => {
   expect(table).toHaveTextContent(`${o.rank!.position}. / ${o.rank!.of}`);
 });
 
-test("the view switch shows cards and is remembered", async () => {
+test("the view switch shows the table and is remembered", async () => {
   const { unmount } = renderDashboard(sample("run_p01_ready"));
-  await userEvent.click(screen.getByRole("button", { name: "Kartlar" }));
-  expect(screen.getAllByTestId("option-card")).toHaveLength(3);
-  expect(localStorage.getItem("rmprep.view.oneriler")).toBe("cards");
+  await userEvent.click(screen.getByRole("button", { name: "Tablo" }));
+  expect(screen.getByRole("table")).toBeInTheDocument();
+  expect(localStorage.getItem("rmprep.view.oneriler")).toBe("table");
   unmount();
   renderDashboard(sample("run_p01_ready"));
-  expect(screen.getAllByTestId("option-card")).toHaveLength(3);
+  expect(screen.getByRole("table")).toBeInTheDocument();
 });
 
 test("table with one recommendation", () => {
   const v = sample("run_p01_ready");
+  tableView();
   renderDashboard({ ...v, top: v.top.slice(0, 1) });
   expect(screen.getAllByTestId("compare-head")).toHaveLength(2);
 });
@@ -118,6 +130,7 @@ test("K mark opens the evidence pop-up", async () => {
 
 test("a column click opens the drawer with the full name and three tiles", async () => {
   const v = sample("run_p01_ready");
+  tableView();
   renderDashboard(v);
   await userEvent.click(screen.getAllByTestId("compare-head")[0]);
   const d = screen.getByRole("dialog");
@@ -126,6 +139,7 @@ test("a column click opens the drawer with the full name and three tiles", async
 });
 
 test("Escape closes the drawer and returns focus", async () => {
+  tableView();
   renderDashboard(sample("run_p01_ready"));
   const head = screen.getAllByTestId("compare-head")[0];
   await userEvent.click(head);
@@ -135,6 +149,7 @@ test("Escape closes the drawer and returns focus", async () => {
 });
 
 test("Seçime ekle / Seçimden çıkar changes the chips", async () => {
+  tableView();
   renderDashboard(sample("run_p01_ready"));
   await userEvent.click(screen.getAllByTestId("compare-head")[0]);
   await userEvent.click(screen.getByRole("button", { name: "Seçimden çıkar" }));
@@ -157,6 +172,7 @@ test("a card click opens the drawer too; a K mark inside the evidence pop-up, no
 
 test("Escape with the evidence pop-up over the drawer closes only the pop-up", async () => {
   vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
+  tableView();
   renderDashboard(sample("run_p01_ready"));
   await userEvent.click(screen.getAllByTestId("compare-head")[0]);
   await userEvent.click(screen.getByRole("button", { name: /Kanıtları göster/ }));

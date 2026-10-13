@@ -180,7 +180,8 @@ Top to bottom, one column of 1 200–1 400 px, 24 px between sections:
      a small source number (opens its evidence); under a line, **"Teyit edin"**
      items (checkbox; a question item also has "Yanıtla").
    - **"Öneriler · mevduatla karşılaştırma"** with a view switch
-     **Tablo | Kartlar** (default **Tablo**; the browser remembers the choice):
+     **Tablo | Kartlar** (default **Kartlar** since 2026-10-13, the user's
+     choice; before: Tablo; the browser remembers the choice):
      - *Tablo*: columns = the 3 recommendations, then the deposit as a grey
        "Karşılaştırma" column; rows: Uygunluk (match), 1 yıl getiri, Reel
        (TÜFE, stopaj), SPK risk, Paraya erişim, Kategorisinde (stars +

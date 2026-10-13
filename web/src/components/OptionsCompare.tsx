@@ -1,4 +1,5 @@
-// "Öneriler · mevduatla karşılaştırma" with the view switch Tablo | Kartlar | Dağılım (remembered).
+// "Öneriler · mevduatla karşılaştırma" with the view switch Tablo | Kartlar | Dağılım
+// (default Kartlar; the choice is remembered).
 import { useState } from "react";
 import type { RunView } from "../api/types";
 import { useT } from "../i18n";
@@ -12,9 +13,9 @@ type View = "table" | "cards" | "allocation";
 function savedView(): View {
   try {
     const v = localStorage.getItem(VIEW_KEY);
-    return v === "cards" || v === "allocation" ? v : "table";
+    return v === "table" || v === "allocation" ? v : "cards";
   } catch {
-    return "table";
+    return "cards";
   }
 }
 
@@ -30,7 +31,7 @@ export function OptionsCompare({
   const t = useT();
   const [saved, setMode] = useState<View>(savedView);
   const hasAllocation = view.allocation.length > 0;
-  const mode: View = saved === "allocation" && !hasAllocation ? "table" : saved; // no bands: the table
+  const mode: View = saved === "allocation" && !hasAllocation ? "cards" : saved; // no bands: the cards
   const choose = (m: View) => {
     setMode(m);
     try {
