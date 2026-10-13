@@ -28,6 +28,16 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
   if (method === "GET" && a === "snapshots" && c === "sources") return sample(load, "sources");
   if (method === "GET" && a === "evidence") return sample(load, "evidence_item");
   if (method === "GET" && a === "glossary") return sample(load, "glossary");
+  if (a === "ingest" && !b) {
+    // stateless: stale data on the newest snapshot; a POST answers a started job
+    const latest = (load("snapshots") as string[] | undefined)?.[0] ?? null;
+    const m = latest && /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/.exec(latest);
+    const created_at = m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}+03:00` : null;
+    const age_hours = created_at ? (Date.now() - Date.parse(created_at)) / 3_600_000 : null;
+    const status = { latest_snapshot: latest, created_at, age_hours, stale: true, running: false, started_at: null, finished_at: null, error: null };
+    if (method === "GET") return { status: 200, body: status };
+    if (method === "POST") return { status: 202, body: { ...status, running: true, started_at: new Date().toISOString() } };
+  }
 
   if (a === "runs") {
     if (method === "POST" && !b) {

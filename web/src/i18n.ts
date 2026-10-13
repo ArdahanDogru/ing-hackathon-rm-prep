@@ -201,6 +201,14 @@ const TR = {
   inferredTip: "Kaynak yok: Muhafazakâr–Dengeli arası çıkarım",
   allocFooter: "Gösterge model dağılım (stratejik), tutar değildir. Kaynak:",
   allocBand: "Model bant",
+  ingestStale: "Veri {n} gün önce alındı ({date}).",
+  ingestStaleOne: "Veri 1 gün önce alındı ({date}).",
+  ingestRefresh: "Veriyi yenile",
+  ingestHint: "yaklaşık 15 dakika sürer",
+  ingestRunning: "Veri alınıyor… (başladı {time})",
+  ingestNewer: "Yeni veri hazır ({date}).",
+  ingestOpenNewer: "Yeni veriyle aç",
+  ingestError: "Veri alınamadı: {error}",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -403,6 +411,14 @@ const EN: Record<LabelKey, string> = {
   inferredTip: "No source: inferred between Muhafazakâr and Dengeli",
   allocFooter: "Indicative model allocation (strategic), not amounts. Source:",
   allocBand: "Model band",
+  ingestStale: "The data is {n} days old ({date}).",
+  ingestStaleOne: "The data is 1 day old ({date}).",
+  ingestRefresh: "Refresh the data",
+  ingestHint: "takes about 15 minutes",
+  ingestRunning: "Fetching the data… (started {time})",
+  ingestNewer: "New data is ready ({date}).",
+  ingestOpenNewer: "Open with the new data",
+  ingestError: "The data could not be fetched: {error}",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };
@@ -413,4 +429,9 @@ export const LangContext = createContext<Lang>("TR");
 export function useT(): (key: LabelKey) => string {
   const lang = useContext(LangContext);
   return (key) => labels[lang][key];
+}
+
+/** Puts the values into the {name} placeholders of a label. */
+export function fill(text: string, values: Record<string, string | number>): string {
+  return text.replace(/\{(\w+)\}/g, (all, name: string) => (name in values ? String(values[name]) : all));
 }

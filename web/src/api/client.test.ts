@@ -80,3 +80,20 @@ test("editBlock: PUT the block with its text or null", async () => {
   expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ text: "Yeni." });
   expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ text: null });
 });
+
+test("ingest: GET the status, POST starts it (202), 409 when it already runs", async () => {
+  const status = { latest_snapshot: "S", running: true };
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce(json(status, 200))
+    .mockResolvedValueOnce(json(status, 202))
+    .mockResolvedValueOnce(json({ detail: "an ingest already runs" }, 409));
+  globalThis.fetch = fetch;
+  expect(await api.ingestStatus()).toEqual(status);
+  expect(await api.startIngest()).toEqual(status);
+  await expect(api.startIngest()).rejects.toEqual(new ApiError(409, "an ingest already runs"));
+  expect(fetch.mock.calls[0][0]).toBe("/api/ingest");
+  expect(fetch.mock.calls[0][1].method).toBe("GET");
+  expect(fetch.mock.calls[1][0]).toBe("/api/ingest");
+  expect(fetch.mock.calls[1][1].method).toBe("POST");
+});

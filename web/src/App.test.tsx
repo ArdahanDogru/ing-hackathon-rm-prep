@@ -3,13 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { App } from "./App";
 import { api } from "./api/client";
-import { sample } from "./test/samples";
+import { ingestSample, sample } from "./test/samples";
 
 beforeEach(() => {
   localStorage.clear();
   vi.spyOn(api, "personas").mockResolvedValue(sample("personas"));
   vi.spyOn(api, "snapshots").mockResolvedValue(sample("snapshots"));
   vi.spyOn(api, "sources").mockResolvedValue(sample("sources"));
+  vi.spyOn(api, "ingestStatus").mockResolvedValue(ingestSample("fresh"));
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -100,4 +101,33 @@ test("a print tab makes no default run", async () => {
   await waitFor(() => expect(print).toHaveBeenCalled());
   expect(run).not.toHaveBeenCalled();
   expect(screen.queryAllByRole("button")).toHaveLength(0);
+});
+
+test("Yeni veriyle aç reloads the snapshot list and runs on the newest", async () => {
+  const newer = ingestSample("finished_newer");
+  vi.spyOn(api, "ingestStatus").mockResolvedValue(newer);
+  const run = vi.spyOn(api, "run").mockResolvedValue(sample("run_p01_ready"));
+  render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>,
+  );
+  await screen.findByTestId("brief-card");
+  expect(run).toHaveBeenCalledTimes(1);
+  vi.spyOn(api, "snapshots").mockResolvedValue([newer.latest_snapshot!, ...sample("snapshots")]);
+  await userEvent.click(await screen.findByRole("button", { name: "Yeni veriyle aç" }));
+  await waitFor(() => expect(run.mock.calls.at(-1)![0].snapshot_id).toBe(newer.latest_snapshot));
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Yeni veriyle aç" })).not.toBeInTheDocument());
+});
+
+test("the Veri menu shows the snapshot date", async () => {
+  vi.spyOn(api, "run").mockResolvedValue(sample("run_p01_ready"));
+  render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>,
+  );
+  await screen.findByTestId("brief-card");
+  await userEvent.click(screen.getByRole("button", { name: "Veri ▾" }));
+  expect(screen.getByRole("option", { name: "10.10.2026 18:38 · 6813" })).toBeInTheDocument();
 });
