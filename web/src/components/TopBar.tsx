@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Lang, Persona, SourceStatus } from "../api/types";
+import { snapshotLabel } from "../format";
 import { useT } from "../i18n";
 
 export interface TopBarProps {
@@ -95,7 +96,7 @@ export function TopBar(p: TopBarProps) {
                   >
                     {p.snapshots.map((s) => (
                       <option key={s} value={s}>
-                        {s}
+                        {snapshotLabel(s)}
                       </option>
                     ))}
                   </select>

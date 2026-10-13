@@ -44,3 +44,21 @@ export function fmtDateTime(iso: string): string {
   const p = Object.fromEntries(dtf.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
   return `${p.day}.${p.month}.${p.year} ${p.hour}:${p.minute}`;
 }
+
+/** An ISO time → its day "14.10.2026" in Turkey time; other text unchanged. */
+export function fmtDay(iso: string): string {
+  const text = fmtDateTime(iso);
+  return text === iso ? iso : text.split(" ")[0];
+}
+
+/** An ISO time → "07:30" in Turkey time; other text unchanged. */
+export function fmtTime(iso: string): string {
+  const text = fmtDateTime(iso);
+  return text === iso ? iso : text.split(" ")[1];
+}
+
+/** A snapshot id "20261010-183835-6813" (Turkey time) → "10.10.2026 18:38 · 6813"; other ids unchanged. */
+export function snapshotLabel(id: string): string {
+  const m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})\d{2}-(\w+)$/.exec(id);
+  return m ? `${m[3]}.${m[2]}.${m[1]} ${m[4]}:${m[5]} · ${m[6]}` : id;
+}

@@ -50,3 +50,13 @@ test("block edit: the sample with the edit; restore; a forbidden phrase gives a 
 test("unknown path is 404", () => {
   expect(resolveMock("GET", "/api/nothing", undefined, load).status).toBe(404);
 });
+
+test("ingest: GET is stale data on the newest snapshot, POST starts a job (202)", () => {
+  const withSnapshots = (name: string) => (name === "snapshots" ? ["20261010-183835-6813"] : undefined);
+  const get = resolveMock("GET", "/api/ingest", undefined, withSnapshots);
+  expect(get.status).toBe(200);
+  expect(get.body).toMatchObject({ latest_snapshot: "20261010-183835-6813", stale: true, running: false, error: null });
+  const post = resolveMock("POST", "/api/ingest", undefined, withSnapshots);
+  expect(post.status).toBe(202);
+  expect(post.body).toMatchObject({ running: true });
+});

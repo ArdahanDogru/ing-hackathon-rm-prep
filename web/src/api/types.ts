@@ -312,3 +312,17 @@ export interface RunInputs {
   snapshot_id?: string;
   exclude_sources?: string[];
 }
+
+/** GET /api/ingest (and the 202 answer of POST): the data freshness and the ingest job (W14). */
+export interface IngestStatus {
+  latest_snapshot: string | null;
+  /** ISO time of the latest snapshot, Europe/Istanbul */
+  created_at: string | null;
+  age_hours: number | null;
+  /** age_hours >= 24 */
+  stale: boolean;
+  running: boolean;
+  started_at: string | null;
+  finished_at: string | null;
+  error: string | null;
+}

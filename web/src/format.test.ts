@@ -17,3 +17,16 @@ test("Turkish dates and times in Europe/Istanbul", async () => {
   expect(fmtDateTime("2026-10-12T17:47:15Z")).toBe("12.10.2026 20:47");
   expect(fmtDateTime("not a time")).toBe("not a time");
 });
+
+test("day and time of an ISO time in Turkey time", async () => {
+  const { fmtDay, fmtTime } = await import("./format");
+  expect(fmtDay("2026-10-13T22:30:00Z")).toBe("14.10.2026");
+  expect(fmtTime("2026-10-14T04:30:04Z")).toBe("07:30");
+  expect(fmtDay("not a time")).toBe("not a time");
+});
+
+test("a snapshot id shows its date and time", async () => {
+  const { snapshotLabel } = await import("./format");
+  expect(snapshotLabel("20261010-183835-6813")).toBe("10.10.2026 18:38 · 6813");
+  expect(snapshotLabel("odd-id")).toBe("odd-id");
+});

@@ -3,6 +3,7 @@
 import type {
   EvidenceItem,
   GlossaryTerm,
+  IngestStatus,
   Lang,
   NarrativeBrief,
   NarrativeView,
@@ -78,6 +79,10 @@ export const api = {
   editBlock: (runId: string, lang: Lang, blockId: string, text: string | null) =>
     request<NarrativeView>("PUT", `/runs/${enc(runId)}/narrative/${lang}/blocks/${enc(blockId)}`, { text }),
   brief,
+  /** GET /ingest: the age of the newest snapshot and the ingest job (W14). */
+  ingestStatus: () => request<IngestStatus>("GET", "/ingest"),
+  /** POST /ingest: starts the ingest (202 with the status); 409 when one already runs. */
+  startIngest: () => request<IngestStatus>("POST", "/ingest"),
   glossary: (lang: Lang, runId: string) => request<GlossaryTerm[]>("GET", `/glossary?lang=${lang}&run_id=${enc(runId)}`),
 };
 

@@ -3,6 +3,7 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import { Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, getRunOrRerun, recallInputs, rememberInputs } from "./api/client";
 import type { Lang, NarrativeView, Persona, RunInputs, RunView, SourceStatus } from "./api/types";
+import { DataFreshness } from "./components/DataFreshness";
 import { ErrorBox } from "./components/ErrorBox";
 import { DashboardSkeleton } from "./components/Skeleton";
 import { TopBar } from "./components/TopBar";
@@ -110,6 +111,14 @@ export function App() {
   }, [printing]);
   useEffect(init, [init]);
 
+  // "Yeni veriyle aç" (W14): the new snapshot list, and its newest snapshot
+  const openNewest = useCallback(() => {
+    api.snapshots().then((ss) => {
+      setSnapshots(ss);
+      if (ss[0]) setSnapshotId(ss[0]);
+    }, setError);
+  }, []);
+
   useEffect(() => {
     if (!snapshotId) return;
     api.sources(snapshotId).then(setSources, () => setSources({}));
@@ -167,20 +176,23 @@ export function App() {
                   <Route
                     path="/"
                     element={
-                      error ? (
-                        <ErrorBox error={error} onRetry={retry} />
-                      ) : loading && !run ? (
-                        <DashboardSkeleton />
-                      ) : run ? (
-                        <Dashboard
-                          key={run.result.run_id + run.result.rm_status}
-                          view={run}
-                          onView={setRun}
-                          onPersona={setEdited}
-                        />
-                      ) : (
-                        <p className="text-sm text-muted">{labels[lang].noRun}</p>
-                      )
+                      <>
+                        <DataFreshness known={snapshots} onOpenNewest={openNewest} />
+                        {error ? (
+                          <ErrorBox error={error} onRetry={retry} />
+                        ) : loading && !run ? (
+                          <DashboardSkeleton />
+                        ) : run ? (
+                          <Dashboard
+                            key={run.result.run_id + run.result.rm_status}
+                            view={run}
+                            onView={setRun}
+                            onPersona={setEdited}
+                          />
+                        ) : (
+                          <p className="text-sm text-muted">{labels[lang].noRun}</p>
+                        )}
+                      </>
                     }
                   />
                   <Route path="/meeting/:runId" element={<MeetingRoute />} />
