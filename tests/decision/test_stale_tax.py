@@ -139,8 +139,11 @@ def test_needs_rm_input_has_no_warning(d22_config):
     assert CONFIRM not in r.to_confirm
 
 
-def test_without_config_nothing_changes(d9_config):
-    r = decide(_ev(stale=(CPI,)), load_persona("P01"), d9_config, created_at=T0)
+def test_without_config_nothing_changes(raw):
+    raw = add_d9(raw)                       # the real config has the D22 keys since 2026-10-14
+    raw["texts"]["warnings"].pop("stale_tax_input", None)
+    raw.get("to_confirm", {}).pop("stale_tax_input", None)
+    r = decide(_ev(stale=(CPI,)), load_persona("P01"), parse_config(raw), created_at=T0)
     assert _stale(r) == []
     assert CONFIRM not in r.to_confirm
 

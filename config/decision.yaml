@@ -281,6 +281,7 @@ talking_points:
 # D16 (web UI, "Teyit edin"): assumption key -> command for the RM; only {tier}
 to_confirm:
   deposit_tier: "Yatırım tutarını sorun: {tier} dilimi varsayıldı."
+  stale_tax_input: "Güncel stopaj oranını ve TÜFE'yi teyit edin."   # D22: a warning code
 
 # --- Texts (Turkish; {name} fields are filled by the engine) -----------------------------
 texts:
@@ -361,6 +362,8 @@ texts:
     low_stability: "İlk 3'teki bir seçeneğin sırası ağırlıklara duyarlı (istikrar {stability:.2f})."
     deposit_vs_market: "ING standart mevduat oranı (%{ing:.2f}) piyasa ortalamasının (%{market:.2f}) {diff:.1f} puan altında."
     no_fx_deposit_data: "Döviz mevduatı oranı kanıtlarda yok; döviz mevduatı karşılaştırılamadı."
+    # D22 (docs/decision.md section 12): RM only
+    stale_tax_input: "Vergi veya enflasyon verisi güncel değil ({entities}); reel getiriler bu değerlerle hesaplandı. Güncel oranı teyit edin."
   data_quality:
     removed_no_data: "{count} fon, kullanılabilir veri satırı olmadığı için çıkarıldı."
     valor_missing: "{count} fonun satış valörü kanıtlarda yok; likidite kısıtı bu fonlara uygulanamadı."

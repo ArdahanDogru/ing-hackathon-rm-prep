@@ -388,7 +388,7 @@ WARNING_AUDIENCES = ("client", "rm")
 @dataclass(frozen=True)
 class DecisionWarning:
     code: str               # concentration | fx_exposure | risk_estimate | low_stability |
-                            # deposit_vs_market | no_fx_deposit_data
+                            # deposit_vs_market | no_fx_deposit_data | stale_tax_input (D22)
     message: str
     evidence_ids: tuple[str, ...] = ()
     option_ids: tuple[str, ...] = ()            # options it is about; () = the whole result
