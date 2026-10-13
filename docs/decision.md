@@ -742,6 +742,58 @@ quantity's `max_age_days`. Until now a stale input only lowered the confidence
   stale TÜFE row too; fresh rows give neither; a stale row of a product type
   that no scored option uses gives nothing; the warning is RM-only.
 
+## 13. Asset class from the holdings (D23, approved by the user 2026-10-14, option A)
+
+The D19 asset class comes from the umbrella type and the fund name. For
+multi-asset funds this is a guess: all "Değişken" funds are `dengeli`, even
+when they hold 80 % equities. The holdings (docs/ingest.md I8, quantity
+`fund_holding_share`, entity `<code>/<kiymetTip>`) give the real split.
+Analysis of snapshot `20261014-005625-c76a` (775 funds with holdings): option
+A changes about 210 funds, 163 of them Değişken `dengeli` → `hisse`.
+
+Option A: the holdings decide only where the umbrella type does not fix the
+contents. Para Piyasası, Hisse Senedi, Kıymetli Madenler and TL Borçlanma
+funds keep the class of their umbrella type and name (regulation fixes what
+they hold; a single day's holdings can be odd, e.g. an equity fund at 100 %
+cash).
+
+- Config `asset_classes.by_holdings` (lead):
+  - `kinds`: [variable, mixed, fund_of_funds, participation] — the holdings
+    decide for these fund kinds;
+  - `fx_debt_kinds`: [debt] — for these kinds only an `altin_doviz` majority
+    counts (FX bonds such as "Yabancı Borçlanma Araçları");
+  - `min_share`: 50 (%);
+  - `labels`: class → list of `kiymetTip` texts, plus the groups `fon`
+    (fund shares: no look-through) and `ignore` ("Diğer", futures margin
+    cash). The 40 texts of 2026-10-14 and their classes are in the analysis
+    script `scripts/analysis/varlik_impact.py` (lead).
+- Matching: lower case, then keep only `a-z0-9` (the page's broken letters
+  drop out); two labels with the same folded key are a config error. An
+  unknown text → `ignore` for this fund and one data-quality note per text
+  (`unknown_holding_type`, with the count).
+- Shares: the sum per class of the positive shares, without `ignore`, as %
+  of their total. The class with ≥ `min_share` wins; a `fon` majority or no
+  holdings rows → the old rules; no class reaches `min_share` → `dengeli`.
+- Order in `asset_class()`: (1) FX name words → `altin_doviz`; (2)
+  `fx_debt_kinds` with an `altin_doviz` majority → `altin_doviz`; (3)
+  `by_name`; (4) `by_holdings` for `kinds`; (5) `by_risk`; (6) `by_kind`.
+  The `by_name` entry "ÇOKLU VARLIK" → `dengeli` is removed from the config,
+  so that the holdings decide for those funds.
+- Explanation: an option whose class comes from the holdings gets the reason
+  "Varlık sınıfı: portföyün %{share:.0f}'i {label} (TEFAS portföy dağılımı)."
+  (config `texts.reasons.holdings_class`, lead) with the evidence ids of the
+  holdings rows of that class; `{label}` = the class label (hisse senedi,
+  borçlanma araçları, nakit benzeri, altın ve döviz).
+- Everything that uses the class follows: the D19 class rule, the D20
+  allocation rows, the D21 risk estimate (quantile per class).
+- Tests: a Değişken fund with 80 % equities → `hisse`; 45/40/15 → `dengeli`;
+  a `fon` majority → old rule; a Para Piyasası fund with 90 % bonds stays
+  `nakit_benzeri`; a Borçlanma fund with 90 % FX debt → `altin_doviz`, with
+  TL bonds stays `borclanma`; a name rule wins over the holdings ("ALTIN"); an
+  unknown text gives the note; folding of broken letters; the reason with
+  evidence ids; no holdings rows → today's result (the fixtures do not
+  change).
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only

@@ -437,6 +437,31 @@ they expire (brief rule 7: a current source or a confirmation note to the RM).
   it is not; an empty `valid_until`; a bad date rejects the row; a file
   without the column; replay identical.
 
+I8 (approved by the user 2026-10-14, item 2 option A): the holdings of each
+fund. The fund detail page that `tefas_detail` already downloads has
+`varlikData`: a list of `{fonKodu, fonUnvan, kiymetTip, portfoyOrani}` (the
+asset type and its share of the portfolio, %). On 2026-10-14: 775 of 814 pages
+have it, 40 different `kiymetTip` texts. The page itself has broken Turkish
+letters in these texts (U+FFFD, e.g. `K�ymetli Madenler`); keep them verbatim.
+
+- New optional source key `holdings_quantity` (a quantity name; start
+  `fund_holding_share`, unit `pct`). Absent → no holdings rows (old configs
+  and old tests work unchanged).
+- `parse`: one DataPoint per `varlikData` row: quantity = `holdings_quantity`,
+  entity = `<fund code>/<kiymetTip verbatim>` (e.g. `BVF/Ters-Repo`), value =
+  `portfoyOrani` (may be negative: `Repo` = borrowing), `as_of` and flags as
+  the other `tefas_detail` rows, `raw_ref` = the page payload with
+  `#varlikData[<i>]`, note = the `kiymetTip` text. Rows of another fund code
+  than the page's are skipped (rejected-row note). A non-numeric share → no
+  row and a rejected-row note; it does not fail the page and does not count
+  for `max_fail_share`. No `varlikData` or an empty list → no rows.
+- Replay of older snapshots gives these rows too (the payloads are stored).
+- Quantity (lead adds it to `config/sources.yaml` after the merge):
+  `fund_holding_share` unit pct, min −100, max 200, conflict_tolerance 0.01.
+- Tests: a page with `varlikData` (rows, entities, negative share), a page
+  without it, a bad share, another fund's row, no `holdings_quantity` in the
+  config, replay identical.
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **Scheduled ingest**: Windows Task Scheduler job running `python -m rmprep
