@@ -919,6 +919,45 @@ funds, bonds and eurobonds (a later phase).
   warning; turnover quality; ETF class by name and holdings; the excluded
   groups note; without the new sources the results are unchanged.
 
+Details fixed in D26 (merged 2026-10-14, decision@4f90384; config by the lead):
+
+- **Kind detection:** an ETF is a fund code whose `EntityInfo.source` =
+  `etf.source` (checked before the fund_kinds table, so no Serbest or umbrella
+  rule). A share is an entity with `stock_*` rows and `EntityInfo.source` =
+  `stock.source` (another source → `removed_unknown_kind`; no entity →
+  `removed_no_entity`).
+- **ETFs:** `not_buyable`, the entry and exit fees and the sell valör are
+  fund-only (an ETF is bought on the exchange); no `liquidity_proxy` factor.
+  Quality = the size percentile among the scored ETFs; size penalty = 1 −
+  size / `fund_size_min.total_value_try` (no investor part; no size row → 1).
+  ETFs count in the D21 class quantiles. Class order: FX tag → holdings
+  majority (D23; a fund majority or no counted rows: go on; no class ≥
+  `min_share` → `dengeli`) → `etf.by_name` → `etf.default_class`.
+- **Shares:** the risk is "known" for the ceiling (a share above the ceiling
+  is rejected; evidence = the volatility row, none without it), but the
+  confidence is × `confidence.risk_estimate` and there is no `risk_unknown`
+  penalty. The reason of `risk_ceiling` is `texts.constraint.stock_risk` /
+  `stock_risk_missing`. Returns from `stock_return_*` with the horizon
+  fallback; the shorter-period factor and the track_record penalty as for
+  funds (3y client: the 1-year return). `short_history` (D15) and
+  `removed_no_data` apply to ETFs and shares too. Quality: the turnover
+  percentile among the scored shares; `stock_bist100` = 1 → at least 0.5; no
+  turnover row → 0 (BIST 100 still 0.5). Size penalty = 1 − turnover /
+  `stock.min_turnover_try`, no row → 1. Principal by risk as for funds.
+- **Top 3:** `stock.max_in_top3` holds in the plain path (group heads; a share
+  head over the cap is skipped and the next group head comes in) and in every
+  stage of the class rule, also the last fill stage (so `recommended` can have
+  fewer than 3). D25 stability uses the same rule. `single_stock`: one
+  warning, `option_ids` = the recommended shares, no evidence ids.
+- `excluded_exchange_groups`: one data-quality note when the universe has an
+  ETF or a share.
+- The access talking point is skipped when a top-3 option is an ETF or a
+  share (no evidence row for T+2). The access label is
+  `display.access.exchange` (TR/EN); `access_text(facts, config, lang)`.
+- Kind table: `etf` liquidity 0.8, income 0.2, simplicity 0.6; `stock` 0.8,
+  0.2, 0.4 (income and simplicity: the worker's proposal, accepted by the
+  lead).
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only

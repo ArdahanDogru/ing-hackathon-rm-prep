@@ -145,7 +145,7 @@ class ViewBuilder:
                 "risk": None if f.risk is None else {"level": int(round(f.risk.value)),
                                                      "evidence_id": f.risk.evidence_id},
                 "access": {"days": None if valor is None else int(round(valor.value)),
-                           "lock_days": f.lock_days, "label": access_text(f, self._config),
+                           "lock_days": f.lock_days, "label": access_text(f, self._config, self._lang),
                            "evidence_id": valor.evidence_id if valor else ""},
                 "match": match(position[oid], len(ranked)) if oid in position else None,
                 "why": [list(w) for w in f.why],

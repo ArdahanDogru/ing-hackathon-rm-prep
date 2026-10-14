@@ -26,6 +26,9 @@ risk_notes:
   by_kind:
     time_deposit: {TR: "Vade dolmadan çekilirse faiz kaybı olabilir.", EN: "Withdrawing before maturity can cost the interest."}
     deposit: {TR: "Faiz oranı değişebilir; enflasyon sonrası değer kaybı olabilir.", EN: "The rate can change; after inflation it can lose value."}
+    # D26: exchange products
+    etf: {TR: "Borsada işlem görür; fiyatı gün içinde değişir ve satış tutarı 2 iş günü sonra hesaba geçer.", EN: "It trades on the exchange; its price moves during the day and the sale amount arrives after 2 business days."}
+    stock: {TR: "Tek bir şirketin payıdır; şirkete özgü gelişmelerle kısa sürede büyük değer kaybı olabilir.", EN: "It is the share of one company; company news can cause a large loss in a short time."}
 
 # v1.4 dashboard brief (docs/web-ui.md "LLM brief"; narrator N10): 1-2 sentences for
 # the RM, no retry, the plain sentence as fallback; same daily cost limit

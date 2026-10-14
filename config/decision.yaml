@@ -38,6 +38,8 @@ real_return:
     time_deposit: "TL vadeli mevduat, 6 aya kadar vadeli"
     fund_default: "Yatırım fonu, diğer fonlar (değişken, borçlanma araçları, fon sepeti)"
     fund_by_kind: {money_market: "Yatırım fonu, para piyasası fonu"}
+    etf: "Borsa yatırım fonu (BYF), tüm türler"                        # D26; 17.5 % [VARSAYIM]
+    stock: "Borsa İstanbul payları, alım satım kazancı (gerçek kişi)"  # D26; 0 % (GİB)
   loss_scale: 0.10              # real_loss violation = clamp(-r / loss_scale, 0, 1)
 
 # EntityInfo.category (TEFAS umbrella type) -> fund_kind; null = not in the universe.
@@ -204,6 +206,22 @@ kinds:   # liquidity / income / simplicity values (0..1)
   variable:        {liquidity: 0.5, income: 0.2, simplicity: 0.3}
   mixed:           {liquidity: 0.5, income: 0.3, simplicity: 0.4}
   fund_of_funds:   {liquidity: 0.5, income: 0.2, simplicity: 0.3}
+  etf:             {liquidity: 0.8, income: 0.2, simplicity: 0.6}   # D26: T+2 on the exchange
+  stock:           {liquidity: 0.8, income: 0.2, simplicity: 0.4}   # D26: one company
+
+# D26 (docs/decision.md section 16): exchange-traded funds and Borsa İstanbul shares.
+etf:
+  source: tefas_byf
+  by_name: {"ALTIN": altin_doviz, "GÜMÜŞ": altin_doviz, "TLREF": nakit_benzeri}
+  default_class: hisse
+stock:
+  source: bist_bulletin
+  risk_floor: 6                 # [VARSAYIM] one company's risk is concentrated
+  min_turnover_try: 10000000    # size penalty below this 3-month mean daily turnover
+  max_in_top3: 1
+  # SPK fund guide 9.3.2.1 (table of 12.10.2023): [upper annual volatility % (exclusive), risk]; above the last: 7
+  spk_bands: [[2, 1], [5, 2], [10, 3], [15, 4], [20, 5], [30, 6]]
+  asset_class: hisse
 
 underperformance: {scale: 0.20}   # D10: B = EVDS market deposit rate net of the deposit stopaj
 long_horizon: {period: 3y, liquidity_factor: 0.5, return_add: 1.0}   # D9: horizon 3+ years
@@ -270,6 +288,7 @@ display:
     same_day: "Aynı gün"
     days: "{days} iş günü"
     term: "Vade sonunda ({days} gün)"
+    exchange: {TR: "2 iş günü (borsa takası)", EN: "2 business days (exchange settlement)"}   # D26
   why:
     liquidity: "Paraya erişim: {access}"
     risk_fit: "SPK risk değeri {risk} / 7"
@@ -348,6 +367,9 @@ texts:
     buyable: "TEFAS'ta alıma açık."
     passed: "Risk değeri {risk}, müşterinin tavanı {ceiling} içinde."
     failed: "Risk değeri {risk}, müşterinin risk tavanı {ceiling} üzerinde."
+    # D26: a share's risk value from its 1-year volatility (SPK method), at least the floor
+    stock_risk: "Risk değeri {risk}/7: 1 yıllık oynaklıktan (%{volatility:.1f}) SPK yöntemiyle tahmin; tek şirket payı için en az {floor}. Sınır {ceiling}/7."
+    stock_risk_missing: "Oynaklık verisi yok: risk değeri 7 kabul edildi (tahmin). Sınır {ceiling}/7."
   questions:
     # non-blocking questions show in "Teyit edin" (web UI): written as commands (D16)
     override_fx_limit: "Döviz fonları müşterinin açık kısıtı nedeniyle elendi; kısıtın gerekçeyle kaldırılıp kaldırılmayacağını müşteriyle netleştirin."
@@ -394,7 +416,10 @@ texts:
     no_fx_deposit_data: "Döviz mevduatı oranı kanıtlarda yok; döviz mevduatı karşılaştırılamadı."
     # D22 (docs/decision.md section 12): RM only
     stale_tax_input: "Vergi veya enflasyon verisi güncel değil ({entities}); reel getiriler bu değerlerle hesaplandı. Güncel oranı teyit edin."
+    # D26: a share in the recommended top 3 (RM only)
+    single_stock: "Tek bir şirketin payı: şirkete özgü risk; çeşitlendirmeyi RM değerlendirsin."
   data_quality:
+    excluded_exchange_groups: "Borsa ürünlerinden varant ve sertifikalar, borsada işlem gören gayrimenkul ve girişim sermayesi fonları, tahvil ve eurobondlar kapsam dışıdır."   # D26
     unknown_holding_type: "Bilinmeyen portföy varlık türü \"{text}\": {count} fonda dikkate alınmadı."   # D23
     removed_no_data: "{count} fon, kullanılabilir veri satırı olmadığı için çıkarıldı."
     valor_missing: "{count} fonun satış valörü kanıtlarda yok; likidite kısıtı bu fonlara uygulanamadı."
