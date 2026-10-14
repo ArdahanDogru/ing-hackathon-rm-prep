@@ -576,6 +576,32 @@ I11 as built (merged 2026-10-14, ingest@48ea5cd; config added by the lead):
   first `build_evidence` in a process. Parsed files are kept in memory per
   SHA-256, so later builds only verify the hashes.
 
+I11b (2026-10-14, ingest@c1b7164): in the real bulletins `ONCEKI KAPANIS
+FIYATI` is the previous close NOT adjusted, and `REFERANS FIYAT` is 0, so the
+I11 rule never fired (KORDS 14.09: 1-month return −96 %).
+
+- A corporate action of a share on day t: close_t / close_prev outside
+  [1 − L, 1 + L]. close_prev = the close of the share's previous row (a
+  suspended day is skipped). L = optional source key `adjust_jump_pct`
+  (default 10.5 %; the BIST daily price limit is ±10 %).
+- Ratio = `ACILIS FIYATI`_t / close_prev (close_t / close_prev when the open is
+  0). All earlier closes of the share × ratio; several jumps multiply.
+  **[VARSAYIM]** The open stands for the theoretical base price, so the move
+  from the base to the open on that day is lost (I11c narrows this).
+- The `ONCEKI KAPANIS` rule is removed. `ACILIS FIYATI` is now a required
+  column; `ONCEKI KAPANIS FIYATI` is not.
+- Cash dividends stay below the limit and are not adjusted: returns and
+  volatility are price returns. Note of the return and volatility rows:
+  "<name>; adjusted closes (N jumps beyond ±10.5 %); dividends not adjusted"
+  (the volatility adds "; SPK weekly method"). `stock_close` is the real
+  close, not adjusted.
+- Check on the 276 cache files of snapshot 20261014-164524-42c2: 116 jumps in
+  111 shares. 1-month returns: KORDS −27.8 % (was −96 %), BIMAS −5.4 %, GENIL
+  −56.5 %. Some shares still show about −90 % in 1 month with 0 jumps (ANELE,
+  GUNDG, TEHOL): about 20 limit-down days in a row, real, not corporate
+  actions. The market fell from 14.09 to 30.09 (BIST 100 members, equal
+  weight, about −24 %).
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes
