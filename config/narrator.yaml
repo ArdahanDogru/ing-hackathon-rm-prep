@@ -59,8 +59,13 @@ disclaimer:
 # meeting-text block piyasa_notu). Entities as in config/sources.yaml.
 market_note:
   series:
+    # The BIS copy is monthly (dated at the month end). last_change: the date of the
+    # last TCMB decision, shown only while the EVDS value equals `value` (checked on
+    # the TCMB one-week repo page 2026-10-09: 37.00 % since 23.01.2026). A new TCMB
+    # decision makes the note disappear by itself; then update the date and value.
     - {key: policy_rate, quantity: policy_rate, entity: "CBRT policy rate (monthly, BIS)", unit: pct,
-       label: {TR: "Politika faizi", EN: "Policy rate"}}
+       label: {TR: "Politika faizi", EN: "Policy rate"},
+       last_change: {date: "2026-01-23", value: 37.0, label: {TR: "son değişiklik {date}", EN: "last change {date}"}}}
     - {key: usd_try, quantity: usd_try, entity: "USD/TRY CBRT buying rate", unit: TRY,
        label: {TR: "USD/TRY (TCMB alış)", EN: "USD/TRY (CBRT buying)"}}
     - {key: funding_cost, quantity: cbrt_funding_cost, entity: "CBRT weighted average funding cost", unit: pct,

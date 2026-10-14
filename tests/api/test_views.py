@@ -200,3 +200,22 @@ def test_priority_criteria_maps_boosts_and_skips_the_rest():
                              "çeşitlendirme", "kur riskini yönetme", "bilinmeyen"], load_config())
     assert got == {"income": ["düzenli gelir"], "liquidity": ["Likiditeyi koruma"],
                    "risk_fit": ["sınırlı dalgalanma"]}
+
+
+def test_market_note_last_change_only_while_the_value_is_the_same(backend, persona):
+    """Policy rate (2026-10-14, the user's option A): the monthly BIS value is dated
+    at the month end; the note "son değişiklik" shows the date of the last TCMB
+    change, but only while the EVDS value equals the value of that change."""
+    from rmprep.contracts import Persona
+    r = backend.decide(Persona.from_dict(persona), backend.list_snapshots()[0])
+    ev = {d.id: d for d in backend.evidence(r.snapshot_id).datapoints}
+    first = ViewBuilder(backend, load_config(), market_series=SERIES[:1])(r)["market_note"][0]
+    value = ev[first["evidence_id"]].value
+    change = {"date": "2026-01-23", "value": value,
+              "label": {"TR": "son değişiklik {date}", "EN": "last change {date}"}}
+    same = [SERIES[0] | {"last_change": change}]
+    v = ViewBuilder(backend, load_config(), market_series=same)(r)
+    assert v["market_note"][0]["label"] == "Politika faizi (son değişiklik 23.01.2026)"
+    other = [SERIES[0] | {"last_change": change | {"value": value + 1}}]
+    v = ViewBuilder(backend, load_config(), market_series=other)(r)
+    assert v["market_note"][0]["label"] == "Politika faizi"

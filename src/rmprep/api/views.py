@@ -7,6 +7,7 @@ comes from rmprep.decision.display."""
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from datetime import date
 
 from rmprep.api.names import short_name
 from rmprep.contracts import Backend, DecisionResult, ScoredOption, _to_json
@@ -112,7 +113,12 @@ class ViewBuilder:
             d = idx.get(s["quantity"], s["entity"])
             if d is None or d.value is None:
                 continue
-            out.append({"key": s["key"], "label": s["label"][self._lang], "value": d.value,
+            label = s["label"][self._lang]
+            change = s.get("last_change")       # the policy rate: date of the last TCMB change
+            if change and abs(d.value - float(change["value"])) < 1e-9:
+                when = date.fromisoformat(change["date"]).strftime("%d.%m.%Y")
+                label = f"{label} ({change['label'][self._lang].format(date=when)})"
+            out.append({"key": s["key"], "label": label, "value": d.value,
                         "unit": s["unit"], "as_of": d.as_of.isoformat(), "evidence_id": d.id})
         return out
 
