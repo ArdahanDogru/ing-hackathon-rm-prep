@@ -1035,6 +1035,39 @@ This section replaces the "future work" sentence of section 11.
 - `run_id` adds the holdings to its key only when they are set (a reset gives
   the original run id back).
 
+Details fixed in D27 (merged 2026-10-14, decision@7963361; config, backend and
+API by the lead):
+
+- Matching: text rules and profile words use the Turkish normalisation of the
+  priorities (`decision/text.py normalize`), as a phrase inside the field; a
+  list field (`oncelikler`) is joined. The first profile row with a word in
+  `profil` wins.
+- Text rules in config order; a later rule of a class that is already fixed
+  is ignored; a rule's point = the middle of its range, cut so that the text
+  points never pass 100. The rest goes to the other classes in the base
+  proportions (equal parts if their base sum is 0); range = point ± spread,
+  clipped to 0–100. Points are rounded to one decimal; the rounding rest goes
+  to the largest class that no text rule fixed. RM input: low = high = point,
+  source = origin, ref "".
+- Source factor = the highest factor of the active sources. Change signals =
+  the phrases of `allocation_gap.signals` in `oncelikler`, `acik_kisitlar`,
+  `yatirim_amaci` and `rm_notu`, each counted once, at most `max_signals`.
+- With no active class the factor is 0, `allocation_gap` is not in the raw
+  weights, and scores, order, stability and `recommended` are exactly as
+  without D27 (tested for P02, P04, P05). Reasons: `allocation_gap`,
+  `allocation_gap_inactive`, `allocation_gap_no_band` (dengeli).
+- to_confirm: the split item is the first item while no class is from `rm` or
+  `rm_confirmed` (also for `persona_text`: P01, P03); it replaces the D20
+  `holding_confirm` item. `effective_weights` is set for every ready run.
+- Effect on snapshot 20261014-191003-eedf: P01 weight 0.083 (persona text "mevduat
+  ağırlıklı", 1 signal): top 3 PPN, OSD, AIS (was PPN, IST, AIS); cash-like funds
+  go down in the top 10. P03 weight 0.136: top 3 unchanged. P02, P04, P05:
+  weight 0, unchanged. P03 with an RM split 80/5/10/5/0: equity funds rise in the
+  top 10 (GUM 13 → 5).
+- API (lead): `POST /api/runs/{id}/holdings`; `RunView.holdings = {status,
+  sources: [{id, ref, label, url, date}]}` with `id` = the `current_source` of a
+  row; `RunView.effective_weights`.
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only

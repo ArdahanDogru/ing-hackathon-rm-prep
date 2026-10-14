@@ -352,3 +352,21 @@ Task 6.
 - The validator rejects a gap or current figure of an inactive row (finding
   kind `number`). The template draft states an active gap with a config
   sentence. No new section; bump `prompt_version`.
+
+**N15 as built** (merged 2026-10-14, narrator@82424bb; prompt_version n10):
+
+- `Facts.allocation`: one row per class (class, band_low, band_high, current,
+  source, gap, active); `current` and `gap` are None for an inactive row, so
+  the LLM never sees an estimate. `Facts.split_unknown` is true when a row has
+  a source but is not active.
+- The prompt pack has `allocation`; rule 9 is new. The validator gives a
+  `number` finding for a figure of an inactive row (current, its range,
+  |gap|) in `validate` and in block checks. Limit: a figure that is also a
+  real fact (for example a band edge) is allowed.
+- The template writes the active gaps (gap ≠ 0, band set) in `dikkat`, each
+  citing the selected options of its class (else all selected options); with
+  `split_unknown`, `sorular` gets the sentence "Mevcut portföy dağılımı
+  bilinmiyor; müşteriden alınmalı."
+- Config `config/narrator.yaml` `allocation`: `gap_under`, `gap_over`,
+  `split_unknown`, `class_labels`, `source_labels` (TR/EN; persona_text =
+  "müşteri dosyasına göre", because `dikkat` is for the client).
