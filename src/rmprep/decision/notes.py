@@ -175,6 +175,10 @@ def build_notes(used_ids: frozenset[str], universe: Universe, evidence: Evidence
         out.append(DataQualityNote(
             message=tpl["time_deposit_missing"].format(entity=universe.missing_time_deposit),
             sources=(td["source"],)))
+    for text, ids in universe.unknown_holding_types.items():     # D23, sorted by text
+        out.append(DataQualityNote(
+            message=tpl["unknown_holding_type"].format(text=text, count=len(ids)),
+            evidence_ids=ids))
     for key, codes in (("removed_serbest", universe.removed_serbest),
                        ("removed_no_entity", universe.removed_no_entity),
                        ("removed_unknown_kind", universe.removed_unknown_kind)):

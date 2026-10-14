@@ -14,8 +14,12 @@ from dataclasses import dataclass, field
 
 from rmprep.contracts import DataPoint, EvidenceSet, Flag, ProductOption
 from rmprep.decision.config import DecisionConfig
+from rmprep.decision.text import fold
 
 FUND_PREFIX = "fund_"
+# ingest I8: one row per holding, entity "<fund code>/<kiymetTip>", value = share %
+HOLDINGS_QUANTITY = "fund_holding_share"
+MIXED_CLASS = "dengeli"     # no class reaches by_holdings.min_share (D23)
 _BAD = (Flag.OUT_OF_RANGE, Flag.MISSING)
 
 
@@ -69,6 +73,57 @@ class Universe:
     stopaj: Mapping[str, DataPoint] = field(default_factory=dict)   # entity -> stopaj row
     removed_no_data: tuple[str, ...] = ()       # funds without a row the engine uses (D15)
     by_id: Mapping[str, Candidate] = field(default_factory=dict)
+    # D23: option_id -> the holdings that decided its class; kiymetTip text not in
+    # by_holdings.labels -> ids of its rows (funds whose holdings were read)
+    holdings_class: Mapping[str, HoldingsClass] = field(default_factory=dict)
+    unknown_holding_types: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class HoldingsClass:
+    asset_class: str
+    share: float                    # % of the counted holdings
+    evidence_ids: tuple[str, ...]   # the rows of that class, sorted
+
+
+@dataclass(frozen=True)
+class Holdings:
+    """The holdings of one fund on its latest day, by class (by_holdings.labels)."""
+    shares: Mapping[str, float]                 # class -> % of the counted total
+    ids: Mapping[str, tuple[str, ...]]          # class -> row ids (positive shares)
+    unknown: Mapping[str, tuple[str, ...]]      # text not in the labels -> row ids
+
+    def majority(self, min_share: float) -> str | None:
+        """The class with >= min_share; MIXED_CLASS if none; None without counted rows."""
+        if not self.shares:
+            return None
+        top, share = max(self.shares.items(), key=lambda kv: (kv[1], kv[0]))
+        return top if share >= min_share else MIXED_CLASS
+
+
+def holdings_of(rows: list[DataPoint], config: DecisionConfig) -> Holdings:
+    """rows: the holdings rows of one fund (any days); only the latest day counts.
+    Positive shares only, without the ignore group; an unknown text is ignored."""
+    labels = config.raw["asset_classes"]["by_holdings"]["labels"]
+    lookup = {fold(text): cls for cls, texts in labels.items() for text in texts}
+    last = max((r.as_of for r in rows), default=None)
+    sums: dict[str, float] = {}
+    ids: dict[str, list[str]] = {}
+    unknown: dict[str, list[str]] = {}
+    for r in rows:
+        if r.as_of != last:
+            continue
+        text = r.entity.split("/", 1)[1]
+        cls = lookup.get(fold(text))
+        if cls is None:
+            unknown.setdefault(text, []).append(r.id)
+        elif cls != "ignore" and r.value > 0:
+            sums[cls] = sums.get(cls, 0.0) + r.value
+            ids.setdefault(cls, []).append(r.id)
+    total = sum(sums.values())
+    return Holdings(shares={k: 100 * v / total for k, v in sums.items()} if total else {},
+                    ids={k: tuple(sorted(v)) for k, v in ids.items()},
+                    unknown={k: tuple(sorted(v)) for k, v in unknown.items()})
 
 
 def _used_quantities(config: DecisionConfig):
@@ -94,27 +149,43 @@ def stopaj_entities(config: DecisionConfig) -> list[str]:
 
 
 def asset_class(kind: str, fund_kind: str, name: str, fx: bool,
-                config: DecisionConfig, risk: float | None = None) -> str:
+                config: DecisionConfig, risk: float | None = None,
+                holdings: Holdings | None = None) -> str:
     """Asset class of an option (config asset_classes, D19): an FX fund -> fx;
-    then by_name (Turkish upper case, whole words); then by_risk (D19c: the
-    fund's SPK risk row, first rule with risk >= min_risk; an estimated risk
-    does not count); then by_kind. "" without the section."""
+    then (D23) an fx majority of the holdings of a by_holdings.fx_debt_kinds
+    fund; then by_name (Turkish upper case, whole words); then (D23) the
+    holdings majority of a by_holdings.kinds fund (a fon majority or no counted
+    rows: go on); then by_risk (D19c: the fund's SPK risk row, first rule with
+    risk >= min_risk; an estimated risk does not count); then by_kind. "" without
+    the section."""
+    return _classify(kind, fund_kind, name, fx, config, risk, holdings)[0]
+
+
+def _classify(kind: str, fund_kind: str, name: str, fx: bool, config: DecisionConfig,
+              risk: float | None, holdings: Holdings | None) -> tuple[str, bool]:
+    """(class, whether a holdings class of >= min_share decided it)."""
     ac = config.raw.get("asset_classes")
     if ac is None:
-        return ""
-    if kind == "fund":
-        if fx:
-            return ac["fx"]
-        upper = _tr_upper(name)
-        for phrase, cls in ac["by_name"].items():
-            if re.search(r"(?<!\w)" + re.escape(_tr_upper(phrase)) + r"(?!\w)", upper):
-                return cls
-        if risk is not None:
-            for rule in ac.get("by_risk", {}).get(fund_kind, ()):
-                if risk >= rule["min_risk"]:
-                    return rule["class"]
-        return ac["by_kind"][fund_kind]
-    return ac["by_kind"][kind]
+        return "", False
+    if kind != "fund":
+        return ac["by_kind"][kind], False
+    if fx:
+        return ac["fx"], False
+    bh = ac.get("by_holdings")
+    top = holdings.majority(bh["min_share"]) if bh is not None and holdings else None
+    if top == ac["fx"] and fund_kind in bh["fx_debt_kinds"]:
+        return top, True
+    upper = _tr_upper(name)
+    for phrase, cls in ac["by_name"].items():
+        if re.search(r"(?<!\w)" + re.escape(_tr_upper(phrase)) + r"(?!\w)", upper):
+            return cls, False
+    if top not in (None, "fon") and fund_kind in bh["kinds"]:
+        return top, top != MIXED_CLASS
+    if risk is not None:
+        for rule in ac.get("by_risk", {}).get(fund_kind, ()):
+            if risk >= rule["min_risk"]:
+                return rule["class"], False
+    return ac["by_kind"][fund_kind], False
 
 
 def _tr_upper(s: str) -> str:
@@ -159,7 +230,18 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
 
     entities = {k: v for k, v in evidence.entities.items()
                 if v.source not in evidence.excluded_sources}
-    fund_codes = sorted({d.entity for d in idx.rows if d.quantity.startswith(FUND_PREFIX)})
+    # a holdings entity "<code>/<kiymetTip>" (I8) is not a fund code
+    fund_codes = sorted({d.entity for d in idx.rows
+                         if d.quantity.startswith(FUND_PREFIX) and "/" not in d.entity})
+    bh = c.get("asset_classes", {}).get("by_holdings")
+    holding_rows: dict[str, list[DataPoint]] = {}
+    if bh is not None:
+        for d in idx.rows:
+            if (d.quantity == HOLDINGS_QUANTITY and "/" in d.entity
+                    and idx.get(d.quantity, d.entity) is d):      # latest usable row
+                holding_rows.setdefault(d.entity.split("/", 1)[0], []).append(d)
+    by_holdings: dict[str, HoldingsClass] = {}
+    unknown_types: dict[str, list[str]] = {}
     serbest, no_entity, unknown, no_data = [], [], [], []
     used = _used_quantities(config) if "short_history" in c else None
     fx_words = [_tr_upper(w) for w in c["fx_name_words"]]
@@ -179,14 +261,21 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
         values = {q: d for q, d in idx.quantities_of(code).items() if q.startswith(FUND_PREFIX)}
         risk_row = values.get("fund_risk_level")
         fx = any(w in name for w in fx_words)
+        holdings = holdings_of(holding_rows[code], config) if code in holding_rows else None
+        cls, decided = _classify("fund", kind, info.name, fx, config,
+                                 risk_row.value if risk_row else None, holdings)
         option = ProductOption(option_id=f"fund:{code}", kind="fund", label=info.name,
-                               entity=code, fund_kind=kind, fx=fx,
-                               asset_class=asset_class("fund", kind, info.name, fx, config,
-                                                   risk_row.value if risk_row else None))
+                               entity=code, fund_kind=kind, fx=fx, asset_class=cls)
         if used is not None and not any(used(q) for q in values):
             no_data.append(code)        # never listed: nothing to show as evidence
             continue
         candidates.append(Candidate(option, values))
+        if holdings is not None and kind in (*bh["kinds"], *bh["fx_debt_kinds"]):
+            for text, ids in holdings.unknown.items():
+                unknown_types.setdefault(text, []).extend(ids)
+        if decided:
+            by_holdings[option.option_id] = HoldingsClass(
+                asset_class=cls, share=holdings.shares[cls], evidence_ids=holdings.ids[cls])
 
     return Universe(
         candidates=tuple(candidates),
@@ -200,4 +289,6 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
         cpi=cpi,
         stopaj=stopaj,
         by_id={cand.option.option_id: cand for cand in candidates},
+        holdings_class=by_holdings,
+        unknown_holding_types={k: tuple(sorted(v)) for k, v in sorted(unknown_types.items())},
     )

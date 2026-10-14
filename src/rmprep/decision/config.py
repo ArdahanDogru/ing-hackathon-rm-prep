@@ -17,7 +17,7 @@ from typing import Any
 import yaml
 
 from rmprep.contracts import WARNING_AUDIENCES, Flag
-from rmprep.decision.text import normalize
+from rmprep.decision.text import fold, normalize
 
 CONFIG_VERSION = 1
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "decision.yaml"
@@ -163,7 +163,7 @@ def _check(c: dict) -> None:
     _keys(c["texts"]["reasons"], "texts.reasons",
           (*criteria(c), *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"),
           ("low_risk", "risk_fit", "class_rule", "return_real", "return_net",
-           "penalty:risk_unknown_class",
+           "penalty:risk_unknown_class", "holdings_class",
            "penalty:real_loss", "penalty:underperformance", "liquidity_valor", "fees"))
     if "real_loss" in c["penalties"] and "penalty:real_loss" not in c["texts"]["reasons"]:
         raise ConfigError("texts.reasons: penalties.real_loss needs penalty:real_loss")
@@ -334,12 +334,60 @@ def _check_scoring(c: dict) -> None:
     _num(c["warnings"]["deposit_vs_market_points"], "warnings.deposit_vs_market_points", 0)
 
 
+HOLDINGS_GROUPS = ("fon", "ignore")     # by_holdings.labels groups that are not classes
+
+
+def _fields(text: str) -> set[str]:
+    return {f for _, f, _, _ in string.Formatter().parse(text) if f}
+
+
+def _check_by_holdings(c: dict, fund_kinds: set[str]) -> set[str]:
+    """Optional D23 section asset_classes.by_holdings; returns its classes."""
+    bh = c["asset_classes"]["by_holdings"]
+    path = "asset_classes.by_holdings"
+    _keys(bh, path, ("kinds", "fx_debt_kinds", "min_share", "labels", "class_labels"))
+    for key in ("kinds", "fx_debt_kinds"):
+        if not isinstance(bh[key], list) or not set(bh[key]) <= fund_kinds:
+            raise ConfigError(f"{path}.{key}: a list of fund kinds of {sorted(fund_kinds)}")
+    _num(bh["min_share"], f"{path}.min_share", 0, 100)
+    if bh["min_share"] <= 0:
+        raise ConfigError(f"{path}.min_share: must be > 0")
+    labels = bh["labels"]
+    if not isinstance(labels, Mapping):
+        raise ConfigError(f"{path}.labels: a mapping class -> list of kiymetTip texts")
+    seen: dict[str, str] = {}
+    for cls, texts in labels.items():
+        if not isinstance(texts, list) or not texts:
+            raise ConfigError(f"{path}.labels.{cls}: a non-empty list of texts")
+        for text in texts:
+            key = fold(text) if isinstance(text, str) else ""
+            if not key:
+                raise ConfigError(f"{path}.labels.{cls}: {text!r} has no letter or digit")
+            if key in seen:
+                raise ConfigError(f"{path}.labels: {text!r} and {seen[key]!r} match the "
+                                  "same texts")
+            seen[key] = text
+    classes = set(labels) - set(HOLDINGS_GROUPS)
+    _keys(bh["class_labels"], f"{path}.class_labels", sorted(classes))
+    for cls, label in bh["class_labels"].items():
+        if not isinstance(label, str) or not label.strip():
+            raise ConfigError(f"{path}.class_labels.{cls}: must be a non-empty text")
+    for section, key, allowed in (("reasons", "holdings_class", {"share", "label"}),
+                                  ("data_quality", "unknown_holding_type", {"text", "count"})):
+        text = c["texts"][section].get(key)
+        if not isinstance(text, str) or not text.strip():
+            raise ConfigError(f"texts.{section}.{key}: {path} needs this text")
+        if not _fields(text) <= allowed:
+            raise ConfigError(f"texts.{section}.{key}: only the fields {sorted(allowed)}")
+    return classes
+
+
 def _check_d19(c: dict) -> None:
     """Optional D19 sections: asset_classes, risk_fit, recommend."""
     classes: set[str] = set()
     if "asset_classes" in c:
         ac = c["asset_classes"]
-        _keys(ac, "asset_classes", ("by_name", "by_kind", "fx"), ("by_risk",))
+        _keys(ac, "asset_classes", ("by_name", "by_kind", "fx"), ("by_risk", "by_holdings"))
         kinds = {"deposit", "time_deposit", *(k for k in c["fund_kinds"].values() if k)}
         by_kind = ac["by_kind"]
         _keys(by_kind, "asset_classes.by_kind", sorted(kinds))
@@ -368,6 +416,8 @@ def _check_d19(c: dict) -> None:
                 if not isinstance(rule["class"], str) or not rule["class"]:
                     raise ConfigError(f"{path}[{i}].class: a class name")
                 classes.add(rule["class"])
+        if "by_holdings" in ac:
+            classes |= _check_by_holdings(c, kinds - {"deposit", "time_deposit"})
 
     if "risk_fit" in c:
         rf = c["risk_fit"]
