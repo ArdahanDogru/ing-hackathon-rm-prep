@@ -16,6 +16,7 @@ def build_app(root: Path, personas_dir: Path | None = None):
     from rmprep.backend import RealBackend
     from rmprep.decision import load_config
     from rmprep.ingest.pipeline import Paths
+    from rmprep.research.service import research_from_root
 
     backend = RealBackend(root, personas_dir=personas_dir)
     import yaml
@@ -27,7 +28,10 @@ def build_app(root: Path, personas_dir: Path | None = None):
         print(f"web/dist missing: run `npm ci; npm run build` in {root / 'web'} (API only for now)",
               file=sys.stderr)
         dist = None
-    return create_app(backend, views=views, static_dir=dist, ingest=IngestControl(Paths(Path(root).resolve())))
+    # web research (docs/research.md); a root without its config has no research routes
+    research = research_from_root(root) if (Path(root) / "config" / "research.yaml").is_file() else None
+    return create_app(backend, views=views, static_dir=dist,
+                      ingest=IngestControl(Paths(Path(root).resolve())), research=research)
 
 
 def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None) -> None:

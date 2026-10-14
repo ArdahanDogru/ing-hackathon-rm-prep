@@ -25,6 +25,7 @@ from rmprep.contracts import (
     NARRATIVE_LANGS,
     Backend,
     DecisionResult,
+    DecisionState,
     NarrativeDraft,
     NarrativeStatus,
     Persona,
@@ -45,10 +46,12 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
                narrative_timeout_s: float = 120.0,
                glossary_path: Path | str = GLOSSARY,
                static_dir: Path | None = None,
-               ingest: IngestControl | None = None) -> FastAPI:
+               ingest: IngestControl | None = None,
+               research=None) -> FastAPI:
     """static_dir: the built web app (web/dist); its index.html answers every
     non-API path, so the client-side routes (/meeting/..., /print/...) work.
-    ingest: the data age and refresh (W14); None = /api/ingest answers 404."""
+    ingest: the data age and refresh (W14); None = /api/ingest answers 404.
+    research: a rmprep.research.service.ResearchService (docs/research.md); None = no research routes."""
     app = FastAPI(title="rmprep", docs_url="/api/docs", openapi_url="/api/openapi.json")
     runs: dict[str, DecisionResult] = {}
     texts: dict[tuple[str, str], NarrativeDraft] = {}   # (run_id, lang) -> last draft / approved text
@@ -68,6 +71,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     def _view(result: DecisionResult) -> dict:
         runs[result.run_id] = result
+        if research is not None and result.state == DecisionState.READY:
+            research.start(result, "TR")      # web research of the top 3 (docs/research.md)
         changes = _changes(result.persona)
         out = {"result": result.to_dict(), "test_run": bool(changes), "persona_changes": changes}
         if views is not None:
@@ -242,6 +247,10 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         text = d.rm_text if d.status == NarrativeStatus.APPROVED else to_markdown(d)
         return [{"term": f.term.key, "form": f.form, "explanation": f.explanation}
                 for f in glossary.find_terms(text, terms, lang)]
+
+    if research is not None:      # before the web app's catch-all route
+        from rmprep.api.research import research_router
+        app.include_router(research_router(research, _run))
 
     if static_dir is not None:
         static = Path(static_dir)
