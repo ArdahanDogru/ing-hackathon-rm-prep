@@ -2,6 +2,7 @@
 // tab 4): shown in a side panel (FundDrawer) on the dashboard.
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { OptionView } from "../api/types";
+import type { Explanation } from "../explain";
 import { fmtNum, fmtPct } from "../format";
 import { LangContext, useT } from "../i18n";
 import { snapshotDate } from "./BriefCard";
@@ -9,6 +10,7 @@ import { hasCode, KindBadge, sourceName } from "./KindBadge";
 import { ReturnBars, type ReturnRow } from "./ReturnBars";
 import { RiskBar, riskColor } from "./RiskBar";
 import { Stars } from "./Stars";
+import { WhyPanel } from "./WhyPanel";
 
 function Tile({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -25,12 +27,15 @@ export function FundCard({
   snapshotId,
   onToggle,
   onEvidence,
+  explanation,
 }: {
   option: OptionView;
   selected?: boolean;
   snapshotId?: string;
   onToggle?: () => void;
   onEvidence?: (evidenceId: string) => void;
+  /** W16: the engine's reasoning; without it the card shows the `why` lines. */
+  explanation?: Explanation | null;
 }) {
   const t = useT();
   const lang = useContext(LangContext);
@@ -88,7 +93,7 @@ export function FundCard({
           )}
         </Tile>
         <Tile label={t("access")}>
-          <div className="text-2xl font-bold leading-tight">{o.access.label ?? "—"}</div>
+          <div className="mt-1 text-base font-bold leading-snug">{o.access.label ?? "—"}</div>
         </Tile>
       </div>
 
@@ -105,7 +110,9 @@ export function FundCard({
         </>
       )}
 
-      {o.why.length > 0 && (
+      {explanation ? (
+        <WhyPanel explanation={explanation} onEvidence={onEvidence} />
+      ) : o.why.length > 0 && (
         <div className="my-[22px] rounded-xl bg-[#F7F9FC] px-4 py-3.5">
           <b>{t("whyForClient")}</b>
           <ul className="mt-1.5 text-sm leading-normal text-[#344054]">

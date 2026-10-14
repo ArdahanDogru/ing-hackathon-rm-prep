@@ -192,3 +192,11 @@ def test_market_note_from_the_evidence(backend, persona):
 
 def test_no_market_series_no_note(view):
     assert view[1]["market_note"] == []
+
+
+def test_priority_criteria_maps_boosts_and_skips_the_rest():
+    from rmprep.api.views import priority_criteria
+    got = priority_criteria(["düzenli gelir", "Likiditeyi koruma", "sınırlı dalgalanma",
+                             "çeşitlendirme", "kur riskini yönetme", "bilinmeyen"], load_config())
+    assert got == {"income": ["düzenli gelir"], "liquidity": ["Likiditeyi koruma"],
+                   "risk_fit": ["sınırlı dalgalanma"]}

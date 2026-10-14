@@ -42072,5 +42072,10 @@
    "as_of": "2026-10-09",
    "evidence_id": "E48b4dba0"
   }
- ]
+ ],
+ "priority_criteria": {
+  "liquidity": [
+   "erişilebilir likidite"
+  ]
+ }
 }

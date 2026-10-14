@@ -382,6 +382,58 @@ Approved by the user 2026-10-14.
    table columns and the fund card for `etf` and `stock` options; "Paraya
    erişim" for both: "2 iş günü (borsa takası)". Samples for both kinds.
 
+### Explainability: "Neden bu öneri?" (W16, 2026-10-14; PR #1)
+
+Approved by the user 2026-10-14 (canvas "Explainability Mockup", board 2). The
+fund card replaces the `why` lines with the engine's own reasoning; every value
+comes from `DecisionResult` (no new decision logic):
+
+- **Rank:** "{of} aday içinde {n}. sıra" over all scored options (score, then
+  option id).
+- **Chips:** stability (only for a recommended option; ≥ 0.8 kararlı, ≥ 0.5
+  kısmen kararlı, else kararsız, after `warnings.low_stability_below`) and data
+  confidence (≥ 0.8 yüksek, ≥ 0.6 orta, else düşük). UI thresholds only.
+- **"Puan nasıl oluştu?":** one bar per `score_parts` criterion, highest first,
+  then the penalties in red, largest first; the `reasons` text under each; the
+  total. Bars are scaled to the largest absolute part. A criterion carries a
+  tag for each client priority that boosts it.
+- **"Geçtiği kesin kurallar":** the passed `constraints`, each with its
+  evidence chips (they open the Kanıt pop-up).
+- **"En yakın alternatif":** for a recommended option, the highest-scoring
+  non-recommended option of the same group (`fund_kind`, else kind; as
+  `grouping.group_key`), its score, and the criterion with the largest part
+  difference with the alternative's reason.
+- **API:** `RunView.priority_criteria` = criterion → the persona priorities (as
+  written) whose `priorities` entry is `boost:<criterion>`
+  (`api/views.py priority_criteria`). The samples got the key without a rerun
+  (the rerun needs the narrator); the value is the same function's output.
+- The `why` lines stay in the API; `FundCard` shows them when no explanation is
+  given.
+- The "Paraya erişim" tile text is 16 px (the 24 px of the other tiles broke
+  "Vade sonunda (32 gün)" over lines).
+
+### Explainability: decision pipeline on the dashboard (W17, 2026-10-14; PR #1)
+
+Approved by the user 2026-10-14 (canvas "Explainability Mockup", board 1). A
+section between the client card and Gündem / Öneriler, closed by default: one
+line "Bu öneriler nasıl seçildi? {universe} seçenek → {rejected} elendi →
+{scored} puanlandı → {picks} öneri". Open, five steps (every value from the
+RunView):
+
+1. **Müşteri profili:** `risk_ceiling`, risk profile and horizon, and the
+   persona levels that set the income, principal and liquidity weights.
+2. **Ürün evreni:** scored + rejected options.
+3. **Kesin kurallar:** `rejected_by_rule` counts as bars (a fund can fail
+   several rules).
+4. **Puanlama:** the scored candidates.
+5. **Öneri:** the recommended options with score, overall rank and rank in
+   their group (shown when it differs); a click opens the fund card.
+
+Each step links to the matching DetailsPanel tab (Varsayımlar, Veri notları,
+Elenen, Kategoriler): `DetailsPanel` takes `request = {tab, n}` and opens on
+that tab. Below the steps: the lowest stability of the recommended options
+with the W16 level. Gündem, the options and the DetailsPanel are unchanged.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

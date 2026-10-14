@@ -308,6 +308,8 @@ export interface RunView {
   allocation_notes: string[];
   /** W15: policy rate, USD/TRY, TCMB funding cost (EVDS); missing ones left out, [] when none. */
   market_note: MarketNoteItem[];
+  /** W16 (PR #1): scoring criterion → the client's priorities (as written) that boost it. */
+  priority_criteria: Record<string, string[]>;
 }
 
 /** One value of the market note ("Piyasa notu · TCMB EVDS"). */

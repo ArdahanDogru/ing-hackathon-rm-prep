@@ -6,15 +6,17 @@ import type { Persona, RunView } from "../api/types";
 import { Agenda } from "../components/Agenda";
 import { ApprovalBar } from "../components/ApprovalBar";
 import { BriefCard } from "../components/BriefCard";
-import { DetailsPanel } from "../components/DetailsPanel";
+import { DetailsPanel, type Tab } from "../components/DetailsPanel";
 import { EvidencePopup } from "../components/EvidencePopup";
 import { FundCard, FundDrawer } from "../components/FundCard";
 import { LifecycleTabs } from "../components/LifecycleTabs";
 import { MarketNote } from "../components/MarketNote";
 import { OptionsCompare } from "../components/OptionsCompare";
 import { PersonaPanel } from "../components/PersonaPanel";
+import { PipelinePanel } from "../components/PipelinePanel";
 import { QuestionsPanel } from "../components/QuestionsPanel";
 import { useChecks } from "../checks";
+import { explain } from "../explain";
 import { labels, useT, type LabelKey } from "../i18n";
 
 const show = (v: unknown) => (Array.isArray(v) ? v.join(", ") : String(v));
@@ -58,6 +60,7 @@ export function Dashboard({
   const [editing, setEditing] = useState(false);
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [details, setDetails] = useState<{ tab: Tab; n: number } | null>(null);
   const [discussed, toggleDiscussed] = useChecks(`rmprep.agenda.${runId}`);
   const [confirmed, toggleConfirmed] = useChecks(`rmprep.confirm.${runId}`);
   const pending = r.rm_status === "pending";
@@ -94,6 +97,8 @@ export function Dashboard({
         </p>
       )}
 
+      {ready && <PipelinePanel view={view} onOpen={setOpenId} onDetails={(tab) => setDetails((d) => ({ tab, n: (d?.n ?? 0) + 1 }))} />}
+
       <div className="mb-6 grid items-start gap-6 lg:grid-cols-[1fr_2fr]">
         <Agenda
           points={view.talking_points}
@@ -116,7 +121,7 @@ export function Dashboard({
         )}
       </div>
 
-      {ready && <DetailsPanel view={view} selected={selected} onToggle={toggle} onOpen={setOpenId} />}
+      {ready && <DetailsPanel view={view} selected={selected} onToggle={toggle} onOpen={setOpenId} request={details} />}
 
       {ready && <ApprovalBar view={view} selected={selected} openConfirms={openConfirms} onRemove={toggle} onView={onView} />}
 
@@ -138,6 +143,7 @@ export function Dashboard({
             snapshotId={r.snapshot_id}
             onToggle={() => toggle(opened.option_id)}
             onEvidence={setEvidenceId}
+            explanation={explain(view, opened.option_id)}
           />
         </FundDrawer>
       )}
