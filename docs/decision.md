@@ -1002,6 +1002,39 @@ Details fixed in D26c (decided by the user 2026-10-14; merged, decision@cd7bbca)
   unchanged; P05 EIL, NJR, KSK → EIL, GBL, KSK. EFOR (P03): "Yıllık getiri
   %906.4 (6m)" → "6 aylık getiri %217.2 (yıllıklandırılmadı)".
 
+## 17. Current split and allocation gap (D27, approved by the user 2026-10-14)
+
+Spec: `docs/superpowers/specs/2026-10-14-portfolio-projection-design.md`
+(sections 3–6 and 11); plan: `docs/superpowers/plans/2026-10-14-portfolio-projection.md`
+(Task 3 = D27, with the config shape and the tests). Contract v1.10 is on main.
+This section replaces the "future work" sentence of section 11.
+
+- **Estimate** of the client's current split over the five classes
+  (`ALLOCATION_CLASSES`), pure, from config `holdings`: the RM input
+  (`HoldingsInput`, source `rm` / `rm_confirmed`) replaces everything; else
+  text rules on persona sentences about assets (`persona_text`), the rest in
+  the proportions of the matched job row (`profile`) or the national default
+  (`national`, TCMB Finansal İstikrar Raporu 2026-I, Tablo III.1.2, March
+  2026). The points add up to 100.
+- **Brief rule (the user, 2026-10-14):** only `rm`, `rm_confirmed` and
+  `persona_text` are active and change the ranking. Job and national values
+  are a proposal ("tahmini senaryo, müşteri bilgisi değildir") until the RM
+  confirms them; until then the first to_confirm item is "Müşterinin mevcut
+  portföy dağılımını alın (şu an tahmini senaryo)."
+- **Gap** per class to the nearest band edge of the D20 model band (positive =
+  under-weight, negative = over-weight, 0 inside; `dengeli` none).
+- **Criterion `allocation_gap`** ("Portföy açığı"): value = clamp(gap /
+  scale, −1, 1), a negative value × `overweight_factor`; 0 for an inactive
+  class. Weight = `weights.allocation_gap.base` × source factor × (1 +
+  `per_signal` × change signals, at most `max_signals`). No active class →
+  weight 0 → the criterion is not in `score_parts` and every score stays as
+  before. Hard rules unchanged; D25 varies the new weight.
+- `DecisionResult.effective_weights` = the normalised weights used for this
+  client; `AllocationBand` carries `current`, the range, the source, the gap
+  and `active`.
+- `run_id` adds the holdings to its key only when they are set (a reset gives
+  the original run id back).
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only
