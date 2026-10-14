@@ -479,6 +479,21 @@ design time was a Windows console display problem.)
 
 ## Noted for later (decided 2026-10-09, not to be done now)
 
+- **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes
+  publishes 0 for a fund's price, size and returns (43–62 funds per snapshot;
+  e.g. IRF on 2026-10-14: price 0, size 0, all returns 0 %, investors 1,405;
+  on 2026-10-10 price 7.70, size 354 million TL). Today 0 is a valid value, so
+  the engine scores 2–13 such funds per client as real data (all at place 115
+  or lower, never in a top 3). Proposal: a price or size of 0 marks all TEFAS
+  rows of that fund and day as invalid (`out_of_range`), so the fund has no
+  usable return and gets the short-history rule; the "Olası sorunlar" panel
+  gets a note. Needs a free eval pass and a small update of the deliverables.
+- **Known validator false alarm (2026-10-14):** the short fund name "Garanti
+  Portföy Blockchain" contains "garanti"; N5 removes only full fund names
+  before the forbidden-phrase scan. One first attempt failed in the eval
+  `20261014-105720-full`; the retry passed.
+- **Scheduled ingest** — done on 2026-10-14 (I6, W14), see above.
+
 - **Scheduled ingest**: Windows Task Scheduler job running `python -m rmprep
   ingest` each morning. Only calls the official EVDS API and reads the inbox
   folders; it does not touch TEFAS or ing.com.tr.
