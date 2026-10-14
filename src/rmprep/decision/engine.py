@@ -131,7 +131,27 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
     levels = reading.levels
     universe = build_universe(evidence, config)
     scoring = score_options(universe, levels, config)
-    stab = stability(scoring.features, levels, config)
+    # recommended top 3 with the class rule (D19); the reason of an option the rule
+    # moved up says so (below)
+    idx = EvidenceIndex(evidence)
+    nets = {f.option.option_id: f.net_return for f in scoring.features}
+    reals: dict[str, float | None] = {}
+
+    def real_of(o: ScoredOption) -> float | None:
+        """Real 1-year return (percent; display facts), else the net return."""
+        oid = o.option.option_id
+        if oid not in reals:            # the same for every perturbed run (D25)
+            real = facts_of(o.option, idx, config).real_1y
+            net = nets.get(oid)
+            reals[oid] = (real.value if real is not None
+                          else net * 100 if net is not None else None)
+        return reals[oid]
+
+    rec_ids, moved = choose(scoring.scored, levels, config, real_of)
+    # D25: a recommended option's stability = the share of the perturbed runs in
+    # which the same rule recommends it again
+    stab = stability(scoring.features, levels, config, rec_ids,
+                     lambda rows: choose(rows, levels, config, real_of)[0])
     options = tuple(
         ScoredOption(option=r.option, score=r.score, score_parts=r.parts,
                      constraints=r.constraints, confidence=confidence(r.features, config),
@@ -153,19 +173,6 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
             return dataclasses.replace(o, evidence_ids=ids)
 
         options = tuple(map(with_holdings, options))
-    # recommended top 3 with the class rule (D19); the reason of an option the rule
-    # moved up says so
-    idx = EvidenceIndex(evidence)
-    nets = {f.option.option_id: f.net_return for f in scoring.features}
-
-    def real_of(o: ScoredOption) -> float | None:
-        """Real 1-year return (percent; display facts), else the net return."""
-        real = facts_of(o.option, idx, config).real_1y
-        if real is not None:
-            return real.value
-        net = nets.get(o.option.option_id)
-        return net * 100 if net is not None else None
-
     # D21: the assumption names the class rule of the risk estimate when a fund uses it
     extra_keys: list[str] = []
     a_texts = config.raw["texts"]["assumptions"]
@@ -174,7 +181,6 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
         common["assumptions"] += (a_texts["risk_estimate_class"],)
         extra_keys.append("risk_estimate_class")
 
-    rec_ids, moved = choose(options, levels, config, real_of)
     if moved:
         text = config.raw["texts"]["reasons"]["class_rule"]
         options = tuple(_with_class_reason(o, text) if o.option.option_id in moved else o
@@ -191,7 +197,7 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
         f.rows[q] for f in scoring.features if f.net_return is not None
         for q in (rr["stopaj"]["quantity"], rr["cpi"]["quantity"]) if q in f.rows]
     warnings = build_warnings(options, levels, reading.questions, evidence, config, estimates,
-                              real_inputs)
+                              real_inputs, rec_ids)
     # to_confirm: assumption keys, then warning codes with an entry (D22)
     common["to_confirm"] = confirm(keys + tuple(extra_keys) + tuple(w.code for w in warnings))
 
