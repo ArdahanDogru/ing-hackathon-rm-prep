@@ -132,6 +132,24 @@ export interface AllocationBand {
   inferred: boolean; // our inference, not a source value
   option_id: string | null; // the best scored option of the class for this client
   note: "" | "ceiling" | "none" | "negative_real";
+  // v1.10 (D27, W18): the client's current split. Optional until the API fixtures have it.
+  current?: number | null; // %, the point
+  current_low?: number | null; // the range of the estimate (= current for RM values)
+  current_high?: number | null;
+  current_source?: "" | HoldingsSource;
+  current_ref?: string; // rule id, profile label or source short text
+  gap?: number | null; // points to the band edge: + under the band, − over it, 0 inside; null for dengeli
+  active?: boolean; // counts in the ranking
+}
+
+export type HoldingsSource = "rm" | "rm_confirmed" | "persona_text" | "profile" | "national";
+/** POST /runs/{id}/holdings `origin`. */
+export type HoldingsOrigin = "rm" | "rm_confirmed";
+
+/** RunView.holdings (W18): where the current split comes from. */
+export interface Holdings {
+  status: "estimate" | "persona_text" | "rm" | "rm_confirmed";
+  sources: { id: string; label: string; url: string; date: string }[];
 }
 
 /** The API's allocation row: the band plus the class label and the note text. */
@@ -310,6 +328,10 @@ export interface RunView {
   market_note: MarketNoteItem[];
   /** W16 (PR #1): scoring criterion → the client's priorities (as written) that boost it. */
   priority_criteria: Record<string, string[]>;
+  /** W18: the current split's status and sources. Optional until the API fixtures have it. */
+  holdings?: Holdings;
+  /** W18: criterion → the weight used for this client. */
+  effective_weights?: Record<string, number>;
 }
 
 /** One value of the market note ("Piyasa notu · TCMB EVDS"). */

@@ -3,6 +3,7 @@
 import type {
   EvidenceItem,
   GlossaryTerm,
+  HoldingsOrigin,
   IngestStatus,
   Lang,
   NarrativeBrief,
@@ -79,6 +80,9 @@ export const api = {
   editBlock: (runId: string, lang: Lang, blockId: string, text: string | null) =>
     request<NarrativeView>("PUT", `/runs/${enc(runId)}/narrative/${lang}/blocks/${enc(blockId)}`, { text }),
   brief,
+  /** POST /runs/{id}/holdings (W18): the current split (all five classes, total 100 ± 0.5), or null to remove it; a new run. */
+  setHoldings: (runId: string, shares: Record<string, number> | null, origin?: HoldingsOrigin) =>
+    request<RunView>("POST", `/runs/${enc(runId)}/holdings`, shares === null ? { shares: null } : { shares, origin }),
   /** GET /ingest: the age of the newest snapshot and the ingest job (W14). */
   ingestStatus: () => request<IngestStatus>("GET", "/ingest"),
   /** POST /ingest: starts the ingest (202 with the status); 409 when one already runs. */

@@ -97,3 +97,17 @@ test("ingest: GET the status, POST starts it (202), 409 when it already runs", a
   expect(fetch.mock.calls[1][0]).toBe("/api/ingest");
   expect(fetch.mock.calls[1][1].method).toBe("POST");
 });
+
+test("setHoldings: POST the shares and the origin, or null to remove them", async () => {
+  const fetch = vi.fn().mockImplementation(async () => json({}));
+  globalThis.fetch = fetch;
+  await api.setHoldings("R 1", { nakit_benzeri: 100, borclanma: 0, hisse: 0, altin_doviz: 0, dengeli: 0 }, "rm");
+  await api.setHoldings("R1", null);
+  expect(fetch.mock.calls[0][0]).toBe("/api/runs/R%201/holdings");
+  expect(fetch.mock.calls[0][1].method).toBe("POST");
+  expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({
+    shares: { nakit_benzeri: 100, borclanma: 0, hisse: 0, altin_doviz: 0, dengeli: 0 },
+    origin: "rm",
+  });
+  expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ shares: null });
+});

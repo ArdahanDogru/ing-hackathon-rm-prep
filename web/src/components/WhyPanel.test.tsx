@@ -48,6 +48,23 @@ test("the closest alternative names the largest difference", () => {
   expect(alt).toHaveTextContent(x.alternative!.diff ? "En büyük fark" : "Puan bileşenleri aynı.");
 });
 
+test("the criterion allocation_gap shows as Portföy açığı (W18), in EN too", () => {
+  const { v, o } = setup();
+  const s = v.result.options.find((y) => y.option.option_id === "fund:PPN")!;
+  s.score_parts = { ...s.score_parts, allocation_gap: 0.4 };
+  s.reasons = { ...s.reasons, allocation_gap: "Nakit benzeri payı persona metnine göre %75; Muhafazakâr model bandı %10–20." };
+  const { unmount } = render(<FundCard option={o} explanation={explain(v, "fund:PPN")} />);
+  const row = screen.getAllByTestId("score-row").find((r) => r.textContent?.startsWith("Portföy açığı"));
+  expect(row).toHaveTextContent("persona metnine göre %75");
+  unmount();
+  render(
+    <LangContext.Provider value="EN">
+      <FundCard option={o} explanation={explain(v, "fund:PPN")} />
+    </LangContext.Provider>,
+  );
+  expect(screen.getAllByTestId("score-row").some((r) => r.textContent?.startsWith("Portfolio gap"))).toBe(true);
+});
+
 test("penalty rows are labelled in English too", () => {
   const { v, o } = setup();
   const s = v.result.options.find((y) => y.option.option_id === "fund:PPN")!;
