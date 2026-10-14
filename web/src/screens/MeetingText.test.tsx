@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { api, ApiError } from "../api/client";
 import type { NarrativeView, RunView, SectionKey } from "../api/types";
@@ -13,6 +13,21 @@ const sectionText = (key: SectionKey) => section(key)!.sentences[0].text;
 /** The sample with one block edited, as the server returns it (markdown with the edit). */
 function withEdit(n: NarrativeView, block: string, text: string): NarrativeView {
   return { ...n, rm_edits: { ...n.rm_edits, [block]: text }, markdown: `${n.markdown}\n<!-- ${block} -->\n${text}\n` };
+}
+/** The sample with blocks deleted (rm_edits[block] = ""), markdown unchanged: no dependence on N14. */
+function withDeleted(n: NarrativeView, ...blocks: string[]): NarrativeView {
+  return { ...n, rm_edits: { ...n.rm_edits, ...Object.fromEntries(blocks.map((b) => [b, ""])) } };
+}
+/** editBlock that keeps the state of the edits, as the server does. */
+function statefulEdit(start: NarrativeView) {
+  let state = start;
+  return vi.spyOn(api, "editBlock").mockImplementation(async (_run, _lang, block, text) => {
+    const edits = { ...state.rm_edits };
+    if (text === null) delete edits[block];
+    else edits[block] = text;
+    state = { ...state, rm_edits: edits };
+    return state;
+  });
 }
 function withChecks(n: NarrativeView, block: string, findings: string[]): NarrativeView {
   return { ...n, edit_checks: { ...n.edit_checks, [block]: findings } };
@@ -48,8 +63,49 @@ test("source numbers match the Kaynaklar list", async () => {
   const marks = await screen.findAllByTestId("src-mark");
   const items = screen.getAllByTestId("source-item");
   expect(Math.max(...marks.map((m) => Number(m.textContent)))).toBe(items.length);
-  expect(marks[0]).toHaveAttribute("href", `#src-${marks[0].textContent}`);
   expect(document.getElementById(`src-${marks[0].textContent}`)).not.toBeNull();
+});
+
+// --- W15 part 1: source numbers -------------------------------------------------------
+
+/** The first cited sentence of the document (the aim, else the first talking point). */
+function firstCited(n: NarrativeView, v: RunView) {
+  const tp = section("talking_points", n)?.sentences ?? [];
+  const points = tp.length ? tp : v.talking_points;
+  const s = [...section("ozet", n)!.sentences, ...points].find((x) => x.evidence_ids.length);
+  return s!;
+}
+
+test("a source number opens the evidence of its sentence and highlights its Kaynaklar entry", async () => {
+  mockNarrative(narrative());
+  const ev = vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
+  const v = sample("run_p01_approved");
+  renderMeeting(v);
+  const mark = (await screen.findAllByTestId("src-mark"))[0];
+  expect(mark).not.toHaveAttribute("href");
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  await userEvent.click(mark);
+  expect(ev).toHaveBeenCalledWith(v.result.snapshot_id, firstCited(narrative(), v).evidence_ids[0]);
+  expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  const item = document.getElementById(`src-${mark.textContent}`)!;
+  expect(item).toHaveAttribute("data-highlight", "true");
+  expect(screen.getAllByTestId("source-item").filter((x) => x.dataset.highlight === "true")).toHaveLength(1);
+  await act(() => vi.advanceTimersByTimeAsync(2_100));
+  expect(item).not.toHaveAttribute("data-highlight", "true");
+});
+
+test("a source number opens with the keyboard", async () => {
+  mockNarrative(narrative());
+  const ev = vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
+  renderMeeting(sample("run_p01_approved"));
+  const mark = (await screen.findAllByTestId("src-mark"))[0];
+  mark.focus();
+  await userEvent.keyboard("{Enter}");
+  expect(ev).toHaveBeenCalledTimes(1);
+  await userEvent.keyboard("{Escape}");
+  mark.focus();
+  await userEvent.keyboard(" ");
+  expect(ev).toHaveBeenCalledTimes(2);
 });
 
 test("collapsed lines open on click", async () => {
@@ -332,4 +388,92 @@ test("Metni onayla shows the approval time from the answer", async () => {
   renderMeeting(sample("run_p01_approved"));
   await userEvent.click(await screen.findByRole("button", { name: "Metni onayla" }));
   expect(await screen.findByTestId("doc-status")).toHaveTextContent("Onaylandı: 12.10.2026 21:06");
+});
+
+// --- W15 part 2: deleting -------------------------------------------------------------
+
+test("Sil deletes one block; it shows as Silindi · Geri al without its source numbers", async () => {
+  const n = narrative();
+  mockNarrative(n);
+  const edit = statefulEdit(n);
+  renderMeeting(sample("run_p01_approved"));
+  const before = (await screen.findAllByTestId("src-mark")).length;
+  await userEvent.click(screen.getByRole("button", { name: "Görüşmenin amacı: Sil" }));
+  expect(edit).toHaveBeenCalledWith(expect.any(String), "TR", "ozet", "");
+  const line = await screen.findByTestId("deleted-block");
+  expect(line).toHaveTextContent("Silindi · Geri al");
+  expect(screen.getByTestId("document")).not.toHaveTextContent(section("ozet")!.sentences[0].text);
+  const cited = section("ozet")!.sentences.filter((x) => x.evidence_ids.length).length;
+  if (cited) expect(screen.getAllByTestId("src-mark").length).toBeLessThan(before);
+});
+
+test("Geri al restores a deleted block (null)", async () => {
+  const n = withDeleted(narrative(), "ozet");
+  mockNarrative(n);
+  const edit = statefulEdit(n);
+  renderMeeting(sample("run_p01_approved"));
+  await userEvent.click(await screen.findByRole("button", { name: "Geri al" }));
+  expect(edit).toHaveBeenCalledWith(expect.any(String), "TR", "ozet", null);
+  await waitFor(() => expect(screen.queryByTestId("deleted-block")).toBeNull());
+  expect(screen.getByTestId("document")).toHaveTextContent(section("ozet")!.sentences[0].text);
+});
+
+test("Bölümü sil deletes every block of Öneriler, one PUT each", async () => {
+  const n = narrative();
+  mockNarrative(n);
+  const edit = statefulEdit(n);
+  const v = sample("run_p01_approved");
+  renderMeeting(v);
+  await userEvent.click(await screen.findByRole("button", { name: "Öneriler: Bölümü sil" }));
+  await waitFor(() => expect(edit).toHaveBeenCalledTimes(v.result.rm_selected.length));
+  expect(edit.mock.calls.map((c) => [c[2], c[3]])).toEqual(v.result.rm_selected.map((id) => [`oneriler:${id}`, ""]));
+  expect(await screen.findAllByTestId("deleted-block")).toHaveLength(v.result.rm_selected.length);
+  expect(screen.queryByRole("button", { name: "Öneriler: Bölümü sil" })).toBeNull();
+});
+
+test("Bölümü sil for Konuşulacaklar; one-block sections have no Bölümü sil", async () => {
+  const n = narrative();
+  mockNarrative(n);
+  const edit = statefulEdit(n);
+  renderMeeting(sample("run_p01_approved"));
+  await userEvent.click(await screen.findByRole("button", { name: "Konuşulacaklar: Bölümü sil" }));
+  const tp = section("talking_points")!.sentences.length;
+  await waitFor(() => expect(edit).toHaveBeenCalledTimes(tp));
+  expect(edit.mock.calls.map((c) => c[2])).toEqual(Array.from({ length: tp }, (_, i) => `talking_points:${i}`));
+  expect(screen.queryByRole("button", { name: /Görüşmenin amacı: Bölümü sil/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Dikkat: Bölümü sil/ })).toBeNull();
+});
+
+test("saving an empty text deletes the block", async () => {
+  const n = narrative();
+  mockNarrative(n);
+  const edit = statefulEdit(n);
+  renderMeeting(sample("run_p01_approved"));
+  await userEvent.click(await screen.findByRole("button", { name: /Görüşmenin amacı.*düzenle/i }));
+  await userEvent.clear(screen.getByRole("textbox", { name: /Görüşmenin amacı/ }));
+  await userEvent.type(screen.getByRole("textbox", { name: /Görüşmenin amacı/ }), "   ");
+  await userEvent.click(screen.getByRole("button", { name: "Kaydet" }));
+  expect(edit).toHaveBeenCalledWith(expect.any(String), "TR", "ozet", "");
+  expect(await screen.findByTestId("deleted-block")).toBeInTheDocument();
+});
+
+test("the approved text leaves deleted blocks and empty sections out", async () => {
+  const v = sample("run_p01_approved");
+  const d = withDeleted(narrative(), "ozet", "dikkat", ...v.result.rm_selected.map((id) => `oneriler:${id}`));
+  mockNarrative({ ...d, status: "approved", rm_text: d.markdown });
+  renderMeeting(v);
+  const doc = await screen.findByTestId("document");
+  expect(screen.queryByTestId("deleted-block")).toBeNull();
+  expect(screen.queryAllByTestId("doc-option")).toHaveLength(0);
+  const heads = screen.getAllByTestId("doc-heading").map((h) => h.textContent);
+  expect(heads).not.toContain("Görüşmenin amacı");
+  expect(heads).not.toContain("Öneriler");
+  expect(heads).not.toContain("Dikkat");
+  expect(doc).not.toHaveTextContent(section("ozet")!.sentences[0].text);
+});
+
+test("the screen notes that the disclaimer is always added", async () => {
+  mockNarrative(narrative());
+  renderMeeting(sample("run_p01_approved"));
+  expect(await screen.findByText("Yatırım tavsiyesi değildir notu her zaman eklenir.")).toBeInTheDocument();
 });

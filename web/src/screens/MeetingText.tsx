@@ -19,6 +19,7 @@ import { LangContext, useT } from "../i18n";
 import { Markdown } from "../markdown";
 
 const SAVE_DELAY_MS = 800;
+const HIGHLIGHT_MS = 2000;
 /** Blocks shown as lists: an edit is one item per line. */
 const LIST_BLOCKS = new Set(["dikkat", "alternatifler", "sorular", "varsayimlar"]);
 
@@ -93,6 +94,12 @@ export function MeetingText({ view }: { view: RunView }) {
   const [terms, setTerms] = useState<GlossaryTerm[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
+  const [highlight, setHighlight] = useState<number | null>(null);
+  useEffect(() => {
+    if (highlight === null) return;
+    const timer = setTimeout(() => setHighlight(null), HIGHLIGHT_MS);
+    return () => clearTimeout(timer);
+  }, [highlight]);
   const [openBlock, setOpenBlock] = useState<string | null>(null);
   const [blockError, setBlockError] = useState<string | null>(null);
   const [blockBusy, setBlockBusy] = useState(false);
@@ -151,8 +158,23 @@ export function MeetingText({ view }: { view: RunView }) {
       setDraft(await api.editBlock(runId, lang, blockId, text));
       setOpenBlock(null);
     } catch (e) {
-      if (text === null) setActionError((e as Error).message);
-      else setBlockError((e as Error).message);
+      // an error of the open editor stays in it; restore and delete errors go above the document
+      if (openBlock === blockId) setBlockError((e as Error).message);
+      else setActionError((e as Error).message);
+    } finally {
+      setBlockBusy(false);
+    }
+  };
+
+  /** "Bölümü sil": delete the blocks one by one ({text: ""} each). */
+  const deleteBlocks = async (blockIds: string[]) => {
+    setBlockBusy(true);
+    setActionError(null);
+    try {
+      for (const id of blockIds) setDraft(await api.editBlock(runId, lang, id, ""));
+      setOpenBlock(null);
+    } catch (e) {
+      setActionError((e as Error).message);
     } finally {
       setBlockBusy(false);
     }
@@ -183,6 +205,12 @@ export function MeetingText({ view }: { view: RunView }) {
   const perOption = selected.map((id) => ({ id, sentences: sentences("oneriler").filter((s) => s.option_ids[0] === id) }));
   const approved = draft?.status === "approved";
   const editable = !!draft && !approved;
+  /** rm_edits[block] === "": the block is deleted (v1.9). */
+  const gone = (block: string) => edits[block] === "";
+  /** An approved text leaves out a section whose blocks are all deleted. */
+  const hidden = (blocks: string[]) => approved && blocks.length > 0 && blocks.every(gone);
+  const tpBlocks = tpFromNarrator ? points.map((_, i) => `talking_points:${i}`) : [];
+  const optionBlocks = perOption.map((o) => `oneriler:${o.id}`);
 
   // source numbers: every cited sentence, in document order, without the sentences of edited blocks
   const live = (block: string, cs: Cited[]) => (block in edits ? [] : cs);
@@ -211,7 +239,14 @@ export function MeetingText({ view }: { view: RunView }) {
   const withMark = (c: Cited) => (
     <>
       {c.text}
-      <SourceMark n={c.evidence_ids.length ? numbers.get(keyOf(c)) : undefined} />
+      <SourceMark
+        n={c.evidence_ids.length ? numbers.get(keyOf(c)) : undefined}
+        label={t("sourceMark")}
+        onOpen={() => {
+          setEvidenceId(c.evidence_ids[0]);
+          setHighlight(numbers.get(keyOf(c)) ?? null);
+        }}
+      />
     </>
   );
 
@@ -219,6 +254,21 @@ export function MeetingText({ view }: { view: RunView }) {
   const block = (id: string, title: string, original: Cited[], content: ReactNode, prefix?: ReactNode) => {
     const list = LIST_BLOCKS.has(id);
     const edited = edits[id];
+    if (gone(id))
+      return approved ? null : (
+        <div data-testid="deleted-block" data-block={id} className="my-1 border-t border-dashed border-gray-300 pt-1 text-[13px] text-muted">
+          {`${t("blockDeleted")} · `}
+          <button
+            type="button"
+            title={`${title}: ${t("undoDelete")}`}
+            className="text-[#355FA1] underline"
+            disabled={blockBusy}
+            onClick={() => sendBlock(id, null)}
+          >
+            {t("undoDelete")}
+          </button>
+        </div>
+      );
     if (openBlock === id)
       return (
         <BlockEditor
@@ -226,7 +276,7 @@ export function MeetingText({ view }: { view: RunView }) {
           initial={edited ?? original.map((c) => c.text).join(list ? "\n" : " ")}
           error={blockError}
           busy={blockBusy}
-          onSave={(text) => sendBlock(id, text)}
+          onSave={(text) => sendBlock(id, text.trim() ? text : "")}
           onCancel={() => {
             setOpenBlock(null);
             setBlockError(null);
@@ -234,7 +284,7 @@ export function MeetingText({ view }: { view: RunView }) {
         />
       );
     return (
-      <div data-block={id} className="group relative pr-9">
+      <div data-block={id} className={`group relative ${editable ? "pr-20" : ""}`}>
         {edited !== undefined ? (
           <>
             {prefix}
@@ -244,18 +294,30 @@ export function MeetingText({ view }: { view: RunView }) {
           content
         )}
         {editable && (
-          <button
-            type="button"
-            aria-label={`${title} ${t("editBlock")}`}
-            title={`${title} ${t("editBlock")}`}
-            className="absolute right-0 top-0 rounded-lg px-2 py-0.5 text-muted opacity-60 hover:bg-gray-100 hover:text-ink hover:opacity-100 focus:opacity-100 group-hover:opacity-100"
-            onClick={() => {
-              setBlockError(null);
-              setOpenBlock(id);
-            }}
-          >
-            ✎
-          </button>
+          <span className="absolute right-0 top-0 flex items-center text-muted opacity-60 focus-within:opacity-100 group-hover:opacity-100">
+            <button
+              type="button"
+              aria-label={`${title} ${t("editBlock")}`}
+              title={`${title} ${t("editBlock")}`}
+              className="rounded-lg px-2 py-0.5 hover:bg-gray-100 hover:text-ink"
+              onClick={() => {
+                setBlockError(null);
+                setOpenBlock(id);
+              }}
+            >
+              ✎
+            </button>
+            <button
+              type="button"
+              aria-label={`${title}: ${t("deleteBlock")}`}
+              title={`${title}: ${t("deleteBlock")}`}
+              disabled={blockBusy}
+              className="rounded-lg px-2 py-0.5 text-[13px] hover:bg-gray-100 hover:text-[#B42318]"
+              onClick={() => sendBlock(id, "")}
+            >
+              {t("deleteBlock")}
+            </button>
+          </span>
         )}
         {edited !== undefined && (
           <div className="mt-1 flex flex-wrap items-center gap-3 text-[13px]">
@@ -271,6 +333,20 @@ export function MeetingText({ view }: { view: RunView }) {
       </div>
     );
   };
+
+  /** "Bölümü sil" next to the heading of a section with several blocks, while one is left. */
+  const sectionDelete = (title: string, blocks: string[]) =>
+    editable && blocks.length > 1 && blocks.some((b) => !gone(b)) ? (
+      <button
+        type="button"
+        aria-label={`${title}: ${t("deleteSection")}`}
+        disabled={blockBusy}
+        className="text-[13px] text-muted hover:text-[#B42318]"
+        onClick={() => deleteBlocks(blocks.filter((b) => !gone(b)))}
+      >
+        {t("deleteSection")}
+      </button>
+    ) : null;
 
   // Markdown only for a text approved with a whole-text edit (before block editing).
   let markdown: { label: string; text: string } | null = null;
@@ -341,81 +417,104 @@ export function MeetingText({ view }: { view: RunView }) {
               </>
             ) : (
               <>
-                <DocumentSection title={t("meetingAim")}>
-                  {block("ozet", t("meetingAim"), sentences("ozet"), <p className="max-w-[68ch]">{prose(sentences("ozet"))}</p>)}
-                </DocumentSection>
+                {!hidden(["ozet"]) && (
+                  <DocumentSection title={t("meetingAim")}>
+                    {block("ozet", t("meetingAim"), sentences("ozet"), <p className="max-w-[68ch]">{prose(sentences("ozet"))}</p>)}
+                  </DocumentSection>
+                )}
 
-                <DocumentSection title={t("tpDoc")}>
-                  <ul className="max-w-[68ch] space-y-2">
-                    {points.map((c, i) => {
-                      const title = c.title ? <b>{`${c.title}. `}</b> : null;
-                      const body = (
-                        <>
-                          {title}
-                          {withMark(c)}
-                        </>
-                      );
+                {!hidden(tpBlocks) && (
+                  <DocumentSection title={t("tpDoc")} action={sectionDelete(t("tpDoc"), tpBlocks)}>
+                    <ul className="max-w-[68ch] space-y-2">
+                      {points.map((c, i) => {
+                        if (approved && tpFromNarrator && gone(`talking_points:${i}`)) return null;
+                        const title = c.title ? <b>{`${c.title}. `}</b> : null;
+                        const body = (
+                          <>
+                            {title}
+                            {withMark(c)}
+                          </>
+                        );
+                        return (
+                          <li key={i}>
+                            {tpFromNarrator ? block(`talking_points:${i}`, `${t("tpDoc")} ${i + 1}`, [c], body, title) : body}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </DocumentSection>
+                )}
+
+                {!hidden(["teklif_metni"]) && (
+                  <DocumentSection title={t("scriptShort")}>
+                    {gone("teklif_metni") ? (
+                      block("teklif_metni", t("scriptShort"), [], null)
+                    ) : (
+                      <blockquote data-testid="script" className="my-2 rounded-r-xl border-l-4 border-cobalt bg-[#F7F9FC] px-5 py-3.5 text-lg">
+                        {block("teklif_metni", t("scriptShort"), sentences("teklif_metni"), <div>{prose(sentences("teklif_metni"))}</div>)}
+                      </blockquote>
+                    )}
+                  </DocumentSection>
+                )}
+
+                {!hidden(optionBlocks) && (
+                  <DocumentSection title={t("recommendations")} action={sectionDelete(t("recommendations"), optionBlocks)}>
+                    {perOption.map(({ id, sentences: own }) => {
+                      const o = view.options[id];
+                      if (gone(`oneriler:${id}`))
+                        return approved ? null : (
+                          <div key={id} className="mb-3">
+                            <b className="text-muted">{docName(o)}</b>
+                            {block(`oneriler:${id}`, docName(o), [], null)}
+                          </div>
+                        );
+                      const i = perOption.filter((x) => !gone(`oneriler:${x.id}`)).findIndex((x) => x.id === id);
+                      const r1 = o.returns["1y"];
+                      const facts = [
+                        r1 ? fmtPct(r1.value) : null,
+                        o.risk ? `${t("riskShort")} ${o.risk.level}/7` : null,
+                        o.access.label ? o.access.label.toLocaleLowerCase(lang === "TR" ? "tr" : "en") : null,
+                      ].filter(Boolean);
                       return (
-                        <li key={i}>
-                          {tpFromNarrator ? block(`talking_points:${i}`, `${t("tpDoc")} ${i + 1}`, [c], body, title) : body}
-                        </li>
+                        <div key={id} data-testid="doc-option" className="mb-5" title={o.label}>
+                          <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <b>{`${i + 1} · ${docName(o)}`}</b>
+                            <span className="text-muted">{facts.join(" · ")}</span>
+                            {(draft.need_tags[id] ?? []).map((tag) => (
+                              <span key={tag} className="rounded-full bg-[#EEF2F9] px-[11px] py-1 text-[13px] leading-none text-[#2C4F8F]">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                          {block(
+                            `oneriler:${id}`,
+                            docName(o),
+                            own,
+                            own.map((c, k) => (
+                              <p key={k} className="mt-1 max-w-[68ch]">
+                                {withMark(c)}
+                              </p>
+                            )),
+                          )}
+                          <textarea
+                            rows={2}
+                            aria-label={`${t("myNote")}: ${docName(o)}`}
+                            placeholder={t("optionNote")}
+                            className="mt-2 w-full max-w-[68ch] resize-y rounded-xl border border-dashed border-[#C7D2E5] bg-[#FBFCFE] px-3.5 py-2 text-[15px] leading-normal focus:border-solid"
+                            value={optionNotes[id] ?? ""}
+                            onChange={(e) => editOptionNote(id, e.target.value)}
+                          />
+                        </div>
                       );
                     })}
-                  </ul>
-                </DocumentSection>
+                  </DocumentSection>
+                )}
 
-                <DocumentSection title={t("scriptShort")}>
-                  <blockquote data-testid="script" className="my-2 rounded-r-xl border-l-4 border-cobalt bg-[#F7F9FC] px-5 py-3.5 text-lg">
-                    {block("teklif_metni", t("scriptShort"), sentences("teklif_metni"), <div>{prose(sentences("teklif_metni"))}</div>)}
-                  </blockquote>
-                </DocumentSection>
-
-                <DocumentSection title={t("recommendations")}>
-                  {perOption.map(({ id, sentences: own }, i) => {
-                    const o = view.options[id];
-                    const r1 = o.returns["1y"];
-                    const facts = [
-                      r1 ? fmtPct(r1.value) : null,
-                      o.risk ? `${t("riskShort")} ${o.risk.level}/7` : null,
-                      o.access.label ? o.access.label.toLocaleLowerCase(lang === "TR" ? "tr" : "en") : null,
-                    ].filter(Boolean);
-                    return (
-                      <div key={id} data-testid="doc-option" className="mb-5" title={o.label}>
-                        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <b>{`${i + 1} · ${docName(o)}`}</b>
-                          <span className="text-muted">{facts.join(" · ")}</span>
-                          {(draft.need_tags[id] ?? []).map((tag) => (
-                            <span key={tag} className="rounded-full bg-[#EEF2F9] px-[11px] py-1 text-[13px] leading-none text-[#2C4F8F]">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                        {block(
-                          `oneriler:${id}`,
-                          docName(o),
-                          own,
-                          own.map((c, k) => (
-                            <p key={k} className="mt-1 max-w-[68ch]">
-                              {withMark(c)}
-                            </p>
-                          )),
-                        )}
-                        <textarea
-                          rows={2}
-                          aria-label={`${t("myNote")}: ${docName(o)}`}
-                          placeholder={t("optionNote")}
-                          className="mt-2 w-full max-w-[68ch] resize-y rounded-xl border border-dashed border-[#C7D2E5] bg-[#FBFCFE] px-3.5 py-2 text-[15px] leading-normal focus:border-solid"
-                          value={optionNotes[id] ?? ""}
-                          onChange={(e) => editOptionNote(id, e.target.value)}
-                        />
-                      </div>
-                    );
-                  })}
-                </DocumentSection>
-
-                <DocumentSection title={t("attention")}>
-                  {block("dikkat", t("attention"), sentences("dikkat"), listOf(sentences("dikkat")))}
-                </DocumentSection>
+                {!hidden(["dikkat"]) && (
+                  <DocumentSection title={t("attention")}>
+                    {block("dikkat", t("attention"), sentences("dikkat"), listOf(sentences("dikkat")))}
+                  </DocumentSection>
+                )}
 
                 <Collapsibles
                   items={(
@@ -427,12 +526,13 @@ export function MeetingText({ view }: { view: RunView }) {
                   ).map(([key, label]) => ({
                     key,
                     label,
-                    count: sentences(key).length,
+                    count: hidden([key]) ? 0 : sentences(key).length,
                     body: block(key, label, sentences(key), listOf(sentences(key))),
                   }))}
                 />
               </>
             )}
+            <p className="mt-6 border-t border-gray-100 pt-3 text-[13px] text-muted">{t("disclaimerNote")}</p>
           </article>
 
           <aside>
@@ -468,7 +568,7 @@ export function MeetingText({ view }: { view: RunView }) {
                 ))}
               </ul>
             </section>
-            {!markdown && <SourceList sources={sources} onEvidence={setEvidenceId} />}
+            {!markdown && <SourceList sources={sources} onEvidence={setEvidenceId} highlight={highlight} />}
             <TermsBox terms={terms} />
             <section className={box}>
               <h3 className="mb-1 font-bold">{t("card")}</h3>

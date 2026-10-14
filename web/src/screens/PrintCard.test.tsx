@@ -45,3 +45,18 @@ test("an approved unedited text prints the sections", () => {
   renderPrint(sample("run_p01_approved"), n);
   expect(document.body).toHaveTextContent(d.sections.find((s) => s.key === "teklif_metni")!.sentences[0].text);
 });
+
+test("print card leaves deleted blocks out and prints edited ones", () => {
+  const v = sample("run_p01_approved");
+  const n = sample("narrative_p01_tr");
+  const [first, second] = v.result.rm_selected;
+  const text = (key: string) => n.sections.find((s) => s.key === key)!.sentences[0].text;
+  const firstSentence = n.sections.find((s) => s.key === "oneriler")!.sentences.find((s) => s.option_ids[0] === first)!.text;
+  renderPrint(v, { ...n, rm_edits: { ozet: "", dikkat: "", [`oneriler:${first}`]: "", [`oneriler:${second}`]: "Kendi cümlem." } });
+  expect(document.body).not.toHaveTextContent(text("ozet"));
+  expect(document.body).not.toHaveTextContent(text("dikkat"));
+  expect(document.body).not.toHaveTextContent(firstSentence);
+  expect(document.body).not.toHaveTextContent(v.options[first].label.replace(/\s+/g, " "));
+  expect(document.body).toHaveTextContent("Kendi cümlem.");
+  expect(document.body).toHaveTextContent(text("teklif_metni"));
+});
