@@ -131,7 +131,11 @@ def test_split_unknown(r_partly, r_estimate, r_rm, approved_p01):
     assert build_facts(r_partly, evidence()).split_unknown
     assert build_facts(r_estimate, evidence()).split_unknown
     assert not build_facts(r_rm, evidence()).split_unknown
-    assert not build_facts(approved_p01, evidence()).split_unknown    # no D27 data
+    plain = dataclasses.replace(approved_p01, allocation=tuple(       # no D27 data
+        dataclasses.replace(b, current=None, current_low=None, current_high=None,
+                            current_source="", current_ref="", gap=None, active=False)
+        for b in approved_p01.allocation))
+    assert not build_facts(plain, evidence()).split_unknown
 
 
 def test_prompt_pack_allocation(r_partly):
