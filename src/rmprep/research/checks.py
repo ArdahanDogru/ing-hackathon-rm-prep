@@ -5,6 +5,7 @@ to a search provider."""
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Iterable, Mapping, Sequence
 from urllib.parse import urlparse
 
@@ -21,20 +22,30 @@ def tr_lower(text: str) -> str:
 
 def norm_url(url: str) -> str:
     """Scheme and host lower-cased, no fragment, no trailing slash: two forms of one page match."""
-    p = urlparse(url.strip())
+    try:
+        p = urlparse(url.strip())
+        host = (p.hostname or "").lower()
+    except ValueError:                 # malformed URL (for example "http://[bad"): never matches a result
+        return ""
     query = f"?{p.query}" if p.query else ""
-    return f"{p.scheme.lower()}://{(p.hostname or '').lower()}{p.path.rstrip('/')}{query}"
+    return f"{p.scheme.lower()}://{host}{p.path.rstrip('/')}{query}"
 
 
 def is_excluded(url: str, domains: Iterable[str]) -> bool:
-    host = (urlparse(url.strip()).hostname or "").lower()
+    try:
+        host = (urlparse(url.strip()).hostname or "").lower()
+    except ValueError:                 # malformed URL: fail safe, treat it as excluded
+        return True
     return any(host == d or host.endswith("." + d) for d in (x.lower() for x in domains))
 
 
 def is_web_url(url: str) -> bool:
     """Only http(s) pages can be sources (a javascript: or data: URL would become a link)."""
-    p = urlparse(url.strip())
-    return p.scheme.lower() in ("http", "https") and bool(p.hostname)
+    try:
+        p = urlparse(url.strip())
+        return p.scheme.lower() in ("http", "https") and bool(p.hostname)
+    except ValueError:                 # malformed URL
+        return False
 
 
 def sources_for(path: str, grounding: Sequence[Mapping], results: Mapping[str, Source],
@@ -74,7 +85,8 @@ _WORD = re.compile(r"\w+")
 
 
 def _words(text: str) -> list[str]:
-    return _WORD.findall(tr_lower(text))
+    """Words of the text, Unicode NFC first (a decomposed "u + U+0308" is one letter "ü")."""
+    return _WORD.findall(tr_lower(unicodedata.normalize("NFC", text)))
 
 
 def _grams(words: Sequence[str], n: int = 3) -> set[tuple[str, ...]]:
@@ -94,7 +106,7 @@ def check_question(question: str, persona: Persona, lang: str, client_words: Ite
     if len(q) > max_chars:
         return reasons["long"].format(n=max_chars)
     words = _words(q)
-    roots = tuple(tr_lower(w) for w in client_words)
+    roots = tuple(tr_lower(unicodedata.normalize("NFC", w)) for w in client_words)
     if str(persona.yas) in words or any(roots and w.startswith(roots) for w in words):
         return reasons["client"]
     asked = _grams(words)

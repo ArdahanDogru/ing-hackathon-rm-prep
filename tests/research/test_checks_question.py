@@ -43,3 +43,12 @@ def test_client_data_is_refused(q):
 
 def test_reason_in_english():
     assert check("my client", "EN") == "The question contains client information; ask only about products or companies."
+
+
+def test_a_decomposed_word_is_refused_as_the_composed_one():
+    nfd = "mu" + "\u0308" + "s" + "\u0327" + "terim için PPN uygun mu?"      # müşterim, NFD
+    assert nfd != "müşterim için PPN uygun mu?"
+    assert check(nfd) == REASONS["TR"]["client"]
+    assert check_question(nfd.replace("mu\u0308", "mü"), P01, "TR", WORDS, 300) == REASONS["TR"]["client"]
+    # the client words themselves may be decomposed too
+    assert check_question("müşterim için PPN", P01, "TR", ("mu\u0308s\u0327teri",), 300) == REASONS["TR"]["client"]

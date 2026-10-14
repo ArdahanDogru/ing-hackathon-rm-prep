@@ -2,6 +2,8 @@ import shutil
 from datetime import datetime
 from types import SimpleNamespace as NS
 
+import anthropic
+import httpx
 import pytest
 
 from rmprep.contracts import TR_TZ, ProductOption
@@ -25,8 +27,8 @@ def text(t, *urls):
     return NS(type="text", text=t, citations=cits or None)
 
 
-def message(blocks, stop="end_turn", searches=1):
-    usage = NS(input_tokens=10000, output_tokens=500, cache_creation_input_tokens=0,
+def message(blocks, stop="end_turn", searches=1, input_tokens=10000):
+    usage = NS(input_tokens=input_tokens, output_tokens=500, cache_creation_input_tokens=0,
                cache_read_input_tokens=0, server_tool_use=NS(web_search_requests=searches))
     return NS(content=blocks, stop_reason=stop, model="claude-haiku-5-5", usage=usage)
 
@@ -38,7 +40,10 @@ class FakeSdk:
 
     def _create(self, **kw):
         self.calls.append(kw)
-        return self.replies.pop(0)
+        reply = self.replies.pop(0)
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
 
 
 def provider(sdk):
@@ -230,3 +235,66 @@ def test_a_non_web_search_result_url_is_not_a_source():
     r = provider(sdk).research_product(PPN, "TR")
     assert r.findings == ()
     assert r.checks == ("1 findings without a valid source dropped",)
+
+
+def test_a_refusal_after_a_priced_reply_carries_the_cost():
+    with pytest.raises(ResearchError) as e:
+        provider(FakeSdk(message([], stop="refusal"))).research_product(PPN, "TR")
+    assert e.value.kind == "request"
+    assert e.value.cost_usd == pytest.approx(10000 * 0.10 / 1e6 + 500 * 0.50 / 1e6 + 0.01)
+
+
+def test_an_error_on_a_continuation_carries_the_cost_so_far():
+    first = message([results(NUROL), text("Fonun büyüklüğü 9 milyar TL'dir.", NUROL)], stop="pause_turn")
+    down = anthropic.APIConnectionError(request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
+    with pytest.raises(ResearchError) as e:
+        provider(FakeSdk(first, down)).answer_question("PPN valörü nedir?", [PPN], "TR")
+    assert e.value.kind == "connection"
+    assert e.value.cost_usd == pytest.approx(0.001 + 0.00025 + 0.01)
+
+
+def test_the_first_call_failing_costs_nothing():
+    down = anthropic.APIConnectionError(request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
+    with pytest.raises(ResearchError) as e:
+        provider(FakeSdk(down)).research_product(PPN, "TR")
+    assert e.value.cost_usd == 0.0
+
+
+def test_a_prompt_over_100k_tokens_uses_the_higher_prices():
+    sdk = FakeSdk(message([results(NUROL), text("Fon kısa vadeli para piyasası araçlarına yatırım yapar.", NUROL)],
+                          input_tokens=120_000))
+    r = provider(sdk).research_product(PPN, "TR")
+    assert r.cost_usd == pytest.approx(120_000 * 0.50 / 1e6 + 500 * 2.50 / 1e6 + 0.01)
+    at_limit = FakeSdk(message([], input_tokens=100_000))
+    assert provider(at_limit).research_product(PPN, "TR").cost_usd == pytest.approx(
+        100_000 * 0.10 / 1e6 + 500 * 0.50 / 1e6 + 0.01)
+
+
+def test_cache_tokens_count_toward_the_100k_tier():
+    usage = NS(input_tokens=10_000, output_tokens=0, cache_creation_input_tokens=0,
+               cache_read_input_tokens=95_000, server_tool_use=None)
+    # 105,000 prompt tokens: over the tier; cache reads cost 10 % of the input price
+    assert provider(FakeSdk())._cost(usage) == pytest.approx((10_000 + 0.1 * 95_000) * 0.50 / 1e6)
+
+
+def test_the_client_has_a_60_s_timeout(monkeypatch):
+    seen = {}
+
+    class Spy:
+        def __init__(self, **kw):
+            seen.update(kw)
+    monkeypatch.setattr(anthropic, "Anthropic", Spy)
+    ClaudeSearchProvider(CONFIG.claude, CONFIG.system_prompt, CONFIG.exa.exclude_domains, api_key="k",
+                         workspace_id="w", now=lambda: NOW)
+    assert seen["timeout"] == 60.0 and seen["api_key"] == "k"
+    assert seen["default_headers"] == {"anthropic-workspace-id": "w"}
+
+
+def test_a_malformed_url_in_a_result_or_citation_is_ignored():
+    sdk = FakeSdk(message([
+        results(NUROL, "http://[bad"),
+        text("Fon kısa vadeli para piyasası araçlarına yatırım yapar.", NUROL),
+        text("Bu cümlenin kaynağı bozuk bir adrestir.", "http://[bad"),
+    ]))
+    r = provider(sdk).research_product(PPN, "TR")
+    assert [f.text for f in r.findings] == ["Fon kısa vadeli para piyasası araçlarına yatırım yapar."]

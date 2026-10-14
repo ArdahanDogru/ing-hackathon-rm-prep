@@ -169,3 +169,25 @@ def test_connection_error_and_missing_output():
     with pytest.raises(ResearchError) as e:
         provider(answering({"results": []})).research_product(PPN, "TR")
     assert e.value.kind == "request"
+
+
+def test_a_paid_reply_without_output_carries_its_cost():
+    body = {"requestId": "r1", "costDollars": {"total": 0.012}, "results": []}
+    for call in (lambda p: p.research_product(PPN, "TR"), lambda p: p.answer_question("PPN nedir?", [PPN], "TR")):
+        with pytest.raises(ResearchError) as e:
+            call(provider(answering(body)))
+        assert e.value.kind == "request" and e.value.cost_usd == pytest.approx(0.012)
+
+
+def test_a_failed_call_without_a_body_costs_nothing():
+    with pytest.raises(ResearchError) as e:
+        provider(answering({"error": "x"}, status=402)).research_product(PPN, "TR")
+    assert e.value.kind == "credit" and e.value.cost_usd == 0.0
+
+
+def test_a_malformed_url_in_the_results_is_ignored():
+    body = json.loads(json.dumps(PRODUCT_BODY))
+    body["results"].append({"url": "http://[bad", "title": "broken"})
+    body["output"]["grounding"].append(cite("bulgular[3].metin", "http://[bad"))
+    r = provider(answering(body)).research_product(PPN, "TR")
+    assert [f.text for f in r.findings] == ["Fonun yönetim ücreti %0,7'dir.", "Şirket Nurol Yatırım Bankası iştirakidir."]

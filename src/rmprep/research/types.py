@@ -15,12 +15,14 @@ CONFIDENCE = ("low", "medium", "high")
 
 
 class ResearchError(Exception):
-    """A provider call failed. kind: auth | credit | rate_limit | server | connection | request."""
+    """A provider call failed. kind: auth | credit | rate_limit | server | connection | request.
+    cost_usd: what the failed call cost (a paid call whose reply was bad); 0 when it was not billed."""
 
-    def __init__(self, kind: str, message: str):
+    def __init__(self, kind: str, message: str, cost_usd: float = 0.0):
         super().__init__(f"{kind}: {message}")
         self.kind = kind
         self.message = message
+        self.cost_usd = cost_usd
 
 
 @dataclass(frozen=True)

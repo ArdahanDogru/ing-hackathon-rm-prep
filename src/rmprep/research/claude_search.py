@@ -19,8 +19,10 @@ from rmprep.research.types import Finding, ProductResearch, QuestionAnswer, Rese
 
 FALLBACK_BETA = "server-side-fallback-2026-07-01"   # refusal fallback, as the narrator (llm.py)
 WORKSPACE_HEADER = "anthropic-workspace-id"
+CLIENT_TIMEOUT_S = 60.0                             # as Exa (config exa.timeout_s)
 MAX_CONTINUATIONS = 2                                # pause_turn: send the paused turn back
 MIN_CHARS = 15
+LONG_PROMPT_TOKENS = 100_000                         # above it: the over_100k prices
 MARKER = re.compile(r"(?:ŞİRKET|COMPANY)\s*:\s*(.+)", re.IGNORECASE)
 BULLET = re.compile(r"^(?:[-*•]|\d+[.)])\s+")         # a list marker at the start of a line
 SENTENCE_END = r"[.!?](?:[\"')\]”’»]|\*\*)*"         # a sentence mark and its closers (quote, paren, bold)
@@ -125,7 +127,7 @@ class ClaudeSearchProvider:
         if sdk is None:
             import anthropic          # optional extra [narrator]
             extra = {"default_headers": {WORKSPACE_HEADER: workspace_id}} if workspace_id else {}
-            sdk = anthropic.Anthropic(api_key=api_key, **extra)
+            sdk = anthropic.Anthropic(api_key=api_key, timeout=CLIENT_TIMEOUT_S, **extra)
         self._sdk = sdk
         self._config = config
         self._system = system_prompt
@@ -165,11 +167,14 @@ class ClaudeSearchProvider:
         blocks: list = []
         cost = 0.0
         for _ in range(MAX_CONTINUATIONS + 1):
-            msg = self._create(messages, lang)
+            try:
+                msg = self._create(messages, lang)
+            except ResearchError as e:      # the replies before this one were billed
+                raise ResearchError(e.kind, e.message, cost + e.cost_usd) from e
             cost += self._cost(msg.usage)
             blocks += list(msg.content)
             if msg.stop_reason == "refusal":
-                raise ResearchError("request", "the model refused the request")
+                raise ResearchError("request", "the model refused the request", cost)
             if msg.stop_reason != "pause_turn":
                 break
             messages = [*messages, {"role": "assistant", "content": msg.content}]
@@ -204,6 +209,9 @@ class ClaudeSearchProvider:
         c = self._config
         n = lambda name: getattr(usage, name, 0) or 0          # noqa: E731
         tokens_in = n("input_tokens") + 1.25 * n("cache_creation_input_tokens") + 0.1 * n("cache_read_input_tokens")
+        prompt = n("input_tokens") + n("cache_creation_input_tokens") + n("cache_read_input_tokens")
+        long_prompt = prompt > LONG_PROMPT_TOKENS      # the whole reply is billed at the higher tier
+        price_in = c.price_input_per_mtok_over_100k if long_prompt else c.price_input_per_mtok
+        price_out = c.price_output_per_mtok_over_100k if long_prompt else c.price_output_per_mtok
         searches = getattr(getattr(usage, "server_tool_use", None), "web_search_requests", 0) or 0
-        return (tokens_in * c.price_input_per_mtok + n("output_tokens") * c.price_output_per_mtok) / 1e6 \
-            + searches * c.price_per_search
+        return (tokens_in * price_in + n("output_tokens") * price_out) / 1e6 + searches * c.price_per_search

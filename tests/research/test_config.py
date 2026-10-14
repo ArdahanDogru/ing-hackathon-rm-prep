@@ -50,3 +50,20 @@ def test_claude_section_only_needed_when_listed():
     raw = _broken("providers", ["exa"])
     del raw["claude"]
     assert parse_config(raw).claude is None
+
+
+def test_over_100k_prices_are_read_and_default_to_the_base_prices():
+    c = load_config().claude
+    assert (c.price_input_per_mtok_over_100k, c.price_output_per_mtok_over_100k) == (0.50, 2.50)
+    raw = copy.deepcopy(RAW)
+    del raw["claude"]["price_input_per_mtok_over_100k"]
+    del raw["claude"]["price_output_per_mtok_over_100k"]
+    c = parse_config(raw).claude
+    assert c.price_input_per_mtok_over_100k == c.price_input_per_mtok == 0.10
+    assert c.price_output_per_mtok_over_100k == c.price_output_per_mtok == 0.50
+
+
+def test_a_bad_over_100k_price_names_its_path():
+    with pytest.raises(ConfigError) as e:
+        parse_config(_broken("claude.price_input_per_mtok_over_100k", -1))
+    assert str(e.value).startswith("claude.price_input_per_mtok_over_100k")

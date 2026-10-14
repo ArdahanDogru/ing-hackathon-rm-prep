@@ -25,4 +25,6 @@ claude:                           # fallback: the web search server tool (USD, C
   max_tokens: 8000
   price_input_per_mtok: 0.10      # Haiku 5.5, prompts up to 100K tokens
   price_output_per_mtok: 0.50
+  price_input_per_mtok_over_100k: 0.50   # Haiku 5.5, a prompt over 100K tokens (per reply)
+  price_output_per_mtok_over_100k: 2.50
   price_per_search: 0.01

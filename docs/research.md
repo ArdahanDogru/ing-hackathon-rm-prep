@@ -35,7 +35,9 @@ meeting text. It is information for the RM, next to the deterministic evidence.
    Publishers that republish KAP notices are allowed: we never touch KAP.
 6. Cost: the Exa free tier ($10 credit per month) covers the demo. The key is
    `EXA_API_KEY` in `.env` (never logged). The daily limit is $2 for both
-   providers together. There is no limit per run.
+   providers together. There is no limit per run. Without `EXA_API_KEY` and
+   `ANTHROPIC_API_KEY` the research panel is off; with only `ANTHROPIC_API_KEY`
+   it uses Claude web search (paid).
 
 ## Flow
 
@@ -212,6 +214,23 @@ Texts are in `i18n.ts` (TR and EN).
 11. Live check of the Claude provider (see Tests): the first call gave no
     findings. The cause was found and fixed; see "Claude fallback: 0 findings,
     fixed".
+12. Final review fixes (2026-10-15):
+    - The cost ledger fails closed: `spent_today()` is infinity when
+      `costs.jsonl` exists but cannot be read (only a missing file is 0), so the
+      calls stop with "daily limit". `_record` keeps an in-memory total per day
+      and a failed ledger write never loses the paid result; the limit check uses
+      the larger of the file total and the in-memory total.
+    - A paid call that fails is recorded. `ResearchError` has `cost_usd`: Exa sets
+      it when HTTP 200 has no structured output, Claude sets it on a refusal or
+      on an error of a `pause_turn` continuation (the cost of the replies so far).
+      The service records it before the fallback decision.
+    - Claude cost has a second tier: a reply whose prompt (input and cache tokens)
+      is over 100K tokens costs `price_input_per_mtok_over_100k` /
+      `price_output_per_mtok_over_100k` ($0.50 / $2.50 per MTok); both keys are
+      optional and default to the base prices. The Claude client has a 60 s timeout.
+    - The question check normalises text to Unicode NFC before it lower-cases it.
+      `norm_url`, `is_excluded` and `is_web_url` are safe on a malformed URL
+      (`""`, excluded, not a web URL).
 
 ## Tests
 

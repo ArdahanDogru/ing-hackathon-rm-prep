@@ -1,4 +1,6 @@
 import dataclasses
+import json
+import math
 import shutil
 import threading
 from pathlib import Path
@@ -188,3 +190,93 @@ def test_a_failed_cache_write_never_blocks_a_question(tmp_path):
     a = s.ask(ready_result(), "PPN nedir?", "TR")
     assert a.error == "" and a.summary == "Yanıt."
     assert len(p.calls) == 1
+
+
+# --- final review fixes: the ledger fails closed, failed paid calls are recorded ---
+
+def ledger_rows(tmp_path):
+    lines = (tmp_path / "costs.jsonl").read_text(encoding="utf-8").splitlines()
+    return [json.loads(x) for x in lines]
+
+
+def test_an_unreadable_ledger_stops_the_calls(tmp_path):
+    (tmp_path / "costs.jsonl").mkdir()               # reading it raises an OSError, not FileNotFoundError
+    p = FakeProvider()
+    s = service(tmp_path, p)
+    assert s.spent_today() == math.inf
+    r = ready_result(("fund:BBF",))
+    s.start(r)
+    s.wait()
+    assert p.calls == []
+    assert s.status(r, "TR")["products"][0]["error"] == LIMIT_ERROR
+
+
+def test_a_missing_ledger_is_zero(tmp_path):
+    assert service(tmp_path, FakeProvider()).spent_today() == 0.0
+
+
+def test_a_failed_ledger_write_keeps_the_result_and_still_counts(tmp_path, monkeypatch):
+    real_open = Path.open
+
+    def failing(self, mode="r", *args, **kwargs):
+        if self.name == "costs.jsonl" and mode.startswith("a"):
+            raise OSError("disk full")
+        return real_open(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", failing)
+    cfg = dataclasses.replace(CONFIG, max_cost_usd_per_day=0.005)
+    p = FakeProvider(cost=0.01)
+    s = service(tmp_path, p, config=cfg)
+    r = ready_result(("fund:BBF", "fund:AAL"))
+    s.start(r)
+    s.wait()
+    first, second = s.status(r, "TR")["products"]
+    assert first["error"] == "" and len(first["findings"]) == 1      # the paid result is not lost
+    assert (tmp_path / "products" / "fund_BBF-TR-20261014.json").is_file()   # and it is cached
+    assert second["error"] == LIMIT_ERROR                              # the in-memory total counts
+    assert len(p.calls) == 1
+    assert s.spent_today() == pytest.approx(0.01)
+    assert not (tmp_path / "costs.jsonl").exists()
+
+
+def test_a_failed_paid_call_is_recorded_then_the_next_provider_runs(tmp_path):
+    exa = FakeProvider("exa", fail="credit", fail_cost=0.012)
+    claude = FakeProvider("claude", cost=0.03)
+    s = service(tmp_path, exa, claude)
+    r = ready_result(("fund:BBF",))
+    s.start(r)
+    s.wait()
+    assert s.status(r, "TR")["products"][0]["provider"] == "claude"
+    rows = ledger_rows(tmp_path)
+    assert [(x["provider"], x["kind"], x["cost_usd"]) for x in rows] == [
+        ("exa", "product", 0.012), ("claude", "product", 0.03)]
+    assert s.spent_today() == pytest.approx(0.042)
+
+
+def test_a_failed_paid_call_that_stops_is_recorded(tmp_path):
+    exa = FakeProvider("exa", fail="request", fail_cost=0.012)
+    claude = FakeProvider("claude")
+    s = service(tmp_path, exa, claude)
+    r = ready_result(("fund:BBF",))
+    s.start(r)
+    s.wait()
+    assert s.status(r, "TR")["products"][0]["error"] == "exa: request"
+    assert claude.calls == []
+    [row] = ledger_rows(tmp_path)
+    assert (row["provider"], row["kind"], row["cost_usd"]) == ("exa", "product", 0.012)
+    assert s.spent_today() == pytest.approx(0.012)
+
+
+def test_a_failed_question_that_cost_money_is_recorded(tmp_path):
+    s = service(tmp_path, FakeProvider("exa", fail="request", fail_cost=0.02))
+    a = s.ask(ready_result(), "PPN nedir?", "TR")
+    assert a.error == "exa: request"
+    [row] = ledger_rows(tmp_path)
+    assert (row["kind"], row["cost_usd"]) == ("question", 0.02)
+
+
+def test_a_failed_call_without_cost_writes_no_row(tmp_path):
+    s = service(tmp_path, FakeProvider("exa", fail="credit"))
+    s.start(ready_result(("fund:BBF",)))
+    s.wait()
+    assert not (tmp_path / "costs.jsonl").exists()

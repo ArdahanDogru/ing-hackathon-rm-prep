@@ -74,7 +74,7 @@ def _output(body: Mapping) -> tuple[Mapping, list]:
     out = body.get("output") or {}
     content = out.get("content") if isinstance(out, Mapping) else None
     if not isinstance(content, Mapping):
-        raise ResearchError("request", "the reply has no structured output")
+        raise ResearchError("request", "the reply has no structured output", _cost(body))   # billed
     return content, list(out.get("grounding") or ())
 
 

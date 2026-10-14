@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import threading
 from collections.abc import Callable, Mapping, Sequence
@@ -68,6 +69,7 @@ class ResearchService:
         self._jobs: dict[tuple[str, str, date], Future] = {}
         self._lock = threading.Lock()
         self._ledger_lock = threading.Lock()
+        self._spent: dict[str, float] = {}      # Turkish day -> USD, also when the ledger cannot be written
 
     @property
     def enabled(self) -> bool:
@@ -170,6 +172,8 @@ class ResearchService:
             try:
                 out = fn(p)
             except ResearchError as e:
+                if e.cost_usd > 0:                  # a paid call with a bad reply still costs money
+                    self._record(p.name, kind, ref, e.cost_usd)
                 errors.append(f"{p.name}: {e.kind}")
                 if e.kind in FALLBACK_KINDS:
                     continue
@@ -179,11 +183,18 @@ class ResearchService:
         return "; ".join(errors) or "no provider"
 
     def spent_today(self) -> float:
+        """USD spent today: the larger of the ledger file and the in-memory total. The guard
+        fails closed: a ledger that cannot be read gives infinity (calls stop with the limit
+        error); only a missing ledger file is zero."""
         today = self._now().date().isoformat()
+        with self._ledger_lock:
+            memory = self._spent.get(today, 0.0)
         try:
             lines = (self._root / "costs.jsonl").read_text(encoding="utf-8").splitlines()
+        except FileNotFoundError:
+            return memory
         except OSError:
-            return 0.0
+            return math.inf
         total = 0.0
         for line in lines:
             try:
@@ -192,15 +203,23 @@ class ResearchService:
                 continue
             if str(row.get("at", ""))[:10] == today:
                 total += float(row.get("cost_usd") or 0.0)
-        return total
+        return max(total, memory)
 
     def _record(self, provider: str, kind: str, ref: str, cost: float) -> None:
-        row = {"at": self._now().isoformat(), "provider": provider, "kind": kind, "ref": ref,
+        """Adds a paid call to the in-memory total, then to the ledger file. A file error
+        never loses the result of the call: the in-memory total still counts."""
+        now = self._now()
+        row = {"at": now.isoformat(), "provider": provider, "kind": kind, "ref": ref,
                "cost_usd": round(cost, 6)}
         with self._ledger_lock:
-            self._root.mkdir(parents=True, exist_ok=True)
-            with (self._root / "costs.jsonl").open("a", encoding="utf-8", newline="\n") as f:
-                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            day = now.date().isoformat()
+            self._spent[day] = self._spent.get(day, 0.0) + cost
+            try:
+                self._root.mkdir(parents=True, exist_ok=True)
+                with (self._root / "costs.jsonl").open("a", encoding="utf-8", newline="\n") as f:
+                    f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            except OSError:
+                pass
 
 
 def _job_result(job: Future, opt: ProductOption, lang: str) -> ProductResearch:

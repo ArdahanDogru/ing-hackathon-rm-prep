@@ -58,3 +58,10 @@ def test_foreign_and_excluded_citations_do_not_count():
 
 def test_no_grounding_gives_medium_and_no_source():
     assert sources_for("ozet", [], RESULTS, []) == ((), "medium")
+
+
+def test_malformed_urls_are_safe():
+    bad = "http://[bad"
+    assert norm_url(bad) == ""                 # never matches a result
+    assert is_web_url(bad) is False
+    assert is_excluded(bad, ("kap.org.tr",)) is True   # fail safe

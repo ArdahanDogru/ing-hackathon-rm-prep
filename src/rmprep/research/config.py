@@ -39,6 +39,15 @@ class ClaudeSearchConfig:
     price_per_search: float
     api_key_env: str = "ANTHROPIC_API_KEY"
     workspace_id_env: str = "ANTHROPIC_WORKSPACE_ID"  # the key is org-level (as the narrator)
+    # prices of a reply whose prompt is over 100K tokens; None: the base prices
+    price_input_per_mtok_over_100k: float | None = None
+    price_output_per_mtok_over_100k: float | None = None
+
+    def __post_init__(self) -> None:
+        if self.price_input_per_mtok_over_100k is None:
+            object.__setattr__(self, "price_input_per_mtok_over_100k", self.price_input_per_mtok)
+        if self.price_output_per_mtok_over_100k is None:
+            object.__setattr__(self, "price_output_per_mtok_over_100k", self.price_output_per_mtok)
 
 
 @dataclass(frozen=True)
@@ -67,6 +76,15 @@ def _num(raw: Mapping, path: str, kind=float):
     if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
         raise ConfigError(f"{path}: must be a positive number, got {v!r}")
     return kind(v)
+
+
+def _opt_num(raw: Mapping, path: str) -> float | None:
+    """A positive number, or None when the key is not there."""
+    try:
+        _get(raw, path)
+    except ConfigError:
+        return None
+    return _num(raw, path)
 
 
 def _str(raw: Mapping, path: str) -> str:
@@ -103,7 +121,9 @@ def parse_config(raw: Mapping) -> ResearchConfig:
             max_tokens=_num(raw, "claude.max_tokens", int),
             price_input_per_mtok=_num(raw, "claude.price_input_per_mtok"),
             price_output_per_mtok=_num(raw, "claude.price_output_per_mtok"),
-            price_per_search=_num(raw, "claude.price_per_search"))
+            price_per_search=_num(raw, "claude.price_per_search"),
+            price_input_per_mtok_over_100k=_opt_num(raw, "claude.price_input_per_mtok_over_100k"),
+            price_output_per_mtok_over_100k=_opt_num(raw, "claude.price_output_per_mtok_over_100k"))
     return ResearchConfig(
         providers=providers, exa=exa, claude=claude,
         max_cost_usd_per_day=_num(raw, "max_cost_usd_per_day"),
