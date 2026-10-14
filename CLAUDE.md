@@ -8,8 +8,9 @@ are input and are not changed here.
 Modules and their design docs: ingest = `docs/ingest.md`, decision =
 `docs/decision.md`, ui (Streamlit, the fallback) = `docs/ui.md`, narrator =
 `docs/narrator.md`, eval = `docs/eval.md`, web UI (the new front end, in
-design) = `docs/web-ui.md`, research (web research with Exa) = `docs/research.md`. Read the doc of the module you work on; you do not
-need the others.
+design) = `docs/web-ui.md`, research (web research with Exa) =
+`docs/research.md`. Read the doc of the module you work on; you do not need
+the others.
 
 ## Working agreement
 
