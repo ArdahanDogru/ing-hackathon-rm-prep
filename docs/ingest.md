@@ -617,6 +617,34 @@ the open as the base, the day counted +21 %).
   116 jump days and is clamped on 17. HRKET 1 month +75.9 % (was +93.2 %);
   KORDS, BIMAS and GENIL are unchanged.
 
+I11d (approved by the user 2026-10-14; ingest@81f94fc): 5 years of share history.
+
+- `history_days` 1900 (about 1,300 files; the first run fetches about 1,000
+  new files, 1 GET/s, about 17 minutes once).
+- New quantities (optional in the code: rows only when they are in
+  `quantities`): `stock_return_3y`, `stock_return_5y` (pct; adjusted closes;
+  base = the last close on or before the same day 3/5 years earlier; no row
+  when the history is shorter; max 1,000,000 %); `stock_volatility_5y` (pct;
+  SPK weekly method over the weeks after the date 5 years before the newest
+  day; at least 26 weeks). The notes of both volatility rows end with "SPK
+  weekly method, N weeks".
+- Format probe 2026-10-14 (one file a year, 2021–2025): the same column names
+  every year; 2023 added "BIST KATILIM TUM ENDEKS" at the end; no BOM before
+  2026; 434–588 shares a day.
+- Guard: a file older than `recheck_days` that cannot be read (another
+  format, a bad ZIP, too few shares) does not fail the source. It gets a
+  `.bad` marker (not asked again), and the history starts after the newest
+  such file, so there is no gap. The manifest request has `history_from` and
+  `unreadable_newest {file, reason}`; the notes of the return and volatility
+  rows add "history from <date> (<file> unreadable: <reason>)". A bad file of
+  the last `recheck_days` days still fails the source.
+- Memory and speed: a compact per-SHA memo (interned texts, float arrays) and
+  a parse-result memo. Benchmark with 1,250 files of 2026 size: the first
+  build about 33 s (estimate for the real files 15–20 s), later builds about
+  2 s, peak working set 142 MB. For later, if too slow: a derived disk cache
+  of the parsed shares per SHA-256 (pure, so replay stays exact; a new
+  process then needs about 2–3 s).
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes

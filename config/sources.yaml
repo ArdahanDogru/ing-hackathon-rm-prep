@@ -164,12 +164,21 @@ quantities:
   stock_return_3m: *stock_return
   stock_return_6m: *stock_return
   stock_return_1y: *stock_return
-  stock_volatility_1y:
+  # I11d: 3- and 5-year returns (Turkish shares rose many times since 2021, so a high max)
+  stock_return_3y: &stock_return_long
+    unit: pct
+    max_age_days: 5
+    min: -100
+    max: 1000000
+    conflict_tolerance: 0.0
+  stock_return_5y: *stock_return_long
+  stock_volatility_1y: &stock_volatility
     unit: pct
     max_age_days: 5
     min: 0
     max: 500
     conflict_tolerance: 0.0
+  stock_volatility_5y: *stock_volatility   # I11d: the SPK method over 5 years
   stock_turnover_3m:
     unit: TRY
     max_age_days: 5
@@ -380,7 +389,7 @@ sources:
     url: "https://www.borsaistanbul.com/data/thb/{yyyy}/{mm}/thb{yyyymmdd}1.zip"
     user_agent: rmprep-hackathon-prototype/0.1 (ING hackathon; one request per second)
     timeout_seconds: 30
-    history_days: 400
+    history_days: 1900          # I11d: 5 years (SPK volatility method, 3y/5y returns)
     min_interval_s: 1.0
     recheck_days: 3
     min_shares: 100
