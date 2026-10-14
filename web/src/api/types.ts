@@ -365,3 +365,48 @@ export interface IngestStatus {
   finished_at: string | null;
   error: string | null;
 }
+
+// Web research (docs/research.md section 10): information for the RM, never part of the decision.
+export interface ResearchSource {
+  url: string;
+  title: string;
+  published: string; // YYYY-MM-DD or ""
+}
+
+export interface ResearchFinding {
+  text: string;
+  topic: "urun" | "sirket" | "soru";
+  confidence: "low" | "medium" | "high";
+  sources: ResearchSource[];
+}
+
+export interface ProductResearch {
+  option_id: string;
+  label: string;
+  company: string;
+  summary: string;
+  findings: ResearchFinding[];
+  lang: Lang;
+  provider: string;
+  created_at: string;
+  cost_usd: number;
+  checks: string[];
+  error: string; // "daily limit" | "exa: credit; claude: auth" | ""
+}
+
+export interface QuestionAnswer {
+  question: string;
+  summary: string;
+  findings: ResearchFinding[];
+  lang: Lang;
+  provider: string;
+  created_at: string;
+  cost_usd: number;
+  checks: string[];
+  error: string;
+}
+
+export type ResearchView =
+  | { state: "running" }
+  | { state: "off"; reason: string }
+  | { state: "ready"; products: ProductResearch[]; questions: QuestionAnswer[] };

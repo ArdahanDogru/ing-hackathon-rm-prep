@@ -111,3 +111,19 @@ test("setHoldings: POST the shares and the origin, or null to remove them", asyn
   });
   expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ shares: null });
 });
+
+test("research: 202 is running, 404 is off, 200 is the view", async () => {
+  globalThis.fetch = vi.fn().mockResolvedValueOnce(json({ state: "running" }, 202))
+    .mockResolvedValueOnce(json({ detail: "Not Found" }, 404))
+    .mockResolvedValueOnce(json({ state: "ready", products: [], questions: [] }, 200));
+  expect(await api.research("R1", "TR")).toEqual({ state: "running" });
+  expect(await api.research("R1", "TR")).toEqual({ state: "off", reason: "" });
+  expect(await api.research("R1", "TR")).toEqual({ state: "ready", products: [], questions: [] });
+});
+
+test("askResearch posts the question; a refusal is an ApiError", async () => {
+  const fetch = vi.fn().mockResolvedValue(json({ detail: "Soru müşteri bilgisi içeriyor" }, 422));
+  globalThis.fetch = fetch;
+  await expect(api.askResearch("R1", "müşterim?", "TR")).rejects.toEqual(new ApiError(422, "Soru müşteri bilgisi içeriyor"));
+  expect(fetch).toHaveBeenCalledWith("/api/runs/R1/research/questions", expect.objectContaining({ method: "POST", body: JSON.stringify({ question: "müşterim?", lang: "TR" }) }));
+});

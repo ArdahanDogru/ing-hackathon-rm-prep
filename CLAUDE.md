@@ -8,7 +8,7 @@ are input and are not changed here.
 Modules and their design docs: ingest = `docs/ingest.md`, decision =
 `docs/decision.md`, ui (Streamlit, the fallback) = `docs/ui.md`, narrator =
 `docs/narrator.md`, eval = `docs/eval.md`, web UI (the new front end, in
-design) = `docs/web-ui.md`. Read the doc of the module you work on; you do not
+design) = `docs/web-ui.md`, research (web research with Exa) = `docs/research.md`. Read the doc of the module you work on; you do not
 need the others.
 
 ## Working agreement
@@ -32,12 +32,13 @@ need the others.
 ```
 prototype/
   pyproject.toml            deps + optional extras [kap], [ui]
-  .env                      EVDS_API_KEY=...   (gitignored, never logged)
+  .env                      EVDS_API_KEY=..., ANTHROPIC_API_KEY=..., EXA_API_KEY=...   (gitignored, never logged)
   config/sources.yaml       sources, series, quantities, bounds
   config/decision.yaml      decision tables, weights, penalties, texts (docs/decision.md)
   config/narrator.yaml      narrator model, cost limit, forbidden phrases (docs/narrator.md)
   config/eval.yaml          eval snapshot, judge, budget, targets (docs/eval.md)
   config/glossary.yaml      plain explanations of technical terms, TR/EN (docs/ui.md U11)
+  config/research.yaml      web research providers, queries, limit (docs/research.md)
   config/manual_template.csv  example for data/inbox/manual/
   config/withholding_tax_template.csv  empty stopaj rows (brief rule 7: never
                             hard-code tax rates); fill from Resmî Gazete/GİB,
@@ -49,6 +50,7 @@ prototype/
     grouping.py             short-list grouping rule, top_heads (lead-owned)
     backend.py              RealBackend (lead-owned)
     api/                    FastAPI JSON API for the web app (lead-owned, docs/web-ui.md)
+    research/               web research: Exa and Claude web search, checks, service (ing-lead-2)
     ingest/                 ingestion layer (ingest worker)
       config.py             load + validate sources.yaml
       snapshot.py           raw snapshot write/verify/read

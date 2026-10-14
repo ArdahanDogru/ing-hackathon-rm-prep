@@ -9,6 +9,8 @@ import type {
   NarrativeBrief,
   NarrativeView,
   Persona,
+  QuestionAnswer,
+  ResearchView,
   RunInputs,
   RunView,
   SourceStatus,
@@ -57,6 +59,15 @@ async function brief(runId: string, lang: Lang): Promise<NarrativeBrief | "runni
   return (await res.json()) as NarrativeBrief;
 }
 
+/** GET /runs/{id}/research: "running" (202), off, or the findings; 404 (a server without research) = off. */
+async function research(runId: string, lang: Lang): Promise<ResearchView> {
+  const res = await fetch(`${BASE}/runs/${enc(runId)}/research?lang=${lang}`);
+  if (res.status === 202) return { state: "running" };
+  if (res.status === 404) return { state: "off", reason: "" };
+  if (!res.ok) throw await apiError(res);
+  return (await res.json()) as ResearchView;
+}
+
 export const api = {
   personas: () => request<Persona[]>("GET", "/personas"),
   snapshots: () => request<string[]>("GET", "/snapshots"),
@@ -80,6 +91,10 @@ export const api = {
   editBlock: (runId: string, lang: Lang, blockId: string, text: string | null) =>
     request<NarrativeView>("PUT", `/runs/${enc(runId)}/narrative/${lang}/blocks/${enc(blockId)}`, { text }),
   brief,
+  research,
+  /** POST a question to the web research; 422 = refused (the reason is the detail). */
+  askResearch: (runId: string, question: string, lang: Lang) =>
+    request<QuestionAnswer>("POST", `/runs/${enc(runId)}/research/questions`, { question, lang }),
   /** POST /runs/{id}/holdings (W18): the current split (all five classes, total 100 ± 0.5), or null to remove it; a new run. */
   setHoldings: (runId: string, shares: Record<string, number> | null, origin?: HoldingsOrigin) =>
     request<RunView>("POST", `/runs/${enc(runId)}/holdings`, shares === null ? { shares: null } : { shares, origin }),

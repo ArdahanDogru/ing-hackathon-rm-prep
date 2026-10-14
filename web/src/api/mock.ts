@@ -15,6 +15,26 @@ function sample(load: Loader, name: string, fallback?: string): MockAnswer {
   return body === undefined ? notFound(`no sample ${name}`) : { status: 200, body };
 }
 
+// Web research (docs/research.md): a small fixed sample for dev:mock.
+const MOCK_FINDING = {
+  text: "Fonun yönetim ücreti yıllık %0,7'dir.",
+  topic: "urun",
+  confidence: "high",
+  sources: [{ url: "https://www.nurolportfoy.com.tr/", title: "Nurol Portföy", published: "2026-10-12" }],
+};
+const MOCK_RESEARCH = {
+  state: "ready",
+  products: [
+    {
+      option_id: "fund:PPN", label: "NUROL PORTFÖY PARA PİYASASI (TL) FONU", company: "Nurol Portföy Yönetimi A.Ş.",
+      summary: "PPN, kısa vadeli para piyasası araçlarına yatırım yapan bir fondur.",
+      findings: [MOCK_FINDING, { ...MOCK_FINDING, text: "Şirket Nurol Yatırım Bankası iştirakidir.", topic: "sirket", confidence: "medium" }],
+      lang: "TR", provider: "exa", created_at: "2026-10-14T10:00:00+03:00", cost_usd: 0.012, checks: [], error: "",
+    },
+  ],
+  questions: [],
+};
+
 export function resolveMock(method: string, url: string, body: unknown, load: Loader): MockAnswer {
   const [path, query = ""] = url.split("?");
   const params = new URLSearchParams(query);
@@ -55,6 +75,17 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
     if (method === "POST" && c === "answers") return sample(load, "run_p01_ready");
     if (method === "POST" && c === "approval") return sample(load, "run_p01_approved");
     if (method === "PUT" && c === "notes") return sample(load, "run_p01_approved");
+    if (method === "GET" && c === "research" && !d) return { status: 200, body: MOCK_RESEARCH };
+    if (method === "POST" && c === "research" && d === "questions") {
+      const question = String(req.question ?? "");
+      if (/müşteri|client/i.test(question)) {
+        return { status: 422, body: { detail: "Soru müşteri bilgisi içeriyor; yalnızca ürün veya şirket hakkında sorun." } };
+      }
+      return {
+        status: 200,
+        body: { question, summary: "Örnek yanıt (mock).", findings: [{ ...MOCK_FINDING, topic: "soru" }], lang: "TR", provider: "exa", created_at: "2026-10-14T10:00:00+03:00", cost_usd: 0.007, checks: [], error: "" },
+      };
+    }
     if (method === "GET" && c === "narrative" && !d) {
       return sample(load, `narrative_p01_${(params.get("lang") ?? "TR").toLowerCase()}`);
     }
