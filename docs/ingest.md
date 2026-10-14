@@ -548,6 +548,34 @@ certificates (`ECW`, `EPW`), not used (complex products, see decision D26).
   on a known series, fewer than 26 weeks, replay identical, a changed cache
   file fails replay, no request to a disallowed path, the interval.
 
+I11 as built (merged 2026-10-14, ingest@48ea5cd; config added by the lead):
+
+- Config: `url` must be https on `www.borsaistanbul.com` under `/data/` and
+  contain `{yyyymmdd}`; optional `timeout_seconds` (30); `recheck_days` 3;
+  `min_shares` 100 (a new file with fewer shares with a close is invalid). The
+  loader needs the 8 quantities above (`stock_bist100` unit `flag`).
+- Snapshot: a payload path `cache/<source>/<name>` is a file in
+  `<snapshots>/../cache/<source>/` (`data/cache/bist_bulletin`), with SHA-256 in
+  the manifest; `open_snapshot` and `read_payload` verify it. The manifest
+  request has `files {fetched, from_cache, not_published}`.
+- Not published = HTTP 404, or HTTP 200 with an HTML page ("Sayfa
+  Bulunamadı"). Other statuses, redirects, a bad ZIP, `TARIH` not equal to the
+  day of the URL, or fewer than `min_shares` fail the source; that file is not
+  cached, and the good files fetched before the failure stay in the cache.
+- Header names are matched with single spaces (`ISLEM  KODU` has two in the
+  file).
+- Volatility: weeks with one trading day have no return; the window is the
+  days after the date 12 months before the newest day. Return base = the last
+  close on or before the same day 1/3/6/12 months earlier (the day is clamped
+  to the month). The adjustment uses the close of the share's previous row (a
+  suspended day is skipped). Turnover = the mean over the days with a row for
+  the share in the last 63 bulletins.
+- `raw_ref` = `<snapshot>/cache/bist_bulletin/<newest>.zip#<CODE>` (close, BIST
+  100) and `#<CODE>;files=<first>..<newest>` (returns, volatility).
+- Speed: the 13.10.2026 file parses in 22 ms; 280 files take about 6 s on the
+  first `build_evidence` in a process. Parsed files are kept in memory per
+  SHA-256, so later builds only verify the hashes.
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes

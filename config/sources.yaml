@@ -143,6 +143,45 @@ quantities:
     min: -100
     max: 200
     conflict_tolerance: 0.01
+  # I11 (2026-10-14): Borsa İstanbul shares (source bist_bulletin; entity = the
+  # share code, e.g. THYAO). Close in TRY; returns are split- and
+  # dividend-adjusted (base: the close on or before the same day 1/3/6/12
+  # months earlier); volatility = SPK method (weekly returns, annualised, %);
+  # turnover = mean daily traded value over the last 63 bulletins, TRY;
+  # bist100 = 1 if the share is in the BIST 100 index on the newest day.
+  stock_close:
+    unit: TRY
+    max_age_days: 5
+    min: 0.01
+    max: 1000000
+    conflict_tolerance: 0.0
+  stock_return_1m: &stock_return
+    unit: pct
+    max_age_days: 5
+    min: -100
+    max: 10000
+    conflict_tolerance: 0.0
+  stock_return_3m: *stock_return
+  stock_return_6m: *stock_return
+  stock_return_1y: *stock_return
+  stock_volatility_1y:
+    unit: pct
+    max_age_days: 5
+    min: 0
+    max: 500
+    conflict_tolerance: 0.0
+  stock_turnover_3m:
+    unit: TRY
+    max_age_days: 5
+    min: 0
+    max: 1000000000000000
+    conflict_tolerance: 0.0
+  stock_bist100:
+    unit: flag
+    max_age_days: 5
+    min: 0
+    max: 1
+    conflict_tolerance: 0.0
 
 sources:
   evds:
@@ -323,6 +362,28 @@ sources:
       getiri3y: fund_return_3y
       getiri5y: fund_return_5y
       riskDegeri: fund_risk_level
+
+  # I11 (2026-10-14): Borsa İstanbul end-of-day bulletins (one ZIP per business
+  # day, about 260 KB). Shares (.E) only; warrants and certificates are not
+  # read (complex products). Files are cached in data/cache/bist_bulletin with
+  # SHA-256 in the manifest; only new days are fetched (plus recheck_days).
+  bist_bulletin:
+    adapter: bist_bulletin
+    enabled: true
+    on_failure: previous
+    source_url: https://www.borsaistanbul.com/tr/sayfa/2412/gunluk-bulten
+    tos_note: >-
+      The public daily bulletin files under /data/ on borsaistanbul.com
+      (end-of-day, free; real-time data needs a licence and is not used). At
+      most one GET per second; the first run fetches about 280 files, later
+      runs only the new days.
+    url: "https://www.borsaistanbul.com/data/thb/{yyyy}/{mm}/thb{yyyymmdd}1.zip"
+    user_agent: rmprep-hackathon-prototype/0.1 (ING hackathon; one request per second)
+    timeout_seconds: 30
+    history_days: 400
+    min_interval_s: 1.0
+    recheck_days: 3
+    min_shares: 100
 
   tefas_detail:
     adapter: tefas_detail
