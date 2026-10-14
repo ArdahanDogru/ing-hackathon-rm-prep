@@ -834,6 +834,32 @@ and hid the gap.
   `decision/confidence.py` and `decision/config.py`, tests in
   `tests/decision/test_real_return_confidence.py`.
 
+## 15. Stability of the recommended top 3 (D25, approved by the user 2026-10-14)
+
+Stability (section 5) = the share of the 30 perturbed rankings (each raw weight
+and each penalty maximum × 0.8 and × 1.2, one at a time) in which an option is
+in the first `stability.size` places (20). The D19 class rule picks from the
+whole order, so a recommendation can come from far down (new frozen snapshot
+`20261014-102329-8fca`: P03 IDY at place 42 and OKT at place 57). Such an
+option always got 0.00, and `low_stability` (positions 1–3 only) did not see
+it — the stability was not meaningful for the top 3.
+
+- For each perturbed run, the engine also applies the recommendation rule
+  (`recommend.py`, the same function and config as the real result: the class
+  rule when it applies, else the plain order) to that run's order.
+- An option in the result's `recommended` gets the stability = the share of
+  runs in which that rule recommends it again ("does this recommendation
+  hold?"). All other options keep the top-20 share.
+- `low_stability` fires for any recommended option with stability below
+  `warnings.low_stability_below` (0.5), not only for display positions 1–3;
+  its `option_ids` = those options. The text stays.
+- No config change; no change to scores, order or the recommended set.
+- Tests: a class-rule pick far down the order that stays its class's best in
+  every run → stability 1.0; a pick that loses its place to another option of
+  its class in half the runs → ≤ 0.5 and the warning; a client without the
+  class rule (P01-like) → recommended stability = share of runs in the plain
+  top 3; options outside the top 3 unchanged; deterministic.
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only
