@@ -45,10 +45,11 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
 
 # optional sections of D9 (real return after tax); without them: nominal returns
 WARNING_CODES = ("concentration", "fx_exposure", "risk_estimate", "low_stability",
-                 "deposit_vs_market", "no_fx_deposit_data", "stale_tax_input")
-RM_ONLY_WARNINGS = ("stale_tax_input",)     # never for the client (D22)
+                 "deposit_vs_market", "no_fx_deposit_data", "stale_tax_input",
+                 "single_stock")
+RM_ONLY_WARNINGS = ("stale_tax_input", "single_stock")   # never for the client (D22, D26)
 TALKING_CODES = ("deposit_real", "best_alternative", "access", "risk_fit")
-_D9_SECTIONS = ("risk_estimate", "allocation", "asset_classes", "risk_fit", "recommend", "talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
+_D9_SECTIONS = ("etf", "stock", "risk_estimate", "allocation", "asset_classes", "risk_fit", "recommend", "talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
                 "fund_detail", "constraint_rules", "short_history")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
@@ -168,9 +169,10 @@ def _check(c: dict) -> None:
     if "real_loss" in c["penalties"] and "penalty:real_loss" not in c["texts"]["reasons"]:
         raise ConfigError("texts.reasons: penalties.real_loss needs penalty:real_loss")
     _check_d9(c)
+    _check_exchange(c)
     _keys(c["texts"]["constraint"], "texts.constraint", ("passed", "failed"),
           ("not_buyable", "buyable", "fx_limit", "liquidity_need_valor",
-           "liquidity_need_lock", "short_history"))
+           "liquidity_need_lock", "short_history", "stock_risk", "stock_risk_missing"))
     _keys(c["texts"]["questions"], "texts.questions",
           ("risk_profili", "acik_kisitlar", *SAFE_LEVEL_FIELDS, "reason"),
           ("override_fx_limit", "override_reason"))
@@ -521,10 +523,70 @@ def _check_display_texts(d: Mapping[str, Any], crits: tuple[str, ...]) -> None:
         if "access" not in d:
             raise ConfigError("display.access: display.why needs the access texts")
     if "access" in d:
-        _keys(d["access"], "display.access", ("same_day", "days", "term"))
+        _keys(d["access"], "display.access", ("same_day", "days", "term"), ("exchange",))
         for k, v in d["access"].items():
-            if not isinstance(v, str) or not v.strip():
+            if k == "exchange":         # D26: ETFs and shares, a text per language
+                _keys(v, "display.access.exchange", ("TR", "EN"))
+                texts = list(v.values())
+            else:
+                texts = [v]
+            if not all(isinstance(t, str) and t.strip() for t in texts):
                 raise ConfigError(f"display.access.{k}: must be a non-empty text")
+
+
+def _check_exchange(c: dict) -> None:
+    """Optional D26 sections etf and stock (docs/decision.md section 16)."""
+    for kind in ("etf", "stock"):
+        if kind not in c:
+            continue
+        if kind not in c["kinds"]:
+            raise ConfigError(f"kinds: the {kind} section needs a {kind} row")
+        if not isinstance(c[kind], Mapping):
+            raise ConfigError(f"{kind}: must be a mapping")
+        src = c[kind].get("source")
+        if not isinstance(src, str) or not src:
+            raise ConfigError(f"{kind}.source: must be a source name")
+        _text(c, "data_quality", "excluded_exchange_groups", f"the {kind} section")
+    if "etf" in c:
+        et = c["etf"]
+        _keys(et, "etf", ("source", "by_name", "default_class"))
+        if not isinstance(et["by_name"], Mapping) or not all(
+                isinstance(k, str) and k.strip() and isinstance(v, str) and v
+                for k, v in et["by_name"].items()):
+            raise ConfigError("etf.by_name: a mapping name phrase -> class name")
+        if not isinstance(et["default_class"], str) or not et["default_class"]:
+            raise ConfigError("etf.default_class: must be a class name")
+    if "stock" in c:
+        st = c["stock"]
+        _keys(st, "stock", ("source", "risk_floor", "min_turnover_try", "max_in_top3",
+                            "spk_bands", "asset_class"))
+        for key, lo, hi in (("risk_floor", 1, 7), ("max_in_top3", 0, 3)):
+            v = st[key]
+            if not isinstance(v, int) or isinstance(v, bool) or not lo <= v <= hi:
+                raise ConfigError(f"stock.{key}: an integer {lo}..{hi}")
+        _num(st["min_turnover_try"], "stock.min_turnover_try", 0)
+        bands = st["spk_bands"]
+        ok = isinstance(bands, list) and bands and all(
+            isinstance(b, list) and len(b) == 2 and not isinstance(b[0], bool)
+            and isinstance(b[0], (int, float)) and b[0] > 0
+            and isinstance(b[1], int) and not isinstance(b[1], bool) and 1 <= b[1] <= 6
+            for b in bands)
+        if ok:
+            ok = all(a[0] < b[0] and a[1] < b[1] for a, b in zip(bands, bands[1:]))
+        if not ok:
+            raise ConfigError("stock.spk_bands: [[upper volatility %, risk 1..6], ...] with "
+                              "both rising; above the last band the risk is 7")
+        if not isinstance(st["asset_class"], str) or not st["asset_class"]:
+            raise ConfigError("stock.asset_class: must be a class name")
+        why = "the stock section"
+        _text(c, "warnings", "single_stock", why)
+        for key in ("stock_risk", "stock_risk_missing"):
+            _text(c, "constraint", key, why)
+            text = c["texts"]["constraint"][key]
+            fields = {f for _, f, _, _ in string.Formatter().parse(text) if f}
+            allowed = {"risk", "ceiling", "volatility", "floor"}
+            if not fields <= allowed:
+                raise ConfigError(f"texts.constraint.{key}: only the fields {sorted(allowed)}")
 
 
 def _text(c: dict, section: str, key: str, why: str) -> None:
@@ -540,7 +602,7 @@ def _check_d9(c: dict) -> None:
         _keys(rr["cpi"], "real_return.cpi", ("source", "quantity", "entity"))
         st = rr["stopaj"]
         _keys(st, "real_return.stopaj", ("source", "quantity", "deposit", "time_deposit",
-                                         "fund_default"), ("fund_by_kind",))
+                                         "fund_default"), ("fund_by_kind", "etf", "stock"))
         for path, d in (("real_return.cpi", rr["cpi"]), ("real_return.stopaj", st)):
             for k, v in d.items():
                 if k != "fund_by_kind" and (not isinstance(v, str) or not v):

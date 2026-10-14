@@ -4,7 +4,7 @@ D19)."""
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 
 from rmprep.contracts import ScoredOption
 from rmprep.decision.config import DecisionConfig
@@ -36,7 +36,17 @@ def choose(options: Sequence[ScoredOption], levels: Levels, config: DecisionConf
     options and not only the group heads: the groups are made by fund_kind, so
     a head can hide another class (a long-term debt fund behind a short-term
     one)."""
-    plain = tuple(g.head.option.option_id for g in groups(options)[:N])
+    max_stocks = config.raw.get("stock", {}).get("max_in_top3")    # D26
+
+    def stock_full(picked: Iterable[ScoredOption]) -> bool:
+        return max_stocks is not None and sum(
+            1 for x in picked if x.option.kind == "stock") >= max_stocks
+
+    heads: list[ScoredOption] = []
+    for g in groups(options):
+        if len(heads) < N and not (g.head.option.kind == "stock" and stock_full(heads)):
+            heads.append(g.head)
+    plain = tuple(h.option.option_id for h in heads)
     if not class_rule_applies(levels, config):
         return plain, frozenset()
     rec = config.raw["recommend"]
@@ -59,6 +69,8 @@ def choose(options: Sequence[ScoredOption], levels: Levels, config: DecisionConf
                 continue
             if cash is not None and cls == rec["cash_like"] and counts[cls] >= cash:
                 continue
+            if o.option.kind == "stock" and stock_full(chosen.values()):
+                continue                # in every stage (D26)
             if rule and floor is not None:
                 real = real_of(o)
                 if real is not None and real < floor:

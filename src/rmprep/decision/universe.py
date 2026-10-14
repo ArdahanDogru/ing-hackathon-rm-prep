@@ -14,6 +14,15 @@ from dataclasses import dataclass, field
 
 from rmprep.contracts import DataPoint, EvidenceSet, Flag, ProductOption
 from rmprep.decision.config import DecisionConfig
+from rmprep.decision.exchange import (
+    ETF,
+    EXCHANGE_KINDS,
+    STOCK,
+    STOCK_PREFIX,
+    STOCK_TURNOVER,
+    STOCK_VOLATILITY,
+    name_class,
+)
 from rmprep.decision.text import fold
 
 FUND_PREFIX = "fund_"
@@ -127,25 +136,31 @@ def holdings_of(rows: list[DataPoint], config: DecisionConfig) -> Holdings:
 
 
 def _used_quantities(config: DecisionConfig):
-    """Predicate: is a fund quantity one the engine scores with?"""
+    """Predicate: is a fund (or share, D26) quantity one the engine scores with?"""
     fd = config.raw.get("fund_detail", {})
     fixed = {"fund_risk_level", "fund_total_value", "fund_investor_count",
+             STOCK_VOLATILITY, STOCK_TURNOVER,
              *(v for k, v in fd.items() if k.endswith("_quantity"))}
-    return lambda q: q in fixed or q.startswith("fund_return_")
+    return lambda q: (q in fixed or q.startswith("fund_return_")
+                      or q.startswith("stock_return_"))
 
 
 def stopaj_entity(option: ProductOption, config: DecisionConfig) -> str:
-    """withholding_tax_rate entity of an option (real_return.stopaj)."""
+    """withholding_tax_rate entity of an option (real_return.stopaj); an ETF or a
+    share without its own key (D26) uses fund_default."""
     st = config.raw["real_return"]["stopaj"]
     if option.kind in ("deposit", "time_deposit"):
         return st[option.kind]
+    if option.kind in EXCHANGE_KINDS:
+        return st.get(option.kind, st["fund_default"])
     return st.get("fund_by_kind", {}).get(option.fund_kind, st["fund_default"])
 
 
 def stopaj_entities(config: DecisionConfig) -> list[str]:
     st = config.raw["real_return"]["stopaj"]
     return [st["deposit"], st["time_deposit"], st["fund_default"],
-            *st.get("fund_by_kind", {}).values()]
+            *st.get("fund_by_kind", {}).values(),
+            *(st[k] for k in EXCHANGE_KINDS if k in st)]
 
 
 def asset_class(kind: str, fund_kind: str, name: str, fx: bool,
@@ -186,6 +201,24 @@ def _classify(kind: str, fund_kind: str, name: str, fx: bool, config: DecisionCo
             if risk >= rule["min_risk"]:
                 return rule["class"], False
     return ac["by_kind"][fund_kind], False
+
+
+def _etf_class(name: str, fx: bool, holdings: Holdings | None,
+               config: DecisionConfig) -> tuple[str, bool]:
+    """(class, decided by the holdings) of an ETF (D26): the FX tag -> fx; then the
+    holdings majority (D23; a fon majority or no counted rows: go on); then
+    etf.by_name; then etf.default_class. "" without asset_classes."""
+    ac = config.raw.get("asset_classes")
+    if ac is None:
+        return "", False
+    if fx:
+        return ac["fx"], False
+    bh = ac.get("by_holdings")
+    top = holdings.majority(bh["min_share"]) if bh is not None and holdings else None
+    if top not in (None, "fon"):
+        return top, top != MIXED_CLASS
+    et = config.raw["etf"]
+    return name_class(name, et["by_name"]) or et["default_class"], False
 
 
 def _tr_upper(s: str) -> str:
@@ -245,10 +278,30 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
     serbest, no_entity, unknown, no_data = [], [], [], []
     used = _used_quantities(config) if "short_history" in c else None
     fx_words = [_tr_upper(w) for w in c["fx_name_words"]]
+    etf_source = c.get(ETF, {}).get("source")
     for code in fund_codes:
         info = entities.get(code)
         if info is None:
             no_entity.append(code)
+            continue
+        if etf_source is not None and info.source == etf_source:      # D26: an ETF
+            values = {q: d for q, d in idx.quantities_of(code).items()
+                      if q.startswith(FUND_PREFIX)}
+            fx = any(w in _tr_upper(info.name) for w in fx_words)
+            holdings = holdings_of(holding_rows[code], config) if code in holding_rows else None
+            cls, decided = _etf_class(info.name, fx, holdings, config)
+            option = ProductOption(option_id=f"{ETF}:{code}", kind=ETF, label=info.name,
+                                   entity=code, fx=fx, asset_class=cls)
+            if used is not None and not any(used(q) for q in values):
+                no_data.append(code)
+                continue
+            candidates.append(Candidate(option, values))
+            if holdings is not None:
+                for text, ids in holdings.unknown.items():
+                    unknown_types.setdefault(text, []).extend(ids)
+            if decided:
+                by_holdings[option.option_id] = HoldingsClass(
+                    asset_class=cls, share=holdings.shares[cls], evidence_ids=holdings.ids[cls])
             continue
         if info.category not in c["fund_kinds"]:
             unknown.append(code)
@@ -276,6 +329,27 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
         if decided:
             by_holdings[option.option_id] = HoldingsClass(
                 asset_class=cls, share=holdings.shares[cls], evidence_ids=holdings.ids[cls])
+
+    st = c.get(STOCK)
+    if st is not None:          # D26: Borsa İstanbul shares
+        stock_codes = sorted({d.entity for d in idx.rows if d.quantity.startswith(STOCK_PREFIX)})
+        cls = st["asset_class"] if "asset_classes" in c else ""
+        for code in stock_codes:
+            info = entities.get(code)
+            if info is None:
+                no_entity.append(code)
+                continue
+            if info.source != st["source"]:
+                unknown.append(code)
+                continue
+            values = {q: d for q, d in idx.quantities_of(code).items()
+                      if q.startswith(STOCK_PREFIX)}
+            if used is not None and not any(used(q) for q in values):
+                no_data.append(code)
+                continue
+            option = ProductOption(option_id=f"{STOCK}:{code}", kind=STOCK, label=info.name,
+                                   entity=code, asset_class=cls)
+            candidates.append(Candidate(option, values))
 
     return Universe(
         candidates=tuple(candidates),

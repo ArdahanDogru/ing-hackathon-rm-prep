@@ -23,7 +23,7 @@ def confidence(f: Features, config: DecisionConfig) -> float:
     for row in f.rows.values():
         for flag in row.flags:
             weakest = min(weakest, c["flags"].get(flag.value, 1.0))
-    if f.risk_estimated:
+    if f.risk_estimated or f.risk_proxy:    # D26: a share's risk from 1 year of volatility
         weakest *= c["risk_estimate"]
     if f.shorter_period:
         weakest *= c["shorter_period"]
