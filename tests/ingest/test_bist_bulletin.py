@@ -1,5 +1,6 @@
 """I11: Borsa İstanbul end-of-day bulletins (adapter bist_bulletin)."""
 
+import functools
 import math
 import os
 import stat
@@ -18,6 +19,9 @@ from tests.ingest.conftest import (
     add_bist,
     bist_closes,
     bist_history,
+    bist_long_closes,
+    bist_long_days,
+    bist_long_history,
     bist_name,
     bist_row,
     bist_trading_days,
@@ -26,7 +30,7 @@ from tests.ingest.conftest import (
 from rmprep.contracts import EntityInfo
 from rmprep.ingest.adapters import bist_bulletin as bb
 from rmprep.ingest.config import BistBulletinSource, ConfigError, parse_config
-from rmprep.ingest.snapshot import SnapshotWriter
+from rmprep.ingest.snapshot import SnapshotIntegrityError, SnapshotWriter
 
 SID = "20261009-150000-0001"
 TODAY = T0.date()                                  # 2026-10-09, a Friday
@@ -175,7 +179,8 @@ def test_fetch_references_the_cached_files(tmp_path, bcfg):
     assert [p.meta["date"] for p in rec.payloads] == [d.isoformat() for d in days]
     assert not (snap.path / "payloads" / "bist_bulletin").exists()
     assert rec.request["files"] == {"fetched": 60, "from_cache": 0,
-                                    "not_published": len(WINDOW) - 60}
+                                    "not_published": len(WINDOW) - 60, "unreadable": 0}
+    assert rec.request["history_from"] == bist_trading_days()[0].isoformat()
 
 
 def test_cache_files_are_read_only_and_unchanged(tmp_path, bcfg):
@@ -192,7 +197,7 @@ def test_second_fetch_reuses_the_cache(tmp_path, bcfg):
     # 9 October (not yet published). The holiday is not asked again.
     assert [r.url.path.rsplit("/", 1)[-1] for r in fake.requests] == ["thb202610091.zip"]
     assert rec.request["files"] == {"fetched": 0, "from_cache": 60,
-                                    "not_published": len(WINDOW) - 60}
+                                    "not_published": len(WINDOW) - 60, "unreadable": 0}
     assert len(rec.payloads) == 60
 
 
@@ -274,6 +279,58 @@ def test_bad_bulletin_fails_and_is_not_cached(tmp_path, bcfg, bad, reason):
     assert not (tmp_path / CACHE / bist_name(BIST_END)).exists()
 
 
+# --- an old file that cannot be read (I11d) --------------------------------------------------
+
+OLD = bist_trading_days()[10]                      # 2026-07-30, far before the recheck days
+
+
+def _old_format_header():
+    return [line.replace("ISLEM  KODU", "KOD").replace("INSTRUMENT SERIES CODE", "CODE")
+            for line in BIST_SAMPLE.read_text(encoding="utf-8-sig").splitlines()[:2]]
+
+
+@pytest.mark.parametrize("bad,reason", [
+    ("old_format", "missing column(s) ['ISLEM KODU']"),
+    ("not_zip", "not a ZIP"),
+])
+def test_unreadable_old_file_does_not_fail_the_source(tmp_path, bcfg, bad, reason):
+    files = dict(bist_history())
+    files[bist_name(OLD)] = (bulletin_zip(OLD, [], header=_old_format_header())
+                             if bad == "old_format" else b"PK\x03\x04 broken")
+    rec, _, _ = _fetch(tmp_path, bcfg, FakeEvds(bist_files=files))
+    assert rec.status == "ok"
+    days = bist_trading_days()
+    after = days[days.index(OLD) + 1:]
+    # The history starts after the unreadable file, so it has no gap.
+    assert [p.meta["date"] for p in rec.payloads] == [d.isoformat() for d in after]
+    assert rec.request["history_from"] == after[0].isoformat()
+    assert rec.request["files"]["unreadable"] == 1
+    assert rec.request["unreadable_newest"] == {"file": bist_name(OLD), "reason": reason}
+    assert (tmp_path / CACHE / f"thb{OLD:%Y%m%d}1.bad").is_file()
+    assert not (tmp_path / CACHE / bist_name(OLD)).exists()
+
+
+def test_unreadable_old_file_is_not_asked_again(tmp_path, bcfg):
+    files = dict(bist_history())
+    files[bist_name(OLD)] = b"PK\x03\x04 broken"
+    _fetch(tmp_path, bcfg, FakeEvds(bist_files=files))
+    rec, _, fake = _fetch(tmp_path, bcfg, FakeEvds(bist_files=files), sid="20261009-150000-0002")
+    assert bist_name(OLD) not in [r.url.path.rsplit("/", 1)[-1] for r in fake.requests]
+    assert rec.request["files"]["unreadable"] == 1
+    assert rec.payloads[0].meta["date"] > OLD.isoformat()
+
+
+def test_history_starts_after_the_newest_unreadable_file(tmp_path, bcfg):
+    days = bist_trading_days()
+    files = dict(bist_history())
+    for d in (days[5], days[12]):
+        files[bist_name(d)] = b"PK\x03\x04 broken"
+    rec, _, _ = _fetch(tmp_path, bcfg, FakeEvds(bist_files=files))
+    assert rec.request["history_from"] == days[13].isoformat()
+    assert rec.request["files"]["unreadable"] == 2
+    assert rec.request["unreadable_newest"]["file"] == bist_name(days[12])
+
+
 def test_no_bulletin_in_the_window_fails(tmp_path, bcfg):
     rec, _, _ = _fetch(tmp_path, bcfg, FakeEvds(bist_files={}))
     assert rec.status == "failed" and "no bulletin" in rec.error
@@ -348,7 +405,8 @@ def test_return_1m_uses_adjusted_closes(tmp_path, bcfg):
 
 def test_no_return_when_the_history_is_shorter(tmp_path, bcfg):
     pts = _points(tmp_path, bcfg)
-    for q in ("stock_return_3m", "stock_return_6m", "stock_return_1y"):
+    for q in ("stock_return_3m", "stock_return_6m", "stock_return_1y", "stock_return_3y",
+              "stock_return_5y", "stock_volatility_5y"):
         assert _get(pts, "AAA", q) is None
 
 
@@ -379,6 +437,19 @@ def test_parse_is_deterministic_and_fallback_keeps_origin(tmp_path, bcfg):
     assert {p.snapshot_id for p in pts} == {"20261010-090000-0002"}
     assert {p.as_of for p in pts} == {BIST_END}
     assert all(p.raw_ref.startswith(f"{SID}/") for p in pts)
+
+
+def test_parse_memo_still_verifies_the_files(tmp_path, bcfg):
+    _, snap, _ = _fetch(tmp_path, bcfg)
+    src = bcfg.sources["bist_bulletin"]
+    first = bb.parse(bcfg, src, snap)
+    first.clear()                                   # the caller's list, not the memo
+    assert bb.parse(bcfg, src, snap) and len(bb.parse(bcfg, src, snap)) > 0
+    f = tmp_path / CACHE / bist_name(BIST_END)
+    os.chmod(f, stat.S_IREAD | stat.S_IWRITE)
+    f.write_bytes(f.read_bytes() + b"x")
+    with pytest.raises(SnapshotIntegrityError, match="hash mismatch"):
+        bb.parse(bcfg, src, snap)
 
 
 # --- the calculations ------------------------------------------------------------------------
@@ -565,3 +636,89 @@ def test_spk_volatility_uses_only_the_last_year():
     old = [(date(2024, 1, 1), 1.0), (date(2024, 1, 5), 1000.0)]   # far outside the year
     series = _weeks_series([0.01, -0.01] * 13)
     assert bb.spk_volatility(old + series) == pytest.approx(bb.spk_volatility(series))
+
+
+def test_spk_volatility_window_in_months_and_weeks():
+    r = [0.02, -0.01] * 30                                        # 60 weeks
+    series = _weeks_series(r, start=date(2025, 1, 6))
+    value, weeks = bb.spk_volatility_weeks(series, 60)
+    mean = sum(r) / len(r)
+    assert weeks == 60
+    assert value == pytest.approx(100 * math.sqrt(52 / 59 * sum((x - mean) ** 2 for x in r)))
+    one_year, weeks_1y = bb.spk_volatility_weeks(series, 12)
+    assert 50 <= weeks_1y <= 53 and one_year is not None
+    assert bb.spk_volatility_weeks(series[:40], 60) == (None, 20)  # fewer than 26 weeks
+
+
+def test_period_return_in_years():
+    series = [(date(2021, 10, 7), 10.0), (date(2023, 10, 6), 40.0), (date(2026, 10, 8), 100.0)]
+    # 5 years before 8.10.2026 is 8.10.2021 -> the close of 7.10.2021 (10);
+    # 3 years before is 8.10.2023 -> the close of 6.10.2023 (40).
+    assert bb.period_return(series, 60) == pytest.approx(900.0)
+    assert bb.period_return(series, 36) == pytest.approx(150.0)
+    assert bb.period_return(series[1:], 60) is None
+
+
+# --- 5 years of history (I11d) ---------------------------------------------------------------
+
+@functools.lru_cache(maxsize=1)
+def _long_files():
+    return bist_long_history()
+
+
+def _long_cfg(config_raw):
+    add_bist(config_raw)["sources"]["bist_bulletin"]["history_days"] = 1900
+    return parse_config(config_raw)
+
+
+def _long_points(tmp_path, cfg):
+    return _points(tmp_path, cfg, fake=FakeEvds(bist_files=_long_files()))
+
+
+def test_long_history_returns_3y_and_5y(tmp_path, config_raw):
+    pts = _long_points(tmp_path, _long_cfg(config_raw))
+    days = bist_long_days()
+    closes = bist_long_closes(days)["AAA"]
+    for quantity, years in (("stock_return_3y", 3), ("stock_return_5y", 5)):
+        target = date(BIST_END.year - years, BIST_END.month, BIST_END.day)
+        base = closes[max(d for d in days if d <= target)]
+        p = _get(pts, "AAA", quantity)
+        assert p.value == pytest.approx((closes[BIST_END] / base - 1) * 100)
+        assert p.unit == "pct" and p.note.endswith("dividends not adjusted")
+    assert _get(pts, "LLL", "stock_return_5y").value == 0
+
+
+def test_long_history_volatility_5y_spk(tmp_path, config_raw):
+    pts = _long_points(tmp_path, _long_cfg(config_raw))
+    closes = bist_long_closes(bist_long_days())["AAA"]
+    for quantity, start in (("stock_volatility_5y", date(2021, 10, 8)),
+                            ("stock_volatility_1y", date(2025, 10, 8))):
+        weeks = {}
+        for d, c in closes.items():
+            if d > start:
+                weeks.setdefault(d.isocalendar()[:2], []).append((d, c))
+        r = [w[-1][1] / w[0][1] - 1 for w in (sorted(v) for v in weeks.values()) if len(w) >= 2]
+        mean = sum(r) / len(r)
+        p = _get(pts, "AAA", quantity)
+        assert p.value == pytest.approx(100 * math.sqrt(52 / (len(r) - 1)
+                                                        * sum((x - mean) ** 2 for x in r)))
+        assert p.note.endswith(f"; SPK weekly method, {len(r)} weeks")
+    assert _get(pts, "LLL", "stock_volatility_5y").value == 0
+
+
+def test_long_quantities_are_optional(tmp_path, config_raw):
+    add_bist(config_raw)["sources"]["bist_bulletin"]["history_days"] = 1900
+    for q in ("stock_return_3y", "stock_return_5y", "stock_volatility_5y"):
+        del config_raw["quantities"][q]
+    pts = _long_points(tmp_path, parse_config(config_raw))
+    assert {p.quantity for p in pts if p.entity == "AAA"} == {
+        "stock_close", "stock_return_1m", "stock_return_3m", "stock_return_6m",
+        "stock_return_1y", "stock_volatility_1y", "stock_turnover_3m", "stock_bist100"}
+
+
+def test_long_history_requests_start_at_history_days(tmp_path, config_raw):
+    rec, _, _ = _fetch(tmp_path, _long_cfg(config_raw), FakeEvds(bist_files=_long_files()))
+    assert rec.request["from"] == (TODAY - timedelta(days=1900)).isoformat()
+    assert rec.request["history_from"] >= rec.request["from"]
+    assert len(rec.payloads) == len([d for d in bist_long_days()
+                                     if d >= TODAY - timedelta(days=1900)])
