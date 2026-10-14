@@ -782,4 +782,4 @@ the web app.
   forbid it (KAP blocks bots, rule 8); unverifiable web content marked as such
   (rule 3); its own cost limit; tested before any demo (beta product). Not
   used for ingest, the narrator or the eval: those stay deterministic or
-  single-call by design.
+  single-call by design. Built 2026-10-14 with Exa instead of Managed Agents: docs/research.md.
