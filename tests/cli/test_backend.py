@@ -252,3 +252,34 @@ def test_approval_times_are_recorded(backend):
     backend.draft_narrative(r.run_id, "TR")
     d = backend.approve_narrative(r.run_id, "TR", "# Metin")
     assert d.approved_at == T0
+
+
+# --- v1.10: the RM's current split (plan 2026-10-14-portfolio-projection, Task 4) ------
+
+_SPLIT = {"nakit_benzeri": 80, "borclanma": 10, "hisse": 5, "altin_doviz": 5, "dengeli": 0}
+
+
+def _ready(backend):
+    snap = backend.list_snapshots()[0]
+    return next(x for x in (backend.decide(p, snap) for p in backend.list_personas())
+                if x.state == DecisionState.READY)
+
+
+def test_set_holdings_makes_a_new_run_with_the_input(backend):
+    r0 = _ready(backend)
+    r1 = backend.set_holdings(r0.run_id, _SPLIT, "rm")
+    assert r1.run_id != r0.run_id and r1.holdings_input.shares["nakit_benzeri"] == 80.0
+    assert {b.current_source for b in r1.allocation if b.current is not None} <= {"rm"}
+
+
+def test_reset_gives_the_original_run(backend):
+    r0 = _ready(backend)
+    r1 = backend.set_holdings(r0.run_id, _SPLIT, "rm_confirmed")
+    assert backend.set_holdings(r1.run_id, None).run_id == r0.run_id
+
+
+def test_set_holdings_keeps_the_answers(backend):
+    r, q = _blocking(backend)
+    answered = backend.answer_question(r.run_id, q.question_id, q.choices[0])
+    split = backend.set_holdings(answered.run_id, _SPLIT, "rm")
+    assert next(x for x in split.questions if x.question_id == q.question_id).answer == q.choices[0]

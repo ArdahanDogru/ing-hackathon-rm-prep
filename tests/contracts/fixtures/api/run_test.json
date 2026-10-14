@@ -25742,66 +25742,66 @@
   "allocation": [
    {
     "asset_class": "nakit_benzeri",
-    "low": 10,
-    "high": 20,
+    "low": 10.0,
+    "high": 20.0,
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:PPN",
     "note": "",
-    "current": null,
-    "current_low": null,
-    "current_high": null,
-    "current_source": "",
-    "current_ref": "",
-    "gap": null,
-    "active": false
+    "current": 75.0,
+    "current_low": 60,
+    "current_high": 90,
+    "current_source": "persona_text",
+    "current_ref": "mevduat_agirlikli",
+    "gap": -55.0,
+    "active": true
    },
    {
     "asset_class": "borclanma",
-    "low": 60,
-    "high": 70,
+    "low": 60.0,
+    "high": 70.0,
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:OSD",
     "note": "",
-    "current": null,
-    "current_low": null,
-    "current_high": null,
-    "current_source": "",
-    "current_ref": "",
-    "gap": null,
+    "current": 8.1,
+    "current_low": 3.1,
+    "current_high": 13.1,
+    "current_source": "profile",
+    "current_ref": "Emekli",
+    "gap": 51.9,
     "active": false
    },
    {
     "asset_class": "hisse",
-    "low": 10,
-    "high": 20,
+    "low": 10.0,
+    "high": 20.0,
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": null,
     "note": "ceiling",
-    "current": null,
-    "current_low": null,
-    "current_high": null,
-    "current_source": "",
-    "current_ref": "",
-    "gap": null,
+    "current": 3.7,
+    "current_low": 0.0,
+    "current_high": 8.7,
+    "current_source": "profile",
+    "current_ref": "Emekli",
+    "gap": 6.3,
     "active": false
    },
    {
     "asset_class": "altin_doviz",
-    "low": 5,
-    "high": 10,
+    "low": 5.0,
+    "high": 10.0,
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:KZL",
     "note": "negative_real",
-    "current": null,
-    "current_low": null,
-    "current_high": null,
-    "current_source": "",
-    "current_ref": "",
-    "gap": null,
+    "current": 9.5,
+    "current_low": 4.5,
+    "current_high": 14.5,
+    "current_source": "profile",
+    "current_ref": "Emekli",
+    "gap": 0.0,
     "active": false
    },
    {
@@ -25812,11 +25812,11 @@
     "inferred": false,
     "option_id": "fund:KCV",
     "note": "",
-    "current": null,
-    "current_low": null,
-    "current_high": null,
-    "current_source": "",
-    "current_ref": "",
+    "current": 3.7,
+    "current_low": 0.0,
+    "current_high": 8.7,
+    "current_source": "profile",
+    "current_ref": "Emekli",
     "gap": null,
     "active": false
    }
@@ -33910,47 +33910,75 @@
  "allocation": [
   {
    "asset_class": "nakit_benzeri",
-   "low": 10,
-   "high": 20,
+   "low": 10.0,
+   "high": 20.0,
    "source": "Ata Yatırım, 28.04.2026",
    "inferred": false,
    "option_id": "fund:PPN",
    "note": "",
    "note_text": "",
-   "label": "Nakit benzeri"
+   "label": "Nakit benzeri",
+   "current": 75.0,
+   "current_low": 60,
+   "current_high": 90,
+   "current_source": "persona_text",
+   "current_ref": "mevduat_agirlikli",
+   "gap": -55.0,
+   "active": true
   },
   {
    "asset_class": "borclanma",
-   "low": 60,
-   "high": 70,
+   "low": 60.0,
+   "high": 70.0,
    "source": "Ata Yatırım, 28.04.2026",
    "inferred": false,
    "option_id": "fund:OSD",
    "note": "",
    "note_text": "",
-   "label": "Borçlanma"
+   "label": "Borçlanma",
+   "current": 8.1,
+   "current_low": 3.1,
+   "current_high": 13.1,
+   "current_source": "profile",
+   "current_ref": "Emekli",
+   "gap": 51.9,
+   "active": false
   },
   {
    "asset_class": "hisse",
-   "low": 10,
-   "high": 20,
+   "low": 10.0,
+   "high": 20.0,
    "source": "Ata Yatırım, 28.04.2026",
    "inferred": false,
    "option_id": null,
    "note": "ceiling",
    "note_text": "Risk tavanı nedeniyle uygun fon yok.",
-   "label": "Hisse"
+   "label": "Hisse",
+   "current": 3.7,
+   "current_low": 0.0,
+   "current_high": 8.7,
+   "current_source": "profile",
+   "current_ref": "Emekli",
+   "gap": 6.3,
+   "active": false
   },
   {
    "asset_class": "altin_doviz",
-   "low": 5,
-   "high": 10,
+   "low": 5.0,
+   "high": 10.0,
    "source": "Ata Yatırım, 28.04.2026",
    "inferred": false,
    "option_id": "fund:KZL",
    "note": "negative_real",
    "note_text": "Son 1 yıl reel −%12,9: önerilmiyor.",
-   "label": "Altın / döviz"
+   "label": "Altın / döviz",
+   "current": 9.5,
+   "current_low": 4.5,
+   "current_high": 14.5,
+   "current_source": "profile",
+   "current_ref": "Emekli",
+   "gap": 0.0,
+   "active": false
   },
   {
    "asset_class": "dengeli",
@@ -33961,7 +33989,14 @@
    "option_id": "fund:KCV",
    "note": "",
    "note_text": "",
-   "label": "Dengeli (çoklu varlık)"
+   "label": "Dengeli (çoklu varlık)",
+   "current": 3.7,
+   "current_low": 0.0,
+   "current_high": 8.7,
+   "current_source": "profile",
+   "current_ref": "Emekli",
+   "gap": null,
+   "active": false
   }
  ],
  "allocation_notes": [
@@ -34003,5 +34038,25 @@
   "risk_fit": [
    "sınırlı dalgalanma"
   ]
- }
+ },
+ "holdings": {
+  "status": "persona_text",
+  "sources": [
+   {
+    "id": "persona_text",
+    "ref": "mevduat_agirlikli",
+    "label": "persona metnine göre: \"mevduat ağırlıklı\"",
+    "url": "",
+    "date": ""
+   },
+   {
+    "id": "profile",
+    "ref": "Emekli",
+    "label": "Emekli (varsayım): Ulusal ortalamadan: hisse azaltıldı, borçlanma ve nakit artırıldı (emeklilik dönemi).",
+    "url": "",
+    "date": ""
+   }
+  ]
+ },
+ "effective_weights": {}
 }

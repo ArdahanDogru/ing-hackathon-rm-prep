@@ -124,6 +124,12 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         _run(run_id)
         return _view(backend.answer_question(run_id, req.question_id, req.answer))
 
+    @app.post("/api/runs/{run_id}/holdings")
+    def holdings(run_id: str, req: schemas.HoldingsRequest):
+        """v1.10 (W18): a new run with the RM's split; a bad split -> 422 (ValueError)."""
+        _run(run_id)
+        return _view(backend.set_holdings(run_id, req.shares, req.origin))
+
     @app.post("/api/runs/{run_id}/approval")
     def approval(run_id: str, req: schemas.ApprovalRequest):
         if _changes(_run(run_id).persona):      # every backend, not only RealBackend

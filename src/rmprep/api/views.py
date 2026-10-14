@@ -126,6 +126,49 @@ class ViewBuilder:
         return {**_to_json(b), "note_text": note_text,
                 "label": _label(f"class.{b.asset_class}", self._lang)}
 
+    def _holdings(self, r: DecisionResult) -> dict | None:
+        """W18: the status of the current split and its sources (id = current_source);
+        None when the run has no current split (config without D27)."""
+        rows = [b for b in r.allocation if b.current is not None]
+        if not rows:
+            return None
+        if r.holdings_input is not None:
+            status = r.holdings_input.origin
+        elif any(b.active for b in rows):
+            status = "persona_text"
+        else:
+            status = "estimate"
+        cfg = self._config.raw.get("holdings", {})
+        nat = cfg.get("national", {})
+        profiles = {p["label"]: p for p in cfg.get("profiles", [])}
+        rules = {x["id"]: x for x in cfg.get("text_rules", [])}
+        labels = self._config.raw.get("texts", {}).get("holdings", {}).get("source_labels", {})
+        sources, seen = [], set()
+        for b in rows:
+            key = (b.current_source, b.current_ref)
+            if key in seen:
+                continue
+            seen.add(key)
+            if b.current_source == "national":
+                sources.append({"id": "national", "ref": b.current_ref,
+                                "label": f"{nat.get('label', '')}: {nat.get('source', '')}".strip(": "),
+                                "url": nat.get("url", ""), "date": ""})
+            elif b.current_source == "profile":
+                p = profiles.get(b.current_ref, {})
+                sources.append({"id": "profile", "ref": b.current_ref,
+                                "label": f"{b.current_ref} ({p.get('source', '')}): {p.get('rule', '')}",
+                                "url": "", "date": ""})
+            elif b.current_source == "persona_text":
+                rule = rules.get(b.current_ref, {})
+                sources.append({"id": "persona_text", "ref": b.current_ref,
+                                "label": f"{labels.get('persona_text', '')}: \"{rule.get('match', '')}\"",
+                                "url": "", "date": ""})
+            else:
+                sources.append({"id": b.current_source, "ref": "",
+                                "label": labels.get(b.current_source, b.current_source),
+                                "url": "", "date": ""})
+        return {"status": status, "sources": sources}
+
     def __call__(self, r: DecisionResult) -> dict:
         ev = self._backend.evidence(r.snapshot_id, r.excluded_sources)
         facts = display_facts(r, ev, self._config)
@@ -220,7 +263,9 @@ class ViewBuilder:
             "client_warnings": [_to_json(w) for w in r.warnings if w.audience == "client"],
             "rm_warnings": [_to_json(w) for w in r.warnings if w.audience == "rm"],
             "rejected_by_rule": sorted(rules.values(), key=lambda x: (-x["count"], x["rule_id"])),
-            "allocation": [self._band(b, facts) for b in r.allocation],      # D20
+            "allocation": [self._band(b, facts) for b in r.allocation],      # D20 (+ D27 current split)
+            "holdings": self._holdings(r),                                   # W18
+            "effective_weights": dict(r.effective_weights),                  # v1.10
             "allocation_notes": list(r.allocation_notes),
             "market_note": self._market_note(ev),                          # W15
             "priority_criteria": priority_criteria(r.persona.oncelikler, self._config),  # W16 (PR #1)

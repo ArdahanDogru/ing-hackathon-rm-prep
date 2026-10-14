@@ -19,7 +19,7 @@ from pathlib import Path
 
 from rmprep import decision
 from rmprep.contracts import (
-    NARRATIVE_LANGS, TR_TZ, DecisionResult, DecisionState, EvidenceSet, NarrativeBrief,
+    NARRATIVE_LANGS, TR_TZ, DecisionResult, DecisionState, EvidenceSet, HoldingsInput, NarrativeBrief,
     NarrativeDraft, NarrativeStatus, Persona, RmStatus,
 )
 from rmprep.brief import template_brief
@@ -33,6 +33,7 @@ class _Inputs:
     snapshot_id: str
     excluded_sources: frozenset[str]
     answers: tuple[tuple[str, str], ...] = ()   # sorted (question_id, answer)
+    holdings: HoldingsInput | None = None       # v1.10: the RM's current split
 
 
 class RealBackend:
@@ -84,6 +85,13 @@ class RealBackend:
         _, inputs = self._runs[run_id]
         answers = dict(inputs.answers) | {question_id: answer}
         return self._run(dataclasses.replace(inputs, answers=tuple(sorted(answers.items()))))
+
+    def set_holdings(self, run_id: str, shares: Mapping[str, float] | None,
+                     origin: str = "rm") -> DecisionResult:
+        """v1.10 (D27): new run with the RM's split; None removes it (the original run id)."""
+        _, inputs = self._runs[run_id]
+        holdings = None if shares is None else HoldingsInput(shares, origin)
+        return self._run(dataclasses.replace(inputs, holdings=holdings))
 
     def approve(self, run_id: str, status: RmStatus, note: str = "",
                 selected_option_ids: tuple[str, ...] = ()) -> DecisionResult:
@@ -236,7 +244,7 @@ class RealBackend:
     def _run(self, inputs: _Inputs) -> DecisionResult:
         result = decision.decide(self.evidence(inputs.snapshot_id, inputs.excluded_sources),
                                  inputs.persona, self._config, dict(inputs.answers),
-                                 created_at=self._now())
+                                 created_at=self._now(), holdings=inputs.holdings)
         old = self._runs.get(result.run_id)
         if old is not None:          # same inputs: the run exists, keep its RM status
             return old[0]

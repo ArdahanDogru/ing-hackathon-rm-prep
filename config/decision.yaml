@@ -194,6 +194,50 @@ allocation:
     "mevduat ağırlıklı": "Dosyaya göre varlık TL mevduat ağırlıklı: nakit benzeri bandı aşılıyor olabilir."
   holding_confirm: "Mevcut portföy dağılımını sorun."
 
+# --- D27 (docs/decision.md section 17; spec 2026-10-14-portfolio-projection-design.md) ---
+# The client's current split: RM input > persona text rules > job row > national default.
+# Only rm, rm_confirmed and persona_text change the ranking (brief: no made-up client
+# information); job and national values are a proposal for the RM ("tahmini senaryo").
+holdings:
+  national:
+    label: "Türkiye hanehalkı ortalaması"
+    source: "TCMB Finansal İstikrar Raporu 2026-I, Tablo III.1.2 (Mart 2026)"
+    url: "https://www.tcmb.gov.tr/wps/wcm/connect/559f289f-e867-459e-a485-bb8a450da29e/Tam+Metin.pdf?MOD=AJPERES&CACHEID=ROOTWORKSPACE-559f289f-e867-459e-a485-bb8a450da29e-pVeCfc8"
+    # Look-through of funds by the lead (fund-market shares of FİR section V.1,
+    # 30.04.2026); FX and precious-metal deposits -> altin_doviz; gold "under the
+    # pillow" is not in the data.
+    shares: {nakit_benzeri: 39, borclanma: 10, hisse: 10, altin_doviz: 30, dengeli: 11}
+  # [VARSAYIM] no Turkish split by job or age exists (research 2026-10-14); each row
+  # is the national default moved by the stated rule.
+  profiles:
+    - {match: ["emekli"], label: "Emekli", source: "varsayım",
+       rule: "Ulusal ortalamadan: hisse azaltıldı, borçlanma ve nakit artırıldı (emeklilik dönemi).",
+       shares: {nakit_benzeri: 32, borclanma: 22, hisse: 10, altin_doviz: 26, dengeli: 10}}
+    - {match: ["ihracatçı", "şirket sahibi"], label: "Şirket sahibi (ihracatçı)", source: "varsayım",
+       rule: "Döviz geliri: TL nakitten döviz/altına 8 puan (bireysel mevduatın %47'si döviz, TCMB FİR 2026-I).",
+       shares: {nakit_benzeri: 22, borclanma: 22, hisse: 13, altin_doviz: 33, dengeli: 10}}
+    - {match: ["teknoloji kurucusu", "kurucu"], label: "Kurucu", source: "varsayım",
+       rule: "Şirket satışından gelen nakit önce mevduat ve para piyasasında durur; genç yaş: hisse daha yüksek.",
+       shares: {nakit_benzeri: 45, borclanma: 12, hisse: 20, altin_doviz: 15, dengeli: 8}}
+    - {match: ["aile ofisi"], label: "Aile ofisi", source: "UBS Global Family Office Report 2025 (Orta Doğu), Türkiye için uyarlandı",
+       rule: "UBS 10/29/39/1/20; Türkiye için daha fazla döviz ve altın.",
+       shares: {nakit_benzeri: 15, borclanma: 28, hisse: 27, altin_doviz: 15, dengeli: 15}}
+    - {match: ["hekim", "doktor"], label: "Hekim", source: "varsayım",
+       rule: "Düzenli birikim: BES ve fon birikim planları, dengeli fon payı yüksek.",
+       shares: {nakit_benzeri: 28, borclanma: 12, hisse: 13, altin_doviz: 25, dengeli: 22}}
+  # A rule only for a sentence that states the client's assets (not income, not goals).
+  text_rules:
+    - {id: mevduat_agirlikli, fields: [durum], match: "mevduat ağırlıklı", class: nakit_benzeri, range: [60, 90]}
+    - {id: sirket_satisi_nakit, fields: [durum], match: "şirket satışından gelen nakdi", class: nakit_benzeri, range: [50, 100]}
+  spread: 5
+allocation_gap:
+  scale: 30
+  overweight_factor: 0.5
+  per_signal: 0.5
+  max_signals: 2
+  source_factor: {rm: 1.0, rm_confirmed: 0.75, persona_text: 0.75}
+  signals: ["çeşitlendirme", "mevduat yoğunluğunu azalt", "tek ürün veya tek varlık sınıfında yoğunlaşmama", "fırsat maliyetini azaltma"]
+
 # --- 4. Scoring ----------------------------------------------------------------------
 kinds:   # liquidity / income / simplicity values (0..1)
   deposit:         {liquidity: 1.0, income: 1.0, simplicity: 1.0}
@@ -263,6 +307,7 @@ weights:
   principal:  {base: 0.0, level: anapara_koruma_tercihi, per_level: 2.0}
   simplicity: {base: 0.0}
   quality:    {base: 0.5}
+  allocation_gap: {base: 1.0}               # D27: x source factor x (1 + per_signal x signals); 0 without an active class
 
 penalties:   # max; penalty = max * intensity * violation
   principal: 0.3
@@ -360,6 +405,10 @@ texts:
     "penalty:risk_unknown": "Risk değeri yok; türündeki en yüksek risk ({risk}) varsayıldı."
     "penalty:track_record": "{period} getirisi yok; daha kısa dönem kullanıldı."
     return_missing: "Getiri verisi yok ({period} ve daha kısa dönemler)."
+    # D27: "Portföy açığı"
+    allocation_gap: "{class_label} payı {source_label} %{current:.0f}; {profile} model bandı %{low:.0f}–{high:.0f}."
+    allocation_gap_inactive: "{class_label} payı bilinmiyor (tahmini senaryo); RM onayı bekleniyor."
+    allocation_gap_no_band: "{class_label} için model bandı yok; portföy açığı hesaplanmadı."
     # D26c: a period shorter than 1 year is not annualised (the user, 2026-10-14)
     return_period: "{months} aylık getiri %{nominal:.1f} (yıllıklandırılmadı) ({period}); adayların %{pct:.0f}'inden iyi."
     return_period_net: "{months} aylık getiri %{nominal:.1f} (yıllıklandırılmadı), stopaj sonrası %{net:.1f}; reel getiri hesaplanmadı (TÜFE yok); adayların %{pct:.0f}'inden iyi."
@@ -415,6 +464,10 @@ texts:
     unused_priority: "Kullanılmayan öncelik: \"{text}\"."
     fx_priority: "\"kur riskini yönetme\" önceliği döviz düzeyi ile ele alındı."
     no_evidence_priority: "\"kuşaklar arası planlama\" için kanıt yok; puana katılmadı."
+  holdings:   # D27
+    source_labels: {rm: "RM'e göre", rm_confirmed: "RM onaylı tahmine göre", persona_text: "persona metnine göre"}
+    class_labels: {nakit_benzeri: "Nakit benzeri", borclanma: "Borçlanma araçları", hisse: "Hisse senedi", altin_doviz: "Altın ve döviz", dengeli: "Dengeli fon"}
+    to_confirm: "Müşterinin mevcut portföy dağılımını alın (şu an tahmini senaryo)."
   warnings:
     concentration: "İlk {n} seçenek yeterince çeşitlendirilemedi: {kind} türünden {count} seçenek."
     fx_exposure: "Kısa listede döviz fonu var; müşteri sınırlı döviz maruziyeti istiyor."

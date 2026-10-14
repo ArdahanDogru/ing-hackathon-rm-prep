@@ -18,6 +18,12 @@ class AnswerRequest(BaseModel):
     answer: str
 
 
+class HoldingsRequest(BaseModel):
+    """v1.10: the RM's current split (class -> %); null removes it."""
+    shares: dict[str, float] | None
+    origin: str = "rm"
+
+
 class ApprovalRequest(BaseModel):
     status: Literal["approved", "rejected"]
     note: str = ""
