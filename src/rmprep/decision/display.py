@@ -18,6 +18,7 @@ from rmprep.decision.exchange import (
     EXCHANGE_KINDS,
     STOCK,
     STOCK_VOLATILITY,
+    STOCK_VOLATILITY_5Y,
     return_prefix,
     stock_risk,
 )
@@ -105,8 +106,10 @@ def facts_of(option: ProductOption, idx: EvidenceIndex,
             if row is not None:
                 returns[period] = Fact(row.value, row.id)
         if option.kind == STOCK:        # D26: SPK band of the volatility; none without it
-            row = idx.get(STOCK_VOLATILITY, option.entity)
-            risk = Fact(stock_risk(row, config), row.id) if row is not None else None
+            v1 = idx.get(STOCK_VOLATILITY, option.entity)
+            v5 = idx.get(STOCK_VOLATILITY_5Y, option.entity)      # D26c: 5 years first
+            row = v5 or v1
+            risk = Fact(stock_risk(v1, config, v5), row.id) if row is not None else None
         else:
             row = idx.get("fund_risk_level", option.entity)
             risk = Fact(row.value, row.id) if row is not None else None
