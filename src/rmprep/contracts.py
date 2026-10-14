@@ -573,6 +573,8 @@ NARRATIVE_SECTIONS = ("ozet", "oneriler", "alternatifler", "dikkat", "sorular",
 # v1.3: the sections of a draft from narrator N9 on (talking_points added at the
 # end). NARRATIVE_SECTIONS stays the v1.2 list, so a v1.2 narrator stays valid.
 NARRATIVE_SECTIONS_V13 = NARRATIVE_SECTIONS + ("talking_points",)
+# v1.9 (N14): the code-written EVDS market note, a deletable section of its own.
+NARRATIVE_SECTIONS_V19 = NARRATIVE_SECTIONS_V13 + ("piyasa_notu",)
 NARRATIVE_SOURCES = ("llm", "template")
 
 
@@ -598,8 +600,8 @@ class NarrativeSection:
     sentences: tuple[NarrativeSentence, ...]
 
     def __post_init__(self) -> None:
-        if self.key not in NARRATIVE_SECTIONS_V13:
-            raise ValueError(f"unknown section key {self.key!r}; known: {NARRATIVE_SECTIONS_V13}")
+        if self.key not in NARRATIVE_SECTIONS_V19:
+            raise ValueError(f"unknown section key {self.key!r}; known: {NARRATIVE_SECTIONS_V19}")
 
 
 @dataclass(frozen=True)

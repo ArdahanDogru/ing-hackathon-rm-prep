@@ -23,3 +23,17 @@ def test_etf_and_stock_have_no_fund_kind(kind):
 def test_a_stock_has_no_fx_tag():
     with pytest.raises(ValueError, match="stock option"):
         ProductOption("stock:X", "stock", "X", fx=True)
+
+
+def test_section_piyasa_notu():
+    """v1.9 (N14): the code-written market note is a section of its own."""
+    from rmprep.contracts import NARRATIVE_SECTIONS_V13, NARRATIVE_SECTIONS_V19, NarrativeSection
+    assert NARRATIVE_SECTIONS_V19 == NARRATIVE_SECTIONS_V13 + ("piyasa_notu",)
+    assert NarrativeSection("piyasa_notu", ()).key == "piyasa_notu"
+    with pytest.raises(ValueError, match="unknown section key"):
+        NarrativeSection("nope", ())
+
+
+def test_edits_know_the_market_note_block():
+    from rmprep import edits
+    assert "piyasa_notu" in edits.WHOLE_SECTIONS

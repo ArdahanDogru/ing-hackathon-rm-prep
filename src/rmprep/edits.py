@@ -16,7 +16,8 @@ import yaml
 
 from rmprep.contracts import NarrativeDraft, NarrativeSection, NarrativeSentence
 
-WHOLE_SECTIONS = ("ozet", "teklif_metni", "dikkat", "alternatifler", "sorular", "varsayimlar")
+WHOLE_SECTIONS = ("ozet", "teklif_metni", "dikkat", "alternatifler", "sorular", "varsayimlar",
+                  "piyasa_notu")                       # v1.9: the market note (N14)
 _CONFIG = Path(__file__).resolve().parents[2] / "config" / "narrator.yaml"
 
 try:                                    # the narrator's rules, once N11 is merged
@@ -54,9 +55,13 @@ def _block_of(key: str, i: int, s: NarrativeSentence) -> str | None:
 
 def apply_edits(d: NarrativeDraft) -> NarrativeDraft:
     """The draft with each edited block written as one sentence (rm_edits then
-    empty), for any renderer that does not know the edits."""
+    empty), for any renderer that does not know the edits. The narrator's own
+    rule wins when it is there (N14: deleted blocks, the market note)."""
     if not d.rm_edits:
         return d
+    if _narrator_blocks is not None:
+        from rmprep.narrator.template import apply_edits as narrator_apply
+        return narrator_apply(d)
     sections = []
     for sec in d.sections:
         out, done = [], set()

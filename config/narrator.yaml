@@ -62,3 +62,7 @@ market_note:
        label: {TR: "USD/TRY (TCMB alış)", EN: "USD/TRY (CBRT buying)"}}
     - {key: funding_cost, quantity: cbrt_funding_cost, entity: "CBRT weighted average funding cost", unit: pct,
        label: {TR: "TCMB ağırlıklı ortalama fonlama maliyeti", EN: "CBRT weighted average funding cost"}}
+  # N14: one sentence per series in the meeting-text block piyasa_notu (code-written)
+  sentence:
+    TR: "{label} {value} (TCMB EVDS, {date})."
+    EN: "{label} {value} (CBRT EVDS, {date})."
