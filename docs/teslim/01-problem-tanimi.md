@@ -1,7 +1,8 @@
 # Problem tanımı
 
-> Teslimat 2 · Taslak (2026-10-12) · Sayılar: dondurulmuş veri anlık görüntüsü
-> `20261010-183835-6813` (TEFAS, TCMB EVDS, ING kamuya açık oranlar).
+> Teslimat 2 · Taslak (2026-10-14) · Sayılar: dondurulmuş veri anlık görüntüsü
+> `20261014-102329-8fca` (TEFAS, TCMB EVDS, ING kamuya açık oranlar) ve
+> değerlendirme `20261014-105720-full`.
 > **[VARSAYIM]** ile işaretli değerler mentorlarla teyit edilecek.
 
 ## Problem cümlesi
@@ -24,20 +25,24 @@ veriye dayandığı sonradan gösterilemiyor.
 ## Verimizden içgörüler
 
 1. **Elle karşılaştırma ölçeği aşıyor.** P01 (emekli girişimci, Muhafazakâr)
-   için evren 816 seçenek; kurallar 675'ini eliyor (573 risk tavanı, 189 alıma
-   kapalı, 69 yeterli geçmiş yok — bir fon birden fazla kurala takılabilir).
-   Kalan 141 seçeneği elle sıralamak bir hazırlık süresine sığmaz.
+   için evren 818 seçenek; kurallar 679'unu eliyor (573 risk tavanı, 195 alıma
+   kapalı, 69 yeterli geçmiş yok — 130 fon birden fazla kurala takılıyor).
+   Kalan 139 seçeneği elle sıralamak bir hazırlık süresine sığmaz.
 2. **Nominal getiri yanıltıcı.** ING Turuncu Hesap'ın %23 faizi, stopaj ve
-   yıllık TÜFE sonrası **reel −%8,3**; aynı müşteri için aynı gün erişilebilen
-   para piyasası fonları reel **+%7,4**. Reel karşılaştırma yapılmazsa müşteri
+   yıllık TÜFE (%29,73; TÜİK, TCMB EVDS ile aynı) sonrası **reel −%8,3**; aynı müşteri için
+   aynı gün erişilebilen para piyasası fonları son bir yılda reel **+%6,6**
+   (medyan), en iyisi **+%9,7** getirdi. Reel karşılaştırma yapılmazsa müşteri
    değer kaybettiğini görmeyebilir.
-3. **Yalnızca getiriye bakan bir sıralama herkese aynı ürünü önerir.** Son bir
-   yılda TL nakit benzeri fonlar reel olarak hisse (≈ %0) ve altın (−%13)
-   fonlarını geride bıraktı. İlk sürümümüzde 5 personanın 4'ü yalnızca SPK risk
+3. **Yalnızca getiriye bakan bir sıralama herkese aynı ürünü önerir.** TL nakit
+   benzeri fonlar reel olarak hisse ve altın/döviz fonlarını geride bıraktı:
+   uzun vadeli dönemde (çoğunlukla 3 yıl, yıllık) reel getiri medyanı nakit
+   benzeri fonlarda +%7,3, hisse fonlarında −%5,4, altın/döviz fonlarında
+   −%2,9. İlk sürümümüzde 5 personanın 4'ü yalnızca SPK risk
    değeri 1 olan nakit benzeri fonlar aldı (iki çift tamamen aynı listeyi aldı) —
    Dengeli bir ihracatçı da, Muhafazakâr bir emekli de. Risk bütçesi ve
    çeşitlendirme ayrı sinyaller olarak eklenince her personanın öneri seti
-   farklılaştı (bkz. Test ve öğrenimler).
+   farklılaştı; bu anlık görüntüde 5 personada 5 farklı set var (bkz. Test ve
+   öğrenimler).
 4. **Sektör bu adıma yatırım yapıyor.** UBS her görüşme öncesi otomatik
    "cheat sheet", Salesforce "Meeting Prep", Morgan Stanley "Next Best Action"
    (danışmanların %90'ından fazlası kullanıyor) sunuyor; ING Türkiye'nin RM ve
@@ -49,10 +54,11 @@ veriye dayandığı sonradan gösterilemiyor.
 
 | Gösterge | Bugün | Çözümle | Nasıl ölçtük |
 |---|---|---|---|
-| Hazırlık süresi | **[VARSAYIM]** görüşme başına ~60 dk | analiz 1–7 sn, görüşme metni 20–30 sn; RM'in okuma ve onayı | sistem zamanı (ölçüldü) |
-| Kısıt ihlali | elle kontrol | 34 test senaryosunda **0** | değerlendirme paketi |
+| Hazırlık süresi | **[VARSAYIM]** görüşme başına ~60 dk | analiz ortalama 1 sn (en çok 1,6 sn), görüşme metni ortalama 25 sn (en çok 48 sn); RM'in okuma ve onayı | sistem zamanı (ölçüldü: analiz 39, metin 25 çalışma) |
+| Kısıt ihlali | elle kontrol | 34 test senaryosunda (39 çalışma) **0** | değerlendirme paketi |
 | Tutarlılık | kişiye bağlı | aynı girdi → aynı sonuç ve aynı metin (%100) | tekrar testleri |
 | İzlenebilirlik | yok / dağınık | her sayı kaynak, tarih ve kanıt kimliğiyle | kanıt kaydı |
+| Veri güncelliği | elle, düzensiz | her gün 07:30'da otomatik veri alımı ve "Veriyi yenile" düğmesi; süresi geçen stopaj veya eski TÜFE RM'e uyarı verir | zamanlanmış görev, karar kuralı |
 | Uyarlama | genel metin | 5 personada 5 farklı öneri seti (önce: 4'ü yalnızca nakit benzeri, risk 1); müşteri önceliklerine bağlı gerekçe | değerlendirme paketi |
 
 Daha az hazırlık süresi RM'e müşteri başına daha fazla zaman bırakır; reel ve

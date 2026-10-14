@@ -1,11 +1,12 @@
 # Test ve öğrenimler
 
-> Teslimat 5 · Taslak (2026-10-13) · Sayılar: son tam değerlendirme
-> `data/eval/20261013-004507-full` (dondurulmuş veri anlık görüntüsü
-> `20261010-183835-6813`, karar yapılandırması `9279d0a6c847`, anlatıcı
+> Teslimat 5 · Taslak (2026-10-14) · Sayılar: son tam değerlendirme
+> `data/eval/20261014-105720-full` (dondurulmuş veri anlık görüntüsü
+> `20261014-102329-8fca`, karar yapılandırması `c5e83ccc4e4b`, anlatıcı
 > `claude-sonnet-5-5` istem `n9`, hakem `claude-haiku-5-5` istem `j3`) ve
-> önceki tam değerlendirme raporları. **[VARSAYIM]** ile işaretli değerler
-> ölçülmedi.
+> önceki tam değerlendirme raporları (son önceki: `20261013-004507-full`,
+> anlık görüntü `20261010-183835-6813`). **[VARSAYIM]** ile işaretli
+> değerler ölçülmedi.
 
 ## 1. Test yaklaşımı
 
@@ -13,7 +14,7 @@
 
 | Katman | Ne test eder | Nasıl |
 |---|---|---|
-| Birim ve sözleşme testleri | Her modülün kuralı tek başına doğru mu? (veri alma, karar motoru, anlatıcı doğrulayıcısı, API) | `pytest`, 90 dosyada **1.774** test, başarısız test yok (2026-10-13); ağ erişimi yok, LLM yerine sahte model |
+| Birim ve sözleşme testleri | Her modülün kuralı tek başına doğru mu? (veri alma, karar motoru, anlatıcı doğrulayıcısı, API) | `pytest`, 97 dosyada **1.918** test (2026-10-14 sayımı); ağ erişimi yok, LLM yerine sahte model |
 | Senaryo değerlendirme paketi | Sistem uçtan uca, jürinin değiştirebileceği girdilerle doğru davranıyor mu? | 34 senaryo, 39 çalıştırma; dondurulmuş anlık görüntü; tek komut `python -m rmprep eval` |
 | Ekranda elle inceleme | RM için kullanışlı mı? | Kullanıcı ile demo ve ekran incelemesi (2026-10-11 geri bildirimi web arayüzünün yeniden tasarımına yol açtı) |
 
@@ -63,12 +64,20 @@ Göstergeleri brifin §9.1 sorularından ve §12 kurallarından türettik:
 | Tekrar tutarlılığı | 5 / 5 | %100 | evet |
 | Persona değişikliği beklenen yönde | 21 / 21 | senaryo başına | evet |
 | Çeşitli öneri (D19) | 20 / 20 | %100 | evet |
-| Kanıt toplama / karar süresi (çalıştırma başına ort.) | 0,25 sn / 0,73 sn (en çok 3,31 / 1,11 sn) | yalnızca rapor | — |
-| Görüşme metni süresi | ort. 27,08 sn (en çok 56,70 sn) | yalnızca rapor | — |
-| Maliyet | metin başına $0,046; paket $1,164 (anlatıcı $1,155, hakem $0,009; sınır $5) | yalnızca rapor | — |
-| Hakem: uyarlanmış / RM için açık / dengeli | %52 / %50 / %60 (19 metin) | yalnızca rapor | — |
+| Kanıt toplama / karar süresi (çalıştırma başına ort.) | 0,24 sn / 0,96 sn (en çok 3,04 / 1,61 sn) | yalnızca rapor | — |
+| Görüşme metni süresi | ort. 25,09 sn (en çok 47,73 sn) | yalnızca rapor | — |
+| Maliyet | metin başına $0,044; paket $1,098 (anlatıcı $1,089, hakem $0,009; sınır $5) | yalnızca rapor | — |
+| Hakem: uyarlanmış / RM için açık / dengeli | %50 / %57 / %62 (19 metin) | yalnızca rapor | — |
 
 Bir kontrol yalnızca ilgili senaryoda çalışır; uygulanmayanlar oranlara girmez.
+
+Önceki tam çalışmaya (`20261013-004507-full`, eski anlık görüntü) göre tüm
+kontrol sayıları aynıdır. Karar süresi 0,73 sn'den 0,96 sn'ye çıktı. Olası
+nedenler (ayrı ölçülmedi): motor artık her bozulmuş sıralamada öneri
+kuralını da uygular (D25, bölüm 7) ve fonların portföy dağılımı satırlarını
+okur (D23). Metin maliyeti $0,046'dan $0,044'e, metin süresi 27,08 sn'den
+25,09 sn'ye indi. Hakem puanları %52 / %50 / %60'tan %50 / %57 / %62'ye
+değişti; her ölçüde en çok 3 not değişti (bölüm 5).
 
 ## 3. Senaryo grupları
 
@@ -79,7 +88,7 @@ Bir kontrol yalnızca ilgili senaryoda çalışır; uygulanmayanlar oranlara gir
 | Persona değişikliği (Jüri Challenge tarzı) | 5 | Bir müşteri alanını değiştirir | P03 "Agresif" → "Muhafazakâr"; P03 vade "1 yıl"; P04 likidite "Yüksek"; P01 döviz tercihi bilinmeyen metin; P05 "Dengeli" |
 | Kısıt | 4 | Açık kısıt ekler | "döviz maruziyeti istemiyor", "yüksek riskli ürün istemiyor"; bilinmeyen kısıt metni → RM'e soru |
 | Veri erişimi | 4 | Bir kaynağı dışlar | TEFAS detay yok; elle girilen veri yok (mevduat oranı, TÜFE, stopaj); TEFAS web yok |
-| Regresyon | 13 | Geçmiş hataları sabitler | hata analizi vakaları 1–8 (bölüm 4 ve 5) |
+| Regresyon | 13 | Geçmiş hataları sabitler | hata analizi vakaları 1–8 (bölüm 4 ve 7) |
 
 Örnek: TEFAS web dışlanınca P01'de 2 seçenek kalır, fon önerilmez;
 bilinmeyen kısıtta sonuç `needs_rm_input` olur.
@@ -123,26 +132,31 @@ Eksik SPK risk değerleri neden değildi (her türde fonların %3–10'u).
 risk 2'de kaldı. `per_step` 0,5 ve `risk_fit` ağırlığı 2,0 ile öneriler
 bandın içine girdi. Bantlar bir **[VARSAYIM]**; mentorlarla teyit edilecek.
 
-**Sonuç (ölçüldü).**
+**Sonuç (ölçüldü).** Sağ sütun son tam çalışmanın (`20261014-105720-full`,
+anlık görüntü `20261014-102329-8fca`) panoda RM'e önerilen ilk 3'üdür: fon
+kodu, varlık sınıfı, SPK risk değeri (r) ve stopaj ile TÜFE sonrası yıllık
+reel getiri (%). Getiri dönemi personanın vadesine bağlıdır: P01, P02 ve
+P05 için 1 yıl, 5+ yıl vadeli P03 ve P04 için 3 yıl.
 
-| Persona | D19 öncesi | D19 sonrası (sınıf, risk, 1 yıllık reel getiri %) |
+| Persona | D19 öncesi | Son tam çalışma (sınıf, risk, reel getiri %) |
 |---|---|---|
-| P01 Muhafazakâr | 3 nakit benzeri, risk 1 | değişmedi (kural uygulanmaz; doğru davranış) |
-| P02 Dengeli | aynı 3 nakit benzeri, risk 1 | nakit r2 +8,0 · borçlanma r2 +8,4 · dengeli r3 +12,8 |
-| P04 Dengeli | aynı 3 nakit benzeri, risk 1 | borçlanma r3 +5,9 · nakit r2 +6,7 · dengeli r3 +3,3 |
-| P05 Temkinli | aynı 3 nakit benzeri, risk 1 | 3 nakit benzeri, risk 2 (kendi bandı) |
-| P03 Agresif | farklı | dengeli r6 · hisse r7 · katılım fonu r5 +26,3 |
+| P01 Muhafazakâr | 3 nakit benzeri, risk 1 | PPN nakit r1 +7,3 · IST nakit r1 +7,0 · AIS nakit r1 +6,5 (sınıf kuralı uygulanmaz; doğru davranış) |
+| P02 Dengeli | aynı 3 nakit benzeri, risk 1 | EIL nakit r2 +7,7 · KDE dengeli r3 +10,1 · NJR borçlanma r2 +8,2 |
+| P04 Dengeli | aynı 3 nakit benzeri, risk 1 | OKT borçlanma r3 +10,1 · EIL nakit r2 +11,6 · OLE dengeli r2 +10,5 |
+| P05 Temkinli | aynı 3 nakit benzeri, risk 1 | EIL nakit r2 +7,7 · GBL nakit r2 +6,1 · KSK nakit r2 +6,3 (kendi bandı) |
+| P03 Agresif | farklı | GBV hisse r6 +19,8 · IDY dengeli r4 +8,5 · OKT borçlanma r3 +10,1 |
 
 D19 sonrası **hiçbir iki temel persona aynı ilk üçü paylaşmıyor**. Raporun
-satırı "1 of 5 base personas share the same recommended top 3" şunu söyler:
-aynı setlerin en büyük grubu 1 personadır, yani her persona kendi setini
-alır (önce: 4 / 5). Son tam çalışmanın seçimleri de bunu doğrular; bu
-seçimler panoda RM'e önerilen ilk 3'tür: P01 PPN/IST/AIS, P02 BVF/NJR/IRF,
-P03 GBV/YAY/OKT, P04 OKT/RPP/SUA, P05 BVF/GBL/KSK. Önceki tam raporda
-(`20261012-104535-full`) P01 ile P04 ve P02 ile P05 aynı seçimi almıştı.
-P03'ün seti yukarıdaki tablodan sonra değişti (son çalışmada: dengeli r6
-+2,5 · hisse r7 +18,8 · borçlanma r3 +5,9); sınıf kuralı ve kuralların
-hepsi geçmeye devam ediyor.
+satırı "1 of 5 base personas share the most common recommended top 3" şunu
+söyler: aynı setlerin en büyük grubu 1 personadır, yani her persona kendi
+setini alır (önce: 4 / 5). Bazı fonlar birden çok personada yer alır (EIL
+P02, P04 ve P05'te; OKT P03 ve P04'te), ama hiçbir set aynı değildir. D19
+anındaki ölçümler (ör. P02: nakit r2 +8,0 · borçlanma r2 +8,4 · dengeli r3
++12,8) regresyon senaryolarının açıklamasında kalır. Önceki tam çalışmada
+(`20261013-004507-full`, eski anlık görüntü) seçimler P01 PPN/IST/AIS, P02
+BVF/NJR/IRF, P03 GBV/YAY/OKT, P04 OKT/RPP/SUA, P05 BVF/GBL/KSK idi. Yeni
+anlık görüntüde sınıflar portföy dağılımından da gelir (D23); sınıf kuralı
+ve tüm kural kontrolleri geçmeye devam ediyor.
 
 Yan etkiler: hakemin "uyarlanmış" puanı %53'ten %57'ye yükseldi (senaryo
 seti 30'dan 34'e büyüdüğü için bu karşılaştırma yaklaşıktır); kural
@@ -197,8 +211,9 @@ puanı ise belirgin değişmedi: "dengeli" yükseldi, "uyarlanmış" biraz düş
 "RM için açık" aynı kaldı. Nedenleri:
 
 - Hakem katıdır: istemde "kararsızsan düşük olanı seç" kuralı vardır ve
-  küçük bir modeldir (Claude Haiku 5.5). Son çalışmada notların hemen
-  hepsi "kısmen"dir; "RM için açık" için hiç "evet" yoktur.
+  küçük bir modeldir (Claude Haiku 5.5). Son tam çalışmada
+  (`20261014-105720-full`) 60 notun 52'si "kısmen"dir; "uyarlanmış" için
+  hiç "evet" yoktur (önceki tam çalışmada "RM için açık" için yoktu).
 - Hakem de değişti (j2 → j3, daha çok bağlam), bu yüzden önce / sonra
   karşılaştırması yaklaşıktır. 19 metinde bir metnin notu yaklaşık 2,6
   puanlık fark yapar.
@@ -206,9 +221,50 @@ puanı ise belirgin değişmedi: "dengeli" yükseldi, "uyarlanmış" biraz düş
 Hakem puanını bilerek daha fazla optimize etmedik. Bir LLM hakemi için
 istem ayarlamak, metni o hakemin zevkine göre ayarlamak olur; bu, RM için
 daha iyi bir metin demek değildir. Sonraki adım ikinci bir hakemle uyum
-kontrolü ve RM incelemesidir (bölüm 8).
+kontrolü ve RM incelemesidir (bölüm 9).
 
-## 6. Diğer bulgular ve iyileştirmeler
+## 6. Hata analizi: eksik vergi ve enflasyon verisi güveni düşürmüyordu (D24)
+
+**Bulgu (2026-10-14).** Yeni dondurulmuş anlık görüntüde
+(`20261014-102329-8fca`) ücretsiz `--no-llm` geçişi
+(`data/eval/20261014-104638-nollm-check`) "Eksik veri gösteriliyor"
+kontrolünde iki senaryoda kaldı: `data-p01-no-manual` ve
+`data-p03-no-manual`. Bu senaryolar elle girilen kaynağı (stopaj, TÜFE, ING
+oranları) dışlar. Fon seçenekleri güven **1,00** ile kaldı; kontrol en çok
+0,90 bekler. Kural kontrolleri %99'a düştü (218 kontrolün 216'sı geçti),
+"Eksik veri gösteriliyor" 5 / 7 oldu.
+
+**Kök neden.** 2026-10-14'e kadar her TEFAS satırı "kontrol gerekli"
+(`needs_check`) bayrağı taşıyordu. Bu bayrak güveni 0,9 ile çarpıyordu ve
+tüm fon güvenlerini 0,90'da tutuyordu. TEFAS verisi 12 anlık görüntü
+boyunca kararlı kaldığı için bayrak yeni anlık görüntülerden kaldırıldı.
+Bayrak gidince ortaya çıktı: stopaj veya TÜFE satırı yokken reel getiri
+hesaplanamıyordu (bu iki senaryoda TÜFE EVDS'den gelmeye devam eder; eksik
+olan stopajdır, motor onu 0 alır), ama güven bunu hiç yansıtmıyordu.
+Kontrol önceki tam çalışmalarda yanlış nedenle geçiyordu.
+
+**Düzeltme (D24, 2026-10-14).** Reel getiri yapılandırmada açık olduğu
+hâlde bir seçenek için hesaplanamazsa (TÜFE satırı yok veya ürün türünün
+stopaj satırı yok) güven 0,8 ile çarpılır
+(`confidence.real_return_missing`; D14'teki likidite tahmini çarpanıyla
+aynı değer). Skor ve sıralama değişmez. Testler:
+`tests/decision/test_real_return_confidence.py`.
+
+**Sonuç (ölçüldü).**
+
+| Ölçü | Önce (`20261014-104638-nollm-check`) | Sonra (`20261014-105544-nollm-check2`) |
+|---|---|---|
+| Kural kontrolleri geçme oranı | %99 (2 kaldı) | %100 |
+| Eksik veri gösteriliyor | 5 / 7 | 7 / 7 |
+| `data-p01-no-manual`, `data-p03-no-manual` | fon güveni 1,00 > 0,90 | geçti |
+| Önerilen ilk 3 (beş temel persona) | — | değişmedi |
+
+Sonraki tam çalışma (`20261014-105720-full`) aynı yapılandırmayla
+(`c5e83ccc4e4b`) tüm hedefleri karşıladı. Öğrenim: genel bir bayrağı
+kaldırmak gizli bir açığı ortaya çıkarabilir; yanlış nedenle geçen bir
+kontrol bir risktir (bölüm 8, öğrenim 8).
+
+## 7. Diğer bulgular ve iyileştirmeler
 
 | # | Bulgu | Etki | Düzeltme | Sonuç |
 |---|---|---|---|---|
@@ -220,11 +276,16 @@ kontrolü ve RM incelemesidir (bölüm 8).
 | 6 | TEFAS detay yokken likidite tahmini tabloya düştü ama güven arttı (D14) | Eksik veri gizleniyordu (0,63 → 0,70) | Tahmin için 0,8 çarpanı | Güven 0,56; eksik veri gösteriliyor |
 | 7 | İlk tam eval: P05'te VKR, ZPO, ZTV kanıt kimliksiz listelendi (D15) | Kural 2 ihlali; kural kontrolleri %99 | Kısa geçmiş kuralı | Kanıtsız seçenek yok; 57 fon `short_history` reddi |
 | E8 | Eval, ekranda gösterilen olguların sayılarını tanımıyordu | 2 yanlış "uydurma veri" bulgusu; %99 | Kontrol ekran olgularını kabul eder | %100; gerçek uydurma sayı hâlâ kalır |
-| N8 | İlk tam eval: metin başına $0,136, olgu paketi 35.000–50.000 token | Bütçe riski | Paket yalnızca metnin ihtiyacını taşır | Sonraki tam eval $0,041; son $0,046 |
+| N8 | İlk tam eval: metin başına $0,136, olgu paketi 35.000–50.000 token | Bütçe riski | Paket yalnızca metnin ihtiyacını taşır | Sonraki tam eval $0,041; son $0,044 |
 | N7 | Hakem gerekçeleri: metin genel, iç değerler (bayrak adları, skorlar) metinde | Müşteriye uyarlanmamış metin | Her öneri bir müşteri ihtiyacına bağlanır; iç değer yasak | Doğrulayıcıda yeni kurallar; hakem puanı belirgin değişmedi |
 | N9b | Bölüm başına şema (8 kopya) yapılandırılmış çıktı için çok büyük (HTTP 400 "compiled grammar is too large") | Metin üretilemiyordu | Tüm bölümler için tek cümle şeması | Test şemayı küçük tutar; 25 / 25 LLM metni |
 | N9c | Piyasa ortalaması (%43,82) ile ING oranı (%23) pakette aynı adı taşıyordu | Piyasa oranı ING ürün adının yanına yazılabilirdi | Adlandırılmış olgular + etiket kuralı | ING adı olan cümlede yalnızca ING oranı |
 | N10 | Panodaki özet canlı denemede 389 karakter (sınır 280) | Özet şablona düşüyordu | Sınır istemde kelimeyle (≈40); sığan tam cümleler tutulur | Kesik cümle yok; aşım doğrulayıcıda kalır |
+| D23 | Çok varlıklı fonların sınıfı tür ve addan geliyordu; tüm Değişken fonlar "dengeli" sayılıyordu, %80 hisse tutsalar da | Sınıf kuralı (D19) ve Dağılım satırları yanlış sınıfı kullanıyordu | Değişken, Karma, Fon Sepeti ve Katılım fonlarında sınıfı TEFAS portföy dağılımı belirler (en az %50 pay; çoğunluk yoksa dengeli); Borçlanma fonlarında yalnızca döviz çoğunluğu sayılır | Yaklaşık 214 fonun sınıfı değişti, çoğu dengeli → hisse; ör. P03 GBV: "portföyün %85'i hisse senedi" |
+| D25 | Kararlılık yalnızca ilk 20 sıradaki payı ölçüyordu; sınıf kuralı öneriyi uzak bir sıradan seçebilir (P03 IDY sıra 42, OKT sıra 57) | Bu öneriler kararlılık 0,00 aldı; `low_stability` yalnızca 1–3. sıraya bakıyordu | Önerilen seçeneğin kararlılığı = 30 bozulmuş çalıştırmada öneri kuralının onu yeniden önerme payı; uyarı tüm önerilere bakar | P03 IDY ve OKT 0,00 → 1,00; P01–P05'in tüm önerileri ≥ 0,83, `low_stability` uyarısı yok |
+| I6a | Zamanlanmış ingest'in görünür konsol penceresi kullanıcı tarafından kapatıldı (2026-10-14) | Çökme (çıkış kodu 0xC000013A); kilit dosyası ve yarım bir anlık görüntü kaldı | Görev konsol penceresi olmadan çalışır (`conhost --headless`) | Kapatılabilecek bir pencere yok |
+| I6b | Günlükte çalışmanın çıkış satırı yoktu: `echo ... exit 0>> log` 0 numaralı tanıtıcıyı yönlendirdi | Çalışmanın nasıl bittiği günlükten okunamıyordu | Yönlendirme satırın başına alındı | Her çalışma "exit <kod>" satırı yazar |
+| I3c | İlk zamanlanmış çalışma 4 fonda yeni bir TEFAS durum metni buldu: "Fon Alımına Kapalı, Fon Bozumuna Açık" | Bilinmeyen metin alım durumu satırı vermez; bu fonlar alıma açık sayılırdı | Metin "alınamaz" (0) olarak eşlendi | Yeni anlık görüntüde 195 fon alınamaz; listede 0 |
 
 ### Değerlendirmenin kendi hatası: eski metin önbelleği (2026-10-12)
 
@@ -248,7 +309,7 @@ bekleyen taslakları siliyor. Her biri testle korunuyor. Sonraki geçerli
 hedefleri karşıladı. Öğrenim: maliyet ve süre gibi "beklenmedik derecede iyi"
 ölçümler de bir hatanın işareti olabilir.
 
-## 7. Öğrenimler
+## 8. Öğrenimler
 
 1. **Geçmiş getiri tek başına baskın olur.** Bir yıllık veri, piyasa
    koşulunu herkese uygular. Müşteri profili (risk bandı, varlık sınıfı)
@@ -273,22 +334,34 @@ hedefleri karşıladı. Öğrenim: maliyet ve süre gibi "beklenmedik derecede i
    satırları her sınıfın en iyi seçeneğini gösterince, risk değeri olmayan
    bir altın fonunun Muhafazakâr tavanın içinde kaldığı görüldü. Tahmin
    artık varlık sınıfından gelir (D21).
+8. **Genel bir bayrağı kaldırmak gizli bir açığı ortaya çıkarabilir.** Her
+   TEFAS satırındaki "kontrol gerekli" bayrağı tüm güvenleri 0,90'da
+   tutuyordu; eksik stopaj ve TÜFE güveni düşürmüyordu, ama kontrol yine de
+   geçiyordu (D24). Yanlış nedenle geçen bir kontrol bir risktir. Veri veya
+   bayrak değişince ücretsiz `--no-llm` geçişini önce çalıştırmak bu açığı
+   tam değerlendirmeden önce buldu.
 
-## 8. Sınırlar
+## 9. Sınırlar
 
-- **Dondurulmuş anlık görüntü:** sonuçlar 2026-10-10 verisine aittir; başka
-  bir piyasa döneminde sıralama farklı olabilir.
+- **Dondurulmuş anlık görüntü:** sonuçlar 2026-10-14 anlık görüntüsüne
+  (TEFAS verisi 2026-10-13) aittir; başka bir piyasa döneminde sıralama
+  farklı olabilir.
 - **RM hazırlık süresi ölçülmedi:** sistem süresini ölçtük (kanıt + karar
-  ort. ≈ 1,0 sn, görüşme metni ort. ≈ 27 sn); RM'in bugünkü hazırlık süresi ve kazanç
+  ort. ≈ 1,2 sn, görüşme metni ort. ≈ 25 sn); RM'in bugünkü hazırlık süresi ve kazanç
   **[VARSAYIM]**, mentorların cevabına kadar.
-- **Hakem bir LLM:** puanlar yön göstergesidir; notların hemen hepsi
-  "kısmen"dir, "RM için açık" için hiç "evet" yoktur. İkinci bir hakemle uyum kontrolü sonraya
-  kaldı.
+- **Hakem bir LLM:** puanlar yön göstergesidir; 60 notun 52'si "kısmen"dir,
+  "uyarlanmış" için hiç "evet" yoktur. İkinci bir hakemle uyum kontrolü
+  sonraya kaldı.
+- **Portföy dağılımı tek günün verisidir:** çok varlıklı fonların sınıfı
+  (D23) ingest gününün dağılımından gelir; fon yöneticisi dağılımı
+  değiştirirse sınıf ertesi ingest'te değişebilir.
+- **Günlük ingest bir dizüstü bilgisayarda çalışır:** bilgisayar kapalıyken
+  çalışma bir sonraki açılışta yapılır; uygulama veri yaşını gösterir ve RM
+  veriyi yenileyebilir.
 - **Risk bantları ve D19 ayarları** tek anlık görüntüde ayarlandı;
   **[VARSAYIM]**, mentorlarla teyit edilecek.
 - **Personalar sentetik:** gerçek müşteri verisiyle test yapılmadı.
 - **Mevcut portföy yok:** personalar müşterinin varlık dağılımını vermez.
   Dağılım görünümü bantları ve sınıfın en iyi seçeneğini gösterir, bir
   boşluk analizi yapmaz; mevcut portföy girdisi gelecek iştir.
-- **Kayıt örneği bir betikle onaylandı:** Teslimat 6'daki onay zamanları
-  bir betikten gelir; bir RM'in uygulamada yaptığı onay değildir.
+- **Kayıt örneği:** Teslimat 6'daki kayıt örneği ayrıca açıklanır.
