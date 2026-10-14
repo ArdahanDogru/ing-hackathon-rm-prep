@@ -138,6 +138,21 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
                      stability=stab[r.option.option_id], evidence_ids=r.evidence_ids,
                      reasons=r.reasons)
         for r in scoring.scored)
+    # D23: a class from the holdings names its share and cites the rows of that class
+    if universe.holdings_class:
+        text = config.raw["texts"]["reasons"]["holdings_class"]
+        labels = config.raw["asset_classes"]["by_holdings"]["class_labels"]
+
+        def with_holdings(o: ScoredOption) -> ScoredOption:
+            hc = universe.holdings_class.get(o.option.option_id)
+            if hc is None:
+                return o
+            o = _with_class_reason(o, text.format(share=hc.share,
+                                                  label=labels[hc.asset_class]))
+            ids = tuple(sorted({*o.evidence_ids, *hc.evidence_ids}))
+            return dataclasses.replace(o, evidence_ids=ids)
+
+        options = tuple(map(with_holdings, options))
     # recommended top 3 with the class rule (D19); the reason of an option the rule
     # moved up says so
     idx = EvidenceIndex(evidence)
