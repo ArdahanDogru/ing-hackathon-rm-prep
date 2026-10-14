@@ -116,3 +116,28 @@ Config: `config/eval.yaml` (lead-owned). Scenario files:
 | E8 | (web UI, 2026-10-11; found by the full eval of prompt n6) `no_invented_data` also accepts the numbers of the run's display facts (`rmprep.decision.display.display_facts`: returns per period, real 1-year return, risk, valör) and the evidence rows they cite, because the narrator pack and the screens use them (N9). Before: 2 false findings (P03 edits: NJR 1-year return 49,2 used, only the 3-year row cited) | a text with a display-facts number passes; a number in neither the result, its evidence nor the display facts still fails; the two P03 edit scenarios pass |
 | E9 | (2026-10-12, decision D19; docs/decision.md section 10) regression scenarios for diverse recommendations: a new check `diverse_recommendations` — for a Dengeli or Agresif persona, or one with the diversity priority, `recommended` has at most one `nakit_benzeri` option and at least two asset classes when the result has them; for Muhafazakâr / Temkinli without that priority the check does not apply; every recommended fund is inside the risk ceiling; no class-rule pick has a negative real 1-year return. Scenarios: `reg-d19-p02-diverse`, `reg-d19-p04-diverse`, `reg-d19-p01-unchanged` (P01 keeps its plain score order), plus a Jury-Challenge style edit `edit-p05-dengeli` (P05 with risk_profili Dengeli gets the class rule). The report names the error case: before D19, 4 of 5 personas had the same top 3 | each scenario passes on the frozen snapshot with the main config; the check catches a hand-made result with 2 cash-like recommendations |
 | E10 | (2026-10-12, judge analysis) judge version j3: the judge prompt names all 8 sections (with talking_points), says which sections the RM sees collapsed (alternatifler, sorular, varsayimlar) and that varsayimlar is engine text, and gets the per-option facts it may expect (access, risk level) so it can see what was left out; the rubric definitions and "when in doubt choose the lower one" stay; an optional `judge_repeats` (default 1) grades a text n times with a seed in the cache key and reports the mean | the prompt holds the new context; repeats change the cache key; old cached verdicts do not match j3 |
+
+## Eval of 2026-10-15 (lead): ETFs, shares, 5-year history, D26–D27
+
+- Frozen snapshot `20261014-233110-1565` (36 ETFs, 590 shares after D26b, 5 years
+  of BIST bulletins, BIST 100 indices for 5 years). Reports: first full run
+  `data/eval/20261014-235326-20261014-full` ($0.96), final run with the new check
+  `data/eval/20261015-013525-20261015-final` (cached texts, $0).
+- **E10 `allocation_projection`** (lead, 2026-10-15): for every ready run with a
+  D27 current split: the points add up to 100 (± 0.5) and lie in their ranges;
+  only rows from `rm`, `rm_confirmed` or `persona_text` are active; each gap is the
+  distance to the band edge; without an active row no option has the
+  `allocation_gap` criterion (so the ranking is the one without D27). 37 pass,
+  2 n/a (runs that wait for an RM answer).
+- **Error found by the first full run (case 9):** all 25 LLM texts failed rule 3
+  on the code-written market note `piyasa_notu` (USD/TRY "49,28", the BIS policy
+  rate date "2026-08-31"): the check allowed only values of the rows the decision
+  result references, but the market note cites its own EVDS rows. Fix in
+  `check_no_invented_data`: a sentence may use the value and date of the rows it
+  cites itself; the same figure without the citation still fails (test
+  `test_a_sentence_may_use_the_rows_it_cites_itself`). After the fix: 100 %.
+- Final targets: rule checks 100 % (15 checks, 39 runs), narrator validator 100 %
+  (25 LLM texts, prompt n10), forbidden phrases 0. Judge (Haiku): tailored 55 %,
+  clear for the RM 52 %, balanced 62 % (14.10 morning, prompt n9: 50 / 57 / 62 %).
+- Top 3: P01 PPN, OSD, AIS; P02 EIL, KDE, NJR; P03 ASELS (share), IDY, OKT; P04 RPP,
+  OKT, TCF; P05 EIL, GBL, KSK.
