@@ -111,7 +111,7 @@ export function AllocationCard({
             <li
               key={a.asset_class}
               data-testid="alloc-row"
-              className={`grid ${hasCurrent ? "grid-cols-[130px_minmax(0,1fr)_100px_150px_minmax(0,220px)]" : "grid-cols-[150px_minmax(0,1fr)_140px_minmax(0,260px)]"} items-center gap-4 border-b border-gray-100 px-4 py-3.5 last:border-b-0`}
+              className={`grid ${hasCurrent ? "grid-cols-[112px_minmax(0,1fr)_92px_138px_minmax(0,190px)] gap-3" : "grid-cols-[150px_minmax(0,1fr)_140px_minmax(0,260px)] gap-4"} items-center border-b border-gray-100 px-4 py-3.5 last:border-b-0`}
             >
               <b>{a.label}</b>
               <div>
