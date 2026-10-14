@@ -645,6 +645,20 @@ I11d (approved by the user 2026-10-14; ingest@81f94fc): 5 years of share history
   of the parsed shares per SHA-256 (pure, so replay stays exact; a new
   process then needs about 2–3 s).
 
+I11e (2026-10-14; ingest@b965cec): a day without trading. The first 5-year
+ingest (snapshot 20261014-182901-ce5e) marked 8–14.02.2023 as unreadable
+("only 0 shares with a closing price"): Borsa İstanbul was closed after the 6
+February 2023 earthquake. The I11d guard then cut the history to 2023-02-15.
+
+- A valid bulletin (a ZIP with one CSV, the columns, `TARIH` = the day of the
+  URL) with 0 shares with a closing price is a day without trading. It gets a
+  `.closed` marker and is counted as `files.closed`. It is never `.bad` and
+  never a failure, also in the last `recheck_days` days; there it is asked
+  again, like a missing day. `min_shares` still applies when 0 < shares <
+  `min_shares`. A 0-share file with another `TARIH` still fails.
+- An I11d `.bad` marker whose reason starts with "only 0 shares with a closing
+  price" is reclassified to `.closed` (no request). Other `.bad` markers stay.
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes
