@@ -107,6 +107,17 @@ def build_warnings(options: Sequence[ScoredOption], levels: Levels,
         out.append(DecisionWarning(code="single_stock", message=tpl["single_stock"],
                                    option_ids=tuple(shares)))
 
+    crash = c.get("stock", {}).get("crash_1m_pct")
+    if crash is not None:       # 2026-10-14: a share in a crash (a warning, not an exclusion)
+        for oid in dict.fromkeys([*recommended, *(o.option.option_id for o in short)]):
+            o = by_id[oid]
+            row = idx.get("stock_return_1m", o.option.entity) if o.option.kind == "stock" else None
+            if row is not None and row.value is not None and row.value <= crash:
+                out.append(DecisionWarning(
+                    code="stock_crash",
+                    message=tpl["stock_crash"].format(name=o.option.label, ret=row.value),
+                    evidence_ids=(row.id,), option_ids=(oid,)))
+
     stale = sorted({r.id: r for r in real_inputs if Flag.STALE in r.flags}.values(),
                    key=lambda r: r.id)
     if stale and "stale_tax_input" in tpl:

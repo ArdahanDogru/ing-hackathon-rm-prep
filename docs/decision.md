@@ -1002,6 +1002,16 @@ Details fixed in D26c (decided by the user 2026-10-14; merged, decision@cd7bbca)
   unchanged; P05 EIL, NJR, KSK → EIL, GBL, KSK. EFOR (P03): "Yıllık getiri
   %906.4 (6m)" → "6 aylık getiri %217.2 (yıllıklandırılmadı)".
 
+Crash warning (approved by the user 2026-10-14, lead): a share in the
+recommended top 3 or in the short list whose `stock_return_1m` is at or below
+`stock.crash_1m_pct` (−50) gets the RM-only warning `stock_crash`
+("{name}: son 1 ayda %{ret:.0f} değer kaybı (art arda taban fiyat olabilir);
+şirket haberlerini kontrol edin."), with the 1-month return row as evidence. The
+share is not excluded and its score does not change (found on 2026-10-14:
+IEYHO −88 % in 1 month after about 20 limit-down days, at place 12 for P03).
+On snapshot 20261014-191003-eedf the warning is shown for KTLEV (P03 place 5,
+−79 % in 1 month); IEYHO at place 12 is outside the short list of 10.
+
 ## 17. Current split and allocation gap (D27, approved by the user 2026-10-14)
 
 Spec: `docs/superpowers/specs/2026-10-14-portfolio-projection-design.md`

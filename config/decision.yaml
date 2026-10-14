@@ -269,6 +269,9 @@ stock:
   # D26b [VARSAYIM, lead 2026-10-14]: W = Yakın İzleme Pazarı; S = Nitelikli Yatırımcı
   # İşlem Pazarı or the pre-market platform (code not confirmed); both restricted
   exclude_markets: [W, S]
+  # 2026-10-14 (the user): a share in the top 3 or the short list that fell this much
+  # in 1 month gets an RM warning (e.g. a series of limit-down days); not an exclusion
+  crash_1m_pct: -50
 
 underperformance: {scale: 0.20}   # D10: B = EVDS market deposit rate net of the deposit stopaj
 long_horizon: {period: 3y, liquidity_factor: 0.5, return_add: 1.0}   # D9: horizon 3+ years
@@ -479,6 +482,7 @@ texts:
     stale_tax_input: "Vergi veya enflasyon verisi güncel değil ({entities}); reel getiriler bu değerlerle hesaplandı. Güncel oranı teyit edin."
     # D26: a share in the recommended top 3 (RM only)
     single_stock: "Tek bir şirketin payı: şirkete özgü risk; çeşitlendirmeyi RM değerlendirsin."
+    stock_crash: "{name}: son 1 ayda %{ret:.0f} değer kaybı (art arda taban fiyat olabilir); şirket haberlerini kontrol edin."
   data_quality:
     excluded_exchange_groups: "Borsa ürünlerinden varant ve sertifikalar, borsada işlem gören gayrimenkul ve girişim sermayesi fonları, tahvil ve eurobondlar kapsam dışıdır."   # D26
     removed_stock_market: "{count} pay, yakın izleme veya nitelikli yatırımcı pazarında işlem gördüğü için çıkarıldı (pazar kodu: {markets})."   # D26b

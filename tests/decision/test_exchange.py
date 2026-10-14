@@ -509,3 +509,53 @@ def test_a_class_with_only_shares_has_no_example(d26_config):
     band, r = _hisse_band(d26_config, stock("TOP"))
     assert any(o.option.option_id == "stock:TOP" for o in r.options)
     assert band.option_id is None and band.note == "none"
+
+
+# --- a share in a crash (lead, 2026-10-14; the user: a warning, not an exclusion) ------------
+
+CRASH = ("{name}: son 1 ayda %{ret:.0f} değer kaybı (art arda taban fiyat olabilir); "
+         "şirket haberlerini kontrol edin.")
+
+
+def _crash_config(d26_raw, limit=-50):
+    d26_raw["stock"]["crash_1m_pct"] = limit
+    d26_raw["texts"]["warnings"]["stock_crash"] = CRASH
+    return parse_config(d26_raw)
+
+
+def test_a_share_in_a_crash_gets_a_warning_and_stays(d26_raw):
+    cfg = _crash_config(d26_raw)
+    crash = stock("CRSH", returns={"1m": -88.0, "3m": -80.0, "6m": 200.0, "1y": 900.0},
+                  name="CRASH HOLDING")
+    r = decide(_ev(crash, stock("OKAY")), load_persona("P03"), cfg, created_at=T0)
+    assert "stock:CRSH" in _by_id(r)                         # not excluded
+    [w] = [w for w in r.warnings if w.code == "stock_crash"]
+    assert w.option_ids == ("stock:CRSH",) and w.audience == "rm"
+    assert w.message == "CRASH HOLDING: son 1 ayda %-88 değer kaybı (art arda taban fiyat olabilir); şirket haberlerini kontrol edin."
+    ev = {d.id: d for d in _ev(crash).datapoints}
+    [eid] = w.evidence_ids
+    assert ev[eid].quantity == "stock_return_1m" and ev[eid].entity == "CRSH"
+
+
+def test_no_crash_warning_above_the_limit_or_without_the_key(d26_raw, d26_config):
+    small = stock("DOWN", returns={"1m": -49.0, "3m": -40.0, "6m": 10.0, "1y": 30.0})
+    r = decide(_ev(small), load_persona("P03"), _crash_config(d26_raw), created_at=T0)
+    assert not [w for w in r.warnings if w.code == "stock_crash"]
+    big = stock("CRSH", returns={"1m": -88.0, "3m": -80.0, "6m": 200.0, "1y": 900.0})
+    r = decide(_ev(big), load_persona("P03"), d26_config, created_at=T0)   # no crash_1m_pct
+    assert not [w for w in r.warnings if w.code == "stock_crash"]
+
+
+def test_crash_limit_needs_its_text_and_a_negative_value(d26_raw):
+    d26_raw["texts"]["warnings"].pop("stock_crash", None)     # the real config has the text
+    d26_raw["stock"]["crash_1m_pct"] = -50
+    with pytest.raises(ConfigError, match="stock_crash"):
+        parse_config(d26_raw)
+    d26_raw["texts"]["warnings"]["stock_crash"] = CRASH
+    d26_raw["stock"]["crash_1m_pct"] = 10
+    with pytest.raises(ConfigError, match="crash_1m_pct"):
+        parse_config(d26_raw)
+    d26_raw["stock"]["crash_1m_pct"] = -50
+    d26_raw["warnings"]["audience"] = {"stock_crash": "client"}
+    with pytest.raises(ConfigError, match="warnings.audience.stock_crash"):
+        parse_config(d26_raw)

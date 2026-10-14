@@ -53,8 +53,8 @@ TEXT_SECTIONS = ("reasons", "constraint", "questions", "effect_labels", "assumpt
 # optional sections of D9 (real return after tax); without them: nominal returns
 WARNING_CODES = ("concentration", "fx_exposure", "risk_estimate", "low_stability",
                  "deposit_vs_market", "no_fx_deposit_data", "stale_tax_input",
-                 "single_stock")
-RM_ONLY_WARNINGS = ("stale_tax_input", "single_stock")   # never for the client (D22, D26)
+                 "single_stock", "stock_crash")
+RM_ONLY_WARNINGS = ("stale_tax_input", "single_stock", "stock_crash")   # never for the client (D22, D26)
 TALKING_CODES = ("deposit_real", "best_alternative", "access", "risk_fit")
 _D9_SECTIONS = ("holdings", "allocation_gap", "etf", "stock", "risk_estimate", "allocation", "asset_classes", "risk_fit", "recommend", "talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
                 "fund_detail", "constraint_rules", "short_history")
@@ -688,7 +688,15 @@ def _check_exchange(c: dict) -> None:
     if "stock" in c:
         st = c["stock"]
         _keys(st, "stock", ("source", "risk_floor", "min_turnover_try", "max_in_top3",
-                            "spk_bands", "asset_class"), ("exclude_markets",))
+                            "spk_bands", "asset_class"), ("exclude_markets", "crash_1m_pct"))
+        if "crash_1m_pct" in st:        # 2026-10-14: a warning for a share in a crash
+            v = st["crash_1m_pct"]
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or not -100 < v < 0:
+                raise ConfigError("stock.crash_1m_pct: a 1-month return in % between -100 and 0")
+            _text(c, "warnings", "stock_crash", "stock.crash_1m_pct")
+            text = c["texts"]["warnings"]["stock_crash"]
+            if not {f for _, f, _, _ in string.Formatter().parse(text) if f} <= {"name", "ret"}:
+                raise ConfigError("texts.warnings.stock_crash: only the fields {name} {ret}")
         if "exclude_markets" in st:     # D26b: PAZAR codes of EntityInfo.category
             em = st["exclude_markets"]
             if not isinstance(em, list) or not all(isinstance(m, str) and m.strip()
