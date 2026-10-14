@@ -114,14 +114,41 @@ def default_detail_pages() -> dict[str, bytes]:
             "ZZZ": detail_page("MAC", "ZZZ")}
 
 
+# I10: exchange-traded funds as on /tr/fon-getirileri?fundType=BYF (probe
+# 2026-10-14: the same embedded data as the fund page; risk missing for one).
+BYF_URL = "https://www.tefas.gov.tr/tr/fon-getirileri?fundType=BYF"
+TEFAS_BYF_FUNDS = [
+    {"fonKodu": "BOE", "fonUnvan": "ÖRNEK PORTFÖY BIST 30 ENDEKSİ HİSSE SENEDİ YOĞUN BORSA YATIRIM FONU",
+     "fonTurAciklama": "Hisse Senedi Yoğun", "getiri1a": 2.5, "getiri3a": 6.1,
+     "getiri6a": 12.0, "getiri1y": 35.2, "getiriyb": 20.4, "getiri3y": 180.0,
+     "getiri5y": None, "getiriOrani": None, "riskDegeri": "6"},
+    {"fonKodu": "GLD", "fonUnvan": "ÖRNEK PORTFÖY ALTIN BORSA YATIRIM FONU",
+     "fonTurAciklama": "Endeks Fon", "getiri1a": 4.0, "getiri3a": None, "getiri6a": None,
+     "getiri1y": 50.1, "getiriyb": 40.0, "getiri3y": None, "getiri5y": None,
+     "getiriOrani": None, "riskDegeri": None},
+]
+
+
+def add_byf(config_raw: dict) -> dict:
+    """config_raw with the I10 BYF source (a copy of tefas_web with the BYF URL)
+    and tefas_detail reading the fund lists of both sources."""
+    byf = copy.deepcopy(config_raw["sources"]["tefas_web"])
+    byf.update(url=BYF_URL, source_url=BYF_URL, min_funds=2)
+    config_raw["sources"]["tefas_byf"] = byf
+    config_raw["sources"]["tefas_detail"]["funds_from"] = ["tefas_web", "tefas_byf"]
+    return config_raw
+
+
 class FakeEvds:
     """httpx transport that serves fixture files and records requests. Also
-    serves the TEFAS web page (tefas_page=None -> HTTP 503 for it)."""
+    serves the TEFAS web page (tefas_page=None -> HTTP 503 for it) and the BYF
+    view of it (byf_page, same rule)."""
 
     def __init__(self, status=200, body=None, error=None, tefas_page=b"default",
-                 detail_pages=None):
+                 detail_pages=None, byf_page=b"default"):
         self.status, self.body, self.error = status, body, error
         self.tefas_page = tefas_web_page() if tefas_page == b"default" else tefas_page
+        self.byf_page = tefas_web_page(TEFAS_BYF_FUNDS) if byf_page == b"default" else byf_page
         # fund code -> detail page bytes; a code without a page gives HTTP 404
         self.detail_pages = default_detail_pages() if detail_pages is None else detail_pages
         self.requests: list[httpx.Request] = []
@@ -132,9 +159,10 @@ class FakeEvds:
             if request.url.path.startswith(DETAIL_PATH):
                 page = self.detail_pages.get(request.url.path[len(DETAIL_PATH):])
                 return httpx.Response(404) if page is None else httpx.Response(200, content=page)
-            if self.tefas_page is None:
+            page = self.byf_page if request.url.params.get("fundType") == "BYF" else self.tefas_page
+            if page is None:
                 return httpx.Response(503)
-            return httpx.Response(200, content=self.tefas_page)
+            return httpx.Response(200, content=page)
         if self.error:
             raise self.error
         if self.body is not None:
@@ -221,7 +249,8 @@ TEST_TEFAS_DETAIL = {
         "field": "profilData.tefasDurum",
         "quantity": "fund_buyable",
         "map": {"TEFAS'ta işlem görüyor": 1, "TEFAS'ta işlem görmüyor": 0,
-                "Fon Alımına Kapalı, Fon Bozumuna Kapalı": 0},
+                "Fon Alımına Kapalı, Fon Bozumuna Kapalı": 0,
+                "Platformda İşlem Görmüyor": 0},          # BYF on the exchange (I10)
     },
 }
 
