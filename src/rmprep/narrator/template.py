@@ -100,6 +100,7 @@ HEADINGS = {
     "ek": {"TR": "Ek bilgiler", "EN": "Additional information"},     # N13: screen order
     "talking_points": {"TR": "Müşteriyle konuşulacaklar", "EN": "Talking points"},
     "ozet": {"TR": "Özet", "EN": "Summary"},
+    "piyasa_notu": {"TR": "Piyasa notu", "EN": "Market note"},       # N14
     "oneriler": {"TR": "Öneriler", "EN": "Options to discuss"},
     "alternatifler": {"TR": "Alternatifler", "EN": "Alternatives"},
     "dikkat": {"TR": "Dikkat", "EN": "Points to watch"},
@@ -516,15 +517,17 @@ def banner(d: NarrativeDraft) -> str | None:
     return BANNER[d.lang] if d.source == "template" and d.checks else None
 
 
-_PARAGRAPHS = ("ozet", "teklif_metni")    # prose; the other sections are lists
+_PARAGRAPHS = ("ozet", "piyasa_notu", "teklif_metni")    # prose; the other sections are lists
 # N13: the screen order; the last three under "Ek bilgiler"
-_MD_MAIN = ("ozet", "talking_points", "teklif_metni", "oneriler", "dikkat")
+_MD_MAIN = ("ozet", "piyasa_notu", "talking_points", "teklif_metni", "oneriler", "dikkat")
 _MD_EXTRA = ("alternatifler", "sorular", "varsayimlar")
 
 
 # --- blocks of the meeting text (contract v1.5; N11; ids also in rmprep.edits) ----------
 
-WHOLE_SECTIONS = ("ozet", "teklif_metni", "dikkat", "alternatifler", "sorular", "varsayimlar")
+MARKET_NOTE = "piyasa_notu"     # N14: the code-written market note (rmprep.narrator.market)
+WHOLE_SECTIONS = ("ozet", MARKET_NOTE, "teklif_metni", "dikkat", "alternatifler", "sorular",
+                  "varsayimlar")
 
 
 def block_of(key: str, i: int, s: NarrativeSentence) -> str | None:

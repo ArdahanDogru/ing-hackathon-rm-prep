@@ -31,6 +31,23 @@ class BriefConfig:
 
 
 @dataclass(frozen=True)
+class MarketSeries:
+    """One EVDS series of the market note (config market_note.series; W15/N14)."""
+    key: str
+    quantity: str
+    entity: str             # as in config/sources.yaml
+    unit: str
+    label: Mapping[str, str]
+
+
+@dataclass(frozen=True)
+class MarketNoteConfig:
+    """N14: the code-written block piyasa_notu, one sentence per series."""
+    series: tuple[MarketSeries, ...]
+    sentence: Mapping[str, str]     # per language; fields {label}, {value}, {date}
+
+
+@dataclass(frozen=True)
 class NarratorConfig:
     model: str
     effort: str
@@ -50,6 +67,7 @@ class NarratorConfig:
     # N13: fixed risk note per asset class (by_class) or option kind (by_kind), per language
     risk_notes: Mapping[str, Mapping[str, Mapping[str, str]]] = dataclasses.field(
         default_factory=dict)
+    market_note: MarketNoteConfig | None = None  # None: no market_note.sentence -> no block
 
 
 def _get(raw: Mapping, path: str):
@@ -119,7 +137,41 @@ def parse_config(raw: Mapping) -> NarratorConfig:
                           if "workspace_id_env" in raw.get("llm", {}) else None),
         brief=_brief(raw) if "brief" in raw else None,
         risk_notes=_risk_notes(raw) if "risk_notes" in raw else {},
+        market_note=_market_note(raw),
     )
+
+
+def _market_note(raw: Mapping) -> MarketNoteConfig | None:
+    note = raw.get("market_note")
+    if not isinstance(note, Mapping) or "sentence" not in note:
+        return None
+    sentence = _per_lang(raw, "market_note.sentence")
+    for lang in sentence:
+        _str(raw, f"market_note.sentence.{lang}")
+        try:
+            sentence[lang].format(label="", value="", date="")
+        except (KeyError, IndexError, ValueError) as e:
+            raise ConfigError(f"market_note.sentence.{lang}: only the fields {{label}}, "
+                              f"{{value}}, {{date}}: {e!r}") from None
+    series = _get(raw, "market_note.series")
+    if not isinstance(series, list):
+        raise ConfigError("market_note.series: must be a list")
+    out = []
+    for i, s in enumerate(series):
+        path = f"market_note.series.{i}"
+        if not isinstance(s, Mapping):
+            raise ConfigError(f"{path}: must be a mapping")
+        fields = {}
+        for k in ("key", "quantity", "entity", "unit"):
+            if not isinstance(s.get(k), str) or not s[k].strip():
+                raise ConfigError(f"{path}.{k}: must be a non-empty string, got {s.get(k)!r}")
+            fields[k] = s[k]
+        label = s.get("label")
+        if (not isinstance(label, Mapping) or set(label) != set(NARRATIVE_LANGS)
+                or not all(isinstance(v, str) and v.strip() for v in label.values())):
+            raise ConfigError(f"{path}.label: needs a non-empty text for each of {NARRATIVE_LANGS}")
+        out.append(MarketSeries(**fields, label=dict(label)))
+    return MarketNoteConfig(series=tuple(out), sentence=sentence)
 
 
 def _risk_notes(raw: Mapping) -> dict:
