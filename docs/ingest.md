@@ -602,6 +602,21 @@ I11 rule never fired (KORDS 14.09: 1-month return −96 %).
   actions. The market fell from 14.09 to 30.09 (BIST 100 members, equal
   weight, about −24 %).
 
+I11c (2026-10-14, ingest@0ac8aba): the base price of a jump day must agree
+with the daily price limit (HRKET 21.09: open 5.72, low 5.70, high 6.91; with
+the open as the base, the day counted +21 %).
+
+- Base b: high ≤ b × (1 + P) and low ≥ b × (1 − P), so b is in
+  [high / (1 + P), low / (1 − P)]. The base is the open clamped to that
+  interval (HRKET: [6.28, 6.33] → 6.28). If the interval is empty, or the low
+  or the high is 0, the base is the open (the close when the open is 0).
+  Ratio = base / close_prev. P = optional source key `price_limit_pct`
+  (default 10 %), separate from `adjust_jump_pct` (the detection, 10.5 %).
+  `EN DUSUK FIYAT` and `EN YUKSEK FIYAT` are required columns.
+- Check on the 276 cache files: the open is inside the interval on 99 of the
+  116 jump days and is clamped on 17. HRKET 1 month +75.9 % (was +93.2 %);
+  KORDS, BIMAS and GENIL are unchanged.
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes
