@@ -316,3 +316,23 @@ from the evidence (`EvidenceIndex`, the entities of `config/sources.yaml`), each
 sentence with its evidence ids; a missing series is left out; none at all → no
 block. The block is deletable like the others, so the RM can keep it out of
 the client text; the dashboard shows the same values (web W15).
+
+**N14 as built** (merged 2026-10-14, narrator@9de7b91):
+
+- `template.apply_edits` drops "" blocks; `to_markdown(d, names=None,
+  disclaimer=None)` leaves out sections with no sentence left (and "Ek
+  bilgiler" when all three are gone) and adds the disclaimer (default: config
+  by `d.lang`) as the last line when the text no longer has it.
+  `edits.apply_edits` (lead) hands the work to `template.apply_edits`.
+- `rmprep/narrator/market.py`: `market_note_sentences` / `with_market_note`
+  build `piyasa_notu` right after `ozet`, one sentence per
+  `market_note.series` with the template `market_note.sentence` and its
+  evidence id. A missing series is left out; no series, no evidence or no
+  sentence template = no block. `Narrator.draft` adds it to LLM and template
+  drafts (cached with it).
+- `validate()` skips `piyasa_notu`. `check_block` on an edited `piyasa_notu`
+  allows the numbers and dates of the original note; a new number still warns.
+- Drafts cached before N14 have no market note until the cache key changes
+  (prompt_version or the facts); a new snapshot changes the facts.
+- The sentence form is one sentence per series ("{label} {value} (TCMB EVDS,
+  {date}).") instead of the one long sentence above.
