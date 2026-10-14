@@ -160,6 +160,7 @@ class BistBulletinSource(SourceConfig):
     recheck_days: int                # a day without a bulletin this recent is asked again
     min_shares: int                  # fewer shares with a close -> the file is not valid
     adjust_jump_pct: float = 10.5    # I11b: a close move beyond ± this % = corporate action
+    price_limit_pct: float = 10.0    # I11c: daily price limit, bounds the base price
 
     def day_url(self, day: date) -> str:
         return self.url.format(yyyy=f"{day:%Y}", mm=f"{day:%m}", yyyymmdd=f"{day:%Y%m%d}")
@@ -585,7 +586,8 @@ def _parse_manual(name, s, path, quantities) -> ManualSource:
 def _parse_bist_bulletin(name, s, path, quantities) -> BistBulletinSource:
     _check_keys(s, path, _COMMON_REQUIRED | {"url", "user_agent"},
                 _COMMON_OPTIONAL | {"timeout_seconds", "history_days", "min_interval_s",
-                                    "recheck_days", "min_shares", "adjust_jump_pct"})
+                                    "recheck_days", "min_shares", "adjust_jump_pct",
+                                    "price_limit_pct"})
     url = _str(s["url"], f"{path}.url")
     parts = urlsplit(url)
     if parts.scheme != "https" or parts.netloc != BIST_HOST:
@@ -614,6 +616,9 @@ def _parse_bist_bulletin(name, s, path, quantities) -> BistBulletinSource:
     jump = _num(s.get("adjust_jump_pct", 10.5), f"{path}.adjust_jump_pct")
     if not 0 < jump < 100:
         raise ConfigError(f"{path}.adjust_jump_pct: must be between 0 and 100 (both excluded)")
+    price_limit = _num(s.get("price_limit_pct", 10.0), f"{path}.price_limit_pct")
+    if not 0 < price_limit < 100:
+        raise ConfigError(f"{path}.price_limit_pct: must be between 0 and 100 (both excluded)")
     return BistBulletinSource(
         **_common(name, s, path),
         url=url,
@@ -624,6 +629,7 @@ def _parse_bist_bulletin(name, s, path, quantities) -> BistBulletinSource:
         recheck_days=recheck,
         min_shares=_pos_int(s.get("min_shares", 100), f"{path}.min_shares"),
         adjust_jump_pct=jump,
+        price_limit_pct=price_limit,
     )
 
 

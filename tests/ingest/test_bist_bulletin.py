@@ -99,7 +99,7 @@ def test_config_parses_source(bcfg):
     src = bcfg.sources["bist_bulletin"]
     assert isinstance(src, BistBulletinSource)
     assert (src.history_days, src.min_interval_s, src.recheck_days, src.min_shares,
-            src.adjust_jump_pct) == (90, 1.0, 3, 2, 10.5)
+            src.adjust_jump_pct, src.price_limit_pct) == (90, 1.0, 3, 2, 10.5, 10.0)
     assert src.day_url(date(2026, 10, 8)) == \
         "https://www.borsaistanbul.com/data/thb/2026/10/thb202610081.zip"
 
@@ -110,9 +110,11 @@ def test_config_defaults(config_raw):
                 "min_shares"):
         del s[key]
     s.pop("adjust_jump_pct", None)
+    s.pop("price_limit_pct", None)
     src = parse_config(config_raw).sources["bist_bulletin"]
     assert (src.timeout_seconds, src.history_days, src.min_interval_s, src.recheck_days,
-            src.min_shares, src.adjust_jump_pct) == (30, 400, 1.0, 3, 100, 10.5)
+            src.min_shares, src.adjust_jump_pct,
+            src.price_limit_pct) == (30, 400, 1.0, 3, 100, 10.5, 10.0)
 
 
 @pytest.mark.parametrize("url,match", [
@@ -136,6 +138,9 @@ def test_config_rejects_bad_url(config_raw, url, match):
     ("adjust_jump_pct", 0, "between 0 and 100"),
     ("adjust_jump_pct", 100, "between 0 and 100"),
     ("adjust_jump_pct", "10.5", "must be a number"),
+    ("price_limit_pct", 0, "between 0 and 100"),
+    ("price_limit_pct", 100, "between 0 and 100"),
+    ("price_limit_pct", "10", "must be a number"),
 ])
 def test_config_rejects_bad_values(config_raw, key, value, match):
     add_bist(config_raw)["sources"]["bist_bulletin"][key] = value
@@ -293,6 +298,7 @@ def test_read_real_sample_rows():
     thy = shares[1]
     assert (thy.name, thy.market, thy.bist100) == ("TURK HAVA YOLLARI", "Z", True)
     assert thy.close == 286.25 and thy.open_price == 286.25 and thy.turnover > 0
+    assert (thy.low, thy.high) == (284.75, 287.25)
 
 
 # --- parse -----------------------------------------------------------------------------------
@@ -380,10 +386,15 @@ def test_parse_is_deterministic_and_fallback_keeps_origin(tmp_path, bcfg):
 D = [date(2026, 9, d) for d in (10, 11, 14, 15)]
 
 
+def _adjust(obs, jump_pct=10.5, limit_pct=10.0):
+    """bb.adjust on (day, close, open) rows without low and high (0: the open is the base)."""
+    return bb.adjust([(d, c, o, 0.0, 0.0) for d, c, o in obs], jump_pct, limit_pct)
+
+
 def test_adjust_bonus_issue_down_jump_uses_the_open():
     # KORDS 2026-09-14 (real): close 77.65 on 11.09, then open 4.03, close 4.02.
     obs = [(D[0], 77.0, 77.0), (D[1], 77.65, 77.4), (D[2], 4.02, 4.03), (D[3], 4.10, 4.02)]
-    adjusted, n = bb.adjust(obs, 10.5)
+    adjusted, n = _adjust(obs, 10.5)
     ratio = 4.03 / 77.65
     assert n == 1
     assert adjusted == [(D[0], 77.0 * ratio), (D[1], 77.65 * ratio), (D[2], 4.02), (D[3], 4.10)]
@@ -391,7 +402,7 @@ def test_adjust_bonus_issue_down_jump_uses_the_open():
 
 def test_adjust_reverse_split_up_jump():
     obs = [(D[0], 9.5, 9.5), (D[1], 10.0, 9.5), (D[2], 101.0, 100.0)]    # 10-to-1
-    adjusted, n = bb.adjust(obs, 10.5)
+    adjusted, n = _adjust(obs, 10.5)
     assert n == 1 and adjusted == [(D[0], 95.0), (D[1], 100.0), (D[2], 101.0)]
 
 
@@ -399,41 +410,75 @@ def test_adjust_reverse_split_up_jump():
 def test_adjust_moves_within_the_limit_are_real(close):
     # BIST daily price limit is ±10 %; a move up to ±10.5 % is not a corporate action.
     obs = [(D[0], 100.0, 100.0), (D[1], close, 100.0)]
-    assert bb.adjust(obs, 10.5) == ([(D[0], 100.0), (D[1], close)], 0)
+    assert _adjust(obs, 10.5) == ([(D[0], 100.0), (D[1], close)], 0)
 
 
 def test_adjust_zero_open_uses_the_close():
     obs = [(D[0], 50.0, 50.0), (D[1], 25.5, 0.0)]
-    assert bb.adjust(obs, 10.5) == ([(D[0], 25.5), (D[1], 25.5)], 1)
+    assert _adjust(obs, 10.5) == ([(D[0], 25.5), (D[1], 25.5)], 1)
 
 
 def test_adjust_two_jumps_multiply():
     obs = [(D[0], 100.0, 100.0), (D[1], 50.0, 50.0), (D[2], 500.0, 500.0), (D[3], 510.0, 500.0)]
-    adjusted, n = bb.adjust(obs, 10.5)
+    adjusted, n = _adjust(obs, 10.5)
     assert n == 2                                         # x 0.5, then x 10
     assert adjusted == [(D[0], 500.0), (D[1], 500.0), (D[2], 500.0), (D[3], 510.0)]
 
 
 def test_adjust_limit_comes_from_the_argument():
     obs = [(D[0], 100.0, 100.0), (D[1], 85.0, 85.0)]
-    assert bb.adjust(obs, 20)[1] == 0 and bb.adjust(obs, 10.5)[1] == 1
+    assert _adjust(obs, 20)[1] == 0 and _adjust(obs, 10.5)[1] == 1
+
+
+# --- the base price within the daily limit (I11c) --------------------------------------------
+
+@pytest.mark.parametrize("open_price,low,high,close,expected", [
+    (5.72, 5.70, 6.91, 6.91, 6.91 / 1.1),     # HRKET 21.09 (real): open below [6.28, 6.33]
+    (4.03, 3.92, 4.14, 4.02, 4.03),           # KORDS 14.09 (real): open inside [3.76, 4.36]
+    (7.00, 5.70, 6.00, 6.00, 5.70 / 0.9),     # open above the interval -> its upper end
+    (6.00, 5.00, 7.00, 6.50, 6.00),           # empty interval [6.36, 5.56] -> the open
+    (6.00, 0.0, 7.00, 6.50, 6.00),            # no low -> the open
+    (6.00, 5.00, 0.0, 6.50, 6.00),            # no high -> the open
+    (0.0, 0.0, 0.0, 6.50, 6.50),              # no open -> the close
+])
+def test_base_price(open_price, low, high, close, expected):
+    assert bb.base_price(open_price, low, high, close, 10.0) == pytest.approx(expected)
+
+
+def test_base_price_limit_comes_from_the_argument():
+    assert bb.base_price(5.72, 5.70, 6.91, 6.91, 20.0) == pytest.approx(6.91 / 1.2)
+
+
+def test_adjust_uses_the_base_price():
+    # HRKET: close 88, then a bonus issue day with open 5.72, low 5.70, high 6.91.
+    obs = [(D[0], 88.0, 88.0, 87.0, 89.0), (D[1], 6.91, 5.72, 5.70, 6.91),
+           (D[2], 7.00, 6.95, 6.90, 7.05)]
+    adjusted, n = bb.adjust(obs, 10.5, 10.0)
+    assert n == 1
+    assert adjusted[0] == (D[0], pytest.approx(88.0 * (6.91 / 1.1) / 88.0))
+    assert adjusted[1:] == [(D[1], 6.91), (D[2], 7.00)]
 
 
 def _jump_history():
-    """Bulletins with the real header: KRD has a KORDS-like bonus issue on its
-    21st day, REV a reverse split on its 26th, UPD a real +9.9 % day on its
-    11th; 30 trading days up to BIST_END."""
+    """Bulletins with the real header, 30 trading days up to BIST_END: KRD has
+    a KORDS-like bonus issue on its 21st day, REV a reverse split on its 26th,
+    UPD a real +9.9 % day on its 11th, HRK a HRKET-like bonus issue (open
+    below the base) on its 16th. Rows: (close, previous close, open[, low, high])."""
     days = bist_trading_days(n=30)
     files = {}
     for k, d in enumerate(days):
         krd = (77.65, 77.4, 77.4) if k < 20 else (
-            (4.02, 77.65, 4.03) if k == 20 else (4.02, 4.02, 4.02))
+            (4.02, 77.65, 4.03, 3.92, 4.14) if k == 20 else (4.02, 4.02, 4.02))
         rev = (10.0, 10.0, 10.0) if k < 25 else (
             (101.0, 10.0, 100.0) if k == 25 else (101.0, 101.0, 101.0))
         upd = (100.0, 100.0, 100.0) if k < 10 else (
             (109.9, 100.0, 100.5) if k == 10 else (109.9, 109.9, 109.9))
-        rows = [bist_row(d, f"{c}.E", f"{c} AS", close, prev, open_price=op)
-                for c, (close, prev, op) in (("KRD", krd), ("REV", rev), ("UPD", upd))]
+        hrk = (88.0, 88.0, 88.0) if k < 15 else (
+            (6.91, 88.0, 5.72, 5.70, 6.91) if k == 15 else (6.91, 6.91, 6.91))
+        rows = [bist_row(d, f"{c}.E", f"{c} AS", *values[:2], open_price=values[2],
+                         low=values[3] if len(values) > 3 else None,
+                         high=values[4] if len(values) > 3 else None)
+                for c, values in (("KRD", krd), ("REV", rev), ("UPD", upd), ("HRK", hrk))]
         files[bist_name(d)] = bulletin_zip(d, rows)
     return files, days
 
@@ -451,6 +496,8 @@ def test_jumps_in_the_bulletins_are_adjusted(tmp_path, bcfg):
     assert upd.value == pytest.approx(9.9)                # a real move, kept
     assert upd.note == "UPD AS; adjusted closes (0 jumps beyond ±10.5 %); dividends not adjusted"
     assert _get(pts, "KRD", "stock_close").value == 4.02  # the close itself is not adjusted
+    hrk = _get(pts, "HRK", "stock_return_1m")             # base 6.91 / 1.1, not the open 5.72
+    assert hrk.value == pytest.approx((6.91 / (6.91 / 1.1) - 1) * 100)      # +10 %, not +21 %
 
 
 def test_jump_limit_from_config(tmp_path, config_raw):
