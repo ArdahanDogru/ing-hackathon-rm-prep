@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlsplit
@@ -16,8 +17,13 @@ from urllib.parse import urlsplit
 import yaml
 
 CONFIG_VERSION = 1
-ADAPTERS = ("evds", "tefas", "tefas_web", "tefas_detail", "manual")
+ADAPTERS = ("evds", "tefas", "tefas_web", "tefas_detail", "manual", "bist_bulletin")
 TEFAS_WEB_HOST = "www.tefas.gov.tr"
+BIST_HOST = "www.borsaistanbul.com"
+# I11: the quantities the bist_bulletin adapter writes; each must be in `quantities`.
+BIST_QUANTITIES = ("stock_close", "stock_return_1m", "stock_return_3m", "stock_return_6m",
+                   "stock_return_1y", "stock_volatility_1y", "stock_turnover_3m",
+                   "stock_bist100")
 # tefas.gov.tr/robots.txt (2026-10-09) disallows these paths for all agents.
 TEFAS_DISALLOWED_PREFIXES = ("/api/", "/private/", "/tefasbuild", "/_next/", "/static/")
 ON_FAILURE = ("previous", "exclude")
@@ -141,6 +147,21 @@ class TefasDetailSource(SourceConfig):
 
 
 DETAIL_OBJECTS = ("bilgiData", "profilData")
+
+
+@dataclass(frozen=True)
+class BistBulletinSource(SourceConfig):
+    """I11: Borsa İstanbul end-of-day bulletins, one ZIP per trading day."""
+    url: str                         # with {yyyy}, {mm}, {yyyymmdd}
+    user_agent: str
+    timeout_seconds: float
+    history_days: int                # days of bulletins used (the first run fetches them all)
+    min_interval_s: float            # at least this many seconds between requests
+    recheck_days: int                # a day without a bulletin this recent is asked again
+    min_shares: int                  # fewer shares with a close -> the file is not valid
+
+    def day_url(self, day: date) -> str:
+        return self.url.format(yyyy=f"{day:%Y}", mm=f"{day:%m}", yyyymmdd=f"{day:%Y%m%d}")
 
 
 @dataclass(frozen=True)
@@ -560,5 +581,47 @@ def _parse_manual(name, s, path, quantities) -> ManualSource:
     )
 
 
+def _parse_bist_bulletin(name, s, path, quantities) -> BistBulletinSource:
+    _check_keys(s, path, _COMMON_REQUIRED | {"url", "user_agent"},
+                _COMMON_OPTIONAL | {"timeout_seconds", "history_days", "min_interval_s",
+                                    "recheck_days", "min_shares"})
+    url = _str(s["url"], f"{path}.url")
+    parts = urlsplit(url)
+    if parts.scheme != "https" or parts.netloc != BIST_HOST:
+        raise ConfigError(f"{path}.url: must be an https URL on {BIST_HOST}")
+    if not parts.path.startswith("/data/"):
+        raise ConfigError(f"{path}.url: must be under /data/ (the bulletin files)")
+    if "{yyyymmdd}" not in url:
+        raise ConfigError(f"{path}.url: must contain {{yyyymmdd}} for the bulletin date")
+    try:
+        url.format(yyyy="2026", mm="01", yyyymmdd="20260101")
+    except (KeyError, IndexError, ValueError) as e:
+        raise ConfigError(f"{path}.url: unknown field {e} (allowed: {{yyyy}}, {{mm}}, "
+                          f"{{yyyymmdd}})") from None
+    for q in BIST_QUANTITIES:
+        if q not in quantities:
+            raise ConfigError(f"{path}: quantity {q!r} is not in quantities")
+    timeout = _num(s.get("timeout_seconds", 30), f"{path}.timeout_seconds")
+    if timeout <= 0:
+        raise ConfigError(f"{path}.timeout_seconds: must be > 0")
+    interval = _num(s.get("min_interval_s", 1.0), f"{path}.min_interval_s")
+    if interval < 0:
+        raise ConfigError(f"{path}.min_interval_s: must be >= 0")
+    recheck = s.get("recheck_days", 3)
+    if isinstance(recheck, bool) or not isinstance(recheck, int) or recheck < 0:
+        raise ConfigError(f"{path}.recheck_days: must be >= 0 (an integer)")
+    return BistBulletinSource(
+        **_common(name, s, path),
+        url=url,
+        user_agent=_str(s["user_agent"], f"{path}.user_agent"),
+        timeout_seconds=timeout,
+        history_days=_pos_int(s.get("history_days", 400), f"{path}.history_days"),
+        min_interval_s=interval,
+        recheck_days=recheck,
+        min_shares=_pos_int(s.get("min_shares", 100), f"{path}.min_shares"),
+    )
+
+
 _PARSERS = {"evds": _parse_evds, "tefas": _parse_tefas, "tefas_web": _parse_tefas_web,
-            "tefas_detail": _parse_tefas_detail, "manual": _parse_manual}
+            "tefas_detail": _parse_tefas_detail, "manual": _parse_manual,
+            "bist_bulletin": _parse_bist_bulletin}
