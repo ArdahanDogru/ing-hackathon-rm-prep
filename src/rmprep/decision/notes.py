@@ -31,9 +31,11 @@ def build_warnings(options: Sequence[ScoredOption], levels: Levels,
                    questions: Sequence[ClarificationQuestion], evidence: EvidenceSet,
                    config: DecisionConfig, risk_estimates: Mapping[str, int] = {},
                    real_inputs: Sequence[DataPoint] = (),
+                   recommended: Sequence[str] = (),
                    ) -> tuple[DecisionWarning, ...]:
     """risk_estimates: option_id -> estimated risk, for funds without a risk level;
-    real_inputs: the stopaj and CPI rows the scored options used for a real return (D22)."""
+    real_inputs: the stopaj and CPI rows the scored options used for a real return (D22);
+    recommended: the result's recommended option ids (low_stability, D25)."""
     c = config.raw
     tpl = c["texts"]["warnings"]
     d = c["display"]
@@ -71,8 +73,10 @@ def build_warnings(options: Sequence[ScoredOption], levels: Levels,
         out.append(DecisionWarning(code="risk_estimate", message=tpl["risk_estimate"],
                                    option_ids=tuple(o.option.option_id for o in estimated)))
 
+    # D25: every recommended option, wherever it is in the display order
     below = c["warnings"]["low_stability_below"]
-    for o in first:
+    by_id = {o.option.option_id: o for o in options}
+    for o in (by_id[oid] for oid in recommended):
         if o.stability < below:
             out.append(DecisionWarning(
                 code="low_stability", message=tpl["low_stability"].format(stability=o.stability),

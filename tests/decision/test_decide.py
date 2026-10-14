@@ -183,10 +183,11 @@ def test_risk_estimate_warning(config):
 
 def test_low_stability_warning(config, medium):
     r = decide(medium, load_persona("P04"), config, created_at=T0)
-    shaky = dataclasses.replace(r.options[2], stability=0.3)
-    options = (*r.options[:2], shaky, *r.options[3:])
+    i = next(i for i, o in enumerate(r.options) if o.option.option_id == r.recommended[2])
+    shaky = dataclasses.replace(r.options[i], stability=0.3)
+    options = (*r.options[:i], shaky, *r.options[i + 1:])
     lv = read_persona(load_persona("P04"), config).levels
-    ws = build_warnings(options, lv, r.questions, medium, config)
+    ws = build_warnings(options, lv, r.questions, medium, config, recommended=r.recommended)
     [w] = [w for w in ws if w.code == "low_stability"]
     assert w.option_ids == (shaky.option.option_id,)
     assert "0.30" in w.message
