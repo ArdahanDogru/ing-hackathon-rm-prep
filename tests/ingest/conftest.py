@@ -170,12 +170,16 @@ def bist_trading_days(end: date = BIST_END, n: int = 60) -> list[date]:
     return days[::-1]
 
 
-def bist_row(day: date, code: str, name: str, close, prev_close, *, group="EQT",
-             pazar="Z", bist100=0, volume=1000.0) -> dict[str, str]:
+def bist_row(day: date, code: str, name: str, close, prev_close, *, open_price=None,
+             group="EQT", pazar="Z", bist100=0, volume=1000.0) -> dict[str, str]:
+    """One bulletin row. `prev_close` is ONCEKI KAPANIS FIYATI, which the
+    exchange publishes NOT adjusted (I11b); `open_price` (ACILIS FIYATI)
+    defaults to the close."""
     return {"TARIH": day.isoformat(), "ISLEM  KODU": code, "BULTEN ADI": name,
             "PAZAR": pazar, "ENSTRUMAN GRUBU": group, "BIST 100 ENDEKS": str(bist100),
-            "ONCEKI KAPANIS FIYATI": str(prev_close), "KAPANIS FIYATI": str(close),
-            "TOPLAM ISLEM HACMI": str(volume)}
+            "ONCEKI KAPANIS FIYATI": str(prev_close),
+            "ACILIS FIYATI": str(close if open_price is None else open_price),
+            "KAPANIS FIYATI": str(close), "TOPLAM ISLEM HACMI": str(volume)}
 
 
 def bulletin_zip(day: date, rows: list[dict[str, str]], header: list[str] | None = None) -> bytes:
@@ -191,23 +195,26 @@ def bulletin_zip(day: date, rows: list[dict[str, str]], header: list[str] | None
     return buf.getvalue()
 
 
-def bist_closes(days: list[date] | None = None) -> dict[str, dict[date, tuple[float, float]]]:
-    """Code -> day -> (close, previous close as published) of the test shares.
-    AAA rises 0.2 % a day (BIST 100); BBB has a 2-for-1 split (the exchange
-    publishes the previous close halved on the split day); CCC is flat and has
-    no row on its 21st day (suspended)."""
+def bist_closes(days: list[date] | None = None) -> dict[str, dict[date, tuple[float, float, float]]]:
+    """Code -> day -> (close, previous close as published, open) of the test
+    shares. AAA rises 0.2 % a day (BIST 100); BBB has a 2-for-1 split: as in
+    the real bulletins, the published previous close is NOT adjusted, the
+    split day opens at half the previous close (I11b); CCC is flat and has no
+    row on its 21st day (suspended)."""
     days = days or bist_trading_days()
-    out: dict[str, dict[date, tuple[float, float]]] = {"AAA": {}, "BBB": {}, "CCC": {}}
+    out: dict[str, dict[date, tuple[float, float, float]]] = {"AAA": {}, "BBB": {}, "CCC": {}}
     for k, d in enumerate(days):
         a = round(100 * 1.002 ** k, 4)
-        out["AAA"][d] = (a, round(100 * 1.002 ** max(k - 1, 0), 4))
+        out["AAA"][d] = (a, round(100 * 1.002 ** max(k - 1, 0), 4), a)
         b = round(50 + 0.1 * k, 4)
         b_prev = round(50 + 0.1 * max(k - 1, 0), 4)
-        if k >= BIST_SPLIT_INDEX:
+        if k > BIST_SPLIT_INDEX:
             b, b_prev = round(b / 2, 4), round(b_prev / 2, 4)
-        out["BBB"][d] = (b, b_prev)
+        elif k == BIST_SPLIT_INDEX:
+            b = round(b / 2, 4)
+        out["BBB"][d] = (b, b_prev, round(b_prev / 2, 4) if k == BIST_SPLIT_INDEX else b)
         if k != 20:
-            out["CCC"][d] = (10.0, 10.0)
+            out["CCC"][d] = (10.0, 10.0, 10.0)
     return out
 
 
@@ -222,8 +229,8 @@ def bist_history(days: list[date] | None = None) -> dict[str, bytes]:
     closes = bist_closes(days)
     files = {}
     for d in days:
-        rows = [bist_row(d, f"{code}.E", name, *closes[code][d], pazar=pazar, bist100=b100,
-                         volume=vol)
+        rows = [bist_row(d, f"{code}.E", name, *closes[code][d][:2],
+                         open_price=closes[code][d][2], pazar=pazar, bist100=b100, volume=vol)
                 for code, (name, pazar, b100, vol) in BIST_SHARES.items() if d in closes[code]]
         rows += [bist_row(d, "XETF.F", "ORNEK BYF", 12.5, 12.4, group="ETF"),
                  bist_row(d, "WWW.V", "ORNEK VARANT", 0.02, 0.01, group="ECW"),
