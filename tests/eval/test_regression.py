@@ -139,6 +139,11 @@ def _d14_rows(dropped_rows, extra_rows):
 
 def test_d14_confidence_does_not_rise_without_tefas_detail(root, dropped_rows, extra_rows):
     f = _d14_rows(dropped_rows, extra_rows)
+    # only D14 here: the test rows have no TÜFE, so D24 (real_return_missing) would also apply
+    cfg = root / "config" / "decision.yaml"
+    raw = yaml.safe_load(cfg.read_text(encoding="utf-8"))
+    raw["confidence"].pop("real_return_missing", None)
+    cfg.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
     sc, sr = run_case(root, "reg-d14-liquidity-proxy-confidence")
     assert_passes(sc)
     c = next(c for c in sc.runs[0] if c.check == "missing_data_shown")

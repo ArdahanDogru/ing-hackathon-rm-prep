@@ -284,6 +284,7 @@ confidence:
   risk_estimate: 0.7
   shorter_period: 0.8
   liquidity_proxy: 0.8  # D14: fund_detail configured, but no sell valör row -> liquidity from the kind table
+  real_return_missing: 0.8  # D24: no TÜFE row, or no stopaj row for the option's product type
 stability:
   step: 0.2             # each weight / penalty max x (1 - step) and x (1 + step)
   size: 20              # positions 1..size count as "in" (= the UI pool of 20, docs/ui.md)

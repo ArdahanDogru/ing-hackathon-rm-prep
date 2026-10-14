@@ -56,6 +56,7 @@ def strip_d9(raw: dict) -> dict:
     for key in ("real_loss", "underperformance"):
         raw["penalties"].pop(key, None)
     raw["confidence"].pop("liquidity_proxy", None)          # D14
+    raw["confidence"].pop("real_return_missing", None)      # D24
     raw.pop("to_confirm", None)                              # D16
     raw["warnings"].pop("audience", None)
     for key in ("why", "access"):                            # D17

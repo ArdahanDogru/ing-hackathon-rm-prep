@@ -28,6 +28,10 @@ def confidence(f: Features, config: DecisionConfig) -> float:
         weakest *= c["shorter_period"]
     if f.liquidity_proxy:           # D14: no sell valör row, liquidity from the kind table
         weakest *= c.get("liquidity_proxy", 1.0)
+    # D24: real return configured (net_return set) but not computable: no TÜFE row,
+    # or no stopaj row for the option's product type (stopaj taken as 0)
+    if f.net_return is not None and (f.real_return is None or f.stopaj_missing):
+        weakest *= c.get("real_return_missing", 1.0)
     return weakest
 
 

@@ -297,7 +297,7 @@ def _check_scoring(c: dict) -> None:
 
     conf = c["confidence"]
     _keys(conf, "confidence", ("flags", "risk_estimate", "shorter_period"),
-          ("liquidity_proxy",))
+          ("liquidity_proxy", "real_return_missing"))
     known = {f.value for f in Flag}
     for flag, v in conf["flags"].items():
         if flag not in known:
@@ -306,6 +306,7 @@ def _check_scoring(c: dict) -> None:
     _num(conf["risk_estimate"], "confidence.risk_estimate", 0, 1)
     _num(conf["shorter_period"], "confidence.shorter_period", 0, 1)
     _num(conf.get("liquidity_proxy", 1.0), "confidence.liquidity_proxy", 0, 1)
+    _num(conf.get("real_return_missing", 1.0), "confidence.real_return_missing", 0, 1)   # D24
 
     _keys(c["stability"], "stability", ("step",), ("size",))
     _num(c["stability"]["step"], "stability.step", 0, 1)

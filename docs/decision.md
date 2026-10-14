@@ -816,6 +816,24 @@ cash).
     3 participation `dengeli` → `hisse`; 2 debt → `altin_doviz`), 0 unknown
     texts.
 
+## 14. Confidence without tax or inflation data (D24, 2026-10-14)
+
+Found by the eval on the new frozen snapshot `20261014-102329-8fca` (free
+`--no-llm` pass): with the manual source excluded (no stopaj, no TÜFE), the
+fund options kept confidence 1.00, and the check "missing data is shown"
+failed in `data-p01-no-manual` and `data-p03-no-manual`. Before 2026-10-14
+every TEFAS row had `needs_check` (0.9), which held all confidences at 0.90
+and hid the gap.
+
+- New optional factor `confidence.real_return_missing` (0..1; config 0.8,
+  like the D14 proxy): applied when the real return is configured but cannot
+  be computed for the option: no TÜFE row, or no stopaj row for its product
+  type (the stopaj is then taken as 0).
+- Without `real_return` in the config, or without the key: no change.
+- Built by the lead (small change; `ing-decision` was stopped): code in
+  `decision/confidence.py` and `decision/config.py`, tests in
+  `tests/decision/test_real_return_confidence.py`.
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only
