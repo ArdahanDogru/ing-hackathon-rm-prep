@@ -123,7 +123,35 @@ constraint_effects:
 # --- D19: asset classes, risk fit, recommended top 3 (docs/decision.md section 10) ------
 asset_classes:
   by_name: {"PARA PİYASASI": nakit_benzeri, "KISA VADELİ": nakit_benzeri, "BORÇLANMA ARACI": borclanma,
-            "ALTIN": altin_doviz, "KIYMETLİ MADENLER": altin_doviz, "ÇOKLU VARLIK": dengeli}
+            "ALTIN": altin_doviz, "KIYMETLİ MADENLER": altin_doviz}   # D23: "ÇOKLU VARLIK" removed, the holdings decide
+  # D23 (docs/decision.md section 13, option A, the user 2026-10-14): the class from the
+  # holdings (TEFAS varlikData) for these fund kinds; FX debt majority for debt funds.
+  # Texts and classes: scripts/analysis/varlik_impact.py (snapshot 20261014-005625-c76a).
+  by_holdings:
+    kinds: [variable, mixed, fund_of_funds, participation]
+    fx_debt_kinds: [debt]
+    min_share: 50
+    class_labels: {nakit_benzeri: "nakit benzeri", borclanma: "borçlanma araçları",
+                   hisse: "hisse senedi", altin_doviz: "altın ve döviz"}
+    labels:
+      nakit_benzeri: ["Ters-Repo", "Repo", "Mevduat (TL)", "Katılma Hesabı (TL)", "Takasbank Para Piyasası",
+                      "Borsa İstanbul Para Piyasası", "BİST Taahhütlü İşlem Pazarı Alım",
+                      "BİST Taahhütlü İşlem Pazarı Satım"]
+      borclanma: ["Devlet Tahvili", "Hazine Bonosu", "Özel Sektör Tahvili", "Finansman Bonosu",
+                  "Özel Sektör Kira Sertifikaları", "Kamu Kira Sertifikaları (TL)",
+                  "Varlığa Dayalı Menkul Kıymetler"]
+      hisse: ["Hisse Senedi", "Yabancı Hisse Senedi", "Yabancı Borsa Yatırım Fonları"]
+      altin_doviz: ["Kıymetli Madenler", "Kıymetli Madenler Cinsinden BYF",
+                    "Kıymetli Madenler Cinsinden İhraç Edilen Kamu Kira Sertifikaları",
+                    "Kıymetli Madenler Cinsinden İhraç Edilen Kamu Borçlanma Araçları",
+                    "Mevduat (Döviz)", "Mevduat (Altın)", "Katılma Hesabı (Altın)", "Katılma Hesabı (Döviz)",
+                    "Özel Sektör Dış Borçlanma Araçları", "Kamu Dış Borçlanma Araçları",
+                    "Yabancı Özel Sektör Borçlanma Araçları", "Yabancı Kamu Borçlanma Araçları",
+                    "Döviz Cinsi Kamu İç Borçlanma Araçları", "Kamu Kira Sertifikaları (Döviz)",
+                    "Özel Sektör Yurt Dışı Kira Sertifikaları", "Kamu Yurt Dışı Kira Sertifikaları"]
+      fon: ["Yatırım Fonları Katılma Payları", "Borsa Yatırım Fonları Katılma Payları",
+            "Girişim Sermayesi Yatırım Fonları Katılma Payları", "Gayrimenkul Yatırım Fonları Katılma Payları"]
+      ignore: ["Diğer", "Vadeli İşlemler Nakit Teminatları"]
   by_risk: {participation: [{min_risk: 5, class: hisse}]}   # D19c: participation equity funds
   by_kind: {deposit: nakit_benzeri, time_deposit: nakit_benzeri, money_market: nakit_benzeri,
             debt: borclanma, participation: borclanma, variable: dengeli, mixed: dengeli,
@@ -296,6 +324,7 @@ texts:
     low_risk: "Risk değeri {risk}/7."        # used only without the D19 risk_fit section
     risk_fit: "Risk değeri {risk}/7; müşterinin risk aralığı {band_lo}-{band_hi}."
     class_rule: "Çeşitlendirme: farklı varlık sınıfından en iyi seçenek."
+    holdings_class: "Varlık sınıfı: portföyün %{share:.0f}'i {label} (TEFAS portföy dağılımı)."   # D23
     "penalty:risk_unknown_class": "Risk değeri yok; varlık sınıfının üst çeyreği ({risk}) varsayıldı."
     liquidity: "Likidite (ürün türüne göre): {value:.1f}."
     income: "Düzenli gelir uygunluğu (ürün türüne göre): {value:.1f}."
@@ -365,6 +394,7 @@ texts:
     # D22 (docs/decision.md section 12): RM only
     stale_tax_input: "Vergi veya enflasyon verisi güncel değil ({entities}); reel getiriler bu değerlerle hesaplandı. Güncel oranı teyit edin."
   data_quality:
+    unknown_holding_type: "Bilinmeyen portföy varlık türü \"{text}\": {count} fonda dikkate alınmadı."   # D23
     removed_no_data: "{count} fon, kullanılabilir veri satırı olmadığı için çıkarıldı."
     valor_missing: "{count} fonun satış valörü kanıtlarda yok; likidite kısıtı bu fonlara uygulanamadı."
     buyable_missing: "{count} fonun TEFAS alım durumu kanıtlarda yok; bu fonlar alıma açık sayıldı."

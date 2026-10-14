@@ -794,6 +794,27 @@ cash).
   unknown text gives the note; folding of broken letters; the reason with
   evidence ids; no holdings rows → today's result (the fixtures do not
   change).
+- As built (merged 2026-10-14, `decision@4f1b096`; config `by_holdings` and
+  texts added by the lead):
+  - new key `class_labels` (class → text for `{label}`; every class of
+    `labels` except `fon`/`ignore` needs one); new text
+    `texts.data_quality.unknown_holding_type` ({text}, {count}); both texts
+    are required when `by_holdings` is present;
+  - the quantity is a code constant (`universe.HOLDINGS_QUANTITY =
+    fund_holding_share`); only the latest `as_of` day of a fund counts;
+  - a `dengeli` result from the holdings gets no reason text and no extra
+    evidence ids (the template needs one class share); the reason is added
+    to the return reason (like the class-rule text); the holdings rows go into
+    `ScoredOption.evidence_ids`, not into the confidence rows;
+  - the unknown-text note counts only listed funds of `kinds` and
+    `fx_debt_kinds`; `fold()` is in `decision/text.py`;
+  - bug fixed with it: since I8, `build_universe` read each `<code>/<type>`
+    entity as a fund code (a wrong `removed_no_entity` note on new
+    snapshots); an entity with "/" is not a fund code now.
+  - Check on `20261014-005625-c76a` (holdings rows rebuilt from the stored
+    pages): 214 funds change class (122 variable, 33 fund_of_funds, 7 mixed,
+    3 participation `dengeli` → `hisse`; 2 debt → `altin_doviz`), 0 unknown
+    texts.
 
 ## Later / optional
 
