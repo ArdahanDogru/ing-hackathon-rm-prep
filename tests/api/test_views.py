@@ -219,3 +219,24 @@ def test_market_note_last_change_only_while_the_value_is_the_same(backend, perso
     other = [SERIES[0] | {"last_change": change | {"value": value + 1}}]
     v = ViewBuilder(backend, load_config(), market_series=other)(r)
     assert v["market_note"][0]["label"] == "Politika faizi"
+
+
+def _fixture_persona(pid):
+    import json
+    from pathlib import Path
+
+    from rmprep.contracts import Persona
+    f = Path(__file__).resolve().parents[1] / "contracts" / "fixtures" / "personas" / f"{pid}.json"
+    return Persona.from_dict(json.loads(f.read_text(encoding="utf-8")))
+
+
+def test_allocation_signal_tags_name_what_raised_the_portfolio_gap_weight():
+    """2026-10-15 (the user): the "Portföy açığı" bar of "Neden bu öneri?" is tagged
+    with the client's change signals (D27), like the priority boosts of PR #1: a
+    priority as written, else the config phrase from the RM note or goal with "…"."""
+    from rmprep.api.views import allocation_signal_tags
+    cfg = load_config()
+    assert allocation_signal_tags(_fixture_persona("p01"), cfg) == ["mevduat yoğunluğunu azalt…"]
+    assert allocation_signal_tags(_fixture_persona("p03"), cfg) == ["çeşitlendirme",
+                                                                    "fırsat maliyetini azaltma"]
+    assert allocation_signal_tags(_fixture_persona("p02"), cfg) == ["çeşitlendirme"]

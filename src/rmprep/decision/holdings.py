@@ -150,9 +150,19 @@ def gap_weight_factor(persona: Persona, estimates: Sequence[ClassEstimate],
     if ag is None or not active:
         return 0.0
     factor = max(ag["source_factor"][s] for s in active)
-    text = " | ".join(field_text(persona, f) for f in SIGNAL_FIELDS)
-    signals = sum(1 for s in ag["signals"] if normalize(s) in text)
+    signals = len(change_signals(persona, config))
     return factor * (1 + ag["per_signal"] * min(signals, ag["max_signals"]))
+
+
+def change_signals(persona: Persona, config: DecisionConfig) -> tuple[str, ...]:
+    """The allocation_gap.signals phrases found in the persona (SIGNAL_FIELDS),
+    in config order: what raises the weight of the criterion (also for the
+    explanation in the web app, 2026-10-15)."""
+    ag = config.raw.get("allocation_gap")
+    if ag is None:
+        return ()
+    text = " | ".join(field_text(persona, f) for f in SIGNAL_FIELDS)
+    return tuple(s for s in ag["signals"] if normalize(s) in text)
 
 
 def band_of(cls: str, levels: Levels, config: DecisionConfig) -> tuple[float, float] | None:

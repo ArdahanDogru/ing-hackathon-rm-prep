@@ -264,3 +264,11 @@ def test_deterministic(cfg):
     a = decide(_ev(), p, cfg, created_at=T0, holdings=_h(20, 60, 10, 10, 0))
     b = decide(_ev(), p, cfg, created_at=T0, holdings=_h(20, 60, 10, 10, 0))
     assert a.to_dict() == b.to_dict()
+
+
+def test_change_signals_are_the_phrases_found(cfg):
+    """2026-10-15: the phrases that raise the weight, for the explanation in the web app."""
+    from rmprep.decision.holdings import change_signals
+    p1 = load_persona("P01")
+    assert change_signals(p1, cfg) == ("mevduat yoğunluğunu azalt",)
+    assert gap_weight_factor(p1, estimate(p1, cfg, None), cfg) == pytest.approx(0.75 * 1.5)

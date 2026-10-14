@@ -75,6 +75,18 @@ def priority_criteria(priorities: Sequence[str], config: DecisionConfig) -> dict
     return out
 
 
+def allocation_signal_tags(persona, config: DecisionConfig) -> list[str]:
+    """The change signals of D27 that raise the "Portföy açığı" weight, for the tags
+    of "Neden bu öneri?" (2026-10-15): a priority as written when the signal is in it,
+    else the config phrase with "…" (found in the RM note, the goal or a constraint)."""
+    from rmprep.decision.holdings import change_signals
+    out = []
+    for s in change_signals(persona, config):
+        written = next((p for p in persona.oncelikler if normalize(s) in normalize(p)), None)
+        out.append(written if written is not None else f"{s}…")
+    return out
+
+
 def _fact(f) -> dict | None:
     return None if f is None else {"value": f.value, "evidence_id": f.evidence_id}
 
@@ -131,6 +143,16 @@ class ViewBuilder:
             note_text = note_text.format(figure=tr_percent(facts[b.option_id].real_1y.value))
         return {**_to_json(b), "note_text": note_text,
                 "label": _label(f"class.{b.asset_class}", self._lang)}
+
+    def _priority_criteria(self, r: DecisionResult) -> dict[str, list[str]]:
+        """PR #1 boosts, plus the D27 change signals on "allocation_gap" when that
+        criterion has a weight for this run."""
+        out = priority_criteria(r.persona.oncelikler, self._config)
+        if r.effective_weights.get("allocation_gap"):
+            tags = allocation_signal_tags(r.persona, self._config)
+            if tags:
+                out["allocation_gap"] = tags
+        return out
 
     def _holdings(self, r: DecisionResult) -> dict | None:
         """W18: the status of the current split and its sources (id = current_source);
@@ -274,5 +296,5 @@ class ViewBuilder:
             "effective_weights": dict(r.effective_weights),                  # v1.10
             "allocation_notes": list(r.allocation_notes),
             "market_note": self._market_note(ev),                          # W15
-            "priority_criteria": priority_criteria(r.persona.oncelikler, self._config),  # W16 (PR #1)
+            "priority_criteria": self._priority_criteria(r),                 # W16 (PR #1)
         }
