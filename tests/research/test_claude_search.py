@@ -185,6 +185,22 @@ def test_live_reply_markdown_and_period_after_a_quote_are_removed():
     ]
 
 
+@pytest.mark.parametrize("blocks, cited", [
+    # an uncited sentence after the cited span, on the same line
+    ([text("- Fon kodu "), text("PPN", FVT),
+      text(" olarak kayıtlı. Fon devlet garantilidir ve her yıl yüzde 80 getiri verir.\n")],
+     "Fon kodu PPN olarak kayıtlı."),
+    # an uncited sentence before the cited span, on the same line
+    ([text("- Fon devlet garantilidir ve yüzde 80 getiri verir. Ayrıca "),
+      text("fon kodu PPN olarak kayıtlıdır", FVT), text(".\n")],
+     "Ayrıca fon kodu PPN olarak kayıtlıdır."),
+])
+def test_an_uncited_sentence_never_takes_the_source_of_its_line(blocks, cited):
+    r = provider(FakeSdk(message([results(FVT), *blocks]))).research_product(PPN, "TR")
+    assert [(f.text, [s.url for s in f.sources]) for f in r.findings] == [(cited, [FVT])]
+    assert not any("garanti" in f.text for f in r.findings)
+
+
 def test_a_non_web_search_result_url_is_not_a_source():
     bad = "javascript:alert(1)"
     sdk = FakeSdk(message([

@@ -1,6 +1,6 @@
 """Claude web search provider, the fallback of Exa (docs/research.md section 8):
 the Messages API with the server tool web_search, called directly (no dynamic
-filtering). Findings are the cited lines of the reply; a citation counts only
+filtering). Findings are the cited sentences of the reply; a citation counts only
 when its URL is a web_search_result of the same reply and not on an excluded
 domain. Cost: tokens at the config prices plus price_per_search per search. Key
 and workspace id go only to the SDK."""
@@ -24,6 +24,7 @@ MIN_CHARS = 15
 MARKER = re.compile(r"(?:ŞİRKET|COMPANY)\s*:\s*(.+)", re.IGNORECASE)
 BULLET = re.compile(r"^(?:[-*•]|\d+[.)])\s+")         # a list marker at the start of a line
 SENTENCE_END = (".", "!", "?")
+BOUNDARY = re.compile(r"\n|(?<=[.!?])\s+")            # a unit ends at a newline or a sentence end
 PRODUCT_PROMPT = {
     "TR": ("Şu yatırım ürününü ve onu yöneten veya ihraç eden şirketi web'de araştır: {label} ({code}). "
            "Önce ürün hakkında kısa, kaynaklı cümleler yaz. Sonra 'ŞİRKET: <şirket adı>' satırını yaz "
@@ -42,15 +43,17 @@ FORMAT = {"TR": " Her cümle bir web kaynağına dayansın.", "EN": " Base every
 def _units(blocks: Sequence) -> list[tuple[str, list]]:
     """(text, citations) per unit of the answer. The real reply splits a line into
     text blocks: only the cited span has citations, the words around it are other
-    blocks. A unit ends at a newline or at a block that ends a sentence; it has the
-    citations of all its blocks."""
+    blocks. A unit ends at a newline, at a sentence end inside a block, or at a
+    block that ends a sentence; it has only the citations of its own pieces, so an
+    uncited sentence never takes the source of its line (an abbreviation such as
+    "A.Ş. " can split a sentence: text can be lost, a source is never wrong)."""
     units: list[tuple[str, list]] = []
     text, cits = "", []
     for b in blocks:
         if getattr(b, "type", "") != "text":
             continue
         block_cits = list(getattr(b, "citations", None) or [])
-        for i, part in enumerate((b.text or "").split("\n")):
+        for i, part in enumerate(BOUNDARY.split(b.text or "")):
             if i:
                 units.append((text, cits))
                 text, cits = "", []

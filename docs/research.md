@@ -118,9 +118,12 @@ müşteri bilgisi içeriyor; yalnızca ürün veya şirket hakkında sorun."
   `blocked_domains` from the config). The model is `claude.model` (Haiku 5.5). The
   code sends the refusal-fallback beta like the narrator and sends a `pause_turn`
   back at most twice. The reply splits a line into text blocks: only the cited
-  span has citations. A finding is one line of the reply (or one sentence that
-  ends a block), with the citations of all its blocks; bold marks and list marks
-  are removed. A citation counts only when its URL is in a
+  span has citations. A finding is one sentence of the reply: a unit ends at a
+  newline or at a sentence end (`.`, `!`, `?`), also inside a block. It has only
+  the citations of its own blocks, so a sentence of the model's own words never
+  takes the source of a cited span on the same line. An abbreviation such as
+  "A.Ş. " can split a sentence; then a part without citations is lost, but no
+  source is wrong. Bold marks and list marks are removed. A citation counts only when its URL is in a
   `web_search_tool_result` block of the same reply and is not on an excluded
   domain. The key and the workspace id (`ANTHROPIC_WORKSPACE_ID`) go only to the
   SDK. Cost: tokens at the config prices plus $0.01 per search.
@@ -243,8 +246,8 @@ Texts are in `i18n.ts` (TR and EN).
   many `text` blocks. Only the cited span has citations ("8 Temmuz 2021"); the
   words around it are other blocks with `citations: null`. The old check made a
   finding of each block, so the findings were fragments.
-- Fix: the tool has `allowed_callers: ["direct"]`; a finding is a line of the
-  reply with the citations of all its blocks (`_units` in `claude_search.py`);
+- Fix: the tool has `allowed_callers: ["direct"]`; a finding is a sentence of
+  the reply with the citations of its own blocks (`_units` in `claude_search.py`);
   the model is `claude-haiku-5-5` ($0.10 / $0.50 per MTok, prompts up to 100K
   tokens). Sonnet 5.5 with direct search would cost about $0.14 for the same
   tokens (about 35,000 input tokens and 5,000 output tokens).
@@ -254,6 +257,14 @@ Texts are in `i18n.ts` (TR and EN).
 - Tests: `test_live_reply_shape_cited_spans_inside_lines` and
   `test_live_reply_markdown_and_period_after_a_quote_are_removed` use the block
   structure of the real replies.
+  `test_an_uncited_sentence_never_takes_the_source_of_its_line` (review fix):
+  an uncited sentence before or after a cited span on the same line is not in
+  a finding.
+- Review fix (2026-10-15): the first version ended a unit only at a newline or
+  at a block end, so an uncited sentence on the line of a cited span showed that
+  source. An offline replay of the recorded replies with the final parser gives
+  20 findings (first experiment) and 23 findings (live call after the fix); the
+  live call itself was made with the first version (17 findings).
 
 ## Open points
 
