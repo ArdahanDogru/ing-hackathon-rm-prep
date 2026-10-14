@@ -434,6 +434,39 @@ Elenen, Kategoriler): `DetailsPanel` takes `request = {tab, n}` and opens on
 that tab. Below the steps: the lowest stability of the recommended options
 with the W16 level. Gündem, the options and the DetailsPanel are unchanged.
 
+### Current and target split (W18, 2026-10-14)
+
+Approved by the user 2026-10-14. Spec:
+`docs/superpowers/specs/2026-10-14-portfolio-projection-design.md` sections 8–9;
+plan `docs/superpowers/plans/2026-10-14-portfolio-projection.md` Task 5.
+
+**API (lead, Task 4):**
+
+- `RunView.allocation[i]` gets `current`, `current_low`, `current_high`,
+  `current_source` ("" | `rm` | `rm_confirmed` | `persona_text` | `profile` |
+  `national`), `current_ref`, `gap` (points; + under the band, − over it, 0
+  inside, null for `dengeli`) and `active` (counts in the ranking).
+- `RunView.holdings = {status: "estimate" | "persona_text" | "rm" |
+  "rm_confirmed", sources: [{id, label, url, date}]}`.
+- `RunView.effective_weights` = criterion → weight used for this client.
+- `POST /api/runs/{id}/holdings` with `{"shares": {class: %} | null,
+  "origin": "rm" | "rm_confirmed"}` → the new RunView (a new run id); 422 with
+  `detail` on a bad input (all five classes, each 0–100, total 100 ± 0.5).
+
+**Card "Mevcut ve hedef dağılım"** (replaces "Model dağılım"):
+
+- One row per class: the model band as a light bar, the current value as a
+  marker with its range, the gap as text ("−25 puan" / "bandın içinde").
+- A badge per row: "RM", "RM onaylı", "persona metni" or "tahmini senaryo"
+  (grey; the source label, URL and date in a tooltip).
+- While `holdings.status` is `estimate`: the banner "Portföy dağılımı
+  bilinmiyor; aşağıdaki değerler tahmini senaryodur ve sıralamayı etkilemez."
+- Buttons "Tahmini onayla" (`origin: rm_confirmed`, the current points),
+  "Düzenle" (five number inputs, the running total, "Kaydet" only at 100 ±
+  0.5), "Sıfırla" (`shares: null`). A 422 shows the server `detail`.
+- The fund card ("Neden bu öneri?", W16) shows the criterion "Portföy açığı"
+  like the others.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

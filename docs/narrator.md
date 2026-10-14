@@ -336,3 +336,19 @@ the client text; the dashboard shows the same values (web W15).
   (prompt_version or the facts); a new snapshot changes the facts.
 - The sentence form is one sentence per series ("{label} {value} (TCMB EVDS,
   {date}).") instead of the one long sentence above.
+
+## N15: the current split and its gaps (approved by the user 2026-10-14)
+
+Spec: `docs/superpowers/specs/2026-10-14-portfolio-projection-design.md`
+section 10; plan `docs/superpowers/plans/2026-10-14-portfolio-projection.md`
+Task 6.
+
+- The facts pack gets `allocation: [{class, band_low, band_high, current,
+  source, gap, active}]` from `DecisionResult.allocation` (contract v1.10).
+- The text may mention a gap only for an active row (source `rm`,
+  `rm_confirmed` or `persona_text`). For an estimate row it may only say that
+  the current split is unknown and must be asked ("Mevcut portföy dağılımı
+  bilinmiyor; müşteriden alınmalı.").
+- The validator rejects a gap or current figure of an inactive row (finding
+  kind `number`). The template draft states an active gap with a config
+  sentence. No new section; bump `prompt_version`.
