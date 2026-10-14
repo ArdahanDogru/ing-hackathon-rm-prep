@@ -66,6 +66,9 @@ def block_text(d: NarrativeDraft, block_id: str) -> str:
 _MESSAGES = {   # (kind, pattern of the validator message) -> text per language
     ("number", r"date (?P<x>\S+) is not in the facts"): {
         "TR": "{x} tarihi olgularda yok", "EN": "the date {x} is not in the facts"},
+    ("number", r"(?P<x>\S+) is the current share or gap of an estimate"): {      # N15
+        "TR": "{x} tahmini bir portföy payı ya da açığı; müşterinin mevcut dağılımı bilinmiyor",
+        "EN": "{x} is an estimated share or gap; the client's current split is unknown"},
     ("number", r"(?P<x>\S+) is not in the facts"): {
         "TR": "{x} olgularda yok", "EN": "{x} is not in the facts"},
     ("internal", r"(?P<x>\S+) is an internal value"): {

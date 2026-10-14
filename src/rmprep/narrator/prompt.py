@@ -98,7 +98,11 @@ income, principal, simplicity), without values; "why" lists [client priority, \
 fact] pairs. "talking_points" are the engine's points about the client's \
 situation (title, figure, text) and "talking_point_options" the options they \
 name. "dosyadaki_not" is the note in the client's file; "rm_onay_notu" is the \
-RM's note from the approval.
+RM's note from the approval. "allocation" is the model split per asset class \
+("band_low"-"band_high", % of the portfolio) and the client's current share: \
+"current" (%) and "gap" (points to the band: positive = below it, negative = above \
+it, 0 = inside) are given only for a row with "active": true (the RM or the \
+client's file gave the share). A row with "active": false is only an estimate.
 
 Output: JSON with "sentences" (all sentences of the card, in reading order) and \
 "need_tags". Each sentence has "section" (one of the section keys below), \
@@ -128,7 +132,8 @@ sentence or a risk note of oneriler. The client can see this section: no notes \
 about data quality and no names of screens or panes.
 - sorular: questions for the RM to ask the client: the open questions, the \
 explicit constraints (acik_kisitlar) to confirm, and one question per \
-unmatched priority.
+unmatched priority. When an "allocation" row with a "source" has "active": false, \
+the client's current split is unknown: ask for it with the sentence "{split_unknown}"
 - teklif_metni: a short script the RM may say or adapt in the meeting, spoken \
 to the client and built on the client's own goal and situation (yatirim_amaci, \
 durum). It is not a letter. At most one short past-return reminder.
@@ -158,10 +163,17 @@ average) in any section but oneriler: that comparison is an RM-only note. Name t
 ING deposit in oneriler only if the RM selected it, and never with the market rate. \
 The market deposit rate alone (as in a talking point) is fine.
 7. need_tags: only words of oncelikler, at most 3 per option, every selected option.
+9. Write a current share or a gap only for an "allocation" row with "active": true \
+(in talking_points or dikkat, citing the selected options); never for a row with \
+"active": false, not even as an estimate.
 Length: aim for about 450 words in total for 3 selected options (fewer for fewer \
 options); ozet at most 3 sentences plus the disclaimer; teklif_metni at most 4 sentences.
 This is decision support for the RM, not investment advice.
 """
+
+# N15: the question about an unknown split when the config has no allocation texts
+_SPLIT_UNKNOWN = {"TR": "Mevcut portföy dağılımı bilinmiyor; müşteriden alınmalı.",
+                  "EN": "The client's current portfolio split is unknown; ask the client for it."}
 
 _TASK = "Write the meeting text in {lang} for run {run_id} from the facts above."
 
@@ -178,8 +190,11 @@ Return the full corrected JSON. Change only what the findings need."""
 def system_prompt(lang: str, config: NarratorConfig) -> str:
     language, form, numbers, day = _LANGUAGE[lang]
     forbidden = ", ".join(f'"{p}"' for p in config.forbidden_phrases[lang])
+    unknown = (config.allocation.split_unknown[lang] if config.allocation is not None
+               else _SPLIT_UNKNOWN[lang])
     return _SYSTEM.format(language=language, form=form, numbers=numbers, date=day,
-                          forbidden=forbidden, disclaimer=config.disclaimer[lang])
+                          forbidden=forbidden, disclaimer=config.disclaimer[lang],
+                          split_unknown=unknown)
 
 
 ALTERNATIVE_NUMBERS = 3     # key numbers per alternative in the prompt pack
@@ -257,6 +272,9 @@ def prompt_facts(f: Facts, lang: str = "TR") -> dict:
         "market": {n.name: [n.value, n.unit, n.evidence_id, n.as_of.isoformat()]
                    for n in f.market},
         "unmatched_priorities": list(f.unmatched_priorities),
+        "allocation": [{"class": a.asset_class, "band_low": a.band_low, "band_high": a.band_high,
+                        "current": a.current, "source": a.source, "gap": a.gap,
+                        "active": a.active} for a in f.allocation],         # N15
         "alternatives": [_short(o) for o in f.alternatives],
         "groups": [{"key": g.key, "selected": list(g.selected),
                     "alternatives": list(g.alternatives)} for g in f.groups],

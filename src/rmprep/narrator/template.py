@@ -20,7 +20,7 @@ from rmprep.contracts import (
     NarrativeSection,
     NarrativeSentence,
 )
-from rmprep.narrator.config import NarratorConfig, load_config
+from rmprep.narrator.config import AllocationTexts, NarratorConfig, load_config
 from rmprep.narrator.facts import (
     INTERNAL_PARTS,
     MARKET_NAMES,
@@ -389,10 +389,45 @@ def _alternatifler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
     return out          # N13c: no ING deposit baseline here (the comparison is an RM note)
 
 
-def _dikkat(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
+def fmt_share(value: float, lang: str) -> str:
+    """N15: a share or a gap in points: no decimals when whole, else one (TR 72,5)."""
+    s = f"{value:.0f}" if float(value).is_integer() else f"{value:.1f}"
+    return s.replace(".", ",") if lang == "TR" else s
+
+
+def _share_pct(value: float, lang: str) -> str:
+    s = fmt_share(value, lang)
+    return f"%{s}" if lang == "TR" else f"{s}%"
+
+
+def _allocation_gaps(f: Facts, lang: str,
+                     texts: AllocationTexts | None) -> list[NarrativeSentence]:
+    """N15: one sentence per active allocation row outside its band (config
+    allocation.gap_under / gap_over), citing the selected options of its class
+    (else all). An estimate row never gets one."""
+    if texts is None:
+        return []
+    whole = [o.option_id for o in f.selected]
+    out = []
+    for a in f.allocation:
+        if not a.active or not a.gap or a.current is None or a.band_low is None:
+            continue
+        text = (texts.gap_under if a.gap > 0 else texts.gap_over)[lang].format(
+            class_label=texts.class_labels[a.asset_class][lang],
+            source_label=texts.source_labels[a.source][lang],
+            current=_share_pct(a.current, lang), low=_share_pct(a.band_low, lang),
+            high=_share_pct(a.band_high, lang), gap=fmt_share(abs(a.gap), lang))
+        mine = [o.option_id for o in f.selected if o.asset_class == a.asset_class]
+        out.append(_sentence(text, mine or whole))
+    return out
+
+
+def _dikkat(f: Facts, tx: dict, lang: str,
+            alloc: AllocationTexts | None = None) -> list[NarrativeSentence]:
     """N13b: the warnings; per selected option at most one sentence, only with
-    what oneriler does not say (slow access, fees), else nothing; the unmatched
-    priorities; the past-return caveat once."""
+    what oneriler does not say (slow access, fees), else nothing; N15: the gaps
+    of active allocation rows; the unmatched priorities; the past-return caveat
+    once."""
     whole = [o.option_id for o in f.selected]      # citation of a note about the whole result
     out = []
     for w in f.warnings:
@@ -413,6 +448,7 @@ def _dikkat(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
         else:
             continue
         out.append(_sentence(text, [o.option_id], risk.evidence_ids))
+    out += _allocation_gaps(f, lang, alloc)
     out += [_sentence(tx["unmatched"].format(p=p), whole) for p in f.unmatched_priorities]
     out.append(_sentence(tx["past"], whole))       # N9c: no data-quality pointer (client-facing)
     return out
@@ -422,12 +458,15 @@ def _lower_first(text: str) -> str:
     return tr_lower(text[:1]) + text[1:] if text else text
 
 
-def _sorular(f: Facts, tx: dict) -> list[NarrativeSentence]:
+def _sorular(f: Facts, tx: dict, lang: str = "TR",
+             alloc: AllocationTexts | None = None) -> list[NarrativeSentence]:
     out = [_sentence(_end(q)) for q in f.open_questions]
     out += [_sentence(tx["constraint"].format(item=k)) for k in f.client["acik_kisitlar"]]
     out += [_sentence(tx["ask_unmatched"].format(p=p)) for p in f.unmatched_priorities]
     if f.client["oncelikler"]:
         out.append(_sentence(tx["ask_priorities"].format(items=", ".join(f.client["oncelikler"]))))
+    if alloc is not None and f.split_unknown:              # N15: an estimate is not asked about
+        out.append(_sentence(alloc.split_unknown[lang]))
     return out
 
 
@@ -476,7 +515,10 @@ def template_need_tags(f: Facts) -> dict[str, tuple[str, ...]]:
             for o in f.selected}
 
 
-def template_sections(f: Facts, lang: str, disclaimer: str) -> tuple[NarrativeSection, ...]:
+def template_sections(f: Facts, lang: str, disclaimer: str,
+                      allocation: AllocationTexts | None = None) -> tuple[NarrativeSection, ...]:
+    """allocation: config allocation texts (N15); None -> no sentences about the
+    client's current split."""
     if lang not in NARRATIVE_LANGS:
         raise ValueError(f"lang must be one of {NARRATIVE_LANGS}, got {lang!r}")
     tx = TEXTS[lang]
@@ -484,8 +526,8 @@ def template_sections(f: Facts, lang: str, disclaimer: str) -> tuple[NarrativeSe
         "ozet": _ozet(f, tx, disclaimer),
         "oneriler": _oneriler(f, tx, lang),
         "alternatifler": _alternatifler(f, tx, lang),
-        "dikkat": _dikkat(f, tx, lang),
-        "sorular": _sorular(f, tx),
+        "dikkat": _dikkat(f, tx, lang, allocation),
+        "sorular": _sorular(f, tx, lang, allocation),
         "teklif_metni": _teklif(f, tx),
         "varsayimlar": ([_sentence(a) for a in f.assumptions]
                         or [_sentence(tx["no_assumptions"])]),
@@ -501,7 +543,8 @@ def template_draft(f: Facts, lang: str, config: NarratorConfig, *, created_at: d
     if lang not in NARRATIVE_LANGS:
         raise ValueError(f"lang must be one of {NARRATIVE_LANGS}, got {lang!r}")
     return NarrativeDraft(
-        run_id=f.run_id, lang=lang, sections=template_sections(f, lang, config.disclaimer[lang]),
+        run_id=f.run_id, lang=lang,
+        sections=template_sections(f, lang, config.disclaimer[lang], config.allocation),
         source="template", model="", prompt_version=config.prompt_version, checks=checks,
         created_at=created_at, need_tags=template_need_tags(f))
 
