@@ -393,6 +393,7 @@ comes from `DecisionResult` (no new decision logic):
 - **Chips:** stability (only for a recommended option; ≥ 0.8 kararlı, ≥ 0.5
   kısmen kararlı, else kararsız, after `warnings.low_stability_below`) and data
   confidence (≥ 0.8 yüksek, ≥ 0.6 orta, else düşük). UI thresholds only.
+  How both are measured: docs/kararlilik-veri-guveni.md.
 - **"Puan nasıl oluştu?":** one bar per `score_parts` criterion, highest first,
   then the penalties in red, largest first; the `reasons` text under each; the
   total. Bars are scaled to the largest absolute part. A criterion carries a
