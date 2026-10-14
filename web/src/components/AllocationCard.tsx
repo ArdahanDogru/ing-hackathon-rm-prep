@@ -6,7 +6,7 @@ import { useState } from "react";
 import { api } from "../api/client";
 import type { AllocationRow, Holdings, HoldingsOrigin, RunView } from "../api/types";
 import { fmtDate, fmtNum, fmtSigned } from "../format";
-import { useT, type LabelKey } from "../i18n";
+import { fill, useT, type LabelKey } from "../i18n";
 import { realColor, signedPct } from "./OptionsTable";
 import { riskColor } from "./RiskBar";
 
@@ -24,9 +24,9 @@ const BADGE: Record<string, LabelKey> = {
 const pct = (v: number) => `%${fmtNum(v)}`;
 const parse = (s: string) => Number(s.replace(",", "."));
 
-/** The tooltip of a row's badge: the source label, date and URL, else the rule or profile. */
+/** The tooltip of a row's badge: the source of its current_source (label, date, URL), else the rule or profile. */
 function sourceTip(a: AllocationRow, holdings: Holdings | undefined): string {
-  const src = holdings?.sources.find((s) => s.id === a.current_ref || s.id === a.current_source);
+  const src = holdings?.sources.find((s) => s.id === a.current_source);
   return src ? [src.label, fmtDate(src.date), src.url].filter(Boolean).join(" · ") : (a.current_ref ?? "");
 }
 
@@ -52,6 +52,14 @@ export function AllocationCard({
   const sources = cited.length ? cited : [...new Set(view.allocation.map((a) => a.source))];
   const hasCurrent = view.allocation.some((a) => a.current != null);
   const estimate = holdings?.status === "estimate";
+  // persona_text with estimated rows (W18b): name the classes from the client file
+  const active = view.allocation.filter((a) => a.active).map((a) => a.label);
+  const partly = holdings?.status === "persona_text" && active.length > 0 && active.length < view.allocation.length;
+  const banner = estimate
+    ? t("allocBanner")
+    : partly
+      ? fill(t(active.length === 1 ? "allocBannerPartOne" : "allocBannerPartMany"), { classes: active.join(", ") })
+      : null;
   const byRm = holdings?.status === "rm" || holdings?.status === "rm_confirmed";
 
   const send = (shares: Record<string, number> | null, origin?: HoldingsOrigin) => {
@@ -79,13 +87,13 @@ export function AllocationCard({
   return (
     <div data-testid="allocation" className="px-2 pb-1 pt-2">
       <h3 className="px-4 pb-2 text-[15px] font-bold">{t("allocTitle")}</h3>
-      {estimate && (
+      {banner && (
         <p
           data-testid="alloc-banner"
           role="status"
           className="mx-2 mb-3 rounded-xl border border-gray-200 bg-[#F9FAFB] px-4 py-2.5 text-[13px] text-[#344054]"
         >
-          {t("allocBanner")}
+          {banner}
         </p>
       )}
       {view.allocation_notes.length > 0 && (

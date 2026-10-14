@@ -253,3 +253,49 @@ test("W18 EN labels", async () => {
   expect(screen.getAllByTestId("alloc-badge")[0]).toHaveTextContent("estimate scenario");
   expect(screen.getByRole("button", { name: "Confirm the estimate" })).toBeInTheDocument();
 });
+
+// --- W18b: a split partly from the client file --------------------------------------------
+
+const PARTLY = "Nakit benzeri payı müşteri dosyasından; diğer sınıflar tahmini senaryodur ve sıralamayı etkilemez.";
+
+test("persona_text with estimated rows (the API sample of P01): the partial banner", async () => {
+  const v = sample("run_p01_ready");
+  expect(v.holdings?.status).toBe("persona_text");
+  await showCard(v);
+  expect(screen.getByTestId("alloc-banner")).toHaveTextContent(PARTLY);
+  expect(screen.queryByText(BANNER)).toBeNull();
+});
+
+test("several active classes: their labels joined with a comma", async () => {
+  const v = sample("run_p01_ready");
+  const i = v.allocation.findIndex((a) => a.asset_class === "altin_doviz");
+  v.allocation[i] = { ...v.allocation[i], current_source: "persona_text", active: true };
+  await showCard(v);
+  const labels = v.allocation.filter((a) => a.active).map((a) => a.label);
+  expect(labels).toHaveLength(2);
+  expect(screen.getByTestId("alloc-banner")).toHaveTextContent(
+    `${labels.join(", ")} payları müşteri dosyasından; diğer sınıflar tahmini senaryodur ve sıralamayı etkilemez.`,
+  );
+});
+
+test("persona_text with every row active: no banner", async () => {
+  const v = sample("run_p01_ready");
+  v.allocation = v.allocation.map((a) => ({ ...a, current_source: "persona_text", active: true }));
+  await showCard(v);
+  expect(screen.queryByTestId("alloc-banner")).toBeNull();
+});
+
+test("the estimate sample of P02 keeps the estimate banner", async () => {
+  const v = sample("run_p02_ready");
+  expect(v.holdings?.status).toBe("estimate");
+  await showCard(v);
+  expect(screen.getByTestId("alloc-banner")).toHaveTextContent(BANNER);
+});
+
+test("W18b EN partial banner", async () => {
+  renderDashboard(sample("run_p01_ready"), () => {}, "EN");
+  await userEvent.click(screen.getByRole("button", { name: "Allocation" }));
+  expect(screen.getByTestId("alloc-banner")).toHaveTextContent(
+    "Nakit benzeri share is from the client file; the other classes are an estimate and do not change the ranking.",
+  );
+});
