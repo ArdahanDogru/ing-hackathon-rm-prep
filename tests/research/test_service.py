@@ -164,3 +164,27 @@ def test_research_from_root_reads_keys(tmp_path):
     assert off.status(ready_result(), "TR") == {"state": "off", "reason": "no key in .env: EXA_API_KEY"}
     on = research_from_root(tmp_path, env={"EXA_API_KEY": "k"})
     assert on.enabled and [p.name for p in on._providers] == ["exa"]
+
+
+def test_a_failed_cache_write_never_blocks_a_product(tmp_path):
+    (tmp_path / "products").write_text("not a directory", encoding="utf-8")
+    p = FakeProvider()
+    s = service(tmp_path, p)
+    r = ready_result(("fund:BBF",))
+    s.start(r)
+    s.wait()
+    st = s.status(r, "TR")
+    assert st["state"] == "ready"
+    [x] = st["products"]
+    assert x["error"] == "" and len(x["findings"]) == 1
+    assert len(p.calls) == 1
+    assert s.spent_today() == pytest.approx(0.01)
+
+
+def test_a_failed_cache_write_never_blocks_a_question(tmp_path):
+    (tmp_path / "questions").write_text("not a directory", encoding="utf-8")
+    p = FakeProvider()
+    s = service(tmp_path, p)
+    a = s.ask(ready_result(), "PPN nedir?", "TR")
+    assert a.error == "" and a.summary == "Yanıt."
+    assert len(p.calls) == 1

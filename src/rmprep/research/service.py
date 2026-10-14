@@ -85,9 +85,9 @@ class ResearchService:
         if not self._providers:
             return {"state": "off", "reason": self._off_reason}
         jobs = self._jobs_for(result, lang, self._now().date(), retry=False)
-        if any(not j.done() for j in jobs):
+        if any(not j.done() for j, _ in jobs):
             return {"state": "running"}
-        return {"state": "ready", "products": [j.result().to_dict() for j in jobs],
+        return {"state": "ready", "products": [_job_result(j, o, lang).to_dict() for j, o in jobs],
                 "questions": [q.to_dict() for q in self.questions(result.run_id, lang)]}
 
     def wait(self) -> None:
@@ -96,7 +96,8 @@ class ResearchService:
             jobs = list(self._jobs.values())
         wait(jobs)
 
-    def _jobs_for(self, result: DecisionResult, lang: str, day: date, *, retry: bool) -> list[Future]:
+    def _jobs_for(self, result: DecisionResult, lang: str,
+                  day: date, *, retry: bool) -> list[tuple[Future, ProductOption]]:
         if not self._providers or result.state != DecisionState.READY:
             return []
         jobs = []
@@ -104,10 +105,11 @@ class ResearchService:
             for opt in research_products(result):
                 key = (opt.option_id, lang, day)
                 job = self._jobs.get(key)
-                failed = job is not None and job.done() and job.result().error
+                failed = job is not None and job.done() and (
+                    job.exception() is not None or bool(job.result().error))
                 if job is None or (retry and failed):
                     job = self._jobs[key] = self._pool.submit(self._product, opt, lang, day)
-                jobs.append(job)
+                jobs.append((job, opt))
         return jobs
 
     def _product(self, opt: ProductOption, lang: str, day: date) -> ProductResearch:
@@ -122,7 +124,7 @@ class ResearchService:
         if isinstance(out, str):
             return ProductResearch(opt.option_id, opt.label, "", "", (), lang, "", self._now(),
                                    error=out)
-        _write(path, out)
+        _try_write(path, out)
         return out
 
     # --- questions ------------------------------------------------------------
@@ -149,7 +151,7 @@ class ResearchService:
             out = f"{type(e).__name__}: {e}"
         if isinstance(out, str):
             return QuestionAnswer(q, "", (), lang, "", self._now(), error=out)
-        _write(path, out)
+        _try_write(path, out)
         return out
 
     def questions(self, run_id: str, lang: str) -> list[QuestionAnswer]:
@@ -201,6 +203,14 @@ class ResearchService:
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def _job_result(job: Future, opt: ProductOption, lang: str) -> ProductResearch:
+    exc = job.exception()
+    if exc is None:
+        return job.result()
+    return ProductResearch(opt.option_id, opt.label, "", "", (), lang, "", datetime.now(TR_TZ),
+                           error=f"{type(exc).__name__}: {exc}")
+
+
 def _read(path: Path, cls):
     try:
         return cls.from_dict(json.loads(path.read_text(encoding="utf-8")))
@@ -212,6 +222,15 @@ def _write(path: Path, obj) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(obj.to_dict(), ensure_ascii=False, indent=1) + "\n",
                     encoding="utf-8", newline="\n")
+
+
+def _try_write(path: Path, obj) -> None:
+    """The result is still returned when the cache cannot be written (only uncached);
+    its cost is already in the ledger."""
+    try:
+        _write(path, obj)
+    except OSError:
+        pass
 
 
 def research_from_root(root: Path | str, env: Mapping[str, str] | None = None) -> ResearchService:
