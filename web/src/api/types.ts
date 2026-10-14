@@ -149,7 +149,8 @@ export type HoldingsOrigin = "rm" | "rm_confirmed";
 /** RunView.holdings (W18): where the current split comes from. */
 export interface Holdings {
   status: "estimate" | "persona_text" | "rm" | "rm_confirmed";
-  sources: { id: string; label: string; url: string; date: string }[];
+  /** id = the row's current_source; ref = the profile label or the text rule id */
+  sources: { id: string; ref?: string; label: string; url: string; date: string }[];
 }
 
 /** The API's allocation row: the band plus the class label and the note text. */
