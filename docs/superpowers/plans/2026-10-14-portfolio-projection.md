@@ -73,7 +73,7 @@ from rmprep.contracts import (ACTIVE_HOLDINGS_SOURCES, HOLDINGS_SOURCES, Allocat
                               DecisionResult, HoldingsInput)
 
 CLASSES = ("nakit_benzeri", "borclanma", "hisse", "altin_doviz", "dengeli")
-FIXTURES = Path(__file__).parent / "fixtures" / "api"
+FIXTURES = Path(__file__).parent / "fixtures"     # as FIX in tests/api/conftest.py
 
 
 def _shares(**over):
@@ -125,7 +125,7 @@ def test_band_rejects_bad_current():
 def test_v19_json_loads():
     """A run record written before v1.10 (no new keys) still loads."""
     from rmprep.ui.fake import FakeBackend
-    b = FakeBackend(FIXTURES)        # tests/contracts/fixtures/api, as tests/api/conftest.py
+    b = FakeBackend(FIXTURES)
     r = b.decide(b.list_personas()[0], b.list_snapshots()[0])
     d = r.to_dict()
     d.pop("holdings_input")
