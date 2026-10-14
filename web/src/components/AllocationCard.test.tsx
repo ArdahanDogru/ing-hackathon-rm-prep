@@ -78,8 +78,22 @@ test("note texts: a class without an option, and a negative real return next to 
   expect(v.allocation.some((a) => a.note === "negative_real" && a.option_id)).toBe(true);
 });
 
+/** The sample as an API before W18 sent it: no current split. */
+function withoutHoldings(view: RunView): RunView {
+  const allocation = view.allocation.map((a) => {
+    const row: Record<string, unknown> = { ...a };
+    for (const k of ["current", "current_low", "current_high", "current_source", "current_ref", "gap", "active"]) {
+      delete row[k];
+    }
+    return row as unknown as RunView["allocation"][number];
+  });
+  const out: RunView = { ...view, allocation };
+  delete out.holdings;
+  return out;
+}
+
 test("the holding hints above the rows and the footer with the source", async () => {
-  const v = sample("run_p01_ready");
+  const v = withoutHoldings(sample("run_p01_ready"));
   renderDashboard(v);
   await openAllocation();
   const view = screen.getByTestId("allocation");
