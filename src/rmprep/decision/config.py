@@ -165,6 +165,7 @@ def _check(c: dict) -> None:
           (*criteria(c), *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"),
           ("low_risk", "risk_fit", "class_rule", "return_real", "return_net",
            "penalty:risk_unknown_class", "holdings_class",
+           "return_period", "return_period_net", "return_period_real",
            "penalty:real_loss", "penalty:underperformance", "liquidity_valor", "fees"))
     if "real_loss" in c["penalties"] and "penalty:real_loss" not in c["texts"]["reasons"]:
         raise ConfigError("texts.reasons: penalties.real_loss needs penalty:real_loss")
@@ -172,7 +173,19 @@ def _check(c: dict) -> None:
     _check_exchange(c)
     _keys(c["texts"]["constraint"], "texts.constraint", ("passed", "failed"),
           ("not_buyable", "buyable", "fx_limit", "liquidity_need_valor",
-           "liquidity_need_lock", "short_history", "stock_risk", "stock_risk_missing"))
+           "liquidity_need_lock", "short_history", "stock_risk", "stock_risk_missing",
+           "stock_risk_5y"))
+    # D26c: returns of a period shorter than 1 year (not annualised)
+    for key in ("return_period", "return_period_net", "return_period_real"):
+        text = c["texts"]["reasons"].get(key)
+        if text is None:
+            continue
+        allowed = {"months", "period", "horizon", "nominal", "net", "real", "loss",
+                   "benchmark", "value", "pct", "fees", "years"}
+        if not isinstance(text, str) or not text.strip() or not {
+                f for _, f, _, _ in string.Formatter().parse(text) if f} <= allowed:
+            raise ConfigError(f"texts.reasons.{key}: a text with only the fields "
+                              f"{sorted(allowed)}")
     _keys(c["texts"]["questions"], "texts.questions",
           ("risk_profili", "acik_kisitlar", *SAFE_LEVEL_FIELDS, "reason"),
           ("override_fx_limit", "override_reason"))
@@ -591,7 +604,9 @@ def _check_exchange(c: dict) -> None:
             raise ConfigError("stock.asset_class: must be a class name")
         why = "the stock section"
         _text(c, "warnings", "single_stock", why)
-        for key in ("stock_risk", "stock_risk_missing"):
+        for key in ("stock_risk", "stock_risk_missing", "stock_risk_5y"):
+            if key == "stock_risk_5y" and key not in c["texts"]["constraint"]:
+                continue                # optional (D26c)
             _text(c, "constraint", key, why)
             text = c["texts"]["constraint"][key]
             fields = {f for _, f, _, _ in string.Formatter().parse(text) if f}

@@ -7,7 +7,7 @@ bist_bulletin) have their own. Both are bought on Borsa İstanbul (T+2).
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from rmprep.contracts import DataPoint
 from rmprep.decision.config import DecisionConfig
@@ -17,6 +17,7 @@ EXCHANGE_KINDS = (ETF, STOCK)
 MARKET_KINDS = ("fund", ETF, STOCK)     # ranked products with market data and an SPK risk
 STOCK_PREFIX = "stock_"
 STOCK_VOLATILITY = "stock_volatility_1y"
+STOCK_VOLATILITY_5Y = "stock_volatility_5y"     # I11d; older snapshots have none
 STOCK_TURNOVER = "stock_turnover_3m"
 STOCK_BIST100 = "stock_bist100"
 RISK_TOP = 7
@@ -36,13 +37,21 @@ def spk_risk(volatility: float, bands: Sequence[Sequence[float]]) -> int:
     return RISK_TOP
 
 
-def stock_risk(volatility: DataPoint | None, config: DecisionConfig) -> int:
-    """Risk value of a share: the SPK band of its 1-year volatility, at least
-    stock.risk_floor (one company's risk is concentrated); no row -> 7."""
+def stock_risk(volatility: DataPoint | None, config: DecisionConfig,
+               volatility_5y: DataPoint | None = None) -> int:
+    """Risk value of a share: the SPK band of its 5-year volatility (D26c, the
+    SPK method), else of its 1-year volatility, at least stock.risk_floor (one
+    company's risk is concentrated); no row -> 7."""
     s = config.raw["stock"]
-    if volatility is None:
+    row = volatility_5y if volatility_5y is not None else volatility
+    if row is None:
         return RISK_TOP
-    return max(spk_risk(volatility.value, s["spk_bands"]), s["risk_floor"])
+    return max(spk_risk(row.value, s["spk_bands"]), s["risk_floor"])
+
+
+def risk_row(values: Mapping[str, DataPoint]) -> DataPoint | None:
+    """The volatility row a share's risk comes from: 5 years, else 1 year."""
+    return values.get(STOCK_VOLATILITY_5Y) or values.get(STOCK_VOLATILITY)
 
 
 def market_of(category: str) -> str:

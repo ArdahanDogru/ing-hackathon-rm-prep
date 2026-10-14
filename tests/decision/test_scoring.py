@@ -157,7 +157,8 @@ def test_shorter_period_for_a_6m_horizon(config):
                          investors=1000)}
     m = _by_id(_score(config, funds, levels=_levels(config, period="6m")))["fund:MMF"]
     assert m.period == "3m" and m.shorter_period
-    assert m.annual_return == pytest.approx(1.1 ** 4 - 1)
+    assert m.annual_return == pytest.approx(0.10)        # D26c: not annualised (was 1.1^4 - 1)
+    assert m.period_years == 0.25
     assert m.parts["penalty:track_record"] == pytest.approx(-0.2)
 
 

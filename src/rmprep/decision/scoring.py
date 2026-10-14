@@ -24,7 +24,9 @@ from rmprep.decision.exchange import (
     STOCK_BIST100,
     STOCK_TURNOVER,
     STOCK_VOLATILITY,
+    STOCK_VOLATILITY_5Y,
     return_prefix,
+    risk_row,
     stock_risk,
 )
 from rmprep.decision.persona import LEVEL_ATTR, Levels
@@ -250,6 +252,7 @@ class Features:
     short_history: bool = False         # listed although its history is short (D15, Agresif)
     risk_by_class: bool = False         # the risk estimate comes from its asset class (D21)
     risk_proxy: bool = False            # a share: risk from 1 year of volatility (D26)
+    period_years: float = 1.0           # < 1: the return is of that period, not annualised (D26c)
 
     @property
     def constraints(self) -> tuple[ConstraintResult, ...]:
@@ -263,21 +266,31 @@ def _risk_of(cand: Candidate, config: DecisionConfig) -> int | None:
     if cand.option.kind in DEPOSIT_KINDS:
         return RISK_MIN
     if cand.option.kind == STOCK:
-        return stock_risk(cand.values.get(STOCK_VOLATILITY), config)
+        return stock_risk(cand.values.get(STOCK_VOLATILITY), config,
+                          cand.values.get(STOCK_VOLATILITY_5Y))
     row = cand.values.get(_RISK_Q)
     return None if row is None else int(round(row.value))
 
 
 def _risk_ids(cand: Candidate) -> tuple[str, ...]:
     """The row the known risk value comes from (none for a share without volatility)."""
-    q = STOCK_VOLATILITY if cand.option.kind == STOCK else _RISK_Q
-    row = cand.values.get(q)
+    row = risk_row(cand.values) if cand.option.kind == STOCK else cand.values.get(_RISK_Q)
     return (row.id,) if row is not None else ()
+
+
+def period_years(period: str | None, config: DecisionConfig) -> float:
+    """Length of the period a return covers when it is shorter than 1 year (D26c:
+    such a return is not annualised); 1.0 for an annual return."""
+    if period is None:
+        return 1.0
+    return min(1.0, float(config.raw["horizon"]["years"][period]))
 
 
 def _return_of(cand: Candidate, levels: Levels, config: DecisionConfig
                ) -> tuple[float | None, str | None, DataPoint | None]:
-    """(annual return, period, row) of the horizon period or the next shorter one."""
+    """(return, period, row) of the horizon period or the next shorter one. A
+    period of 1 year or longer gives the yearly rate; a shorter one its own return,
+    not annualised (D26c)."""
     h = config.raw["horizon"]
     if cand.option.kind in DEPOSIT_KINDS:
         row = next(iter(cand.values.values()))
@@ -288,7 +301,9 @@ def _return_of(cand: Candidate, levels: Levels, config: DecisionConfig
     for period in fallback[start:]:
         row = cand.values.get(f"{prefix}{period}")
         if row is not None:
-            return annualize(row.value, h["years"][period]), period, row
+            years = h["years"][period]
+            value = annualize(row.value, years) if years >= 1 else row.value / 100
+            return value, period, row
     return None, None, None
 
 
@@ -350,7 +365,8 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
     after_tax: dict[str, tuple[float | None, float | None, str | None, DataPoint | None]] = {}
     fees: dict[str, tuple[float, list[DataPoint]]] = {}
     for cand, _ in kept:
-        annual = returns[cand.option.option_id][0]
+        annual, period, _ = returns[cand.option.option_id]
+        y = period_years(period, config)        # D26c: < 1 = a period return
         if rr is None or annual is None:
             after_tax[cand.option.option_id] = (None, None, None, None)
             continue
@@ -360,9 +376,10 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
         fee_rows = _fee_rows(cand, fd)
         if fee_rows:            # (entry + exit) % spread over the horizon years (D12)
             fee_pct = sum(r.value for r in fee_rows)
-            net -= fee_pct / 100 / c["horizon"]["years"][levels.period]
+            net -= fee_pct / 100 / c["horizon"]["years"][levels.period] * y
             fees[cand.option.option_id] = (fee_pct, fee_rows)
-        real = (1 + net) / (1 + cpi) - 1 if cpi is not None else None
+        # the same period of the yearly TÜFE (like with like)
+        real = (1 + net) / (1 + cpi) ** y - 1 if cpi is not None else None
         after_tax[cand.option.option_id] = (net, real, entity, st_row)
 
     def ranked_return(oid: str) -> float | None:
@@ -414,14 +431,18 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
         net, real, st_entity, st_row = after_tax[opt.option_id]
         ranked = ranked_return(opt.option_id)
         net_or_gross = net if net is not None else annual
+        y = period_years(period, config)
+        # D26c: a period return is compared with the same period of the benchmark,
+        # and the penalty scales are the same share of their yearly values
+        bench_p = (1 + bench) ** y - 1 if bench is not None else None
         under = 0.0
-        if bench is not None and net_or_gross is not None:
-            scale = c["underperformance"]["scale"]
-            under = levels.appetite * _clamp((bench - net_or_gross) / scale)
+        if bench_p is not None and net_or_gross is not None:
+            scale = c["underperformance"]["scale"] * y
+            under = levels.appetite * _clamp((bench_p - net_or_gross) / scale)
 
         size_row = cand.values.get(_SIZE_Q)
         inv_row = cand.values.get(_INVESTORS_Q)
-        vol_row = cand.values.get(STOCK_VOLATILITY)
+        vol_row = risk_row(cand.values) if opt.kind == STOCK else None
         turnover = cand.values.get(STOCK_TURNOVER)
         if is_market:
             principal = max(0.0, pv["fund_base"] - pv["fund_step"] * (risk - 1))
@@ -476,13 +497,14 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
                              else 1.0) if estimated else 0.0,
             "track_record": 1.0 if horizon_missing else 0.0,
             "fund_size": size_violation,
-            "real_loss": (levels.principal * _clamp(-real / rr["loss_scale"])
+            "real_loss": (levels.principal * _clamp(-real / (rr["loss_scale"] * y))
                           if real is not None else 0.0),
             "underperformance": under,
         }
 
         rows = {q: d for q, d in cand.values.items()
                 if q in (_RISK_Q, _SIZE_Q, _INVESTORS_Q, "deposit_rate", STOCK_VOLATILITY,
+                         STOCK_VOLATILITY_5Y,
                          STOCK_TURNOVER, STOCK_BIST100)}
         if ret_row is not None:
             rows[ret_row.quantity] = ret_row
@@ -506,7 +528,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             "size_m": size_row.value / 1e6 if size_row else 0.0,
             "investors": inv_row.value if inv_row else 0.0,
             "nominal": (annual or 0.0) * 100, "net": (net_or_gross or 0.0) * 100,
-            "benchmark": (bench or 0.0) * 100,
+            "benchmark": (bench_p or 0.0) * 100, "months": round(y * 12),
             "real": (real or 0.0) * 100, "loss": -(real or 0.0) * 100,
             "valor": valor.value if valor is not None else None,
             "fees": fee_pct, "years": c["horizon"]["years"][levels.period],
@@ -518,6 +540,9 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             risk_ids: tuple[str, ...] = ()
         elif opt.kind == STOCK:     # D26: SPK band of the 1-year volatility, an estimate
             key = "stock_risk" if vol_row is not None else "stock_risk_missing"
+            if (vol_row is not None and vol_row.quantity == STOCK_VOLATILITY_5Y
+                    and "stock_risk_5y" in texts["constraint"]):
+                key = "stock_risk_5y"
             reason = texts["constraint"][key].format(**fields)
             risk_ids = _risk_ids(cand)
         else:
@@ -534,7 +559,9 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             stopaj_entity=st_entity, stopaj_missing=net is not None and st_row is None,
             passed_before=passed_before[opt.option_id], risk_by_class=risk_by_class,
             liquidity_proxy=fd is not None and is_fund and valor is None,
-            short_history=opt.option_id in short, risk_proxy=opt.kind == STOCK))
+            short_history=opt.option_id in short, period_years=y,
+            # D26c: the SPK method needs 5 years; 1 year only is an estimate
+            risk_proxy=opt.kind == STOCK and STOCK_VOLATILITY_5Y not in cand.values))
     return out, rejected
 
 
@@ -554,6 +581,13 @@ class Row:
         return getattr(self.features, name)
 
 
+def _period_text(f: Features) -> str:
+    """Reason key of a return that is not annualised (D26c)."""
+    if f.real_return is not None:
+        return "return_period_real"
+    return "return_period_net" if f.net_return is not None else "return_period"
+
+
 def _reasons(f: Features, parts: Mapping[str, float], config: DecisionConfig) -> dict[str, str]:
     tpl = config.raw["texts"]["reasons"]
     out = {}
@@ -563,6 +597,10 @@ def _reasons(f: Features, parts: Mapping[str, float], config: DecisionConfig) ->
             out[key] = tpl["return_missing"].format(**{**f.fields, "period": f.fields["horizon"]})
             if f.short_history:
                 out[key] += " " + config.raw["texts"]["constraint"]["short_history"]
+        elif key == "return" and f.period_years < 1 and _period_text(f) in tpl:
+            out[key] = tpl[_period_text(f)].format(**f.fields, value=v, pct=v * 100)
+            if f.fields.get("fees"):
+                out[key] += " " + tpl["fees"].format(**f.fields)
         elif key == "return" and f.net_return is not None:
             name = "return_real" if f.real_return is not None else "return_net"
             out[key] = tpl[name].format(**f.fields, value=v, pct=v * 100)
