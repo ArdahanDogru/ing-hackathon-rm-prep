@@ -559,7 +559,18 @@ def _check_exchange(c: dict) -> None:
     if "stock" in c:
         st = c["stock"]
         _keys(st, "stock", ("source", "risk_floor", "min_turnover_try", "max_in_top3",
-                            "spk_bands", "asset_class"))
+                            "spk_bands", "asset_class"), ("exclude_markets",))
+        if "exclude_markets" in st:     # D26b: PAZAR codes of EntityInfo.category
+            em = st["exclude_markets"]
+            if not isinstance(em, list) or not all(isinstance(m, str) and m.strip()
+                                                    for m in em):
+                raise ConfigError("stock.exclude_markets: a list of market codes")
+            _text(c, "data_quality", "removed_stock_market", "stock.exclude_markets")
+            text = c["texts"]["data_quality"]["removed_stock_market"]
+            if not {f for _, f, _, _ in string.Formatter().parse(text) if f} <= {
+                    "count", "markets"}:
+                raise ConfigError("texts.data_quality.removed_stock_market: only the fields "
+                                  "{count} {markets}")
         for key, lo, hi in (("risk_floor", 1, 7), ("max_in_top3", 0, 3)):
             v = st[key]
             if not isinstance(v, int) or isinstance(v, bool) or not lo <= v <= hi:

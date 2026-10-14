@@ -26,13 +26,15 @@ def allocation(options: Sequence[ScoredOption], rejected: Sequence[RejectedOptio
     only through the risk_unknown rule). Note, first that applies: ceiling (no
     pick, and a fund of the class failed the risk ceiling or was skipped for its
     estimate), none (no scored option), negative_real (the best option has a
-    real 1-year return < 0; the option stays)."""
+    real 1-year return < 0; the option stays). A share is never the example of a
+    class (D26b: one company is no example of a class); its class can have none."""
     al = config.raw.get("allocation")
     if al is None:
         return ()
     profile = al["profiles"][levels.risk_profile]
-    ranked = sorted((o for o in options if o.option.kind != "deposit"),
+    ranked = sorted((o for o in options if o.option.kind not in ("deposit", "stock")),
                     key=lambda o: (-o.score, o.option.option_id))
+    rejected = [x for x in rejected if x.option.kind != "stock"]
     above = {o.option.option_id for o in ranked
              if estimates.get(o.option.option_id, 0) > levels.ceiling}
     out = []

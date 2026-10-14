@@ -187,6 +187,10 @@ def build_notes(used_ids: frozenset[str], universe: Universe, evidence: Evidence
     if "excluded_exchange_groups" in tpl and any(
             cand.option.kind in ("etf", "stock") for cand in universe.candidates):
         out.append(DataQualityNote(message=tpl["excluded_exchange_groups"]))   # D26
+    removed = universe.removed_stock_market
+    if removed:                                                     # D26b
+        out.append(DataQualityNote(message=tpl["removed_stock_market"].format(
+            count=sum(len(v) for v in removed.values()), markets=", ".join(removed))))
     for text, ids in universe.unknown_holding_types.items():     # D23, sorted by text
         out.append(DataQualityNote(
             message=tpl["unknown_holding_type"].format(text=text, count=len(ids)),

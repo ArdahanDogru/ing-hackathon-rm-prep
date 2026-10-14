@@ -21,6 +21,7 @@ from rmprep.decision.exchange import (
     STOCK_PREFIX,
     STOCK_TURNOVER,
     STOCK_VOLATILITY,
+    market_of,
     name_class,
 )
 from rmprep.decision.text import fold
@@ -86,6 +87,8 @@ class Universe:
     # by_holdings.labels -> ids of its rows (funds whose holdings were read)
     holdings_class: Mapping[str, HoldingsClass] = field(default_factory=dict)
     unknown_holding_types: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    # D26b: market code -> the share codes removed by stock.exclude_markets
+    removed_stock_market: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -330,6 +333,7 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
             by_holdings[option.option_id] = HoldingsClass(
                 asset_class=cls, share=holdings.shares[cls], evidence_ids=holdings.ids[cls])
 
+    removed_market: dict[str, list[str]] = {}
     st = c.get(STOCK)
     if st is not None:          # D26: Borsa İstanbul shares
         stock_codes = sorted({d.entity for d in idx.rows if d.quantity.startswith(STOCK_PREFIX)})
@@ -341,6 +345,10 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
                 continue
             if info.source != st["source"]:
                 unknown.append(code)
+                continue
+            market = market_of(info.category)
+            if market in st.get("exclude_markets", ()):        # D26b
+                removed_market.setdefault(market, []).append(code)
                 continue
             values = {q: d for q, d in idx.quantities_of(code).items()
                       if q.startswith(STOCK_PREFIX)}
@@ -365,4 +373,5 @@ def build_universe(evidence: EvidenceSet, config: DecisionConfig) -> Universe:
         by_id={cand.option.option_id: cand for cand in candidates},
         holdings_class=by_holdings,
         unknown_holding_types={k: tuple(sorted(v)) for k, v in sorted(unknown_types.items())},
+        removed_stock_market={k: tuple(sorted(v)) for k, v in sorted(removed_market.items())},
     )
