@@ -259,17 +259,23 @@ sources:
         frequency: weekly
         verified: true
       # Added 2026-10-10 (brief section 7.2 recommends Borsa İstanbul). Found with
-      # evds-info bie_mkbrgn / bie_altinbistbul. Not yet confirmed by the user.
+      # evds-info bie_mkbrgn / bie_altinbistbul.
+      # 2026-10-14: 5 years (the benchmark for the 1y/3y/5y share and ETF returns);
+      # asked in parts of 900 days (EVDS: at most 1000 observations per request).
+      # Price index checked: 12,250.68 on 13.10.2026 = the close in the news
+      # (politikam.com, "BIST 100 Bugün Kaç Puan? 14 Ekim 2026").
       - code: TP.MK.F.BILESIK       # "(FİYAT) BİST 100 Endeks (XU100), Kapanış Fiyatlarına Göre (Ocak 1986=0,01)", İŞ GÜNÜ
         quantity: bist100_price_index
         entity: BIST 100 price index (XU100), close
         frequency: daily
-        verified: false
+        verified: true
+        lookback_days: 1900
       - code: TP.MK.G.BILESIK       # "(GETİRİ) BİST 100 Endeks (XU100-CFNNTLTL), Kapanış Fiyatlarına Göre", İŞ GÜNÜ
         quantity: bist100_return_index
         entity: BIST 100 total return index (XU100-CFNNTLTL), close
         frequency: daily
         verified: false
+        lookback_days: 1900
       # TP.ALTINPIYASA.KAP05 (TL/gr) has no data after 25-08-2026; KAP02 (TL/kg) is current.
       - code: TP.ALTINPIYASA.KAP02  # "Altın - Kapanış Fiyatı - TL/kg", group bie_altinbistbul "Altın Piyasası (BİST)", İŞ GÜNÜ
         quantity: gold_try_kg

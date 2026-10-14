@@ -62,6 +62,30 @@ def request_start(today: date, lookback_days: int) -> date:
     return (today - timedelta(days=lookback_days)).replace(day=1)
 
 
+# EVDS gives at most 1000 observations per request. A daily or weekly series with a
+# longer window is asked in parts of at most this many calendar days (2026-10-14:
+# 5 years of BIST 100). Monthly series are never split (1000 months).
+MAX_DAYS_PER_REQUEST = 900
+
+
+def request_windows(start: date, end: date, frequency: str) -> list[tuple[date, date]]:
+    """Contiguous windows from start to end, oldest first; one window for a monthly
+    series or a window of at most MAX_DAYS_PER_REQUEST days."""
+    if frequency == "monthly" or (end - start).days + 1 <= MAX_DAYS_PER_REQUEST:
+        return [(start, end)]
+    out, s = [], start
+    while s <= end:
+        e = min(s + timedelta(days=MAX_DAYS_PER_REQUEST - 1), end)
+        out.append((s, e))
+        s = e + timedelta(days=1)
+    return out
+
+
+def part_name(code: str, part: int) -> str:
+    """Payload file name of part `part` (0 = the oldest window, the old single name)."""
+    return f"{code}.json" if part == 0 else f"{code}.p{part}.json"
+
+
 def series_url(src: EvdsSource, code: str, start: date, end: date) -> str:
     return (f"{src.base_url}series={code}&startDate={_evds_date(start)}"
             f"&endDate={_evds_date(end)}&type=json")
@@ -100,25 +124,31 @@ def fetch(
     if not api_key:
         return failed(f"API key not set (environment variable {src.api_key_env})")
 
-    received: list[tuple[EvdsSeries, str, bytes]] = []
+    windows = {s.code: request_windows(starts[s.code], today, s.frequency) for s in real}
+    if parts := {code: len(w) for code, w in windows.items() if len(w) > 1}:
+        request["series_parts"] = parts
+
+    received: list[tuple[EvdsSeries, int, str, bytes]] = []
     for s in real:
-        url = series_url(src, s.code, starts[s.code], today)
-        try:
-            resp = client.get(url, headers={"key": api_key}, timeout=src.timeout_seconds)
-        except httpx.HTTPError as e:
-            return failed(f"{s.code}: {type(e).__name__}: {e}")
-        if resp.status_code != 200:
-            return failed(f"{s.code}: HTTP {resp.status_code}")
-        try:
-            parse_payload(resp.content, s.code)
-        except EvdsParseError as e:
-            return failed(f"{s.code}: {e}")
-        received.append((s, url, resp.content))
+        for part, (w_start, w_end) in enumerate(windows[s.code]):
+            url = series_url(src, s.code, w_start, w_end)
+            try:
+                resp = client.get(url, headers={"key": api_key}, timeout=src.timeout_seconds)
+            except httpx.HTTPError as e:
+                return failed(f"{s.code}: {type(e).__name__}: {e}")
+            if resp.status_code != 200:
+                return failed(f"{s.code}: HTTP {resp.status_code}")
+            try:
+                parse_payload(resp.content, s.code)
+            except EvdsParseError as e:
+                return failed(f"{s.code}: {e}")
+            received.append((s, part, url, resp.content))
 
     fetched_at = now()
     refs = tuple(
-        writer.add_payload(src.name, f"{s.code}.json", body, meta={"series": s.code, "url": url})
-        for s, url, body in received
+        writer.add_payload(src.name, part_name(s.code, part), body,
+                           meta={"series": s.code, "url": url} | ({"part": part} if part else {}))
+        for s, part, url, body in received
     )
     return SourceRecord(status="ok", on_failure=src.on_failure, fetched_at=fetched_at,
                         request=request, payloads=refs)
@@ -216,7 +246,11 @@ def parse(
         raise ValueError(f"{snap.snapshot_id}: source {src.name!r} has no ok record")
     sid = out_snapshot_id or snap.snapshot_id
     day = out_date or snap.created_at.date()
-    by_code = {p.meta["series"]: p for p in rec.payloads}
+    by_code: dict[str, list] = {}
+    for p in rec.payloads:                       # parts in window order (oldest first)
+        by_code.setdefault(p.meta["series"], []).append(p)
+    for parts in by_code.values():
+        parts.sort(key=lambda p: p.meta.get("part", 0))
 
     points: list[DataPoint] = []
     for i, s in enumerate(src.series):
@@ -228,22 +262,25 @@ def parse(
                 note="placeholder series code; set the real EVDS code in sources.yaml"))
             continue
 
-        payload = by_code[s.code]
-        observations = [
-            (idx, as_of, v)
-            for idx, as_of, v in parse_payload(snap.read_payload(payload.path), s.code)
-            if v is not None
-        ]
+        parts = by_code[s.code]
+        payload = parts[-1]                      # the newest part (refs of missing / annual rows)
+        found: dict[date, tuple[Any, int, float]] = {}
+        for part in parts:                       # a later part wins on a shared date
+            for idx, as_of, v in parse_payload(snap.read_payload(part.path), s.code):
+                if v is not None:
+                    found[as_of] = (part, idx, v)
+        located = [(found[d][0], found[d][1], d, found[d][2]) for d in sorted(found)]
+        observations = [(idx, as_of, v) for _, idx, as_of, v in located]
         if not observations:
             points.append(_point(
                 cfg, src, s, value=None, as_of=day, fetched_at=rec.fetched_at,
                 snapshot_id=sid, ref=raw_ref(snap.snapshot_id, payload.path, "items"),
                 note="no observations in the requested date range"))
             continue
-        for idx, as_of, v in observations:
+        for part, idx, as_of, v in located:
             points.append(_point(
                 cfg, src, s, value=v, as_of=as_of, fetched_at=rec.fetched_at,
-                snapshot_id=sid, ref=raw_ref(snap.snapshot_id, payload.path, f"items[{idx}]")))
+                snapshot_id=sid, ref=raw_ref(snap.snapshot_id, part.path, f"items[{idx}]")))
         if s.annual_change:
             points.extend(_annual_change(cfg, src, s, observations, fetched_at=rec.fetched_at,
                                          snapshot_id=sid, snap_id=snap.snapshot_id,

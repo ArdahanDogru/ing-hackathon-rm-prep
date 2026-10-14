@@ -659,6 +659,18 @@ February 2023 earthquake. The I11d guard then cut the history to 2023-02-15.
 - An I11d `.bad` marker whose reason starts with "only 0 shares with a closing
   price" is reclassified to `.closed` (no request). Other `.bad` markers stay.
 
+I12 (2026-10-14, lead): long EVDS windows in parts. EVDS gives at most 1000
+observations per request, so a daily or weekly series whose window is longer
+than `MAX_DAYS_PER_REQUEST` (900 calendar days) is asked in contiguous parts,
+oldest first (`request_windows`). Payload names: `<code>.json` for the first
+part (the old name, so a short series is unchanged), `<code>.p<k>.json` for
+the later ones (meta `part`); the manifest request has `series_parts {code:
+n}`. Parse joins the parts in order; a later part wins on a shared date; each
+row's `raw_ref` names its own part. Monthly series are never split. Used for
+the BIST 100 price and total-return indices (`lookback_days` 1900, 5 years,
+the later benchmark for share and ETF returns); the price index is verified
+(12,250.68 on 13.10.2026 = the close in the news).
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes

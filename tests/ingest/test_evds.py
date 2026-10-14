@@ -1,5 +1,6 @@
 import json
-from datetime import date, timedelta
+import re
+from datetime import date, datetime, timedelta
 
 import httpx
 import pytest
@@ -442,3 +443,77 @@ def test_metadata_403_hint(cfg):
 def test_malformed_payload_rejected(body):
     with pytest.raises(evds.EvdsParseError):
         evds.parse_payload(body, "TP.X")
+
+
+# --- long daily history in parts (2026-10-14, BIST 100 for 5 years) ----------------
+
+def _daily_items(code, start, end):
+    col = code.replace(".", "_")
+    days = (end - start).days + 1
+    return [{"Tarih": (start + timedelta(d)).strftime("%d-%m-%Y"),
+             col: f"{100 + (start + timedelta(d)).toordinal() % 50}.5"} for d in range(days)]
+
+
+class _WindowEvds:
+    """EVDS fake that answers each request with one daily item per day of its window."""
+
+    def __init__(self):
+        self.windows = []
+
+    def __call__(self, request):
+        url = str(request.url)
+        code = re.search(r"series=([^&]+)&", url)[1]
+        start = datetime.strptime(re.search(r"startDate=([^&]+)", url)[1], "%d-%m-%Y").date()
+        end = datetime.strptime(re.search(r"endDate=([^&]+)", url)[1], "%d-%m-%Y").date()
+        self.windows.append((code, start, end))
+        items = _daily_items(code, start, end)
+        return httpx.Response(200, content=json.dumps({"totalCount": len(items), "items": items}))
+
+
+def _long_cfg(config_raw, lookback=1900, frequency="daily"):
+    s = config_raw["sources"]["evds"]["series"][0]          # TP.DK.USD.A.YTL
+    s["lookback_days"], s["frequency"] = lookback, frequency
+    return parse_config(config_raw)
+
+
+def _fetch_with(tmp_path, cfg, handler):
+    src = cfg.sources["evds"]
+    w = SnapshotWriter(tmp_path / "snaps", {"cfg": "copy"}, created_at=T0,
+                       snapshot_id="20261009-150000-0002", secrets=[KEY])
+    rec = evds.fetch(src, w, api_key=KEY, client=httpx.Client(transport=httpx.MockTransport(handler)),
+                     today=TODAY, now=lambda: T0)
+    w.set_source("evds", rec)
+    return rec, w.finalize()
+
+
+def test_long_daily_lookback_is_split_into_parts(tmp_path, config_raw):
+    fake = _WindowEvds()
+    rec, snap = _fetch_with(tmp_path, _long_cfg(config_raw), fake)
+    usd = [(s, e) for c, s, e in fake.windows if c == "TP.DK.USD.A.YTL"]
+    assert len(usd) == 3                                     # 1900+ days in parts of 900
+    assert usd[0][0] == evds.request_start(TODAY, 1900) and usd[-1][1] == TODAY
+    for (s1, e1), (s2, _) in zip(usd, usd[1:]):
+        assert s2 == e1 + timedelta(days=1)                  # contiguous, no overlap
+    assert all((e - s).days + 1 <= evds.MAX_DAYS_PER_REQUEST for s, e in usd)
+    names = [p.path.rsplit("/", 1)[-1] for p in rec.payloads if p.meta["series"] == "TP.DK.USD.A.YTL"]
+    assert names == ["TP.DK.USD.A.YTL.json", "TP.DK.USD.A.YTL.p1.json", "TP.DK.USD.A.YTL.p2.json"]
+    assert rec.request["series_parts"] == {"TP.DK.USD.A.YTL": 3}
+    cfg = _long_cfg(config_raw)
+    rows = [p for p in evds.parse(cfg, cfg.sources["evds"], snap) if p.quantity == "usd_try"]
+    dates = [p.as_of for p in rows]
+    assert len(dates) == len(set(dates)) == (TODAY - usd[0][0]).days + 1
+    assert rows[-1].raw_ref.split("#")[0].endswith("TP.DK.USD.A.YTL.p2.json")
+
+
+def test_monthly_series_is_never_split(tmp_path, config_raw):
+    fake = _WindowEvds()
+    _fetch_with(tmp_path, _long_cfg(config_raw, frequency="monthly"), fake)
+    assert len([w for w in fake.windows if w[0] == "TP.DK.USD.A.YTL"]) == 1
+
+
+def test_short_lookback_keeps_one_request_and_the_old_name(tmp_path, cfg):
+    fake = _WindowEvds()
+    rec, _ = _fetch_with(tmp_path, cfg, fake)
+    assert [w[0] for w in fake.windows] == ["TP.DK.USD.A.YTL", "TP.FG.J0"]
+    assert [p.path.rsplit("/", 1)[-1] for p in rec.payloads] == ["TP.DK.USD.A.YTL.json", "TP.FG.J0.json"]
+    assert "series_parts" not in rec.request
