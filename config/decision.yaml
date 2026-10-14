@@ -222,6 +222,9 @@ stock:
   # SPK fund guide 9.3.2.1 (table of 12.10.2023): [upper annual volatility % (exclusive), risk]; above the last: 7
   spk_bands: [[2, 1], [5, 2], [10, 3], [15, 4], [20, 5], [30, 6]]
   asset_class: hisse
+  # D26b [VARSAYIM, lead 2026-10-14]: W = Yakın İzleme Pazarı; S = Nitelikli Yatırımcı
+  # İşlem Pazarı or the pre-market platform (code not confirmed); both restricted
+  exclude_markets: [W, S]
 
 underperformance: {scale: 0.20}   # D10: B = EVDS market deposit rate net of the deposit stopaj
 long_horizon: {period: 3y, liquidity_factor: 0.5, return_add: 1.0}   # D9: horizon 3+ years
@@ -420,6 +423,7 @@ texts:
     single_stock: "Tek bir şirketin payı: şirkete özgü risk; çeşitlendirmeyi RM değerlendirsin."
   data_quality:
     excluded_exchange_groups: "Borsa ürünlerinden varant ve sertifikalar, borsada işlem gören gayrimenkul ve girişim sermayesi fonları, tahvil ve eurobondlar kapsam dışıdır."   # D26
+    removed_stock_market: "{count} pay, yakın izleme veya nitelikli yatırımcı pazarında işlem gördüğü için çıkarıldı (pazar kodu: {markets})."   # D26b
     unknown_holding_type: "Bilinmeyen portföy varlık türü \"{text}\": {count} fonda dikkate alınmadı."   # D23
     removed_no_data: "{count} fon, kullanılabilir veri satırı olmadığı için çıkarıldı."
     valor_missing: "{count} fonun satış valörü kanıtlarda yok; likidite kısıtı bu fonlara uygulanamadı."

@@ -958,6 +958,23 @@ Details fixed in D26 (merged 2026-10-14, decision@4f90384; config by the lead):
   0.2, 0.4 (income and simplicity: the worker's proposal, accepted by the
   lead).
 
+Details fixed in D26b (merged 2026-10-14, decision@00f5ad4):
+
+- `stock.exclude_markets`: a share whose market code (the part of
+  `EntityInfo.category` after the last "·") is in the list is removed before
+  scoring. It is not in the options or in the rejected list; it is counted
+  per market in `Universe.removed_stock_market`. One data-quality note
+  `texts.data_quality.removed_stock_market` with `{count}` (all removed
+  shares) and `{markets}` (the codes, sorted). A missing key = no exclusion.
+  **[VARSAYIM, lead 2026-10-14]:** `[W, S]`; W = Yakın İzleme Pazarı, S =
+  Nitelikli Yatırımcı İşlem Pazarı or the pre-market platform (the code is not
+  confirmed). On snapshot 20261014-164524-42c2: 590 shares kept, W 20 and
+  S 18 removed.
+- D20 allocation: a share is never the example option of a class band (one
+  company is not an example of a class); an ETF or a fund can be. Shares are
+  left out of the band computation, also for the ceiling note; a class with
+  only shares gets no example and the note "none".
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only
