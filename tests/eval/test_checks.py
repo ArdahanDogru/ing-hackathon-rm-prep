@@ -492,3 +492,28 @@ def test_recommendation_metrics(root):
     m = metric_values(sr.runs[0], DCFG)
     assert m["recommended_plain_order"] is True
     assert m["recommended_cash_like"] >= 0 and m["recommended_classes"] >= 1
+
+
+# --- the code-written market note (N14) cites its own EVDS rows (lead, 2026-10-15) ---------
+
+def test_a_sentence_may_use_the_rows_it_cites_itself(root):
+    """Eval 20261014-full: every LLM text failed rule 3 on piyasa_notu ("49,28",
+    "2026-08-31"): the market note cites EVDS rows that the decision result does not
+    reference. A sentence may use the value and date of a row it cites itself; the same
+    figure without the citation still fails."""
+    sr = one(root, Scenario(id="p01", group="base", persona="P01"))
+    run = sr.runs[0]
+    used = run.result.evidence_ids()
+    for row in run.evidence.datapoints:
+        if row.id in used or row.value is None or abs(row.value) < 100:
+            continue
+        figure = f"{row.value:.2f}".replace(".", ",")
+        said = f"Değer {figure} ({row.as_of:%d.%m.%Y})."
+        bare = dataclasses.replace(run, narratives={"TR": text(run, NarrativeSentence(said, ()))})
+        if check_no_invented_data(Context(sr.scenario, bare, DCFG, PHRASES)).status != FAIL:
+            continue                          # the figure is allowed anyway: try another row
+        cited = dataclasses.replace(run, narratives={"TR": text(
+            run, NarrativeSentence(said, (), (row.id,)))})
+        assert check_no_invented_data(Context(sr.scenario, cited, DCFG, PHRASES)).status == PASS
+        return
+    pytest.skip("no evidence row outside the result with a figure that is not allowed anyway")

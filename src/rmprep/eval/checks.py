@@ -264,16 +264,22 @@ def check_no_invented_data(c: Context) -> CheckResult:
         dates |= shown_dates
     for lang, d in sorted(c.run.narratives.items()):
         for key, s in sentences(d):
+            own_nums, own_dates = set(), set()      # the rows this sentence cites itself (N14)
             for i in s.evidence_ids:
                 row = by_id.get(i)
                 if row is not None and row.source in excluded:
                     problems.append(f"text {lang}: {key}: cites {i} of the excluded source {row.source}")
+                elif row is not None:
+                    if row.value is not None:
+                        own_nums.add(abs(row.value))
+                    own_dates.add(row.as_of)
+                    own_nums.add(float(row.as_of.year))
             text = re.sub(r"\bE[0-9a-f]{8}\b", " ", s.text)
             for tok, readings in token_readings(text):
-                if not _matches(readings, nums):
+                if not _matches(readings, nums | own_nums):
                     problems.append(f"text {lang}: {key}: number {tok} is not in the result or "
                                     f"its evidence or display facts: \"{s.text[:80]}\"")
-            for dt in sorted(dates_in(text) - dates):
+            for dt in sorted(dates_in(text) - dates - own_dates):
                 problems.append(f"text {lang}: {key}: date {dt} is not in the result or its evidence")
     return CheckResult.of("no_invented_data", problems)
 
