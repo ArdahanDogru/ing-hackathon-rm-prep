@@ -250,5 +250,11 @@ def research_from_root(root: Path | str, env: Mapping[str, str] | None = None) -
             if key:
                 from rmprep.research.exa import ExaProvider
                 providers.append(ExaProvider(config.exa, config.system_prompt, key))
+        elif name == "claude" and config.claude is not None:
+            from rmprep.research.claude_search import ClaudeSearchProvider
+            p = ClaudeSearchProvider.from_env(config.claude, config.system_prompt,
+                                              config.exa.exclude_domains, env)
+            if p is not None:
+                providers.append(p)
     off = "" if providers else f"no key in .env: {config.exa.api_key_env}"
     return ResearchService(config, providers, root / config.cache_dir, off_reason=off)
