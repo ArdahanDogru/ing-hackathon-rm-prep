@@ -243,6 +243,46 @@ def bist_history(days: list[date] | None = None) -> dict[str, bytes]:
     return files
 
 
+def bist_long_days(end: date = BIST_END, years: float = 5.2) -> list[date]:
+    """I11d: two bulletins a week (Monday and Thursday) for about `years`
+    years up to `end` (a Thursday), oldest first. Weeks with two trading days
+    give one SPK weekly return each."""
+    days, d = [], end
+    first = end - timedelta(days=round(365.25 * years))
+    while d >= first:
+        if d.weekday() in (0, 3):
+            days.append(d)
+        d -= timedelta(days=1)
+    return days[::-1]
+
+
+def bist_long_closes(days: list[date]) -> dict[str, dict[date, float]]:
+    """AAA: within each week +1 % (Monday -> Thursday) in even ISO weeks and
+    -1 % in odd ones, no move between weeks; LLL: flat at 10."""
+    out: dict[str, dict[date, float]] = {"AAA": {}, "LLL": {}}
+    level = 100.0
+    for d in days:
+        if d.weekday() == 3:
+            level *= 1.01 if d.isocalendar()[1] % 2 == 0 else 0.99
+        out["AAA"][d] = round(level, 6)
+        out["LLL"][d] = 10.0
+    return out
+
+
+def bist_long_history(days: list[date] | None = None) -> dict[str, bytes]:
+    days = days or bist_long_days()
+    closes = bist_long_closes(days)
+    files, prev = {}, {"AAA": None, "LLL": None}
+    for d in days:
+        rows = []
+        for code in ("AAA", "LLL"):
+            c = closes[code][d]
+            rows.append(bist_row(d, f"{code}.E", f"{code} AS", c, prev[code] or c))
+            prev[code] = c
+        files[bist_name(d)] = bulletin_zip(d, rows)
+    return files
+
+
 @functools.lru_cache(maxsize=1)
 def _default_bist_files() -> dict[str, bytes]:
     return bist_history()                         # shared; tests must not change it
@@ -254,6 +294,11 @@ TEST_BIST_QUANTITIES = {
     **{f"stock_return_{p}": {"unit": "pct", "max_age_days": 5, "min": -100, "max": 10000,
                              "conflict_tolerance": 0.0} for p in ("1m", "3m", "6m", "1y")},
     "stock_volatility_1y": {"unit": "pct", "max_age_days": 5, "min": 0, "max": 500,
+                            "conflict_tolerance": 0.0},
+    # I11d: optional quantities (rows only when declared)
+    **{f"stock_return_{p}": {"unit": "pct", "max_age_days": 5, "min": -100, "max": 1_000_000,
+                             "conflict_tolerance": 0.0} for p in ("3y", "5y")},
+    "stock_volatility_5y": {"unit": "pct", "max_age_days": 5, "min": 0, "max": 500,
                             "conflict_tolerance": 0.0},
     "stock_turnover_3m": {"unit": "TRY", "max_age_days": 5, "min": 0, "max": 1e15,
                           "conflict_tolerance": 0.0},
