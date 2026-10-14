@@ -42046,5 +42046,10 @@
    "label": "Dengeli (çoklu varlık)"
   }
  ],
- "allocation_notes": []
+ "allocation_notes": [],
+ "priority_criteria": {
+  "liquidity": [
+   "erişilebilir likidite"
+  ]
+ }
 }

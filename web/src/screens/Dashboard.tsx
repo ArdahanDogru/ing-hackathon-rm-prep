@@ -14,6 +14,7 @@ import { OptionsCompare } from "../components/OptionsCompare";
 import { PersonaPanel } from "../components/PersonaPanel";
 import { QuestionsPanel } from "../components/QuestionsPanel";
 import { useChecks } from "../checks";
+import { explain } from "../explain";
 import { labels, useT, type LabelKey } from "../i18n";
 
 const show = (v: unknown) => (Array.isArray(v) ? v.join(", ") : String(v));
@@ -136,6 +137,7 @@ export function Dashboard({
             snapshotId={r.snapshot_id}
             onToggle={() => toggle(opened.option_id)}
             onEvidence={setEvidenceId}
+            explanation={explain(view, opened.option_id)}
           />
         </FundDrawer>
       )}

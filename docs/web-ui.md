@@ -357,6 +357,34 @@ a check when the app opens. Ingest lock: docs/ingest.md I6.
   `/api/ingest` (404). A refresh from the web app also writes start, exit and
   error lines to `data/logs/ingest.log`.
 
+### Explainability: "Neden bu öneri?" (W15, 2026-10-14)
+
+Approved by the user 2026-10-14 (canvas "Explainability Mockup", board 2). The
+fund card replaces the `why` lines with the engine's own reasoning; every value
+comes from `DecisionResult` (no new decision logic):
+
+- **Rank:** "{of} aday içinde {n}. sıra" over all scored options (score, then
+  option id).
+- **Chips:** stability (only for a recommended option; ≥ 0.8 kararlı, ≥ 0.5
+  kısmen kararlı, else kararsız, after `warnings.low_stability_below`) and data
+  confidence (≥ 0.8 yüksek, ≥ 0.6 orta, else düşük). UI thresholds only.
+- **"Puan nasıl oluştu?":** one bar per `score_parts` criterion, highest first,
+  then the penalties in red, largest first; the `reasons` text under each; the
+  total. Bars are scaled to the largest absolute part. A criterion carries a
+  tag for each client priority that boosts it.
+- **"Geçtiği kesin kurallar":** the passed `constraints`, each with its
+  evidence chips (they open the Kanıt pop-up).
+- **"En yakın alternatif":** for a recommended option, the highest-scoring
+  non-recommended option of the same group (`fund_kind`, else kind; as
+  `grouping.group_key`), its score, and the criterion with the largest part
+  difference with the alternative's reason.
+- **API:** `RunView.priority_criteria` = criterion → the persona priorities (as
+  written) whose `priorities` entry is `boost:<criterion>`
+  (`api/views.py priority_criteria`). The samples got the key without a rerun
+  (the rerun needs the narrator); the value is the same function's output.
+- The `why` lines stay in the API; `FundCard` shows them when no explanation is
+  given. Next step: the decision pipeline section on the dashboard (board 1).
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

@@ -13,6 +13,7 @@ from rmprep.contracts import Backend, DecisionResult, ScoredOption, _to_json
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.display import DisplayFacts, access_text, display_facts
 from rmprep.decision.persona import read_persona
+from rmprep.decision.text import normalize
 from rmprep.grouping import group_key, groups, recommended
 from rmprep.ui.i18n import LABELS, t
 
@@ -57,6 +58,19 @@ def category_average(facts: Mapping[str, DisplayFacts], members: Sequence[str]) 
     out = {p: mean(facts[m].returns[p].value if p in facts[m].returns else None for m in members)
            for p in PERIODS}
     out["real_1y"] = mean(facts[m].real_1y.value if facts[m].real_1y else None for m in members)
+    return out
+
+
+def priority_criteria(priorities: Sequence[str], config: DecisionConfig) -> dict[str, list[str]]:
+    """Scoring criterion -> the client's priorities (as written) that boost it
+    (config priorities, "boost:<criterion>"); the fund card tags its score rows
+    with them (docs/web-ui.md W15)."""
+    table = {normalize(k): str(v) for k, v in config.raw["priorities"].items()}
+    out: dict[str, list[str]] = {}
+    for written in priorities:
+        kind, _, crit = table.get(normalize(written), "").partition(":")
+        if kind == "boost":
+            out.setdefault(crit, []).append(written)
     return out
 
 
@@ -192,4 +206,5 @@ class ViewBuilder:
             "rejected_by_rule": sorted(rules.values(), key=lambda x: (-x["count"], x["rule_id"])),
             "allocation": [self._band(b, facts) for b in r.allocation],      # D20
             "allocation_notes": list(r.allocation_notes),
+            "priority_criteria": priority_criteria(r.persona.oncelikler, self._config),  # W15
         }

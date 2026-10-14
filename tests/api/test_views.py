@@ -164,3 +164,11 @@ def test_allocation_rows_have_texts(backend, persona):
     assert rows[0]["label"] == "Hisse" and rows[0]["note_text"] == "Risk tavanı nedeniyle uygun fon yok."
     assert rows[1]["option_id"] == oid and rows[1]["note_text"] == ""
     assert v["allocation_notes"] == ["not"]
+
+
+def test_priority_criteria_maps_boosts_and_skips_the_rest():
+    from rmprep.api.views import priority_criteria
+    got = priority_criteria(["düzenli gelir", "Likiditeyi koruma", "sınırlı dalgalanma",
+                             "çeşitlendirme", "kur riskini yönetme", "bilinmeyen"], load_config())
+    assert got == {"income": ["düzenli gelir"], "liquidity": ["Likiditeyi koruma"],
+                   "risk_fit": ["sınırlı dalgalanma"]}

@@ -305,6 +305,8 @@ export interface RunView {
   rejected_by_rule: RejectedByRule[];
   allocation: AllocationRow[];
   allocation_notes: string[];
+  /** W15: scoring criterion → the client's priorities (as written) that boost it. */
+  priority_criteria: Record<string, string[]>;
 }
 
 export interface RunInputs {

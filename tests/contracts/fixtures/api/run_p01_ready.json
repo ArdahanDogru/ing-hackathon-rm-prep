@@ -33923,5 +33923,16 @@
  ],
  "allocation_notes": [
   "Dosyaya göre varlık TL mevduat ağırlıklı: nakit benzeri bandı aşılıyor olabilir."
- ]
+ ],
+ "priority_criteria": {
+  "income": [
+   "düzenli gelir"
+  ],
+  "liquidity": [
+   "likiditeyi koruma"
+  ],
+  "risk_fit": [
+   "sınırlı dalgalanma"
+  ]
+ }
 }
