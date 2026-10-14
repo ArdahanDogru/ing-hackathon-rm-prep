@@ -17,6 +17,7 @@ from rmprep.decision.recommend import choose
 from rmprep.decision.scoring import option_features
 from rmprep.decision.universe import build_universe, stopaj_entity
 from tests.decision.conftest import T0, d9_rows, dp, load_persona, make_evidence
+from tests.decision.test_allocation import ALLOCATION
 from tests.decision.test_holdings_class import add_d23, hold
 
 ETF_STOPAJ = "Borsa yatırım fonu (BYF), tüm türler"
@@ -429,3 +430,82 @@ def test_bad_d26_config_is_an_error(d26_raw, edit, match):
     edit(d26_raw)
     with pytest.raises(ConfigError, match=match):
         parse_config(d26_raw)
+
+
+# --- D26b: excluded markets, no single share as a class example ----------------------------
+
+REMOVED = "{count} pay, {markets} pazarında işlem gördüğü için çıkarıldı (yakın izleme / nitelikli yatırımcı)."
+
+
+def _market(rows_ents, market):
+    rows, ents = rows_ents
+    return rows, {k: dataclasses.replace(v, category=f"BIST pay · {market}")
+                  for k, v in ents.items()}
+
+
+@pytest.fixture
+def d26b_raw(d26_raw) -> dict:
+    d26_raw["stock"]["exclude_markets"] = ["W", "S"]
+    d26_raw["texts"]["data_quality"]["removed_stock_market"] = REMOVED
+    return d26_raw
+
+
+@pytest.fixture
+def d26b_config(d26b_raw):
+    return parse_config(d26b_raw)
+
+
+def test_shares_of_excluded_markets_are_removed_and_counted(d26b_config):
+    ev = _ev(_market(stock("YLDZ"), "Z"), _market(stock("WTCH"), "W"),
+             _market(stock("WTC2"), "W"), _market(stock("QUAL"), "S"))
+    u = build_universe(ev, d26b_config)
+    assert {c.option.entity for c in u.candidates if c.option.kind == "stock"} == {"YLDZ"}
+    assert u.removed_stock_market == {"S": ("QUAL",), "W": ("WTC2", "WTCH")}
+    r = decide(ev, load_persona("P03"), d26b_config, created_at=T0)
+    assert REMOVED.format(count=3, markets="S, W") in [n.message for n in r.data_quality]
+    assert "stock:WTCH" not in {x.option.option_id for x in r.rejected}
+
+
+def test_no_note_when_no_share_is_removed(d26b_config):
+    r = decide(_ev(_market(stock("YLDZ"), "Z")), load_persona("P03"), d26b_config,
+               created_at=T0)
+    assert not [n for n in r.data_quality if "pazarında" in n.message]
+
+
+def test_without_exclude_markets_no_share_is_removed(d26_config):
+    u = build_universe(_ev(_market(stock("WTCH"), "W")), d26_config)
+    assert "stock:WTCH" in u.by_id and u.removed_stock_market == {}
+
+
+@pytest.mark.parametrize("edit,match", [
+    (lambda r: r["stock"].update(exclude_markets="W"), "stock.exclude_markets"),
+    (lambda r: r["stock"].update(exclude_markets=["W", ""]), "stock.exclude_markets"),
+    (lambda r: r["texts"]["data_quality"].pop("removed_stock_market"), "removed_stock_market"),
+    (lambda r: r["texts"]["data_quality"].update(removed_stock_market="{codes}"),
+     "removed_stock_market"),
+])
+def test_bad_d26b_config_is_an_error(d26b_raw, edit, match):
+    edit(d26b_raw)
+    with pytest.raises(ConfigError, match=match):
+        parse_config(d26b_raw)
+
+
+def _hisse_band(cfg, *products):
+    raw = copy.deepcopy(dict(cfg.raw))
+    raw["allocation"] = copy.deepcopy(ALLOCATION)
+    r = decide(_ev(*products), load_persona("P03"), parse_config(raw), created_at=T0)
+    return next(b for b in r.allocation if b.asset_class == "hisse"), r
+
+
+def test_the_class_example_is_never_a_share(d26_config):
+    band, r = _hisse_band(d26_config, stock("TOP", returns={"1y": 500.0}),
+                          etf("EF", returns={"1y": 20.0}))
+    ranked = [o.option.option_id for o in r.options if o.option.asset_class == "hisse"]
+    assert ranked[0] == "stock:TOP"              # the share is the best hisse option ...
+    assert band.option_id == "etf:EF"            # ... but the example is the ETF
+
+
+def test_a_class_with_only_shares_has_no_example(d26_config):
+    band, r = _hisse_band(d26_config, stock("TOP"))
+    assert any(o.option.option_id == "stock:TOP" for o in r.options)
+    assert band.option_id is None and band.note == "none"

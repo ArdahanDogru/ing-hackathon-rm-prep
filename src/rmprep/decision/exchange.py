@@ -45,6 +45,11 @@ def stock_risk(volatility: DataPoint | None, config: DecisionConfig) -> int:
     return max(spk_risk(volatility.value, s["spk_bands"]), s["risk_floor"])
 
 
+def market_of(category: str) -> str:
+    """The PAZAR code of a share's EntityInfo.category "BIST pay · <PAZAR>" (I11)."""
+    return category.rsplit("·", 1)[-1].strip()
+
+
 def _tr_upper(s: str) -> str:
     return s.replace("i", "İ").replace("ı", "I").upper()
 
