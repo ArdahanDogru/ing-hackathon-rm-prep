@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { api, ApiError } from "../api/client";
 import { renderDashboard, renderWith } from "../test/render";
-import { sample, withMarketNote } from "../test/samples";
+import { sample } from "../test/samples";
 import { Dashboard } from "./Dashboard";
 
 beforeEach(() => localStorage.clear());
@@ -331,21 +331,29 @@ test("a decision without a time (an older run) shows the status only", () => {
 // --- W15 part 3: market note -----------------------------------------------------------
 
 test("market note card: value, date and K per item, under the brief", async () => {
-  const v = withMarketNote(sample("run_p01_ready"));
+  const v = sample("run_p01_ready");
   const ev = vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
   renderDashboard(v);
   const card = screen.getByTestId("market-note");
   expect(card).toHaveTextContent("Piyasa notu · TCMB EVDS");
   expect(screen.getByTestId("brief-card").compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   const rows = within(card).getAllByTestId("market-item");
-  expect(rows).toHaveLength(3);
-  expect(rows[0]).toHaveTextContent("Politika faizi");
-  expect(rows[0]).toHaveTextContent("%40,5");
-  expect(rows[0]).toHaveTextContent("09.10.2026");
-  expect(rows[1]).toHaveTextContent("41,2345 TL");
-  expect(rows[2]).toHaveTextContent("%40,48");
+  expect(rows).toHaveLength(v.market_note.length);
+  const nf = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 4 });
+  v.market_note.forEach((m, i) => {
+    expect(rows[i]).toHaveTextContent(m.label);
+    expect(rows[i]).toHaveTextContent(m.unit === "pct" ? `%${nf.format(m.value)}` : `${nf.format(m.value)} TL`);
+    expect(rows[i]).toHaveTextContent(m.as_of.split("-").reverse().join("."));
+  });
   await userEvent.click(within(rows[1]).getByRole("button", { name: "Kanıt" }));
-  expect(ev).toHaveBeenCalledWith(v.result.snapshot_id, "ev-usd-try");
+  expect(ev).toHaveBeenCalledWith(v.result.snapshot_id, v.market_note[1].evidence_id);
+});
+
+test("market values: a percent and a TRY price", async () => {
+  const { marketValue } = await import("../components/MarketNote");
+  const item = { key: "k", label: "l", as_of: "2026-10-09", evidence_id: "E" };
+  expect(marketValue({ ...item, value: 37.25, unit: "pct" })).toBe("%37,25");
+  expect(marketValue({ ...item, value: 49.1267, unit: "TRY" })).toBe("49,1267 TL");
 });
 
 test("no market note: no card", () => {
@@ -354,6 +362,6 @@ test("no market note: no card", () => {
 });
 
 test("market note card in EN", () => {
-  renderDashboard(withMarketNote(sample("run_p01_ready")), () => {}, "EN");
+  renderDashboard(sample("run_p01_ready"), () => {}, "EN");
   expect(screen.getByTestId("market-note")).toHaveTextContent("Market note · TCMB EVDS");
 });

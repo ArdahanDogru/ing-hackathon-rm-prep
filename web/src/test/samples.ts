@@ -1,6 +1,6 @@
 // Test access to the API samples (tests/contracts/fixtures/api/, written by the
 // lead with `python -m rmprep.api.samples`): the contract between API and web.
-import type { EvidenceItem, GlossaryTerm, IngestStatus, MarketNoteItem, NarrativeBrief, NarrativeView, Persona, RunView, SourceStatus } from "../api/types";
+import type { EvidenceItem, GlossaryTerm, IngestStatus, NarrativeBrief, NarrativeView, Persona, RunView, SourceStatus } from "../api/types";
 
 const files = import.meta.glob("../../../tests/contracts/fixtures/api/*.json", { eager: true, import: "default" });
 
@@ -71,14 +71,3 @@ export function ingestSample(state: keyof typeof INGEST): IngestStatus {
   return structuredClone(INGEST[state]);
 }
 
-// RunView.market_note (W15): the lead adds it to the API and the samples; until then this one.
-const MARKET_NOTE: MarketNoteItem[] = [
-  { key: "policy_rate", label: "Politika faizi", value: 40.5, unit: "%", as_of: "2026-10-09", evidence_id: "ev-policy-rate" },
-  { key: "usd_try", label: "USD/TRY", value: 41.2345, unit: "TL", as_of: "2026-10-09", evidence_id: "ev-usd-try" },
-  { key: "funding_cost", label: "TCMB ağırlıklı ortalama fonlama maliyeti", value: 40.48, unit: "%", as_of: "2026-10-08", evidence_id: "ev-funding" },
-];
-
-/** A run sample with the market note (the sample's own one if it has it). */
-export function withMarketNote<V extends { market_note?: MarketNoteItem[] }>(view: V): V {
-  return { ...view, market_note: view.market_note?.length ? view.market_note : structuredClone(MARKET_NOTE) };
-}

@@ -7,15 +7,15 @@ import { KMark } from "./OptionsTable";
 
 const nf = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 4 });
 
-/** "%40,5" for a percent, else "41,2345 TL". */
+/** "%37" for a percent, "49,1267 TL" for a TRY price. */
 export function marketValue(item: MarketNoteItem): string {
   const text = nf.format(item.value);
-  return item.unit === "%" ? `%${text}` : [text, item.unit].filter(Boolean).join(" ");
+  return item.unit === "pct" ? `%${text}` : `${text} TL`;
 }
 
-export function MarketNote({ items, onEvidence }: { items: MarketNoteItem[] | undefined; onEvidence: (id: string) => void }) {
+export function MarketNote({ items, onEvidence }: { items: MarketNoteItem[]; onEvidence: (id: string) => void }) {
   const t = useT();
-  if (!items?.length) return null;
+  if (!items.length) return null;
   return (
     <section data-testid="market-note" className="mb-6 rounded-2xl bg-white px-[26px] py-4 shadow-sm">
       <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-muted">{`${t("marketNote")} · TCMB EVDS`}</h3>
