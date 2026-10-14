@@ -1,9 +1,11 @@
 import copy
 import functools
 import gzip
+import io
 import json
 import re
-from datetime import datetime
+import zipfile
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -139,14 +141,143 @@ def add_byf(config_raw: dict) -> dict:
     return config_raw
 
 
+# --- Borsa İstanbul end-of-day bulletins (I11) ------------------------------------------------
+
+BIST_URL = "https://www.borsaistanbul.com/data/thb/{yyyy}/{mm}/thb{yyyymmdd}1.zip"
+# The real header lines (TR, EN) and four real rows of the 13.10.2026 bulletin:
+# AEFES, THYAO (shares), APBDL (ETF), one warrant. LF line ends, UTF-8 with BOM.
+BIST_SAMPLE = FIXTURES / "bist_bulletin" / "thb202610131_sample.csv"
+BIST_END = date(2026, 10, 8)              # the newest test bulletin, the day before T0
+BIST_HOLIDAY = date(2026, 9, 15)          # a weekday without a bulletin (HTTP 404)
+BIST_SPLIT_INDEX = 40                     # BBB: 2-for-1 split on its 41st trading day
+
+
+def bist_header() -> list[str]:
+    return BIST_SAMPLE.read_text(encoding="utf-8-sig").splitlines()[:2]
+
+
+def bist_name(day: date) -> str:
+    return f"thb{day:%Y%m%d}1.zip"
+
+
+def bist_trading_days(end: date = BIST_END, n: int = 60) -> list[date]:
+    """The last n weekdays up to `end`, without BIST_HOLIDAY, oldest first."""
+    days, d = [], end
+    while len(days) < n:
+        if d.weekday() < 5 and d != BIST_HOLIDAY:
+            days.append(d)
+        d -= timedelta(days=1)
+    return days[::-1]
+
+
+def bist_row(day: date, code: str, name: str, close, prev_close, *, group="EQT",
+             pazar="Z", bist100=0, volume=1000.0) -> dict[str, str]:
+    return {"TARIH": day.isoformat(), "ISLEM  KODU": code, "BULTEN ADI": name,
+            "PAZAR": pazar, "ENSTRUMAN GRUBU": group, "BIST 100 ENDEKS": str(bist100),
+            "ONCEKI KAPANIS FIYATI": str(prev_close), "KAPANIS FIYATI": str(close),
+            "TOPLAM ISLEM HACMI": str(volume)}
+
+
+def bulletin_zip(day: date, rows: list[dict[str, str]], header: list[str] | None = None) -> bytes:
+    """A bulletin ZIP as published: one CSV, `;`, UTF-8 with BOM, two header
+    lines, LF line ends. Columns not in a row are "0". Deterministic bytes."""
+    header = header or bist_header()
+    cols = header[0].split(";")
+    lines = header + [";".join(r.get(c, "0") for c in cols) for r in rows]
+    csv = ("﻿" + "\n".join(lines) + "\n").encode("utf-8")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr(zipfile.ZipInfo(f"thb{day:%Y%m%d}1.csv", date_time=(2026, 1, 1, 0, 0, 0)), csv)
+    return buf.getvalue()
+
+
+def bist_closes(days: list[date] | None = None) -> dict[str, dict[date, tuple[float, float]]]:
+    """Code -> day -> (close, previous close as published) of the test shares.
+    AAA rises 0.2 % a day (BIST 100); BBB has a 2-for-1 split (the exchange
+    publishes the previous close halved on the split day); CCC is flat and has
+    no row on its 21st day (suspended)."""
+    days = days or bist_trading_days()
+    out: dict[str, dict[date, tuple[float, float]]] = {"AAA": {}, "BBB": {}, "CCC": {}}
+    for k, d in enumerate(days):
+        a = round(100 * 1.002 ** k, 4)
+        out["AAA"][d] = (a, round(100 * 1.002 ** max(k - 1, 0), 4))
+        b = round(50 + 0.1 * k, 4)
+        b_prev = round(50 + 0.1 * max(k - 1, 0), 4)
+        if k >= BIST_SPLIT_INDEX:
+            b, b_prev = round(b / 2, 4), round(b_prev / 2, 4)
+        out["BBB"][d] = (b, b_prev)
+        if k != 20:
+            out["CCC"][d] = (10.0, 10.0)
+    return out
+
+
+BIST_SHARES = {"AAA": ("AAA HOLDING", "Z", 1, 1_000_000.0), "BBB": ("BBB SANAYI", "N", 0, 500_000.0),
+               "CCC": ("CCC GIDA", "T", 0, 10_000.0)}
+
+
+def bist_history(days: list[date] | None = None) -> dict[str, bytes]:
+    """File name -> bulletin ZIP for the test trading days. Each bulletin also
+    has rows that are not used: an ETF, a warrant, and a share without a close."""
+    days = days or bist_trading_days()
+    closes = bist_closes(days)
+    files = {}
+    for d in days:
+        rows = [bist_row(d, f"{code}.E", name, *closes[code][d], pazar=pazar, bist100=b100,
+                         volume=vol)
+                for code, (name, pazar, b100, vol) in BIST_SHARES.items() if d in closes[code]]
+        rows += [bist_row(d, "XETF.F", "ORNEK BYF", 12.5, 12.4, group="ETF"),
+                 bist_row(d, "WWW.V", "ORNEK VARANT", 0.02, 0.01, group="ECW"),
+                 bist_row(d, "ZERO.E", "ISLEM GORMEYEN", 0, 5.0)]
+        files[bist_name(d)] = bulletin_zip(d, rows)
+    return files
+
+
+@functools.lru_cache(maxsize=1)
+def _default_bist_files() -> dict[str, bytes]:
+    return bist_history()                         # shared; tests must not change it
+
+
+TEST_BIST_QUANTITIES = {
+    "stock_close": {"unit": "TRY", "max_age_days": 5, "min": 0.01, "max": 1e6,
+                    "conflict_tolerance": 0.0},
+    **{f"stock_return_{p}": {"unit": "pct", "max_age_days": 5, "min": -100, "max": 10000,
+                             "conflict_tolerance": 0.0} for p in ("1m", "3m", "6m", "1y")},
+    "stock_volatility_1y": {"unit": "pct", "max_age_days": 5, "min": 0, "max": 500,
+                            "conflict_tolerance": 0.0},
+    "stock_turnover_3m": {"unit": "TRY", "max_age_days": 5, "min": 0, "max": 1e15,
+                          "conflict_tolerance": 0.0},
+    "stock_bist100": {"unit": "flag", "max_age_days": 5, "min": 0, "max": 1,
+                      "conflict_tolerance": 0.0},
+}
+TEST_BIST_SOURCE = {
+    "adapter": "bist_bulletin", "enabled": True, "on_failure": "previous",
+    "source_url": "https://www.borsaistanbul.com/tr/sayfa/2412/gunluk-bulten",
+    "tos_note": "test copy of the bist_bulletin source",
+    "url": BIST_URL,
+    "user_agent": "rmprep-hackathon-prototype/0.1 (ING hackathon; test)",
+    "timeout_seconds": 30, "history_days": 90, "min_interval_s": 1.0, "recheck_days": 3,
+    "min_shares": 2,
+}
+
+
+def add_bist(config_raw: dict) -> dict:
+    """config_raw with the I11 bist_bulletin source and its quantities."""
+    for name, q in TEST_BIST_QUANTITIES.items():
+        config_raw["quantities"].setdefault(name, copy.deepcopy(q))
+    config_raw["sources"]["bist_bulletin"] = copy.deepcopy(TEST_BIST_SOURCE)
+    return config_raw
+
+
 class FakeEvds:
     """httpx transport that serves fixture files and records requests. Also
-    serves the TEFAS web page (tefas_page=None -> HTTP 503 for it) and the BYF
-    view of it (byf_page, same rule)."""
+    serves the TEFAS web page (tefas_page=None -> HTTP 503 for it), the BYF
+    view of it (byf_page, same rule) and the BIST bulletins (bist_files: file
+    name -> ZIP; others -> HTTP 404)."""
 
     def __init__(self, status=200, body=None, error=None, tefas_page=b"default",
-                 detail_pages=None, byf_page=b"default"):
+                 detail_pages=None, byf_page=b"default", bist_files=None):
         self.status, self.body, self.error = status, body, error
+        self.bist_files = bist_files                # None -> _default_bist_files()
         self.tefas_page = tefas_web_page() if tefas_page == b"default" else tefas_page
         self.byf_page = tefas_web_page(TEFAS_BYF_FUNDS) if byf_page == b"default" else byf_page
         # fund code -> detail page bytes; a code without a page gives HTTP 404
@@ -155,6 +286,10 @@ class FakeEvds:
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
+        if request.url.host == "www.borsaistanbul.com":
+            files = _default_bist_files() if self.bist_files is None else self.bist_files
+            data = files.get(request.url.path.rsplit("/", 1)[-1])
+            return httpx.Response(404) if data is None else httpx.Response(200, content=data)
         if request.url.host == "www.tefas.gov.tr":
             if request.url.path.startswith(DETAIL_PATH):
                 page = self.detail_pages.get(request.url.path[len(DETAIL_PATH):])

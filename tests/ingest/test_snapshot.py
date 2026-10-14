@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import stat
@@ -252,3 +253,85 @@ def test_find_previous_ok_skips_failed_and_later(tmp_path):
     assert find_previous_ok(tmp_path, "evds", before) == "20261009-150000-0001"
     assert find_previous_ok(tmp_path, "tefas", before) is None
     assert find_previous_ok(tmp_path, "evds", T0) is None
+
+
+# --- payloads that live in the cache (I11) ---------------------------------------------------
+
+ZIP = b"PK\x03\x04 bulletin bytes"
+
+
+def _cached(tmp_path, name="thb202610131.zip", data=ZIP):
+    """A cache file next to the snapshots folder, as the bist_bulletin adapter
+    writes it: <data>/cache/<source>/<name>."""
+    f = tmp_path / "cache" / "bist_bulletin" / name
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_bytes(data)
+    return f
+
+
+def _write_cached(tmp_path, names=("thb202610131.zip",)):
+    with SnapshotWriter(tmp_path / "snaps", CONFIG, created_at=T0,
+                        snapshot_id="20261009-150000-0001") as w:
+        refs = tuple(w.add_cache_payload("bist_bulletin", n, meta={"date": n[3:11]})
+                     for n in names)
+        w.set_source("bist_bulletin", _ok() if not refs else SourceRecord(
+            status="ok", on_failure="previous", fetched_at=T0, payloads=refs))
+        return w.finalize()
+
+
+def test_cache_dir_is_next_to_the_snapshots_folder(tmp_path):
+    w = SnapshotWriter(tmp_path / "snaps", CONFIG, created_at=T0)
+    assert w.cache_dir("bist_bulletin") == tmp_path / "cache" / "bist_bulletin"
+    w.abort()
+
+
+def test_cache_payload_is_referenced_not_copied(tmp_path):
+    _cached(tmp_path)
+    snap = _write_cached(tmp_path)
+    [ref] = snap.sources["bist_bulletin"].payloads
+    assert ref.path == "cache/bist_bulletin/thb202610131.zip"
+    assert ref.sha256 == hashlib.sha256(ZIP).hexdigest() and ref.bytes == len(ZIP)
+    assert ref.meta == {"date": "20261013"}
+    assert not (snap.path / "payloads" / "bist_bulletin").exists()
+    assert snap.read_payload(ref.path) == ZIP
+
+
+def test_cache_payload_must_exist(tmp_path):
+    with pytest.raises(SnapshotError, match="no cache file"):
+        _write_cached(tmp_path)
+    assert list_snapshots(tmp_path / "snaps") == []
+
+
+@pytest.mark.parametrize("name", ["../x.zip", "a/b.zip", ""])
+def test_cache_payload_bad_name_rejected(tmp_path, name):
+    with pytest.raises(SnapshotError, match="invalid payload name"):
+        _write_cached(tmp_path, names=(name,))
+
+
+def test_changed_cache_file_fails_open_and_read(tmp_path):
+    f = _cached(tmp_path)
+    snap = _write_cached(tmp_path)
+    _writable(f)
+    f.write_bytes(ZIP + b"x")
+    with pytest.raises(SnapshotIntegrityError, match="hash mismatch for cache/bist_bulletin/"):
+        open_snapshot(tmp_path / "snaps", snap.snapshot_id)
+    unverified = open_snapshot(tmp_path / "snaps", snap.snapshot_id, verify=False)
+    with pytest.raises(SnapshotIntegrityError):
+        unverified.read_payload("cache/bist_bulletin/thb202610131.zip")
+
+
+def test_missing_cache_file_fails_open(tmp_path):
+    f = _cached(tmp_path)
+    snap = _write_cached(tmp_path)
+    _writable(f)
+    f.unlink()
+    with pytest.raises(SnapshotIntegrityError, match="missing payload cache/bist_bulletin/"):
+        open_snapshot(tmp_path / "snaps", snap.snapshot_id)
+
+
+def test_writer_reads_cache_payload_before_finalize(tmp_path):
+    _cached(tmp_path)
+    with SnapshotWriter(tmp_path / "snaps", CONFIG, created_at=T0) as w:
+        ref = w.add_cache_payload("bist_bulletin", "thb202610131.zip")
+        assert w.read_payload(ref.path) == ZIP
+        w.abort()

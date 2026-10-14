@@ -8,8 +8,9 @@ import duckdb
 import pytest
 import yaml
 
-from tests.ingest.conftest import (FIXTURES, KEY, T0, FakeEvds, add_byf, add_cpi_annual,
-                                   add_holdings, default_detail_pages, detail_page)
+from tests.ingest.conftest import (BIST_END, FIXTURES, KEY, T0, FakeEvds, add_bist, add_byf,
+                                   add_cpi_annual, add_holdings, bist_name,
+                                   default_detail_pages, detail_page)
 from rmprep.cli import main
 from rmprep.contracts import EntityInfo, Flag
 from rmprep.ingest.pipeline import ExclusionError, Paths, build_evidence, ingest, replay
@@ -160,6 +161,42 @@ def test_ingest_with_byf_source(tmp_path, config_raw):
     os.remove(paths.db)
     os.remove(paths.config)
     assert replay(paths, ev.snapshot_id) == ev
+
+
+def test_ingest_with_bist_bulletin(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_bist(config_raw))
+    sleeps = []
+    ev = run(paths, sleeps=sleeps)
+    assert ev.source_status["bist_bulletin"].status == "ok"
+    assert {p.entity for p in by(ev, source="bist_bulletin")} == {"AAA", "BBB", "CCC"}
+    assert ev.entities["AAA"] == EntityInfo("AAA HOLDING", "BIST pay · Z", "bist_bulletin")
+    assert (paths.root / "data/cache/bist_bulletin" / bist_name(BIST_END)).is_file()
+    assert sleeps                                   # waited between the bulletin requests
+
+    # Replay from the snapshot and the cache only.
+    os.remove(paths.db)
+    os.remove(paths.config)
+    assert replay(paths, ev.snapshot_id) == ev
+
+
+def test_changed_bist_cache_file_fails_replay(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_bist(config_raw))
+    ev = run(paths)
+    f = paths.root / "data/cache/bist_bulletin" / bist_name(BIST_END)
+    os.chmod(f, stat.S_IREAD | stat.S_IWRITE)
+    f.write_bytes(f.read_bytes() + b"x")
+    with pytest.raises(SnapshotIntegrityError, match="hash mismatch for cache/bist_bulletin/"):
+        replay(paths, ev.snapshot_id)
+
+
+def test_second_ingest_uses_the_bist_cache(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_bist(config_raw))
+    run(paths)
+    fake = FakeEvds()
+    ev = run(paths, fake=fake, at=T0 + timedelta(hours=1))
+    assert ev.source_status["bist_bulletin"].status == "ok"
+    assert [r.url.path.rsplit("/", 1)[-1] for r in fake.requests
+            if r.url.host == "www.borsaistanbul.com"] == ["thb202610091.zip"]
 
 
 def test_replay_twice_is_idempotent(paths):

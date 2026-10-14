@@ -9,6 +9,11 @@ Layout of one snapshot:
 
 A snapshot is written into `<root>/.tmp-<id>/`, made read-only, then renamed.
 A finished snapshot is never written again. Readers verify every hash.
+
+Cache payloads (I11): a payload path `cache/<source>/<name>` points to an
+immutable file in `<root>/../cache/<source>/` (e.g. data/cache/bist_bulletin),
+shared by many snapshots and not copied. The manifest keeps its SHA-256, and
+readers verify it like any other payload.
 """
 
 from __future__ import annotations
@@ -33,6 +38,7 @@ from rmprep.contracts import TR_TZ
 MANIFEST = "manifest.json"
 MANIFEST_HASH = "manifest.sha256"
 PAYLOADS = "payloads"
+CACHE = "cache"
 TMP_PREFIX = ".tmp-"
 MANIFEST_VERSION = 1
 
@@ -88,7 +94,8 @@ def _dump(obj: Any) -> bytes:
 
 @dataclass(frozen=True)
 class PayloadRef:
-    path: str            # relative to the snapshot folder, e.g. "payloads/evds/TP.FG.J0.json"
+    path: str            # relative to the snapshot folder, e.g. "payloads/evds/TP.FG.J0.json",
+                         # or a cache file "cache/<source>/<name>" (I11)
     sha256: str
     bytes: int
     meta: dict[str, Any] = field(default_factory=dict)
@@ -201,16 +208,36 @@ class SnapshotWriter:
         if not self._done:
             self.abort()
 
-    def add_payload(self, source: str, name: str, data: bytes,
-                    meta: dict[str, Any] | None = None) -> PayloadRef:
+    def cache_dir(self, source: str) -> Path:
+        """Folder of the immutable cache files of `source` (I11)."""
+        return _cache_root(self.root) / source
+
+    def add_cache_payload(self, source: str, name: str,
+                          meta: dict[str, Any] | None = None) -> PayloadRef:
+        """Reference an existing cache file of `source` (not copied)."""
+        rel = self._new_rel(CACHE, source, name)
+        f = _cache_root(self.root) / source / name
+        if not f.is_file():
+            raise SnapshotError(f"no cache file {rel}")
+        data = f.read_bytes()
+        ref = PayloadRef(path=rel, sha256=sha256_bytes(data), bytes=len(data), meta=meta or {})
+        self._payloads[rel] = ref
+        return ref
+
+    def _new_rel(self, top: str, source: str, name: str) -> str:
         self._check_open()
         if not _SOURCE_RE.match(source):
             raise SnapshotError(f"invalid source name {source!r}")
         if not _PAYLOAD_NAME_RE.match(name) or ".." in name:
             raise SnapshotError(f"invalid payload name {name!r}")
-        rel = f"{PAYLOADS}/{source}/{name}"
+        rel = f"{top}/{source}/{name}"
         if rel in self._payloads:
             raise SnapshotError(f"payload {rel} already added")
+        return rel
+
+    def add_payload(self, source: str, name: str, data: bytes,
+                    meta: dict[str, Any] | None = None) -> PayloadRef:
+        rel = self._new_rel(PAYLOADS, source, name)
         target = self._tmp / rel
         target.parent.mkdir(exist_ok=True)
         target.write_bytes(data)
@@ -236,7 +263,7 @@ class SnapshotWriter:
         self._check_open()
         if rel_path not in self._payloads:
             raise SnapshotError(f"payload {rel_path} was not added to this snapshot")
-        return (self._tmp / rel_path).read_bytes()
+        return _payload_file(self._tmp, self.root, rel_path).read_bytes()
 
     def finalize(self) -> Snapshot:
         self._check_open()
@@ -278,6 +305,17 @@ class SnapshotWriter:
             raise SnapshotError("snapshot writer is closed")
 
 
+def _cache_root(snapshots_root: Path) -> Path:
+    return snapshots_root.parent / CACHE
+
+
+def _payload_file(snap_dir: Path, snapshots_root: Path, rel: str) -> Path:
+    """File of a payload path: in the snapshot folder, or in the cache."""
+    if rel.startswith(CACHE + "/"):
+        return _cache_root(snapshots_root) / rel[len(CACHE) + 1:]
+    return snap_dir / rel
+
+
 def _make_writable_and_retry(func, path, _exc) -> None:
     os.chmod(path, stat.S_IWRITE)
     func(path)
@@ -305,7 +343,7 @@ class Snapshot:
     def read_payload(self, rel_path: str) -> bytes:
         """Read one payload and check its hash again."""
         ref = self._ref(rel_path)
-        data = (self.path / ref.path).read_bytes()
+        data = _payload_file(self.path, self.path.parent, ref.path).read_bytes()
         if sha256_bytes(data) != ref.sha256:
             raise SnapshotIntegrityError(f"{self.snapshot_id}: hash mismatch for {ref.path}")
         return data
@@ -355,7 +393,7 @@ def _verify_files(snap: Snapshot) -> None:
         for p in r.payloads:
             listed[p.path] = p
     for rel, ref in listed.items():
-        f = snap.path / rel
+        f = _payload_file(snap.path, snap.path.parent, rel)
         if not f.is_file():
             raise SnapshotIntegrityError(f"{snap.snapshot_id}: missing payload {rel}")
         if sha256_bytes(f.read_bytes()) != ref.sha256:
