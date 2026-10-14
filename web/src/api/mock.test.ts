@@ -61,3 +61,12 @@ test("ingest: GET is stale data on the newest snapshot, POST starts a job (202)"
   expect(post.status).toBe(202);
   expect(post.body).toMatchObject({ running: true });
 });
+
+test("research mock: ready view and a refused question", () => {
+  const view = resolveMock("GET", "/api/runs/R1/research?lang=TR", undefined, load);
+  expect(view.status).toBe(200);
+  expect((view.body as { state: string }).state).toBe("ready");
+  expect(resolveMock("POST", "/api/runs/R1/research/questions", { question: "Müşterim için?", lang: "TR" }, load).status).toBe(422);
+  const ok = resolveMock("POST", "/api/runs/R1/research/questions", { question: "PPN nedir?", lang: "TR" }, load);
+  expect((ok.body as { question: string }).question).toBe("PPN nedir?");
+});

@@ -15,6 +15,7 @@ import { OptionsCompare } from "../components/OptionsCompare";
 import { PersonaPanel } from "../components/PersonaPanel";
 import { PipelinePanel } from "../components/PipelinePanel";
 import { QuestionsPanel } from "../components/QuestionsPanel";
+import { ResearchPanel } from "../components/ResearchPanel";
 import { useChecks } from "../checks";
 import { explain } from "../explain";
 import { labels, useT, type LabelKey } from "../i18n";
@@ -122,6 +123,7 @@ export function Dashboard({
       </div>
 
       {ready && <DetailsPanel view={view} selected={selected} onToggle={toggle} onOpen={setOpenId} request={details} />}
+      {ready && <ResearchPanel view={view} />}
 
       {ready && <ApprovalBar view={view} selected={selected} openConfirms={openConfirms} onRemove={toggle} onView={onView} />}
 
