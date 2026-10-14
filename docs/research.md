@@ -114,11 +114,14 @@ müşteri bilgisi içeriyor; yalnızca ürün veya şirket hakkında sorun."
 
 - `ExaProvider` is the first provider (`providers: [exa, claude]` in the config).
 - `ClaudeSearchProvider` uses the Messages API with the server tool
-  `web_search_20260209` (`max_uses` and `blocked_domains` from the config). The
-  model is `claude.model` (Sonnet 5.5). The code sends the refusal-fallback beta
-  like the narrator and sends a `pause_turn` back at most twice. A finding is a
-  text block of the reply with citations. A citation counts only when its URL is
-  in a `web_search_tool_result` block of the same reply and is not on an excluded
+  `web_search_20260209` with `allowed_callers: ["direct"]` (`max_uses` and
+  `blocked_domains` from the config). The model is `claude.model` (Haiku 5.5). The
+  code sends the refusal-fallback beta like the narrator and sends a `pause_turn`
+  back at most twice. The reply splits a line into text blocks: only the cited
+  span has citations. A finding is one line of the reply (or one sentence that
+  ends a block), with the citations of all its blocks; bold marks and list marks
+  are removed. A citation counts only when its URL is in a
+  `web_search_tool_result` block of the same reply and is not on an excluded
   domain. The key and the workspace id (`ANTHROPIC_WORKSPACE_ID`) go only to the
   SDK. Cost: tokens at the config prices plus $0.01 per search.
 - **Fallback:** on a `ResearchError` of kind `auth`, `credit`, `server` or
@@ -128,9 +131,10 @@ müşteri bilgisi içeriyor; yalnızca ürün veya şirket hakkında sorun."
   `off` with the reason "no key in .env: EXA_API_KEY".
 - If every provider fails, the product has `error` ("exa: credit; claude: auth",
   the kinds only) and no findings. The panel shows the reason.
-- Models API check (2026-10-14, free): `claude-sonnet-5-5` has
-  `capabilities.server_tools.web_search.supported = true`. The model in
-  `config/research.yaml` did not change.
+- Models API check (2026-10-15, free): `claude-sonnet-5-5` and
+  `claude-haiku-5-5` have `capabilities.server_tools.web_search.supported =
+  true`. The model in `config/research.yaml` is `claude-haiku-5-5` since
+  2026-10-15 (see "Claude fallback: 0 findings, fixed").
 
 ## Cache, ledger, limit
 
@@ -186,7 +190,8 @@ Texts are in `i18n.ts` (TR and EN).
 4. The Claude provider gives no summary (`summary` is empty). Its findings have
    the confidence `medium` (Claude gives none). It finds the company from a
    marker line in the text ("ŞİRKET: ..."). The tool type is
-   `web_search_20260209` and the result blocks are `web_search_tool_result`.
+   `web_search_20260209` with `allowed_callers: ["direct"]` (no dynamic
+   filtering), and the result blocks are `web_search_tool_result`.
 5. Questions are cached per run: `<run_id>-<lang>-<sha1[:12]>`. The spec did not
    say how the question cache handles the run. `GET` returns the questions of the
    run that exist on disk.
@@ -200,8 +205,9 @@ Texts are in `i18n.ts` (TR and EN).
 9. `status` never starts a failed product again; only `start` does (see Cache).
 10. Fields of the Exa answer (`sirket`, `ozet`) with no valid source are left out,
     not only the findings.
-11. Live check of the Claude provider (see Tests): the call worked but gave no
-    findings. See "Open points".
+11. Live check of the Claude provider (see Tests): the first call gave no
+    findings. The cause was found and fixed; see "Claude fallback: 0 findings,
+    fixed".
 
 ## Tests
 
@@ -214,17 +220,49 @@ Texts are in `i18n.ts` (TR and EN).
   findings, the sources, the company name and the cost.
 - Result 2026-10-14: the Exa live test passed (1 passed). The Claude provider
   live call for the same fund (about $0.15) gave the company "Nurol Portföy
-  Yönetimi A.Ş." and no findings.
+  Yönetimi A.Ş." and no findings. After the fix (2026-10-15): 17 findings, $0.026
+  (see "Claude fallback: 0 findings, fixed").
 - Web: `cd web && npm test && npm run build`.
+
+## Claude fallback: 0 findings, fixed (2026-10-15)
+
+- Symptom (2026-10-14): one live call for `PPN` gave 0 findings, no dropped
+  finding, the company "Nurol Portföy Yönetimi A.Ş." and a cost of $0.15
+  (estimate: $0.04).
+- Root cause (a live call with the same request, block structure recorded):
+  `web_search_20260209` runs web search from code execution by default
+  (dynamic filtering, `allowed_callers` defaults to `["code_execution_20260120"]`).
+  The model ran 4 `code_execution` calls; 2 `web_search` calls had a `caller`
+  of type `code_execution_20260120`. The model read the results from the
+  `stdout` of the code. The answer was one `text` block with `citations: null`;
+  the sources were plain text ("(Kaynak: bloomberght.com/...)"). With no
+  citations, the check skipped the block and counted nothing as dropped. The
+  code loop sent the context again 4 times: 65,044 input tokens, $0.176 on
+  Sonnet 5.5.
+- Second cause (seen after the first fix): with direct search, the answer is
+  many `text` blocks. Only the cited span has citations ("8 Temmuz 2021"); the
+  words around it are other blocks with `citations: null`. The old check made a
+  finding of each block, so the findings were fragments.
+- Fix: the tool has `allowed_callers: ["direct"]`; a finding is a line of the
+  reply with the citations of all its blocks (`_units` in `claude_search.py`);
+  the model is `claude-haiku-5-5` ($0.10 / $0.50 per MTok, prompts up to 100K
+  tokens). Sonnet 5.5 with direct search would cost about $0.14 for the same
+  tokens (about 35,000 input tokens and 5,000 output tokens).
+- Live result after the fix (`PPN`, TR): 17 findings (10 product, 7 company),
+  every source http(s), none on kap.org.tr, company "Nurol Portföy Yönetimi
+  A.Ş.", 2 searches, 34,499 input tokens, 5,554 output tokens, $0.026.
+- Tests: `test_live_reply_shape_cited_spans_inside_lines` and
+  `test_live_reply_markdown_and_period_after_a_quote_are_removed` use the block
+  structure of the real replies.
 
 ## Open points
 
-- Claude fallback, live: the real reply gave no finding that passed the check,
-  and the check dropped none, so the text blocks had no citations (or were
-  shorter than 15 characters). The fake SDK in the tests does not show this.
-  Look at the block types of a real reply (`web_search_20260209` may return the
-  citations in another place) before the fallback is relied on. The Claude call
-  cost $0.15, three times the estimate, so the daily limit protects the budget.
+- Claude fallback: in some findings the model writes its own sentence and then
+  the quote from the source, so the finding says the same thing twice. The
+  prompt can ask for one form.
+- Claude fallback cost: the config price is the Haiku 5.5 price for prompts up
+  to 100K tokens. With more searches (`max_uses` 3) a prompt can go over 100K
+  tokens; the price is then 5 times higher and the ledger shows too little.
 
 ## Note for ing-lead (not part of this work)
 

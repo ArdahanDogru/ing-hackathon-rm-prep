@@ -28,7 +28,7 @@ def text(t, *urls):
 def message(blocks, stop="end_turn", searches=1):
     usage = NS(input_tokens=10000, output_tokens=500, cache_creation_input_tokens=0,
                cache_read_input_tokens=0, server_tool_use=NS(web_search_requests=searches))
-    return NS(content=blocks, stop_reason=stop, model="claude-sonnet-5-5", usage=usage)
+    return NS(content=blocks, stop_reason=stop, model="claude-haiku-5-5", usage=usage)
 
 
 class FakeSdk:
@@ -61,11 +61,11 @@ def test_product_findings_company_and_cost():
         ("sirket", "Şirket Nurol Yatırım Bankası iştirakidir.")]
     assert r.company == "Nurol Portföy Yönetimi A.Ş." and r.summary == "" and r.provider == "claude"
     assert r.checks == ("2 findings without a valid source dropped",)
-    assert r.cost_usd == pytest.approx(10000 * 2 / 1e6 + 500 * 10 / 1e6 + 0.01)
+    assert r.cost_usd == pytest.approx(10000 * 0.10 / 1e6 + 500 * 0.50 / 1e6 + 0.01)
     kw = sdk.calls[0]
-    assert kw["model"] == "claude-sonnet-5-5" and kw["max_tokens"] == 8000
+    assert kw["model"] == "claude-haiku-5-5" and kw["max_tokens"] == 8000
     assert kw["tools"] == [{"type": "web_search_20260209", "name": "web_search", "max_uses": 3,
-                            "blocked_domains": ["kap.org.tr"]}]
+                            "allowed_callers": ["direct"], "blocked_domains": ["kap.org.tr"]}]
     assert "NUROL PORTFÖY PARA PİYASASI (TL) FONU (PPN)" in kw["messages"][0]["content"]
     assert kw["system"].startswith(CONFIG.system_prompt["TR"])
     assert kw["betas"] == ["server-side-fallback-2026-07-01"] and kw["fallbacks"] == "default"
@@ -78,7 +78,7 @@ def test_pause_turn_continues_and_sums_the_cost():
     assert [f.text for f in a.findings] == ["Fonun büyüklüğü 9 milyar TL'dir.", "Fon T+0 valörlüdür, aynı gün ödenir."]
     assert all(f.topic == "soru" for f in a.findings)
     assert len(sdk.calls) == 2 and sdk.calls[1]["messages"][-1]["role"] == "assistant"
-    assert a.cost_usd == pytest.approx(2 * (0.02 + 0.005) + 0.01)
+    assert a.cost_usd == pytest.approx(2 * (0.001 + 0.00025) + 0.01)
 
 
 def test_refusal_is_a_request_error():
@@ -100,6 +100,89 @@ def test_research_from_root_orders_the_providers(tmp_path):
     assert [p.name for p in only_claude._providers] == ["claude"]
     both = research_from_root(tmp_path, env={"ANTHROPIC_API_KEY": "k", "EXA_API_KEY": "e"})
     assert [p.name for p in both._providers] == ["exa", "claude"]
+
+
+TEFAS, FVT = "https://www.tefas.gov.tr/tr/fon-detayli-analiz/PPN", "https://fvt.com.tr/fonlar/yatirim-fonlari/PPN"
+BHT = "https://www.bloomberght.com/yatirim-fonlari/nurol-portfoy-para-piyasasi-tl-fonu-ppn"
+HAKKIMIZDA = "https://www.nurolportfoy.com.tr/kurumsal/hakkimizda"
+LINKEDIN = "https://tr.linkedin.com/company/nurol-portf%C3%B6y-y%C3%B6netimi-a-%C5%9F"
+
+
+def test_live_reply_shape_cited_spans_inside_lines():
+    """Shape of the real reply (live call 2026-10-15, claude-haiku-5-5, web search with
+    allowed_callers ["direct"]): the searches are direct (caller {"type": "direct"}) and the
+    answer is split into many text blocks. Only the cited span of a line has citations;
+    the words around it are separate blocks with citations None. A finding is the line
+    (or the sentence at a block end), with the sources of all its cited spans."""
+    def direct(*urls):
+        b = results(*urls)
+        b.caller = NS(type="direct")
+        return b
+    sdk = FakeSdk(message([
+        NS(type="thinking", thinking="", signature="s"),
+        NS(type="server_tool_use", id="srvtoolu_1", name="web_search", caller=None,
+           input={"query": "Nurol Portföy Para Piyasası TL Fonu PPN"}),
+        NS(type="server_tool_use", id="srvtoolu_2", name="web_search", caller=None,
+           input={"query": "Nurol Portföy Yönetimi A.Ş. hakkında"}),
+        direct(BHT, TEFAS, FVT),
+        direct(HAKKIMIZDA, LINKEDIN),
+        NS(type="thinking", thinking="", signature="s"),
+        text("**NUROL PORTFÖY PARA PİYASASI (TL) FONU (PPN) hakkında**\n\n"
+             "- Fon, TEFAS'ta işlem gören bir para piyasası fonu. "),
+        text("Fon kodu PPN, ISIN kodu TRYNRPO00029", TEFAS),
+        text(" olarak kayıtlı.\n- Fonun kurucusu ve yöneticisi Nurol Portföy Yönetimi A.Ş.; "),
+        text("fon, Para Piyasası Şemsiye Fonu yapısı içinde bir para piyasası fonu olarak sınıflandırılıyor.", FVT),
+        text("\n- Fonun kuruluş tarihi "),
+        text("8 Temmuz 2021", FVT),
+        text(" ve halka arzı "),
+        text("9 Ağustos 2021", BHT),
+        text(" olarak görünüyor.\n- Fonun risk değeri "),
+        text("1 / 7", TEFAS),
+        text(" olarak görünüyor ve bu, "),
+        text("düşük risk aralığına karşılık gelir.", FVT),
+        text("\n\n**ŞİRKET: Nurol Portföy Yönetimi A.Ş.**\n\n- Şirket, "),
+        text("Nurol Yatırım Bankası A.Ş.'nin %100 bağlı ortaklığı", HAKKIMIZDA),
+        text(" olarak tanımlanıyor.\n- Şirket, "),
+        text("Sermaye Piyasası Kurulu'ndan 25.11.2020 tarih ve 11934 sayılı yazı ile kuruluş izni", LINKEDIN),
+        text(" almış; faaliyet izni ve portföy yöneticiliği yetki belgesi ise "),
+        text("06.04.2021 ve 4576 sayılı yazı", LINKEDIN),
+        text(" ile verilmiş."),
+    ], searches=2))
+    r = provider(sdk).research_product(PPN, "TR")
+    assert [(f.topic, f.text, [s.url for s in f.sources]) for f in r.findings] == [
+        ("urun", "Fon kodu PPN, ISIN kodu TRYNRPO00029 olarak kayıtlı.", [TEFAS]),
+        ("urun", "Fonun kurucusu ve yöneticisi Nurol Portföy Yönetimi A.Ş.; fon, Para Piyasası Şemsiye "
+                 "Fonu yapısı içinde bir para piyasası fonu olarak sınıflandırılıyor.", [FVT]),
+        ("urun", "Fonun kuruluş tarihi 8 Temmuz 2021 ve halka arzı 9 Ağustos 2021 olarak görünüyor.", [FVT, BHT]),
+        ("urun", "Fonun risk değeri 1 / 7 olarak görünüyor ve bu, düşük risk aralığına karşılık gelir.",
+         [TEFAS, FVT]),
+        ("sirket", "Şirket, Nurol Yatırım Bankası A.Ş.'nin %100 bağlı ortaklığı olarak tanımlanıyor.",
+         [HAKKIMIZDA]),
+        ("sirket", "Şirket, Sermaye Piyasası Kurulu'ndan 25.11.2020 tarih ve 11934 sayılı yazı ile kuruluş "
+                   "izni almış; faaliyet izni ve portföy yöneticiliği yetki belgesi ise 06.04.2021 ve 4576 "
+                   "sayılı yazı ile verilmiş.", [LINKEDIN]),
+    ]
+    assert r.company == "Nurol Portföy Yönetimi A.Ş." and r.checks == ()
+
+
+def test_live_reply_markdown_and_period_after_a_quote_are_removed():
+    """Second live call (2026-10-15): bold labels, and the period after a cited quote
+    starts the next text block."""
+    fvt = "https://fvt.com.tr/yatirim-fonlari/ppn-nurol-portfoy-para-piyasasi-tl-fonu/"
+    sdk = FakeSdk(message([
+        results(fvt),
+        text(".\n- **Ücret ve vergi:** Yıllık yönetim ücreti %0,70 olarak yer alıyor "),
+        text("Yıllık **%0.70** yönetim ücreti bulunmaktadır.", fvt),
+        text(". Stopaj oranı ise %17,5 olarak belirtiliyor ve bu oran fon satıldığında kâr üzerinden kesiliyor "),
+        text("Satıldığında kârdan **%17.5** stopaj kesilir.", fvt),
+        text(".\n"),
+    ]))
+    r = provider(sdk).research_product(PPN, "TR")
+    assert [f.text for f in r.findings] == [
+        "Ücret ve vergi: Yıllık yönetim ücreti %0,70 olarak yer alıyor Yıllık %0.70 yönetim ücreti bulunmaktadır.",
+        "Stopaj oranı ise %17,5 olarak belirtiliyor ve bu oran fon satıldığında kâr üzerinden kesiliyor "
+        "Satıldığında kârdan %17.5 stopaj kesilir.",
+    ]
 
 
 def test_a_non_web_search_result_url_is_not_a_source():

@@ -20,9 +20,9 @@ exa:
     etf: "{label} ({code}) borsa yatırım fonu ve kurucusu"
     stock: "{label} ({code}) hissesi ve şirket"
 claude:                           # fallback: the web search server tool (USD, Claude API 2026-10-14)
-  model: claude-sonnet-5-5
+  model: claude-haiku-5-5         # web search supported (Models API); live PPN 2026-10-15: $0.026 (before, Sonnet 5.5 with dynamic filtering: $0.18)
   max_uses: 3
   max_tokens: 8000
-  price_input_per_mtok: 2.0
-  price_output_per_mtok: 10.0
+  price_input_per_mtok: 0.10      # Haiku 5.5, prompts up to 100K tokens
+  price_output_per_mtok: 0.50
   price_per_search: 0.01

@@ -1,8 +1,9 @@
 """Claude web search provider, the fallback of Exa (docs/research.md section 8):
-the Messages API with the server tool web_search. Findings are the cited text
-blocks of the reply; a citation counts only when its URL is a web_search_result
-of the same reply and not on an excluded domain. Cost: tokens at the config
-prices plus price_per_search per search. Key and workspace id go only to the SDK."""
+the Messages API with the server tool web_search, called directly (no dynamic
+filtering). Findings are the cited lines of the reply; a citation counts only
+when its URL is a web_search_result of the same reply and not on an excluded
+domain. Cost: tokens at the config prices plus price_per_search per search. Key
+and workspace id go only to the SDK."""
 
 from __future__ import annotations
 
@@ -21,6 +22,8 @@ WORKSPACE_HEADER = "anthropic-workspace-id"
 MAX_CONTINUATIONS = 2                                # pause_turn: send the paused turn back
 MIN_CHARS = 15
 MARKER = re.compile(r"(?:ŞİRKET|COMPANY)\s*:\s*(.+)", re.IGNORECASE)
+BULLET = re.compile(r"^(?:[-*•]|\d+[.)])\s+")         # a list marker at the start of a line
+SENTENCE_END = (".", "!", "?")
 PRODUCT_PROMPT = {
     "TR": ("Şu yatırım ürününü ve onu yöneten veya ihraç eden şirketi web'de araştır: {label} ({code}). "
            "Önce ürün hakkında kısa, kaynaklı cümleler yaz. Sonra 'ŞİRKET: <şirket adı>' satırını yaz "
@@ -36,10 +39,36 @@ QUESTION_PROMPT = {
 FORMAT = {"TR": " Her cümle bir web kaynağına dayansın.", "EN": " Base every sentence on a web source."}
 
 
+def _units(blocks: Sequence) -> list[tuple[str, list]]:
+    """(text, citations) per unit of the answer. The real reply splits a line into
+    text blocks: only the cited span has citations, the words around it are other
+    blocks. A unit ends at a newline or at a block that ends a sentence; it has the
+    citations of all its blocks."""
+    units: list[tuple[str, list]] = []
+    text, cits = "", []
+    for b in blocks:
+        if getattr(b, "type", "") != "text":
+            continue
+        block_cits = list(getattr(b, "citations", None) or [])
+        for i, part in enumerate((b.text or "").split("\n")):
+            if i:
+                units.append((text, cits))
+                text, cits = "", []
+            text += part
+            if part.strip():
+                cits = cits + block_cits
+        if (b.text or "").rstrip().endswith(SENTENCE_END):
+            units.append((text, cits))
+            text, cits = "", []
+    units.append((text, cits))
+    return [u for u in units if u[0].strip()]
+
+
 def parse_blocks(blocks: Sequence, domains: Iterable[str],
                  start_topic: str) -> tuple[list[Finding], str, int]:
-    """(findings, company, dropped). Text blocks with citations become findings;
-    a block that holds the company marker switches the topic from urun to sirket."""
+    """(findings, company, dropped). Units of the answer (_units) with citations
+    become findings; a unit that holds the company marker switches the topic from
+    urun to sirket."""
     domains = tuple(domains)
     allowed: dict[str, Source] = {}
     for b in blocks:
@@ -49,17 +78,14 @@ def parse_blocks(blocks: Sequence, domains: Iterable[str],
                 if url and is_web_url(url):
                     allowed.setdefault(norm_url(url), Source(url, getattr(r, "title", "") or ""))
     topic, company, findings, dropped = start_topic, "", [], 0
-    for b in blocks:
-        if getattr(b, "type", "") != "text":
-            continue
-        text = b.text or ""
+    for text, cits in _units(blocks):
         m = MARKER.search(text)
         if m and start_topic == "urun":
             topic = "sirket"
             company = company or m.group(1).strip().strip("*").strip()
             text = text[:m.start()] + text[m.end():]
-        text = " ".join(text.split())
-        cits = getattr(b, "citations", None) or []
+        # no bold marks; no list marker or the period of the last quote at the start
+        text = BULLET.sub("", " ".join(text.replace("**", "").split()).lstrip(" .,;:"))
         if not cits or len(text) < MIN_CHARS:
             continue
         sources: dict[str, Source] = {}
@@ -136,7 +162,10 @@ class ClaudeSearchProvider:
 
     def _create(self, messages: list[dict], lang: str):
         import anthropic
-        tool = {"type": "web_search_20260209", "name": "web_search", "max_uses": self._config.max_uses}
+        # "direct": without it, 20260209 searches from code execution (dynamic filtering)
+        # and the answer has no citations (live 2026-10-15: one text block, citations None)
+        tool = {"type": "web_search_20260209", "name": "web_search", "max_uses": self._config.max_uses,
+                "allowed_callers": ["direct"]}
         if self._domains:
             tool["blocked_domains"] = list(self._domains)
         try:
