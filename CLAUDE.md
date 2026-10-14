@@ -99,8 +99,8 @@ and message formats: `docs/workflow.md`.
   `ProductOption.asset_class` and `DecisionResult.recommended`; v1.7 adds the
   approval times `DecisionResult.rm_decided_at` and `NarrativeDraft.approved_at`;
   v1.8 adds `AllocationBand` and `DecisionResult.allocation`; v1.9 adds the
-  option kinds `etf` and `stock` and `rm_edits[block] == ""` = a deleted
-  block); their design is
+  option kinds `etf` and `stock`, `rm_edits[block] == ""` = a deleted
+  block, and the section key `piyasa_notu`, `NARRATIVE_SECTIONS_V19`); their design is
   `docs/decision.md`, `docs/ui.md` and `docs/narrator.md`.
 - GitHub: private repo `ArdahanDogru/ing-hackathon-rm-prep`; only the lead
   pushes `main`, and only when the user asks (`docs/workflow.md`).
