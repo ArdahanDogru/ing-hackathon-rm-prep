@@ -174,7 +174,20 @@ def _check_sections(sections: Sequence[NarrativeSection]) -> list[str]:
     return out
 
 
-def _check_numbers(sections, f: Facts) -> list[str]:
+def estimate_figures(r: DecisionResult | None) -> set[float]:
+    """N15: the current share, its range and the gap of each inactive allocation
+    row (an estimate, not a fact about the client); 0 is left out."""
+    out: set[float] = set()
+    for a in (r.allocation if r is not None else ()):
+        if not a.active:
+            out.update(abs(float(x)) for x in (a.current, a.current_low, a.current_high, a.gap)
+                       if x)
+    return out
+
+
+def _check_numbers(sections, f: Facts, estimates: set[float] = frozenset()) -> list[str]:
+    """estimates (N15): figures of inactive allocation rows; a number that is not a
+    fact and is one of them gets its own finding."""
     public, internal, dates = _allowed(f)
     out = []
     for sec in sections:
@@ -182,7 +195,10 @@ def _check_numbers(sections, f: Facts) -> list[str]:
             for tok, readings in _token_readings(s.text):
                 if _matches(readings, public):
                     continue
-                if _matches(readings, internal):
+                if _matches(readings, estimates):
+                    out.append(f"number: {sec.key}: {tok} is the current share or gap of an "
+                               f"estimate (the client's split is unknown): \"{_short(s.text)}\"")
+                elif _matches(readings, internal):
                     out.append(f"internal: {sec.key}: {tok} is an internal value (a score, "
                                f"a count or a data-quality detail): \"{_short(s.text)}\"")
                 else:
@@ -527,7 +543,7 @@ def block_findings(sections: Sequence[NarrativeSection], f: Facts, r: DecisionRe
     """N11: the rules that apply to one edited block of the meeting text: number,
     option (short names too), phrase, internal, label. No structure or citation
     rules: a block is part of a text that passed them."""
-    out = _check_numbers(sections, f)
+    out = _check_numbers(sections, f, estimate_figures(r))
     out += _check_options(sections, f, r)
     out += _check_phrases(sections, f, config)
     out += _check_internal_names(sections)
@@ -544,7 +560,7 @@ def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
     (piyasa_notu) is left out; the LLM does not write it."""
     sections = [s for s in sections if s.key != MARKET_NOTE]
     out = _check_sections(sections)
-    out += _check_numbers(sections, f)
+    out += _check_numbers(sections, f, estimate_figures(r))
     out += _check_options(sections, f, r)
     out += _check_phrases(sections, f, config)
     out += _check_citations(sections, f)

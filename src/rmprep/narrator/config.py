@@ -9,7 +9,13 @@ from pathlib import Path
 
 import yaml
 
-from rmprep.contracts import NARRATIVE_LANGS, NARRATIVE_SECTIONS, NARRATIVE_SECTIONS_V13
+from rmprep.contracts import (
+    ACTIVE_HOLDINGS_SOURCES,
+    ALLOCATION_CLASSES,
+    NARRATIVE_LANGS,
+    NARRATIVE_SECTIONS,
+    NARRATIVE_SECTIONS_V13,
+)
 
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "narrator.yaml"
 
@@ -48,6 +54,16 @@ class MarketNoteConfig:
 
 
 @dataclass(frozen=True)
+class AllocationTexts:
+    """N15: the template sentences about the client's current split, per language."""
+    gap_under: Mapping[str, str]        # fields {class_label} {source_label} {current} {low}
+    gap_over: Mapping[str, str]         #        {high} {gap}
+    split_unknown: Mapping[str, str]
+    class_labels: Mapping[str, Mapping[str, str]]   # D19 class -> language -> label
+    source_labels: Mapping[str, Mapping[str, str]]  # active source -> language -> label
+
+
+@dataclass(frozen=True)
 class NarratorConfig:
     model: str
     effort: str
@@ -68,6 +84,7 @@ class NarratorConfig:
     risk_notes: Mapping[str, Mapping[str, Mapping[str, str]]] = dataclasses.field(
         default_factory=dict)
     market_note: MarketNoteConfig | None = None  # None: no market_note.sentence -> no block
+    allocation: AllocationTexts | None = None    # None: no `allocation` -> no N15 sentences
 
 
 def _get(raw: Mapping, path: str):
@@ -138,7 +155,39 @@ def parse_config(raw: Mapping) -> NarratorConfig:
         brief=_brief(raw) if "brief" in raw else None,
         risk_notes=_risk_notes(raw) if "risk_notes" in raw else {},
         market_note=_market_note(raw),
+        allocation=_allocation(raw) if "allocation" in raw else None,
     )
+
+
+_GAP_FIELDS = dict(class_label="", source_label="", current="", low="", high="", gap="")
+
+
+def _texts(raw: Mapping, path: str, fields: Mapping[str, str]) -> dict:
+    """A text per language whose {fields} are all known."""
+    texts = _per_lang(raw, path)
+    for lang in texts:
+        _str(raw, f"{path}.{lang}")
+        try:
+            texts[lang].format(**fields)
+        except (KeyError, IndexError, ValueError) as e:
+            raise ConfigError(f"{path}.{lang}: only the fields "
+                              f"{', '.join('{' + k + '}' for k in fields)}: {e!r}") from None
+    return texts
+
+
+def _allocation(raw: Mapping) -> AllocationTexts:
+    def labels(key: str, names: tuple[str, ...]) -> dict:
+        table = _get(raw, f"allocation.{key}")
+        if not isinstance(table, Mapping) or set(table) != set(names):
+            raise ConfigError(f"allocation.{key}: needs exactly {names}")
+        return {k: _texts(raw, f"allocation.{key}.{k}", {}) for k in names}
+
+    return AllocationTexts(
+        gap_under=_texts(raw, "allocation.gap_under", _GAP_FIELDS),
+        gap_over=_texts(raw, "allocation.gap_over", _GAP_FIELDS),
+        split_unknown=_texts(raw, "allocation.split_unknown", {}),
+        class_labels=labels("class_labels", ALLOCATION_CLASSES),
+        source_labels=labels("source_labels", ACTIVE_HOLDINGS_SOURCES))
 
 
 def _market_note(raw: Mapping) -> MarketNoteConfig | None:

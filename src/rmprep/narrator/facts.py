@@ -18,6 +18,7 @@ from functools import lru_cache
 
 from rmprep import grouping
 from rmprep.contracts import (
+    AllocationBand,
     DecisionResult,
     EvidenceSet,
     RmStatus,
@@ -106,6 +107,26 @@ class OptionFacts:
 
 
 @dataclass(frozen=True)
+class AllocationFacts:
+    """N15: one class of the model split and the client's current share (contract
+    v1.10). current and gap only for an active row (rm, rm_confirmed,
+    persona_text): an estimate (profile, national) is not a fact about the client."""
+    asset_class: str
+    band_low: float | None
+    band_high: float | None
+    current: float | None
+    source: str                                 # "" | HOLDINGS_SOURCES
+    gap: float | None                           # points to the band; + under, - over, 0 inside
+    active: bool
+
+
+def allocation_facts(a: AllocationBand) -> AllocationFacts:
+    known = a.active and a.current is not None
+    return AllocationFacts(a.asset_class, a.low, a.high, a.current if known else None,
+                           a.current_source, a.gap if known else None, a.active)
+
+
+@dataclass(frozen=True)
 class RiskFacts:
     """N13: the risk line of a selected option."""
     access: str = ""                            # display access text ("Aynı gün"); "" = no data
@@ -171,6 +192,12 @@ class Facts:
     risks: Mapping[str, RiskFacts] = dataclasses.field(default_factory=dict)   # N13, selected
     market: tuple[KeyNumber, ...] = ()          # N13: market deposit rate and CPI, once
     unmatched_priorities: tuple[str, ...] = ()  # N13: priorities with no scoring criterion
+    allocation: tuple[AllocationFacts, ...] = ()  # N15: the model split and the current shares
+
+    @property
+    def split_unknown(self) -> bool:
+        """N15: some class has only an estimate of the client's share."""
+        return any(a.source and not a.active for a in self.allocation)
 
     def named_options(self) -> dict[str, OptionFacts]:
         out = {} if self.baseline is None else {self.baseline.option_id: self.baseline}
@@ -371,4 +398,5 @@ def build_facts(r: DecisionResult, ev: EvidenceSet,
         risks=risks,
         market=tuple(market[k] for k in sorted(market)),
         unmatched_priorities=unmatched_priorities(p.oncelikler, dcfg),
+        allocation=tuple(allocation_facts(a) for a in r.allocation),
     )
