@@ -171,14 +171,18 @@ def bist_trading_days(end: date = BIST_END, n: int = 60) -> list[date]:
 
 
 def bist_row(day: date, code: str, name: str, close, prev_close, *, open_price=None,
-             group="EQT", pazar="Z", bist100=0, volume=1000.0) -> dict[str, str]:
+             low=None, high=None, group="EQT", pazar="Z", bist100=0,
+             volume=1000.0) -> dict[str, str]:
     """One bulletin row. `prev_close` is ONCEKI KAPANIS FIYATI, which the
     exchange publishes NOT adjusted (I11b); `open_price` (ACILIS FIYATI)
-    defaults to the close."""
+    defaults to the close; `low` / `high` (EN DUSUK / EN YUKSEK FIYAT, I11c)
+    default to the lower / higher of open and close."""
+    open_price = close if open_price is None else open_price
     return {"TARIH": day.isoformat(), "ISLEM  KODU": code, "BULTEN ADI": name,
             "PAZAR": pazar, "ENSTRUMAN GRUBU": group, "BIST 100 ENDEKS": str(bist100),
-            "ONCEKI KAPANIS FIYATI": str(prev_close),
-            "ACILIS FIYATI": str(close if open_price is None else open_price),
+            "ONCEKI KAPANIS FIYATI": str(prev_close), "ACILIS FIYATI": str(open_price),
+            "EN DUSUK FIYAT": str(min(open_price, close) if low is None else low),
+            "EN YUKSEK FIYAT": str(max(open_price, close) if high is None else high),
             "KAPANIS FIYATI": str(close), "TOPLAM ISLEM HACMI": str(volume)}
 
 

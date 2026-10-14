@@ -24,7 +24,8 @@ columns, TARIH = the day of the URL, at least `min_shares` shares); a bad file
 fails the source and is not cached.
 
 Parse (pure, from the files in the manifest): adjusted closes (`adjust`: jumps
-beyond ±`adjust_jump_pct` are corporate actions, I11b; dividends not adjusted),
+beyond ±`adjust_jump_pct` are corporate actions, I11b, from a base price within
+the daily limit `price_limit_pct`, I11c; dividends not adjusted),
 returns over 1/3/6/12 months (`period_return`), the SPK weekly volatility
 (`spk_volatility`), the mean daily traded value of the last 63 bulletins, the
 BIST 100 membership. as_of = the date of the newest bulletin.
@@ -52,8 +53,8 @@ from rmprep.ingest.config import BIST_HOST, BistBulletinSource, Config
 from rmprep.ingest.snapshot import PayloadRef, Snapshot, SnapshotWriter, SourceRecord, raw_ref
 
 REQUIRED_COLUMNS = ("TARIH", "ISLEM KODU", "BULTEN ADI", "PAZAR", "ENSTRUMAN GRUBU",
-                    "BIST 100 ENDEKS", "ACILIS FIYATI", "KAPANIS FIYATI",
-                    "TOPLAM ISLEM HACMI")
+                    "BIST 100 ENDEKS", "ACILIS FIYATI", "EN DUSUK FIYAT", "EN YUKSEK FIYAT",
+                    "KAPANIS FIYATI", "TOPLAM ISLEM HACMI")
 TURNOVER_DAYS = 63                # about 3 months of bulletins
 MIN_WEEKS = 26                    # fewer weekly returns -> no volatility row
 RETURN_MONTHS = {"stock_return_1m": 1, "stock_return_3m": 3, "stock_return_6m": 6,
@@ -73,6 +74,8 @@ class Share:
     bist100: bool
     close: float
     open_price: float             # ACILIS FIYATI (0 when the share did not open)
+    low: float                    # EN DUSUK FIYAT (0 when not given)
+    high: float                   # EN YUKSEK FIYAT (0 when not given)
     turnover: float               # TOPLAM ISLEM HACMI, TRY
 
 
@@ -146,11 +149,15 @@ def read_bulletin(data: bytes, day: date | None = None) -> list[Share]:
         if code in seen:
             raise BulletinError(f"line {n}: share {code} twice")
         seen.add(code)
-        open_price = _number(f[col["ACILIS FIYATI"]], n, "ACILIS FIYATI")
+        def price(column: str) -> float:          # empty, 0 or negative -> 0.0
+            x = _number(f[col[column]], n, column)
+            return x if x and x > 0 else 0.0
+
         shares.append(Share(
             code=code[:-2], name=f[col["BULTEN ADI"]].strip(), market=f[col["PAZAR"]].strip(),
             bist100=f[col["BIST 100 ENDEKS"]].strip() == "1", close=close,
-            open_price=open_price if open_price and open_price > 0 else 0.0,
+            open_price=price("ACILIS FIYATI"), low=price("EN DUSUK FIYAT"),
+            high=price("EN YUKSEK FIYAT"),
             turnover=_number(f[col["TOPLAM ISLEM HACMI"]], n, "TOPLAM ISLEM HACMI") or 0.0))
     return shares
 
@@ -260,26 +267,43 @@ def fetch(
 
 # --- calculations (pure) ---------------------------------------------------------------------
 
-def adjust(observations: list[tuple[date, float, float]],
-           jump_pct: float) -> tuple[list[tuple[date, float]], int]:
-    """Adjusted closes of one share from (day, close, open), oldest first (I11b).
+def base_price(open_price: float, low: float, high: float, close: float,
+               limit_pct: float) -> float:
+    """The base price of a corporate-action day (I11c). The day's prices must
+    stay within ± the daily price limit P of the base b: high <= b(1 + P) and
+    low >= b(1 - P), so b is in [high / (1 + P), low / (1 - P)]. The base is
+    the open clamped to that interval. With an empty interval, or no low or
+    high, the open (the close when the open is 0). [VARSAYIM] The open stands
+    for the base when it is allowed."""
+    fallback = open_price if open_price > 0 else close
+    if low <= 0 or high <= 0:
+        return fallback
+    p = limit_pct / 100
+    lo, hi = high / (1 + p), low / (1 - p)
+    if lo > hi:
+        return fallback
+    return min(max(fallback, lo), hi)
+
+
+def adjust(observations: list[tuple[date, float, float, float, float]],
+           jump_pct: float, limit_pct: float) -> tuple[list[tuple[date, float]], int]:
+    """Adjusted closes of one share from (day, close, open, low, high), oldest
+    first (I11b, I11c).
 
     The bulletins publish the previous close NOT adjusted and no reference
     price, so a corporate action (split, bonus shares, reverse split) is found
     by its jump: close / close of the share's previous row outside
     [1 - jump_pct %, 1 + jump_pct %] (the daily price limit is ±10 %). Then all
-    earlier closes are multiplied by open / previous close (by close /
-    previous close when the open is 0). [VARSAYIM] The open stands for the
-    theoretical base price, so the move from the base to the open that day is
-    lost. Cash dividends stay below the limit and are not adjusted.
+    earlier closes are multiplied by base / previous close (`base_price`).
+    Cash dividends stay below the limit and are not adjusted.
     Returns (day, adjusted close) and the number of jumps."""
     limit = jump_pct / 100
     ratios: list[float | None] = [None] * len(observations)
     for i in range(1, len(observations)):
-        _, close, open_price = observations[i]
+        _, close, open_price, low, high = observations[i]
         last_close = observations[i - 1][1]
         if abs(close / last_close - 1) > limit + 1e-12:
-            ratios[i] = (open_price if open_price > 0 else close) / last_close
+            ratios[i] = base_price(open_price, low, high, close, limit_pct) / last_close
     factor, out = 1.0, []
     for i in range(len(observations) - 1, -1, -1):
         out.append((observations[i][0], observations[i][1] * factor))
@@ -368,12 +392,12 @@ def parse(cfg: Config, src: BistBulletinSource, snap: Snapshot, *,
     rec, files = _read_all(src, snap)
     sid = out_snapshot_id or snap.snapshot_id
     newest_day, newest_ref, newest_shares = files[-1]
-    history: dict[str, list[tuple[date, float, float | None]]] = {}
+    history: dict[str, list[tuple[date, float, float, float, float]]] = {}
     turnover: dict[str, list[float]] = {}
     recent = {d for d, _, _ in files[-TURNOVER_DAYS:]}
     for d, _, shares in files:
         for s in shares:
-            history.setdefault(s.code, []).append((d, s.close, s.open_price))
+            history.setdefault(s.code, []).append((d, s.close, s.open_price, s.low, s.high))
             if d in recent:
                 turnover.setdefault(s.code, []).append(s.turnover)
     all_files = f"files={files[0][0]}..{newest_day}"
@@ -388,7 +412,7 @@ def parse(cfg: Config, src: BistBulletinSource, snap: Snapshot, *,
                 source_url=src.source_url, fetched_at=rec.fetched_at, snapshot_id=sid,
                 raw_ref=raw_ref(snap.snapshot_id, newest_ref.path, locator), note=note)
 
-        adjusted, jumps = adjust(history[s.code], src.adjust_jump_pct)
+        adjusted, jumps = adjust(history[s.code], src.adjust_jump_pct, src.price_limit_pct)
         adj_note = (f"{s.name}; adjusted closes ({_plural(jumps, 'jump')} beyond "
                     f"±{src.adjust_jump_pct:g} %); dividends not adjusted")
         points.append(point("stock_close", s.close, s.code, s.name))
