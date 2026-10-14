@@ -1,0 +1,28 @@
+# Web research (docs/research.md; spec docs/superpowers/specs/2026-10-14-exa-research-design.md).
+# Lead-owned after the merge.
+version: 1
+providers: [exa, claude]          # the fallback order (spec section 8)
+cache_dir: data/research
+max_cost_usd_per_day: 2.0         # both providers together (the user, 2026-10-14)
+question_max_chars: 300
+# A question with a word that starts with one of these is refused (müşteri -> müşterim, müşterinin).
+client_words: [müşteri, client, customer]
+system_prompt:
+  TR: "Türkçe yaz. Yalnızca kaynaklarda açıkça yazan bilgileri kullan; tahmin etme. Getiri vaadi veya yatırım tavsiyesi yazma."
+  EN: "Write in English. Use only facts that the sources state; do not guess. Do not promise returns or give investment advice."
+exa:
+  api_key_env: EXA_API_KEY
+  product_type: deep              # the fields need product pages and company pages (Exa skill: deep for that)
+  question_type: auto
+  exclude_domains: [kap.org.tr]   # KAP blocks automated access (brief rule 8)
+  query:
+    fund: "{label} ({code}) fonu ve yöneten portföy yönetim şirketi"
+    etf: "{label} ({code}) borsa yatırım fonu ve kurucusu"
+    stock: "{label} ({code}) hissesi ve şirket"
+claude:                           # fallback: the web search server tool (USD, Claude API 2026-10-14)
+  model: claude-sonnet-5-5
+  max_uses: 3
+  max_tokens: 8000
+  price_input_per_mtok: 2.0
+  price_output_per_mtok: 10.0
+  price_per_search: 0.01

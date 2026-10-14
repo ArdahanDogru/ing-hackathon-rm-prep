@@ -1,0 +1,117 @@
+"""Load and check config/research.yaml (docs/research.md)."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
+
+DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "research.yaml"
+PROVIDERS = ("exa", "claude")
+LANGS = ("TR", "EN")
+QUERY_KINDS = ("fund", "etf", "stock")
+
+
+class ConfigError(ValueError):
+    """Invalid research config. The message starts with the path of the bad key."""
+
+
+@dataclass(frozen=True)
+class ExaConfig:
+    api_key_env: str
+    product_type: str
+    question_type: str
+    exclude_domains: tuple[str, ...]
+    query: Mapping[str, str]          # option kind -> template with {label} and {code}
+    base_url: str = "https://api.exa.ai"
+    timeout_s: float = 60.0
+
+
+@dataclass(frozen=True)
+class ClaudeSearchConfig:
+    model: str
+    max_uses: int
+    max_tokens: int
+    price_input_per_mtok: float
+    price_output_per_mtok: float
+    price_per_search: float
+    api_key_env: str = "ANTHROPIC_API_KEY"
+    workspace_id_env: str = "ANTHROPIC_WORKSPACE_ID"  # the key is org-level (as the narrator)
+
+
+@dataclass(frozen=True)
+class ResearchConfig:
+    providers: tuple[str, ...]         # the fallback order
+    exa: ExaConfig
+    claude: ClaudeSearchConfig | None  # None: "claude" is not in providers
+    max_cost_usd_per_day: float
+    question_max_chars: int
+    client_words: tuple[str, ...]
+    system_prompt: Mapping[str, str]   # per language
+    cache_dir: str
+
+
+def _get(raw: Mapping, path: str):
+    node = raw
+    for part in path.split("."):
+        if not isinstance(node, Mapping) or part not in node:
+            raise ConfigError(f"{path}: missing")
+        node = node[part]
+    return node
+
+
+def _num(raw: Mapping, path: str, kind=float):
+    v = _get(raw, path)
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
+        raise ConfigError(f"{path}: must be a positive number, got {v!r}")
+    return kind(v)
+
+
+def _str(raw: Mapping, path: str) -> str:
+    v = _get(raw, path)
+    if not isinstance(v, str) or not v.strip():
+        raise ConfigError(f"{path}: must be a non-empty string, got {v!r}")
+    return v
+
+
+def _str_list(raw: Mapping, path: str) -> tuple[str, ...]:
+    v = _get(raw, path)
+    if not isinstance(v, list) or not all(isinstance(x, str) and x.strip() for x in v):
+        raise ConfigError(f"{path}: must be a list of non-empty strings, got {v!r}")
+    return tuple(v)
+
+
+def parse_config(raw: Mapping) -> ResearchConfig:
+    if not isinstance(raw, Mapping):
+        raise ConfigError("(root): must be a mapping")
+    providers = _str_list(raw, "providers")
+    if not providers or any(p not in PROVIDERS for p in providers):
+        raise ConfigError(f"providers: must be a non-empty list of {PROVIDERS}, got {list(providers)}")
+    exa = ExaConfig(
+        api_key_env=_str(raw, "exa.api_key_env"),
+        product_type=_str(raw, "exa.product_type"),
+        question_type=_str(raw, "exa.question_type"),
+        exclude_domains=_str_list(raw, "exa.exclude_domains"),
+        query={k: _str(raw, f"exa.query.{k}") for k in QUERY_KINDS})
+    claude = None
+    if "claude" in providers:
+        claude = ClaudeSearchConfig(
+            model=_str(raw, "claude.model"),
+            max_uses=_num(raw, "claude.max_uses", int),
+            max_tokens=_num(raw, "claude.max_tokens", int),
+            price_input_per_mtok=_num(raw, "claude.price_input_per_mtok"),
+            price_output_per_mtok=_num(raw, "claude.price_output_per_mtok"),
+            price_per_search=_num(raw, "claude.price_per_search"))
+    return ResearchConfig(
+        providers=providers, exa=exa, claude=claude,
+        max_cost_usd_per_day=_num(raw, "max_cost_usd_per_day"),
+        question_max_chars=_num(raw, "question_max_chars", int),
+        client_words=_str_list(raw, "client_words"),
+        system_prompt={lang: _str(raw, f"system_prompt.{lang}") for lang in LANGS},
+        cache_dir=_str(raw, "cache_dir"))
+
+
+def load_config(path: Path | str = DEFAULT_PATH) -> ResearchConfig:
+    return parse_config(yaml.safe_load(Path(path).read_text(encoding="utf-8")))
