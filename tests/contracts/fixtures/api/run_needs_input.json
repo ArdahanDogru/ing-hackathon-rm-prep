@@ -119,5 +119,31 @@
  "allocation": [],
  "allocation_notes": [
   "Dosyaya göre varlık TL mevduat ağırlıklı: nakit benzeri bandı aşılıyor olabilir."
+ ],
+ "market_note": [
+  {
+   "key": "policy_rate",
+   "label": "Politika faizi",
+   "value": 37.0,
+   "unit": "pct",
+   "as_of": "2026-08-31",
+   "evidence_id": "E1970c4a6"
+  },
+  {
+   "key": "usd_try",
+   "label": "USD/TRY (TCMB alış)",
+   "value": 49.1267,
+   "unit": "TRY",
+   "as_of": "2026-10-09",
+   "evidence_id": "E32643a0c"
+  },
+  {
+   "key": "funding_cost",
+   "label": "TCMB ağırlıklı ortalama fonlama maliyeti",
+   "value": 37.0,
+   "unit": "pct",
+   "as_of": "2026-10-09",
+   "evidence_id": "E48b4dba0"
+  }
  ]
 }

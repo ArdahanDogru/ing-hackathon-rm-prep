@@ -51,3 +51,14 @@ forbidden_phrases:
 disclaimer:
   TR: "Bu metin RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir."
   EN: "This text is meeting preparation for the RM; it is not investment advice."
+
+# W15 / N14 (2026-10-14): the EVDS market note (dashboard card and the deletable
+# meeting-text block piyasa_notu). Entities as in config/sources.yaml.
+market_note:
+  series:
+    - {key: policy_rate, quantity: policy_rate, entity: "CBRT policy rate (monthly, BIS)", unit: pct,
+       label: {TR: "Politika faizi", EN: "Policy rate"}}
+    - {key: usd_try, quantity: usd_try, entity: "USD/TRY CBRT buying rate", unit: TRY,
+       label: {TR: "USD/TRY (TCMB alış)", EN: "USD/TRY (CBRT buying)"}}
+    - {key: funding_cost, quantity: cbrt_funding_cost, entity: "CBRT weighted average funding cost", unit: pct,
+       label: {TR: "TCMB ağırlıklı ortalama fonlama maliyeti", EN: "CBRT weighted average funding cost"}}

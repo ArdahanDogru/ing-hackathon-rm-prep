@@ -164,3 +164,31 @@ def test_allocation_rows_have_texts(backend, persona):
     assert rows[0]["label"] == "Hisse" and rows[0]["note_text"] == "Risk tavanı nedeniyle uygun fon yok."
     assert rows[1]["option_id"] == oid and rows[1]["note_text"] == ""
     assert v["allocation_notes"] == ["not"]
+
+
+SERIES = [
+    {"key": "policy_rate", "quantity": "policy_rate", "entity": "CBRT policy rate (monthly, BIS)",
+     "unit": "pct", "label": {"TR": "Politika faizi", "EN": "Policy rate"}},
+    {"key": "usd_try", "quantity": "usd_try", "entity": "USD/TRY CBRT buying rate",
+     "unit": "TRY", "label": {"TR": "USD/TRY (TCMB alış)", "EN": "USD/TRY (CBRT buying)"}},
+    {"key": "nope", "quantity": "policy_rate", "entity": "no such entity",
+     "unit": "pct", "label": {"TR": "Yok", "EN": "None"}},
+]
+
+
+def test_market_note_from_the_evidence(backend, persona):
+    """W15: the EVDS market note of the dashboard; a missing series is left out."""
+    from rmprep.contracts import Persona
+    r = backend.decide(Persona.from_dict(persona), backend.list_snapshots()[0])
+    v = ViewBuilder(backend, load_config(), market_series=SERIES)(r)
+    keys = [m["key"] for m in v["market_note"]]
+    assert keys == ["policy_rate", "usd_try"]
+    ev = {d.id: d for d in backend.evidence(r.snapshot_id).datapoints}
+    for m in v["market_note"]:
+        d = ev[m["evidence_id"]]
+        assert m["value"] == d.value and m["as_of"] == d.as_of.isoformat()
+    assert v["market_note"][0]["label"] == "Politika faizi" and v["market_note"][0]["unit"] == "pct"
+
+
+def test_no_market_series_no_note(view):
+    assert view[1]["market_note"] == []

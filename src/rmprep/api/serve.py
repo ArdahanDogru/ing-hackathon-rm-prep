@@ -18,7 +18,10 @@ def build_app(root: Path, personas_dir: Path | None = None):
     from rmprep.ingest.pipeline import Paths
 
     backend = RealBackend(root, personas_dir=personas_dir)
-    views = ViewBuilder(backend, load_config(root / "config" / "decision.yaml"))
+    import yaml
+    narrator_raw = yaml.safe_load((root / "config" / "narrator.yaml").read_text(encoding="utf-8")) or {}
+    views = ViewBuilder(backend, load_config(root / "config" / "decision.yaml"),
+                        market_series=narrator_raw.get("market_note", {}).get("series"))   # W15
     dist = root / "web" / "dist"
     if not (dist / "index.html").is_file():
         print(f"web/dist missing: run `npm ci; npm run build` in {root / 'web'} (API only for now)",

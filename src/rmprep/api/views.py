@@ -83,8 +83,24 @@ def _label(key: str, lang: str) -> str:
 class ViewBuilder:
     """views(result) -> the RunView keys after result / test_run / persona_changes."""
 
-    def __init__(self, backend: Backend, config: DecisionConfig, lang: str = "TR") -> None:
+    def __init__(self, backend: Backend, config: DecisionConfig, lang: str = "TR",
+                 market_series: Sequence[Mapping] | None = None) -> None:
+        """market_series: config/narrator.yaml market_note.series (W15); None = no note."""
         self._backend, self._config, self._lang = backend, config, lang
+        self._market_series = list(market_series or ())
+
+    def _market_note(self, ev) -> list[dict]:
+        """W15: the EVDS values of the market note (latest usable row of each
+        series; a missing series is left out)."""
+        from rmprep.decision.universe import EvidenceIndex
+        idx, out = EvidenceIndex(ev), []
+        for s in self._market_series:
+            d = idx.get(s["quantity"], s["entity"])
+            if d is None or d.value is None:
+                continue
+            out.append({"key": s["key"], "label": s["label"][self._lang], "value": d.value,
+                        "unit": s["unit"], "as_of": d.as_of.isoformat(), "evidence_id": d.id})
+        return out
 
     def _band(self, b, facts) -> dict:
         """D20 band with the note text of config allocation.note_texts."""
@@ -192,4 +208,5 @@ class ViewBuilder:
             "rejected_by_rule": sorted(rules.values(), key=lambda x: (-x["count"], x["rule_id"])),
             "allocation": [self._band(b, facts) for b in r.allocation],      # D20
             "allocation_notes": list(r.allocation_notes),
+            "market_note": self._market_note(ev),                          # W15
         }
