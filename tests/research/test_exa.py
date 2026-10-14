@@ -152,6 +152,14 @@ def test_http_errors_become_kinds(status, kind):
     assert "k-123" not in str(e.value)
 
 
+def test_key_echoed_by_the_server_is_removed_from_the_error():
+    with pytest.raises(ResearchError) as e:
+        provider(answering({"error": "Invalid API key: k-123"}, status=401)).research_product(PPN, "TR")
+    assert e.value.kind == "auth"
+    assert "k-123" not in str(e.value) and "k-123" not in e.value.message
+    assert "***" in e.value.message
+
+
 def test_connection_error_and_missing_output():
     def down(request):
         raise httpx.ConnectError("boom")

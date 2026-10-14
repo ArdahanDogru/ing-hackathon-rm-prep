@@ -150,6 +150,7 @@ class ExaProvider:
         self._config = config
         self._system = system_prompt
         self._now = now
+        self._key = api_key
         self._http = httpx.Client(base_url=config.base_url, timeout=config.timeout_s,
                                   headers={"x-api-key": api_key}, transport=transport)
 
@@ -189,7 +190,8 @@ class ExaProvider:
         except httpx.TransportError as e:            # includes timeouts
             raise ResearchError("connection", type(e).__name__) from e
         if r.status_code != 200:
-            raise ResearchError(error_kind(r.status_code), f"HTTP {r.status_code}: {r.text[:200]}")
+            text = r.text.replace(self._key, "***") if self._key else r.text   # the key never enters an error
+            raise ResearchError(error_kind(r.status_code), f"HTTP {r.status_code}: {text[:200]}")
         try:
             body = r.json()
         except ValueError as e:
