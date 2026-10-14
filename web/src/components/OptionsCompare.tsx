@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { RunView } from "../api/types";
 import { useT } from "../i18n";
-import { OptionsAllocation } from "./OptionsAllocation";
+import { AllocationCard } from "./AllocationCard";
 import { OptionsCards } from "./OptionsCards";
 import { OptionsTable } from "./OptionsTable";
 
@@ -23,10 +23,13 @@ export function OptionsCompare({
   view,
   onOpen,
   onEvidence,
+  onView,
 }: {
   view: RunView;
   onOpen: (id: string) => void;
   onEvidence: (id: string) => void;
+  /** the new run after the RM changed the current split (W18) */
+  onView?: (v: RunView) => void;
 }) {
   const t = useT();
   const [saved, setMode] = useState<View>(savedView);
@@ -66,7 +69,7 @@ export function OptionsCompare({
       ) : mode === "cards" ? (
         <OptionsCards {...props} />
       ) : (
-        <OptionsAllocation view={view} onOpen={onOpen} />
+        <AllocationCard view={view} onOpen={onOpen} onView={onView} />
       )}
     </section>
   );

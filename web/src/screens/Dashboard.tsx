@@ -112,7 +112,7 @@ export function Dashboard({
         />
         {ready ? (
           view.top.length > 0 ? (
-            <OptionsCompare view={view} onOpen={setOpenId} onEvidence={setEvidenceId} />
+            <OptionsCompare view={view} onOpen={setOpenId} onEvidence={setEvidenceId} onView={onView} />
           ) : (
             <p className="rounded-2xl bg-white p-5 text-sm text-muted shadow-sm">{t("noOptions")}</p>
           )
