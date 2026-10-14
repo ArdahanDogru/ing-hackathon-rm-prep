@@ -3,7 +3,8 @@ from datetime import date, datetime, timedelta
 import httpx
 import pytest
 
-from tests.ingest.conftest import T0, TEFAS_WEB_FUNDS, FakeEvds, tefas_web_page
+from tests.ingest.conftest import (BYF_URL, T0, TEFAS_BYF_FUNDS, TEFAS_WEB_FUNDS, FakeEvds,
+                                   add_byf, tefas_web_page)
 from rmprep.ingest.adapters import tefas_web
 from rmprep.ingest.config import ConfigError, parse_config
 from rmprep.contracts import TR_TZ, EntityInfo, Flag
@@ -11,11 +12,11 @@ from rmprep.ingest.quality import run_checks
 from rmprep.ingest.snapshot import SnapshotWriter
 
 
-def _fetch(tmp_path, cfg, fake, at=T0, sid="20261009-150000-0001"):
-    src = cfg.sources["tefas_web"]
+def _fetch(tmp_path, cfg, fake, at=T0, sid="20261009-150000-0001", name="tefas_web"):
+    src = cfg.sources[name]
     w = SnapshotWriter(tmp_path / "snaps", {}, created_at=at, snapshot_id=sid)
     rec = tefas_web.fetch(src, w, client=fake.client(), now=lambda: at)
-    w.set_source("tefas_web", rec)
+    w.set_source(name, rec)
     return rec, w.finalize()
 
 
@@ -189,6 +190,41 @@ def test_entities_skip_fund_without_name_or_type(tmp_path, cfg):
              TEFAS_WEB_FUNDS[2]]
     _, snap = _fetch(tmp_path, cfg, FakeEvds(tefas_page=tefas_web_page(funds)))
     assert list(tefas_web.entities(cfg.sources["tefas_web"], snap)) == ["ZZZ"]
+
+
+# --- BYF view of the page (I10) ---------------------------------------------------------
+
+def test_config_accepts_byf_url_with_query(config_raw):
+    src = parse_config(add_byf(config_raw)).sources["tefas_byf"]
+    assert src.adapter == "tefas_web" and src.url == BYF_URL and src.min_funds == 2
+
+
+def test_byf_page_fetched_and_parsed_with_tefas_web_adapter(tmp_path, config_raw):
+    cfg = parse_config(add_byf(config_raw))
+    fake = FakeEvds()
+    rec, snap = _fetch(tmp_path, cfg, fake, name="tefas_byf")
+    assert rec.status == "ok" and [str(r.url) for r in fake.requests] == [BYF_URL]
+    pts = tefas_web.parse(cfg, cfg.sources["tefas_byf"], snap)
+    assert {p.entity for p in pts} == {"BOE", "GLD"}
+    assert {p.source for p in pts} == {"tefas_byf"} and {p.source_url for p in pts} == {BYF_URL}
+    assert _get(pts, "BOE", "fund_risk_level")[0].value == 6
+    assert _get(pts, "GLD", "fund_risk_level") == []           # risk missing on the page
+    assert pts[0].raw_ref.startswith("20261009-150000-0001/payloads/tefas_byf/")
+
+
+def test_byf_entities_carry_byf_source(tmp_path, config_raw):
+    cfg = parse_config(add_byf(config_raw))
+    _, snap = _fetch(tmp_path, cfg, FakeEvds(), name="tefas_byf")
+    ents = tefas_web.entities(cfg.sources["tefas_byf"], snap)
+    assert ents["GLD"] == EntityInfo("ÖRNEK PORTFÖY ALTIN BORSA YATIRIM FONU", "Endeks Fon",
+                                     "tefas_byf")
+
+
+def test_byf_page_with_too_few_funds_fails(tmp_path, config_raw):
+    cfg = parse_config(add_byf(config_raw))
+    rec, _ = _fetch(tmp_path, cfg, FakeEvds(byf_page=tefas_web_page(TEFAS_BYF_FUNDS[:1])),
+                    name="tefas_byf")
+    assert rec.status == "failed" and "only 1 funds found (minimum 2)" in rec.error
 
 
 def test_entities_need_ok_record(tmp_path, cfg):

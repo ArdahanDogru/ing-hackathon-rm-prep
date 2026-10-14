@@ -8,7 +8,8 @@ import duckdb
 import pytest
 import yaml
 
-from tests.ingest.conftest import FIXTURES, KEY, T0, FakeEvds, add_cpi_annual, add_holdings
+from tests.ingest.conftest import (FIXTURES, KEY, T0, FakeEvds, add_byf, add_cpi_annual,
+                                   add_holdings, default_detail_pages, detail_page)
 from rmprep.cli import main
 from rmprep.contracts import EntityInfo, Flag
 from rmprep.ingest.pipeline import ExclusionError, Paths, build_evidence, ingest, replay
@@ -140,6 +141,22 @@ def test_replay_keeps_holdings_rows(tmp_path, config_raw):
     ev = run(paths)
     held = by(ev, source="tefas_detail", quantity="fund_holding_share")
     assert {p.entity.split("/")[0] for p in held} == {"AAL", "IGL", "ZZZ"}
+    os.remove(paths.db)
+    os.remove(paths.config)
+    assert replay(paths, ev.snapshot_id) == ev
+
+
+def test_ingest_with_byf_source(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_byf(config_raw))
+    byf_pages = {c: detail_page("MAC", c, tefasDurum="Platformda İşlem Görmüyor")
+                 for c in ("BOE", "GLD")}
+    ev = run(paths, fake=FakeEvds(detail_pages={**default_detail_pages(), **byf_pages}))
+    assert ev.source_status["tefas_byf"].status == "ok"
+    assert ev.source_status["tefas_detail"].status == "ok"
+    assert ev.entities["BOE"].source == "tefas_byf" and ev.entities["AAL"].source == "tefas_web"
+    assert {p.entity for p in by(ev, source="tefas_byf")} == {"BOE", "GLD"}
+    assert {p.entity for p in by(ev, source="tefas_detail", quantity="fund_buyable")} == \
+        {"AAL", "IGL", "ZZZ", "BOE", "GLD"}
     os.remove(paths.db)
     os.remove(paths.config)
     assert replay(paths, ev.snapshot_id) == ev

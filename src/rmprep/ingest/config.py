@@ -128,7 +128,7 @@ class TefasDetailSource(SourceConfig):
     min_interval_s: float            # at least this many seconds between requests
     max_fail_share: float            # more failed pages -> the source fails
     max_funds: int | None            # limit for tests and trials
-    funds_from: str                  # tefas_web source that gives the fund list
+    funds_from: tuple[str, ...]      # tefas_web sources that give the fund list (I10: several)
     exclude_categories: tuple[str, ...]
     value_fields: dict[str, str]     # "bilgiData.<field>" -> quantity; required
     optional_fields: dict[str, str]  # same, but no value -> no row
@@ -267,10 +267,14 @@ def parse_config(raw: dict[str, Any]) -> Config:
     if not sources:
         raise ConfigError("sources: at least one source is required")
     for name, src in sources.items():
-        if isinstance(src, TefasDetailSource) and not isinstance(
-                sources.get(src.funds_from), TefasWebSource):
-            raise ConfigError(f"sources.{name}.funds_from: must name a tefas_web source, "
-                              f"got {src.funds_from!r}")
+        if not isinstance(src, TefasDetailSource):
+            continue
+        listed = isinstance(raw["sources"][name].get("funds_from"), list)
+        for i, other in enumerate(src.funds_from):
+            if not isinstance(sources.get(other), TefasWebSource):
+                where = f"funds_from[{i}]" if listed else "funds_from"
+                raise ConfigError(f"sources.{name}.{where}: must name a tefas_web source, "
+                                  f"got {other!r}")
     return Config(quantities=quantities, sources=sources)
 
 
@@ -519,7 +523,7 @@ def _parse_tefas_detail(name, s, path, quantities) -> TefasDetailSource:
         min_interval_s=interval,
         max_fail_share=share,
         max_funds=None if max_funds is None else _pos_int(max_funds, f"{path}.max_funds"),
-        funds_from=_str(s.get("funds_from", "tefas_web"), f"{path}.funds_from"),
+        funds_from=_funds_from(s.get("funds_from", "tefas_web"), f"{path}.funds_from"),
         exclude_categories=tuple(_str(x, f"{path}.exclude_categories[{i}]")
                                  for i, x in enumerate(excluded)),
         value_fields=value_fields,
@@ -529,6 +533,17 @@ def _parse_tefas_detail(name, s, path, quantities) -> TefasDetailSource:
         holdings_quantity=(_quantity_ref(s["holdings_quantity"], f"{path}.holdings_quantity",
                                          quantities) if "holdings_quantity" in s else None),
     )
+
+
+def _funds_from(v: Any, path: str) -> tuple[str, ...]:
+    """One source name, or a list of them (I10: tefas_web and tefas_byf)."""
+    if not isinstance(v, list):
+        return (_str(v, path),)
+    names = _str_list(v, path)
+    for i, name in enumerate(names):
+        if name in names[:i]:
+            raise ConfigError(f"{path}[{i}]: {name!r} is listed twice")
+    return names
 
 
 def _parse_manual(name, s, path, quantities) -> ManualSource:

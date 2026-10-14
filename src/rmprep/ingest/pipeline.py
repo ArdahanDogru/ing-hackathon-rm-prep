@@ -230,8 +230,9 @@ def _fetch(src: SourceConfig, w: SnapshotWriter, cfg: Config, paths: Paths,
     if src.adapter == "tefas_web":
         return tefas_web.fetch(src, w, client=client, now=now)
     if isinstance(src, TefasDetailSource):
-        return tefas_detail.fetch(src, w, listing=_ok_payload(w, src.funds_from), client=client,
-                                  now=now, sleep=sleep)
+        listings = {name: page for name in src.funds_from
+                    if (page := _ok_payload(w, name)) is not None}
+        return tefas_detail.fetch(src, w, listings=listings, client=client, now=now, sleep=sleep)
     if src.adapter == "manual":
         return manual.fetch(src, w, cfg, inbox=paths.inbox(src.inbox), now=now)
     raise AssertionError(f"no fetch for adapter {src.adapter!r}")

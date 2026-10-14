@@ -7,9 +7,12 @@ import pytest
 
 from tests.ingest.conftest import (
     T0,
+    TEFAS_BYF_FUNDS,
     TEFAS_WEB_FUNDS,
     FakeEvds,
+    add_byf,
     add_holdings,
+    default_detail_pages,
     detail_page,
     holding,
     set_varlik,
@@ -49,17 +52,21 @@ def _src(cfg, **changes) -> TefasDetailSource:
     return dataclasses.replace(cfg.sources["tefas_detail"], **changes)
 
 
-def _fetch(tmp_path, src, *, fake=None, listing=b"default", clock=None):
+def _fetch(tmp_path, src, *, fake=None, listing=b"default", listings=None, clock=None):
+    """`listing` = the tefas_web page (None = no ok page); `listings` = source
+    name -> page, for several sources (I10)."""
     fake = fake or FakeEvds()
     clock = clock or FakeClock()
-    listing = tefas_web_page() if listing == b"default" else listing
+    if listings is None:
+        listing = tefas_web_page() if listing == b"default" else listing
+        listings = {} if listing is None else {"tefas_web": listing}
 
     def handler(request):
         clock.on_request()
         return fake(request)
 
     w = SnapshotWriter(tmp_path / "snaps", {}, created_at=T0, snapshot_id=SID)
-    rec = tefas_detail.fetch(src, w, listing=listing,
+    rec = tefas_detail.fetch(src, w, listings=listings,
                              client=httpx.Client(transport=httpx.MockTransport(handler)),
                              now=lambda: T0, monotonic=clock.monotonic, sleep=clock.sleep)
     w.set_source(src.name, rec)
@@ -145,7 +152,8 @@ def test_config_status_map_is_normalized(cfg):
     st = cfg.sources["tefas_detail"].status
     assert st.field == "profilData.tefasDurum" and st.quantity == "fund_buyable"
     assert st.map == {"tefas'ta işlem görüyor": 1.0, "tefas'ta işlem görmüyor": 0.0,
-                      "fon alımına kapalı, fon bozumuna kapalı": 0.0}
+                      "fon alımına kapalı, fon bozumuna kapalı": 0.0,
+                      "platformda işlem görmüyor": 0.0}
 
 
 def test_normalize_status_turkish_lower_case_and_spaces():
@@ -354,8 +362,9 @@ def test_same_risk_as_tefas_web_gives_no_conflict(tmp_path, cfg):
     client = fake.client()
     web = tefas_web.fetch(cfg.sources["tefas_web"], w, client=client, now=lambda: T0)
     w.set_source("tefas_web", web)
-    det = tefas_detail.fetch(_src(cfg), w, listing=tefas_web_page(), client=client,
-                             now=lambda: T0, monotonic=lambda: 0.0, sleep=lambda s: None)
+    det = tefas_detail.fetch(_src(cfg), w, listings={"tefas_web": tefas_web_page()},
+                             client=client, now=lambda: T0, monotonic=lambda: 0.0,
+                             sleep=lambda s: None)
     w.set_source("tefas_detail", det)
     snap = w.finalize()
     pts = (tefas_web.parse(cfg, cfg.sources["tefas_web"], snap)
@@ -527,3 +536,75 @@ def test_holdings_rows_for_fallback_keep_origin(tmp_path, config_raw):
     held = _holdings(pts)
     assert held and {p.snapshot_id for p in held.values()} == {"20261010-090000-0002"}
     assert all(p.raw_ref.startswith(f"{SID}/") for p in held.values())
+
+
+# --- fund list from several sources, BYF (I10) -----------------------------------------------
+
+BYF_PAGES = {"BOE": detail_page("MAC", "BOE", tefasDurum="Platformda İşlem Görmüyor"),
+             "GLD": detail_page("MAC", "GLD", tefasDurum="Platformda İşlem Görmüyor")}
+
+
+def _byf_listings(byf_funds=TEFAS_BYF_FUNDS):
+    return {"tefas_web": tefas_web_page(), "tefas_byf": tefas_web_page(byf_funds)}
+
+
+def test_config_funds_from_string_is_a_one_item_tuple(cfg):
+    assert cfg.sources["tefas_detail"].funds_from == ("tefas_web",)
+
+
+def test_config_funds_from_list(config_raw):
+    src = parse_config(add_byf(config_raw)).sources["tefas_detail"]
+    assert src.funds_from == ("tefas_web", "tefas_byf")
+
+
+@pytest.mark.parametrize("funds_from,match", [
+    (["tefas_web", "manual"], r"funds_from\[1\]: must name a tefas_web source, got 'manual'"),
+    ([], "funds_from: must be a non-empty list"),
+    (["tefas_web", "tefas_web"], r"funds_from\[1\]: 'tefas_web' is listed twice"),
+])
+def test_config_rejects_bad_funds_from_list(config_raw, funds_from, match):
+    config_raw["sources"]["tefas_detail"]["funds_from"] = funds_from
+    with pytest.raises(ConfigError, match=match):
+        parse_config(config_raw)
+
+
+def test_fetch_joins_the_fund_lists(tmp_path, config_raw):
+    src = _src(parse_config(add_byf(config_raw)))
+    fake = FakeEvds(detail_pages={**default_detail_pages(), **BYF_PAGES})
+    rec, _, _ = _fetch(tmp_path, src, fake=fake, listings=_byf_listings())
+    assert rec.status == "ok"
+    assert [p.meta["fund"] for p in rec.payloads] == ["AAL", "BOE", "GLD", "IGL", "ZZZ"]
+    assert rec.request["funds"] == 5
+    assert rec.request["funds_from"] == {"tefas_web": 3, "tefas_byf": 2}
+
+
+def test_fetch_code_in_two_lists_is_fetched_once(tmp_path, config_raw):
+    src = _src(parse_config(add_byf(config_raw)))
+    byf = [dict(TEFAS_BYF_FUNDS[0], fonKodu="AAL")]
+    rec, _, fake = _fetch(tmp_path, src, listings=_byf_listings(byf))
+    assert [p.meta["fund"] for p in rec.payloads] == ["AAL", "IGL", "ZZZ"]
+    assert len(fake.requests) == 3
+
+
+def test_fetch_uses_the_lists_that_are_there(tmp_path, config_raw):
+    # tefas_byf failed in this snapshot: the tefas_web funds are still fetched.
+    src = _src(parse_config(add_byf(config_raw)))
+    rec, _, _ = _fetch(tmp_path, src, listings={"tefas_web": tefas_web_page()})
+    assert rec.status == "ok" and len(rec.payloads) == 3
+    assert rec.request["funds_from"] == {"tefas_web": 3, "tefas_byf": "no ok page"}
+
+
+def test_fetch_without_any_list_fails(tmp_path, config_raw):
+    src = _src(parse_config(add_byf(config_raw)))
+    rec, _, fake = _fetch(tmp_path, src, listings={})
+    assert rec.status == "failed" and "no tefas_web, tefas_byf funds" in rec.error
+    assert fake.requests == []
+
+
+def test_byf_status_text_gives_fund_buyable_0_with_the_text_in_the_note(tmp_path, cfg):
+    rec, pts = _status_points(tmp_path, cfg, {"BOE": BYF_PAGES["BOE"]})
+    assert rec.rejected_rows == ()
+    [p] = [p for p in pts if p.quantity == "fund_buyable"]
+    assert p.value == 0
+    assert p.note.startswith("Platformda İşlem Görmüyor; ")
+    assert _value(pts, "BOE", "fund_price") == 0.686755

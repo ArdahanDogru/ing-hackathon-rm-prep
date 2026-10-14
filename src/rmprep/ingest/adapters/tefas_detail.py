@@ -7,8 +7,9 @@ Rules (organizers' rule 8 + tefas.gov.tr/robots.txt, checked 2026-10-10):
   rejects such URLs; `check_url_allowed` checks again before each request);
 - the raw pages are stored gzip-compressed in the snapshot and parsed from there.
 
-Fund list: the funds of the `funds_from` (tefas_web) payload of the same
-snapshot, without `exclude_categories`. The page is a Next.js page like the
+Fund list: the funds of the `funds_from` (tefas_web) payloads of the same
+snapshot (I10: several sources, e.g. tefas_web and tefas_byf; a code in two
+lists is fetched once), without `exclude_categories`. The page is a Next.js page like the
 tefas_web page; the data objects `bilgiData` and `profilData` sit in its flight
 data. Strict: a page without them, for another fund, or with a required value
 that is missing or not a number is a rejected row; optional values (risk, fees)
@@ -30,9 +31,9 @@ import json
 import math
 import re
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import date, datetime
-from typing import Any
+from typing import Any, NamedTuple
 
 import httpx
 
@@ -47,16 +48,22 @@ from rmprep.ingest.config import DETAIL_OBJECTS, Config, TefasDetailSource, norm
 from rmprep.ingest.snapshot import Snapshot, SnapshotWriter, SourceRecord, raw_ref
 
 _NO_VALUE = ("", "-")
+AS_OF_NOTE = "as_of assumed = previous business day (the page shows no date)"
 
 
 class PageError(ValueError):
     """One fund page does not have the expected data. The message is the reason."""
 
 
-def fund_codes(src: TefasDetailSource, listing_html: str) -> list[str]:
-    """Fund codes of the tefas_web page without the excluded categories, sorted."""
-    codes = [f["fonKodu"] for f in extract_funds(listing_html)
-             if f.get("fonTurAciklama") not in src.exclude_categories]
+def _listed_codes(src: TefasDetailSource, listing_html: str) -> list[str]:
+    return [f["fonKodu"] for f in extract_funds(listing_html)
+            if f.get("fonTurAciklama") not in src.exclude_categories]
+
+
+def fund_codes(src: TefasDetailSource, *listing_htmls: str) -> list[str]:
+    """Fund codes of the tefas_web pages without the excluded categories,
+    without repeats, sorted."""
+    codes = sorted({c for html in listing_htmls for c in _listed_codes(src, html)})
     return codes[:src.max_funds] if src.max_funds else codes
 
 
@@ -97,7 +104,7 @@ def _holdings(src: TefasDetailSource, text: str,
               code: str) -> tuple[list[Holding], list[str]]:
     """I8: the varlikData rows of this fund, and notes for rows that give no
     row. No varlikData, null or an empty list -> nothing. The texts are kept
-    verbatim (the page has broken Turkish letters, U+FFFD)."""
+    verbatim."""
     m = re.search(r'"varlikData":', text)
     if not src.holdings_quantity or m is None:
         return [], []
@@ -125,12 +132,17 @@ def _holdings(src: TefasDetailSource, text: str,
     return out, notes
 
 
-def parse_page(src: TefasDetailSource, html: str,
-               code: str) -> tuple[dict[str, float | None], list[str], list[Holding]]:
-    """(configured field ("bilgiData.sonFiyat") -> value, notes, holdings). None
-    = no value, no row. Notes are problems that do not fail the page (an
-    unknown status text, a bad holdings row). Raises PageError with the reason
-    if the page fails."""
+class PageData(NamedTuple):
+    values: dict[str, float | None]   # configured field ("bilgiData.sonFiyat") -> value
+    notes: list[str]                  # problems that do not fail the page
+    holdings: list[Holding]           # I8, empty without holdings_quantity
+    status_text: str | None           # the status text verbatim (I10: into the note)
+
+
+def parse_page(src: TefasDetailSource, html: str, code: str) -> PageData:
+    """The values of one fund page. A value None = no value, no row. Notes are
+    problems that do not fail the page (an unknown status text, a bad holdings
+    row). Raises PageError with the reason if the page fails."""
     page = flight_text(html)
     objects = {}
     for name in DETAIL_OBJECTS:
@@ -148,17 +160,20 @@ def parse_page(src: TefasDetailSource, html: str,
             values[field] = _number(field, objects[obj].get(key), required)
 
     notes: list[str] = []
+    status_text = None
     if src.status:
         field = src.status.field
         obj, _, key = field.partition(".")
         text = objects[obj].get(key)
-        flag = src.status.map.get(normalize_status(text)) if isinstance(text, str) else None
+        status_text = text if isinstance(text, str) else None
+        flag = src.status.map.get(normalize_status(text)) if status_text is not None else None
         if flag is None:
-            what = f"unknown {field} {text!r}" if isinstance(text, str) and text.strip()                 else f"{field}: no value"
+            what = (f"unknown {field} {text!r}" if status_text and status_text.strip()
+                    else f"{field}: no value")
             notes.append(f"{what}; no {src.status.quantity} row")
         values[field] = flag
     holdings, holding_notes = _holdings(src, page, code)
-    return values, notes + holding_notes, holdings
+    return PageData(values, notes + holding_notes, holdings, status_text)
 
 
 def _read_page(data: bytes) -> str:
@@ -172,25 +187,29 @@ def fetch(
     src: TefasDetailSource,
     writer: SnapshotWriter,
     *,
-    listing: bytes | None,
+    listings: Mapping[str, bytes],
     client: httpx.Client,
     now: Callable[[], datetime] = lambda: datetime.now(TR_TZ),
     monotonic: Callable[[], float] = time.monotonic,
     sleep: Callable[[float], None] = time.sleep,
 ) -> SourceRecord:
-    """`listing` = the bytes of the tefas_web page of this snapshot (None if that
-    source has no ok page)."""
+    """`listings` = source name -> the bytes of its tefas_web page in this
+    snapshot, for the `funds_from` sources that have an ok page."""
     request: dict[str, Any] = {
         "method": "GET", "url": src.url, "user_agent": src.user_agent,
         "min_interval_s": src.min_interval_s,
         "robots": "robots.txt disallows /api/; only the fund detail HTML pages are requested"}
 
-    codes = fund_codes(src, listing.decode("utf-8")) if listing is not None else []
+    pages = {name: listings[name].decode("utf-8") for name in src.funds_from if name in listings}
+    codes = fund_codes(src, *pages.values())
+    names = ", ".join(src.funds_from)
     if not codes:
         return SourceRecord(status="failed", on_failure=src.on_failure, request=request,
-                            error=f"no {src.funds_from} funds in this snapshot "
-                                  f"(the fund list comes from {src.funds_from})")
+                            error=f"no {names} funds in this snapshot "
+                                  f"(the fund list comes from {names})")
     request["funds"] = len(codes)
+    request["funds_from"] = {name: len(_listed_codes(src, pages[name])) if name in pages
+                             else "no ok page" for name in src.funds_from}
     for code in codes:
         check_url_allowed(src.page_url(code))
 
@@ -212,7 +231,7 @@ def fetch(
             payloads.append(writer.add_payload(src.name, f"{code}.html.gz",
                                                gzip.compress(resp.content, mtime=0),
                                                meta={"fund": code, "url": url}))
-            _, notes, _ = parse_page(src, _read_page(resp.content), code)
+            notes = parse_page(src, _read_page(resp.content), code).notes
             rejected.extend({"fund": code, "reason": n} for n in notes)
         except httpx.HTTPError as e:
             failed += 1
@@ -249,15 +268,17 @@ def parse(cfg: Config, src: TefasDetailSource, snap: Snapshot, *,
     for payload in rec.payloads:
         code = payload.meta["fund"]
         try:
-            values, _, holdings = parse_page(
+            page = parse_page(
                 src, _read_page(gzip.decompress(snap.read_payload(payload.path))), code)
         except PageError:
             continue
         rows = [(quantities[field], code, value, f"fonKodu={code};field={field}",
-                 "as_of assumed = previous business day (the page shows no date)")
-                for field, value in values.items() if value is not None]
+                 # I10: the status row keeps the status text verbatim
+                 f"{page.status_text}; {AS_OF_NOTE}"
+                 if src.status and field == src.status.field else AS_OF_NOTE)
+                for field, value in page.values.items() if value is not None]
         rows += [(src.holdings_quantity, f"{code}/{kind}", share, f"varlikData[{i}]", kind)
-                 for i, kind, share in holdings]
+                 for i, kind, share in page.holdings]
         for quantity, entity, value, locator, note in rows:
             points.append(DataPoint.create(
                 quantity=quantity, entity=entity, value=value,
