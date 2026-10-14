@@ -11,19 +11,20 @@ const setup = () => {
   return { v, onOpen, onDetails };
 };
 
-test("closed: one line with the counts of the pipeline", () => {
+test("open by default; the summary line with the counts closes it", async () => {
   const { v } = setup();
   const scored = v.result.options.length;
   const rejected = v.result.rejected.length;
   expect(screen.getByRole("button", { name: /Bu öneriler nasıl seçildi\?/ })).toHaveTextContent(
     `${scored + rejected} seçenek → ${rejected} elendi → ${scored} puanlandı → 3 öneri`,
   );
+  expect(screen.getAllByTestId("pipeline-step")).toHaveLength(5);
+  await userEvent.click(screen.getByRole("button", { name: /Bu öneriler nasıl seçildi\?/ }));
   expect(screen.queryAllByTestId("pipeline-step")).toHaveLength(0);
 });
 
-test("open: five steps, the rules with their counts, the three picks", async () => {
+test("five steps, the rules with their counts, the three picks", () => {
   const { v } = setup();
-  await userEvent.click(screen.getByRole("button", { name: /Bu öneriler nasıl seçildi\?/ }));
   const steps = screen.getAllByTestId("pipeline-step");
   expect(steps).toHaveLength(5);
   expect(steps[0]).toHaveTextContent(`Risk ≤ ${v.risk_ceiling}`);
@@ -35,7 +36,6 @@ test("open: five steps, the rules with their counts, the three picks", async () 
 
 test("a pick opens its fund card; a step link opens its details tab", async () => {
   const { v, onOpen, onDetails } = setup();
-  await userEvent.click(screen.getByRole("button", { name: /Bu öneriler nasıl seçildi\?/ }));
   const steps = screen.getAllByTestId("pipeline-step");
   await userEvent.click(within(steps[4]).getAllByRole("button")[0]);
   expect(onOpen).toHaveBeenCalledWith(v.result.recommended[0]);
@@ -43,9 +43,8 @@ test("a pick opens its fund card; a step link opens its details tab", async () =
   expect(onDetails).toHaveBeenCalledWith("eliminated");
 });
 
-test("a pick below other options of its group is not ranked first there", async () => {
+test("a pick below other options of its group is not ranked first there", () => {
   const { v } = setup();
-  await userEvent.click(screen.getByRole("button", { name: /Bu öneriler nasıl seçildi\?/ }));
   const picks = within(screen.getAllByTestId("pipeline-step")[4]).getAllByRole("button");
   // fund:IST is 20th overall and the best debt fund
   expect(picks[v.result.recommended.indexOf("fund:IST")]).toHaveTextContent("genel 20. sıra, kendi grubunda 1.");

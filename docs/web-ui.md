@@ -415,8 +415,9 @@ comes from `DecisionResult` (no new decision logic):
 ### Explainability: decision pipeline on the dashboard (W17, 2026-10-14; PR #1)
 
 Approved by the user 2026-10-14 (canvas "Explainability Mockup", board 1). A
-section between the client card and Gündem / Öneriler, closed by default: one
-line "Bu öneriler nasıl seçildi? {universe} seçenek → {rejected} elendi →
+section between the client card and Gündem / Öneriler, open by default (since
+2026-10-15 at the lead's request; it was closed before). Its summary line
+closes and reopens it: "Bu öneriler nasıl seçildi? {universe} seçenek → {rejected} elendi →
 {scored} puanlandı → {picks} öneri". Open, five steps (every value from the
 RunView):
 
