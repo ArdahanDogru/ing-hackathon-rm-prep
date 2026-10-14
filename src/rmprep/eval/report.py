@@ -24,6 +24,7 @@ RULE_LABELS = {
     "narrator_valid": "Meeting text passes the validator (LLM, no fallback)",
     "forbidden_phrases": "No forbidden phrase (rule 6)",
     "traceability": "Every option and text sentence cites evidence (rule 2)",
+    "allocation_projection": "Current split adds up, only RM / client-file rows rank (D27)",
     "scenario_runs": "The scenario runs",
 }
 

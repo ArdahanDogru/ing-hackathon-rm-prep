@@ -517,3 +517,39 @@ def test_a_sentence_may_use_the_rows_it_cites_itself(root):
         assert check_no_invented_data(Context(sr.scenario, cited, DCFG, PHRASES)).status == PASS
         return
     pytest.skip("no evidence row outside the result with a figure that is not allowed anyway")
+
+
+# --- E10: the current split and the allocation gap (D27, lead 2026-10-15) ------------------
+
+def test_allocation_projection_passes_on_a_real_run(root):
+    from rmprep.eval.checks import check_allocation_projection
+    for pid in ("P01", "P02"):
+        sr = one(root, Scenario(id=pid.lower(), group="base", persona=pid))
+        assert check_allocation_projection(ctx(sr)).status == PASS
+
+
+def test_allocation_projection_catches_a_bad_total_a_wrong_gap_and_a_bad_criterion(root):
+    from rmprep.eval.checks import check_allocation_projection
+    sr = one(root, Scenario(id="p02", group="base", persona="P02"))    # estimate only
+    run = sr.runs[0]
+    r = run.result
+    bands = list(r.allocation)
+    i = next(k for k, b in enumerate(bands) if b.current is not None and b.low is not None)
+    b = bands[i]
+    bands[i] = dataclasses.replace(b, current=b.current + 5, current_high=max(b.current_high, b.current + 5))
+    bad_total = dataclasses.replace(run, result=dataclasses.replace(r, allocation=tuple(bands)))
+    c = check_allocation_projection(Context(sr.scenario, bad_total, DCFG, PHRASES))
+    assert c.status == FAIL and any("adds up" in d for d in c.details)
+    bands = list(r.allocation)
+    bands[i] = dataclasses.replace(b, gap=(b.gap or 0) + 7)
+    wrong_gap = dataclasses.replace(run, result=dataclasses.replace(r, allocation=tuple(bands)))
+    c = check_allocation_projection(Context(sr.scenario, wrong_gap, DCFG, PHRASES))
+    assert c.status == FAIL and any("gap" in d for d in c.details)
+    o = r.options[1]
+    parts = dict(o.score_parts) | {"allocation_gap": 0.05}
+    reasons = (dict(o.reasons) | {"allocation_gap": "test"}) if o.reasons else o.reasons
+    options = (r.options[0], dataclasses.replace(o, score_parts=parts, score=o.score + 0.05,
+                                                 reasons=reasons), *r.options[2:])
+    criterion = dataclasses.replace(run, result=dataclasses.replace(r, options=options))
+    c = check_allocation_projection(Context(sr.scenario, criterion, DCFG, PHRASES))
+    assert c.status == FAIL and any("no active class" in d for d in c.details)

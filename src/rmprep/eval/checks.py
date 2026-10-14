@@ -510,11 +510,48 @@ def check_diverse_recommendations(c: Context) -> CheckResult:
     return CheckResult.of("diverse_recommendations", problems)
 
 
+def check_allocation_projection(c: Context) -> CheckResult:
+    """D27 (docs/decision.md section 17): the current split adds up to 100 and
+    each point is inside its range; only RM or persona-text rows are active (the
+    brief: no made-up client information in the ranking); each gap is the distance
+    to the band edge; without an active row no option has the allocation_gap
+    criterion, so the ranking is the one without D27."""
+    from rmprep.contracts import ACTIVE_HOLDINGS_SOURCES
+    from rmprep.decision.holdings import class_gap
+
+    r = c.run.result
+    if r.state != DecisionState.READY:
+        return CheckResult.of("allocation_projection", [], na="not ready")
+    rows = [b for b in r.allocation if b.current is not None]
+    if not rows:
+        return CheckResult.of("allocation_projection", [], na="needs D27 (config holdings)",
+                              needs="D27")
+    problems = []
+    total = sum(b.current for b in rows)
+    if abs(total - 100) > 0.5:
+        problems.append(f"the current split adds up to {total:g}, not 100")
+    for b in rows:
+        lo = b.current if b.current_low is None else b.current_low
+        hi = b.current if b.current_high is None else b.current_high
+        if not lo <= b.current <= hi:
+            problems.append(f"{b.asset_class}: current {b.current:g} outside its range {lo:g}-{hi:g}")
+        if b.active != (b.current_source in ACTIVE_HOLDINGS_SOURCES):
+            problems.append(f"{b.asset_class}: active={b.active} with source {b.current_source}")
+        want = class_gap(b.current, None if b.low is None else (b.low, b.high))
+        if (want is None) != (b.gap is None) or (want is not None and abs(want - b.gap) > 1e-6):
+            problems.append(f"{b.asset_class}: gap {b.gap} but the band gives {want}")
+    if not any(b.active for b in rows):
+        with_gap = [x.option.option_id for x in r.options if "allocation_gap" in x.score_parts]
+        if with_gap or r.effective_weights.get("allocation_gap"):
+            problems.append(f"no active class, but allocation_gap is scored ({len(with_gap)} options)")
+    return CheckResult.of("allocation_projection", problems)
+
+
 RUN_CHECKS: tuple[Callable[[Context], CheckResult], ...] = (
     check_rule5, check_risk_ceiling, check_not_buyable, check_explicit_constraints,
     check_no_invented_data, check_missing_data_shown, check_bad_data_handled, check_questions,
     check_narrator_valid, check_forbidden_phrases, check_traceability,
-    check_diverse_recommendations,
+    check_diverse_recommendations, check_allocation_projection,
 )
 
 
