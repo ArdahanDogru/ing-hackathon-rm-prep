@@ -3,13 +3,14 @@
 import { useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { GlossaryTerm, NarrativeView, OptionView, RunView, SectionKey } from "../api/types";
+import type { GlossaryTerm, NarrativeView, OptionKind, OptionView, RunView, SectionKey } from "../api/types";
 import { BlockEditor } from "../components/BlockEditor";
 import { snapshotDate } from "../components/BriefCard";
 import { DocumentSection, SourceMark } from "../components/DocumentSection";
 import { ErrorBox } from "../components/ErrorBox";
 import { EvidencePopup } from "../components/EvidencePopup";
 import { FindingList, isBlocking } from "../components/FindingList";
+import { sourceName } from "../components/KindBadge";
 import { LifecycleTabs } from "../components/LifecycleTabs";
 import { NotesBox, type SaveState } from "../components/NotesBox";
 import { SourceList, type Source } from "../components/SourceList";
@@ -232,8 +233,10 @@ export function MeetingText({ view }: { view: RunView }) {
   for (const c of ordered) {
     if (!c.evidence_ids.length || numbers.has(keyOf(c))) continue;
     const named = c.option_ids.map((id) => (view.options[id] ? docName(view.options[id]) : id.split(":")[1] ?? id));
-    const anyFund = c.option_ids.some((id) => id.startsWith("fund:"));
-    const where = named.length ? `${named.join(", ")} · ${anyFund ? "TEFAS" : "ING"}, ${date}` : `${t("dataSource")}, ${date}`;
+    // the data sources of the options: TEFAS (funds, ETFs), Borsa İstanbul (shares), else ING
+    const kinds = c.option_ids.map((id) => view.options[id]?.kind ?? (id.split(":")[0] as OptionKind));
+    const from = [...new Set(kinds.map(sourceName))].filter((x) => x !== "ING").join(", ") || "ING";
+    const where = named.length ? `${named.join(", ")} · ${from}, ${date}` : `${t("dataSource")}, ${date}`;
     numbers.set(keyOf(c), sources.length + 1);
     sources.push({ n: sources.length + 1, label: where, evidenceIds: c.evidence_ids });
   }

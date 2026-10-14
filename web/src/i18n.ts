@@ -216,6 +216,10 @@ const TR = {
   ingestError: "Veri alınamadı: {error}",
   sourceMark: "Kaynak",
   marketNote: "Piyasa notu",
+  kindEtf: "BYF",
+  kindEtfLong: "Borsa yatırım fonu",
+  kindStock: "Pay",
+  kindStockLong: "Pay senedi (hisse)",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -433,6 +437,10 @@ const EN: Record<LabelKey, string> = {
   ingestError: "The data could not be fetched: {error}",
   sourceMark: "Source",
   marketNote: "Market note",
+  kindEtf: "ETF",
+  kindEtfLong: "Exchange-traded fund",
+  kindStock: "Share",
+  kindStockLong: "Share (stock)",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };

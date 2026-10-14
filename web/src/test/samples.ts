@@ -1,6 +1,6 @@
 // Test access to the API samples (tests/contracts/fixtures/api/, written by the
 // lead with `python -m rmprep.api.samples`): the contract between API and web.
-import type { EvidenceItem, GlossaryTerm, IngestStatus, NarrativeBrief, NarrativeView, Persona, RunView, SourceStatus } from "../api/types";
+import type { EvidenceItem, GlossaryTerm, IngestStatus, NarrativeBrief, NarrativeView, OptionView, Persona, RunView, SourceStatus } from "../api/types";
 
 const files = import.meta.glob("../../../tests/contracts/fixtures/api/*.json", { eager: true, import: "default" });
 
@@ -71,3 +71,22 @@ export function ingestSample(state: keyof typeof INGEST): IngestStatus {
   return structuredClone(INGEST[state]);
 }
 
+
+// Option kinds etf and stock (contract v1.9, D26): the API samples have none yet, so
+// a fund of a sample becomes one, with the access of a T+2 exchange trade.
+/** The fund option as an ETF ("BYF") or a share ("Pay"). */
+export function asKind(o: OptionView, kind: "etf" | "stock"): OptionView {
+  const code = o.option_id.split(":")[1] ?? o.option_id;
+  const stock = kind === "stock";
+  return {
+    ...structuredClone(o),
+    option_id: `${kind}:${code}`,
+    kind,
+    issuer: stock ? "" : o.issuer,
+    short_label: stock ? `${code} Pay` : o.short_label,
+    label: stock ? `${code} Pay Senedi` : o.label,
+    access: { ...o.access, days: 2, label: "2 iş günü (borsa takası)" },
+    rank: stock ? null : o.rank,
+    stars: stock ? null : o.stars,
+  };
+}

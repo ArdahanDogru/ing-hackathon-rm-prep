@@ -23,7 +23,7 @@ export interface Persona {
   rm_notu: string;
 }
 
-export type OptionKind = "deposit" | "time_deposit" | "fund";
+export type OptionKind = "deposit" | "time_deposit" | "fund" | "etf" | "stock"; // v1.9: etf, stock
 
 export interface ProductOption {
   option_id: string;

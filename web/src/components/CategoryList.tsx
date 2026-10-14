@@ -72,7 +72,7 @@ export function CategoryList({
         {categories.map((c) => {
           const isOpen = !!open[c.key];
           const ids = c.option_ids.slice(0, 3).filter((id) => options[id]);
-          const allFunds = ids.every((id) => options[id].kind === "fund");
+          const allFunds = ids.every((id) => options[id].kind === "fund" || options[id].kind === "etf");
           return (
             <div key={c.key} data-testid="category" className="rounded-xl border border-gray-100 px-4">
               <button

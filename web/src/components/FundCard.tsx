@@ -5,6 +5,7 @@ import type { OptionView } from "../api/types";
 import { fmtNum, fmtPct } from "../format";
 import { LangContext, useT } from "../i18n";
 import { snapshotDate } from "./BriefCard";
+import { hasCode, KindBadge, sourceName } from "./KindBadge";
 import { ReturnBars, type ReturnRow } from "./ReturnBars";
 import { RiskBar, riskColor } from "./RiskBar";
 import { Stars } from "./Stars";
@@ -51,7 +52,7 @@ export function FundCard({
   const share =
     top !== null && top <= 50 ? (lang === "TR" ? `Kategoride ilk ${fmtPct(top)}` : `Top ${fmtNum(top)} % of the category`) : null;
   const riskWord = o.risk?.level === 1 ? t("lowestRisk") : o.risk?.level === 7 ? t("highestRisk") : "";
-  const code = o.kind === "fund" ? (o.option_id.split(":")[1] ?? "") : "";
+  const code = hasCode(o.kind) ? (o.option_id.split(":")[1] ?? "") : "";
   const evidence = [
     ...new Set(
       [...Object.values(o.returns).map((f) => f?.evidence_id), o.risk?.evidence_id, o.access.evidence_id].filter(
@@ -65,7 +66,10 @@ export function FundCard({
       <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted">
         {[o.issuer, o.category_label].filter(Boolean).join(" · ")}
       </div>
-      <h2 className="mt-1 text-[22px] font-bold leading-tight">{o.short_label}</h2>
+      <div className="mt-1 flex items-center">
+        <h2 className="text-[22px] font-bold leading-tight">{o.short_label}</h2>
+        <KindBadge kind={o.kind} />
+      </div>
       <div className="mt-1 text-[13px] text-muted">{code ? `${o.label} · ${code}` : o.label}</div>
 
       <div className="my-[22px] grid grid-cols-3 gap-3">
@@ -131,7 +135,7 @@ export function FundCard({
       </div>
 
       <div className="mt-4 text-[13px] text-muted">
-        {snapshotId && `${t("source")}: ${o.kind === "fund" ? "TEFAS" : "ING"}, ${snapshotDate(snapshotId)} · `}
+        {snapshotId && `${t("source")}: ${sourceName(o.kind)}, ${snapshotDate(snapshotId)} · `}
         {evidence.length > 0 && (
           <button type="button" aria-expanded={showEv} className="text-[#355FA1] underline" onClick={() => setShowEv(!showEv)}>
             {`${t("showEvidence")} (${evidence.length})`}
