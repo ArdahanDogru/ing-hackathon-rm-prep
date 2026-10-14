@@ -671,6 +671,19 @@ the BIST 100 price and total-return indices (`lookback_days` 1900, 5 years,
 the later benchmark for share and ETF returns); the price index is verified
 (12,250.68 on 13.10.2026 = the close in the news).
 
+I13 (2026-10-14, lead): the parsed bulletin rows on disk. A fresh process
+(CLI, API start) had to read all 1,305 ZIPs again (about 40–60 s). Now
+`_day` keeps the parsed rows of each bulletin in
+`data/cache/bist_bulletin/parsed/<SHA-256 of the ZIP>.json` (texts as JSON lists,
+number columns as base64 of little-endian doubles, `PARSE_VERSION` 2). The file is
+derived and pure: the ZIP hash is still verified on every read; a file of
+another parser version, day or shape is made again; a write failure only costs
+speed; snapshot payloads (not cache files) are never written. Measured on
+snapshot 20261014-191003-eedf: first process about 50–60 s (writes the files),
+every later new process about 12 s for the whole `build_evidence` (bulletin
+rows about 4 s, the share calculation about 3 s, the other sources the rest).
+Bump `PARSE_VERSION` when `read_bulletin` or `_Day` changes.
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes

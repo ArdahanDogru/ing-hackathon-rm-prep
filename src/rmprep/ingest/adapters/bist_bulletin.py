@@ -43,10 +43,13 @@ quantities are optional).
 
 from __future__ import annotations
 
+import base64
+import binascii
 import bisect
 import calendar
 import functools
 import io
+import json
 import math
 import os
 import stat
@@ -57,6 +60,7 @@ from array import array
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -64,7 +68,8 @@ import httpx
 
 from rmprep.contracts import TR_TZ, DataPoint, EntityInfo
 from rmprep.ingest.config import BIST_HOST, BistBulletinSource, Config
-from rmprep.ingest.snapshot import PayloadRef, Snapshot, SnapshotWriter, SourceRecord, raw_ref
+from rmprep.ingest.snapshot import (CACHE, PayloadRef, Snapshot, SnapshotWriter, SourceRecord,
+                                    raw_ref)
 
 REQUIRED_COLUMNS = ("TARIH", "ISLEM KODU", "BULTEN ADI", "PAZAR", "ENSTRUMAN GRUBU",
                     "BIST 100 ENDEKS", "ACILIS FIYATI", "EN DUSUK FIYAT", "EN YUKSEK FIYAT",
@@ -473,6 +478,52 @@ class _Day:
             high=array("d", (s.high for s in shares)),
             turnover=array("d", (s.turnover for s in shares)))
 
+    def to_json(self, day: date) -> dict:
+        return {"v": PARSE_VERSION, "day": day.isoformat(), "codes": list(self.codes),
+                "names": list(self.names), "markets": list(self.markets),
+                "bist100": base64.b64encode(self.bist100).decode("ascii"),
+                **{k: base64.b64encode(_le(getattr(self, k)).tobytes()).decode("ascii")
+                   for k in _FLOATS}}
+
+    @classmethod
+    def from_json(cls, d: dict, day: date) -> _Day | None:
+        """None when the file is of another parser version, day or shape."""
+        try:
+            if d["v"] != PARSE_VERSION or d["day"] != day.isoformat():
+                return None
+            n = len(d["codes"])
+            floats = {}
+            for k in _FLOATS:
+                a = array("d")
+                a.frombytes(base64.b64decode(d[k], validate=True))
+                floats[k] = _le(a)
+            bist100 = base64.b64decode(d["bist100"], validate=True)
+            if any(len(x) != n for x in (d["names"], d["markets"], bist100, *floats.values())):
+                return None
+            return cls(codes=tuple(map(sys.intern, d["codes"])),
+                       names=tuple(map(sys.intern, d["names"])),
+                       markets=tuple(map(sys.intern, d["markets"])),
+                       bist100=bist100, **floats)
+        except (KeyError, TypeError, ValueError, binascii.Error):
+            return None
+
+
+_FLOATS = ("close", "open", "low", "high", "turnover")
+# I13 (2026-10-14): the parsed rows of each bulletin on disk, next to the ZIPs in
+# <cache>/bist_bulletin/parsed/<SHA-256 of the ZIP>.json. Derived and pure: the
+# ZIP hash is still verified on every read, and a file of another parser version,
+# day or shape is made again. Bump PARSE_VERSION when read_bulletin or _Day changes.
+PARSE_VERSION = 2                 # 2: number columns as base64 of little-endian doubles
+PARSED_DIR = "parsed"
+
+
+def _le(a: array) -> array:
+    """The array in little-endian byte order (the file format), on any machine."""
+    if sys.byteorder == "big":
+        a = array("d", a)
+        a.byteswap()
+    return a
+
 
 _MEMO: dict[tuple[str, date], _Day] = {}     # (SHA-256, day) -> shares of that file
 _MEMO_MAX = 4000
@@ -486,8 +537,41 @@ def _day(snap: Snapshot, ref: PayloadRef, day: date) -> _Day:
     if key not in _MEMO:
         if len(_MEMO) >= _MEMO_MAX:
             del _MEMO[next(iter(_MEMO))]
-        _MEMO[key] = _Day.of(read_bulletin(data, day))
+        f = _parsed_file(snap, ref)
+        found = _read_parsed(f, day) if f is not None else None
+        if found is None:
+            found = _Day.of(read_bulletin(data, day))
+            if f is not None:
+                _write_parsed(f, found, day)
+        _MEMO[key] = found
     return _MEMO[key]
+
+
+def _parsed_file(snap: Snapshot, ref: PayloadRef) -> Path | None:
+    """I13: the parsed-rows file of a cache payload; None for a snapshot payload
+    (a snapshot folder is never written after it is final)."""
+    if not ref.path.startswith(CACHE + "/"):
+        return None
+    return (snap.path.parent.parent / ref.path).parent / PARSED_DIR / f"{ref.sha256}.json"
+
+
+def _read_parsed(f: Path, day: date) -> _Day | None:
+    try:
+        return _Day.from_json(json.loads(f.read_text(encoding="utf-8")), day)
+    except (OSError, ValueError):
+        return None
+
+
+def _write_parsed(f: Path, found: _Day, day: date) -> None:
+    """Write atomically; a failure only costs speed (the file is a derived cache)."""
+    tmp = f.with_name(f.name + ".tmp")
+    try:
+        f.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text(json.dumps(found.to_json(day), separators=(",", ":"), ensure_ascii=False),
+                       encoding="utf-8")
+        os.replace(tmp, f)
+    except OSError:
+        tmp.unlink(missing_ok=True)
 
 
 def _files(src: BistBulletinSource,

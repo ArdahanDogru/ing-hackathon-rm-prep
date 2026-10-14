@@ -1,6 +1,7 @@
 """I11: Borsa İstanbul end-of-day bulletins (adapter bist_bulletin)."""
 
 import functools
+import json
 import math
 import os
 import stat
@@ -798,3 +799,54 @@ def test_long_history_requests_start_at_history_days(tmp_path, config_raw):
     assert rec.request["history_from"] >= rec.request["from"]
     assert len(rec.payloads) == len([d for d in bist_long_days()
                                      if d >= TODAY - timedelta(days=1900)])
+
+
+# --- I13: the parsed rows on disk (lead, 2026-10-14) ----------------------------------------
+
+def _forget():
+    """A new process: no memo in memory."""
+    bb._MEMO.clear()
+    bb._PARSED.clear()
+
+
+def test_parsed_rows_are_kept_on_disk_and_used_by_a_new_process(tmp_path, bcfg, monkeypatch):
+    _, snap, _ = _fetch(tmp_path, bcfg)
+    src = bcfg.sources["bist_bulletin"]
+    _forget()
+    first = bb.parse(bcfg, src, snap)
+    files = sorted((tmp_path / CACHE / bb.PARSED_DIR).glob("*.json"))
+    assert len(files) == len(snap.sources["bist_bulletin"].payloads)
+    assert {f.stem for f in files} == {p.sha256 for p in snap.sources["bist_bulletin"].payloads}
+    _forget()
+    monkeypatch.setattr(bb, "read_bulletin", lambda *a, **k: pytest.fail("a ZIP was read again"))
+    assert bb.parse(bcfg, src, snap) == first
+
+
+def test_a_bad_parsed_file_is_made_again(tmp_path, bcfg):
+    _, snap, _ = _fetch(tmp_path, bcfg)
+    src = bcfg.sources["bist_bulletin"]
+    _forget()
+    first = bb.parse(bcfg, src, snap)
+    files = sorted((tmp_path / CACHE / bb.PARSED_DIR).glob("*.json"))
+    files[0].write_text("{", encoding="utf-8")                                   # broken JSON
+    old = json.loads(files[1].read_text(encoding="utf-8"))
+    files[1].write_text(json.dumps(old | {"v": bb.PARSE_VERSION - 1}), encoding="utf-8")  # old parser
+    old = json.loads(files[2].read_text(encoding="utf-8"))
+    files[2].write_text(json.dumps(old | {"close": old["close"][:-12]}), encoding="utf-8")  # short column
+    _forget()
+    assert bb.parse(bcfg, src, snap) == first
+    for f in files[:3]:
+        assert json.loads(f.read_text(encoding="utf-8"))["v"] == bb.PARSE_VERSION
+
+
+def test_parsed_cache_still_verifies_the_zip(tmp_path, bcfg):
+    _, snap, _ = _fetch(tmp_path, bcfg)
+    src = bcfg.sources["bist_bulletin"]
+    _forget()
+    bb.parse(bcfg, src, snap)
+    _forget()
+    f = tmp_path / CACHE / bist_name(BIST_END)
+    os.chmod(f, stat.S_IREAD | stat.S_IWRITE)
+    f.write_bytes(f.read_bytes() + b"x")
+    with pytest.raises(SnapshotIntegrityError, match="hash mismatch"):
+        bb.parse(bcfg, src, snap)
