@@ -10,6 +10,7 @@ import { DetailsPanel } from "../components/DetailsPanel";
 import { EvidencePopup } from "../components/EvidencePopup";
 import { FundCard, FundDrawer } from "../components/FundCard";
 import { LifecycleTabs } from "../components/LifecycleTabs";
+import { MarketNote } from "../components/MarketNote";
 import { OptionsCompare } from "../components/OptionsCompare";
 import { PersonaPanel } from "../components/PersonaPanel";
 import { QuestionsPanel } from "../components/QuestionsPanel";
@@ -86,6 +87,7 @@ export function Dashboard({
         onEdit={onPersona && (() => setEditing(true))}
         onEvidence={setEvidenceId}
       />
+      <MarketNote items={view.market_note} onEvidence={setEvidenceId} />
       {error && (
         <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-white p-3 text-sm">
           {`${t("errorTitle")}: ${error}`}

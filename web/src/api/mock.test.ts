@@ -38,13 +38,14 @@ test("brief: the sample of the language, else 202 running", () => {
   expect(resolveMock("GET", "/api/runs/R01/brief?lang=EN", undefined, withBrief).status).toBe(202);
 });
 
-test("block edit: the sample with the edit; restore; a forbidden phrase gives a blocking finding; empty is 422", () => {
+test("block edit: the sample with the edit; restore; a forbidden phrase gives a blocking finding; empty deletes", () => {
   const load = (name: string) => (name === "narrative_p01_tr" ? { rm_edits: {}, edit_checks: {} } : undefined);
   const put = (text: string | null) => resolveMock("PUT", "/api/runs/R01/narrative/TR/blocks/oneriler%3Afund%3APPN", { text }, load);
   expect(put("Yeni.").body).toMatchObject({ rm_edits: { "oneriler:fund:PPN": "Yeni." }, edit_checks: {} });
   expect(put(null).body).toMatchObject({ rm_edits: {} });
   expect(put("Kesin getiri var.").body).toMatchObject({ edit_checks: { "oneriler:fund:PPN": [expect.stringMatching(/^phrase:/)] } });
-  expect(put("  ").status).toBe(422);
+  expect(put("").body).toMatchObject({ rm_edits: { "oneriler:fund:PPN": "" }, edit_checks: {} });
+  expect(put("  ").body).toMatchObject({ rm_edits: { "oneriler:fund:PPN": "" } });
 });
 
 test("unknown path is 404", () => {

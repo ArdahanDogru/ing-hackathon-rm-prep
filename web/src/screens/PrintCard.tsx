@@ -28,10 +28,26 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
   const r = view.result;
   const p = r.persona;
   const sentences = (key: SectionKey) => narrative.sections.find((s) => s.key === key)?.sentences ?? [];
-  const texts = (key: SectionKey) => sentences(key).map((s) => s.text);
-  const points = sentences("talking_points").length
-    ? sentences("talking_points").map((s) => ({ title: s.title, text: s.text }))
+  // a block's texts with the RM's edits: "" = deleted (left out), else the edited text
+  const edits = narrative.rm_edits ?? {};
+  const blockTexts = (block: string, original: string[], list = false) => {
+    const e = edits[block];
+    if (e === undefined) return original;
+    return list ? e.split("\n").map((l) => l.trim()).filter(Boolean) : e.trim() ? [e] : [];
+  };
+  const texts = (key: SectionKey) => blockTexts(key, sentences(key).map((s) => s.text), key !== "ozet" && key !== "teklif_metni");
+  const tp = sentences("talking_points");
+  const points = tp.length
+    ? tp.flatMap((s, i) => blockTexts(`talking_points:${i}`, [s.text]).map((text) => ({ title: s.title, text })))
     : view.talking_points.map((x) => ({ title: x.label, text: x.text }));
+  const optionTexts = (id: string) =>
+    blockTexts(
+      `oneriler:${id}`,
+      sentences("oneriler")
+        .filter((s) => s.option_ids[0] === id)
+        .map((s) => s.text),
+    );
+  const shownOptions = r.rm_selected.filter((id) => view.options[id] && edits[`oneriler:${id}`] !== "");
   // an approved text prints as Markdown only when the RM edited it
   const approvedText =
     narrative.status === "approved" && narrative.rm_text.trim() !== (narrative.draft_markdown ?? "").trim()
@@ -60,10 +76,13 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
         </section>
       ) : (
         <>
-          <p className="mt-4 text-[14px]">
-            <b>{`${t("meetingAim")}: `}</b>
-            {texts("ozet").join(" ")}
-          </p>
+          {texts("ozet").length > 0 && (
+            <p className="mt-4 text-[14px]">
+              <b>{`${t("meetingAim")}: `}</b>
+              {texts("ozet").join(" ")}
+            </p>
+          )}
+          {texts("piyasa_notu").length > 0 && <p className="mt-2 text-xs text-muted">{texts("piyasa_notu").join(" ")}</p>}
           <div className="mt-2 flex flex-wrap gap-1.5">
             {p.oncelikler.map((x) => (
               <span key={x} className="rounded-full border border-gray-300 px-2 py-0.5 text-xs">
@@ -86,15 +105,16 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
             </section>
           )}
 
-          <section className="print-avoid mt-4 rounded-lg bg-[#F3F6FB] p-3">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#355FA1]">{t("script")}</div>
-            <p className="mt-1 text-[14px]">{texts("teklif_metni").join(" ")}</p>
-          </section>
+          {texts("teklif_metni").length > 0 && (
+            <section className="print-avoid mt-4 rounded-lg bg-[#F3F6FB] p-3">
+              <div className="text-xs font-bold uppercase tracking-wide text-[#355FA1]">{t("script")}</div>
+              <p className="mt-1 text-[14px]">{texts("teklif_metni").join(" ")}</p>
+            </section>
+          )}
 
-          <h2 className="mb-2 mt-5 text-[15px] font-bold">{t("recommendations")}</h2>
-          {r.rm_selected.map((id, i) => {
+          {shownOptions.length > 0 && <h2 className="mb-2 mt-5 text-[15px] font-bold">{t("recommendations")}</h2>}
+          {shownOptions.map((id, i) => {
             const o = view.options[id];
-            if (!o) return null;
             const r1 = o.returns["1y"];
             const tags = narrative.need_tags[id] ?? [];
             return (
@@ -116,13 +136,11 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
                   </div>
                 </div>
                 {tags.length > 0 && <div className="mt-1 text-xs text-[#2C4F8F]">{tags.join(" · ")}</div>}
-                {sentences("oneriler")
-                  .filter((s) => s.option_ids.includes(id))
-                  .map((s, k) => (
-                    <p key={k} className="mt-1">
-                      {s.text}
-                    </p>
-                  ))}
+                {optionTexts(id).map((text, k) => (
+                  <p key={k} className="mt-1">
+                    {text}
+                  </p>
+                ))}
                 {r.rm_option_notes[id] && (
                   <p className="mt-1 text-xs">
                     <b>{`${t("myNote")}: `}</b>

@@ -4,6 +4,7 @@ import type { OptionView } from "../api/types";
 import { fmtNum, fmtPct } from "../format";
 import { useT } from "../i18n";
 import { colors } from "../theme";
+import { hasCode, KindBadge } from "./KindBadge";
 import { matchColor } from "./MatchRing";
 import { riskColor } from "./RiskBar";
 import { Stars } from "./Stars";
@@ -32,7 +33,7 @@ export const signedPct = (v: number) => (fmtNum(v) !== "0" && v > 0 ? `+${fmtPct
 export const realColor = (v: number) => (v < 0 ? colors.bad.fg : colors.good.fg);
 export const whyLine = (o: OptionView) => o.why.map(([priority]) => priority).join(" · ");
 const code = (o: OptionView) => o.option_id.split(":")[1] ?? o.option_id;
-export const fullName = (o: OptionView) => (o.kind === "fund" ? `${o.label} · ${code(o)}` : o.label);
+export const fullName = (o: OptionView) => (hasCode(o.kind) ? `${o.label} · ${code(o)}` : o.label);
 
 export function OptionsTable({
   options,
@@ -119,7 +120,7 @@ export function OptionsTable({
     [
       t("rowCategory"),
       (o) =>
-        o.kind !== "fund" ? (
+        o.kind === "deposit" || o.kind === "time_deposit" ? (
           "—"
         ) : o.rank && o.stars !== null ? (
           <span className="whitespace-nowrap">
@@ -159,6 +160,7 @@ export function OptionsTable({
                       {o.issuer ? `${i + 1} · ${o.issuer}` : `${i + 1}`}
                     </div>
                     <span className="font-bold">{o.short_label}</span>
+                    <KindBadge kind={o.kind} />
                   </button>
                 </th>
               ),

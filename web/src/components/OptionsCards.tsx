@@ -4,6 +4,7 @@ import { fmtPct } from "../format";
 import { useT } from "../i18n";
 import { colors } from "../theme";
 import { MatchRing } from "./MatchRing";
+import { KindBadge } from "./KindBadge";
 import { KMark, fullName, realColor, signedPct, whyLine } from "./OptionsTable";
 import { RiskBar } from "./RiskBar";
 import { Stars } from "./Stars";
@@ -46,7 +47,10 @@ export function OptionsCards({
                   <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted">
                     {o.issuer ? `${i + 1} · ${o.issuer}` : `${i + 1}`}
                   </div>
-                  <div className="text-[17px] font-bold leading-snug">{o.short_label}</div>
+                  <div className="text-[17px] font-bold leading-snug">
+                    {o.short_label}
+                    <KindBadge kind={o.kind} />
+                  </div>
                 </div>
                 {o.match !== null && <MatchRing value={o.match} size={46} label={t("match")} />}
               </div>

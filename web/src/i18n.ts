@@ -192,6 +192,11 @@ const TR = {
   editBlock: "düzenle",
   blockEdited: "düzenlendi",
   restoreBlock: "Orijinale dön",
+  deleteBlock: "Sil",
+  deleteSection: "Bölümü sil",
+  blockDeleted: "Silindi",
+  undoDelete: "Geri al",
+  disclaimerNote: "Yatırım tavsiyesi değildir notu her zaman eklenir.",
   mustFix: "Düzeltilmeli",
   warnOnly: "Uyarı",
   approveBlocked: "Onay için önce işaretli bölümleri düzeltin.",
@@ -209,6 +214,12 @@ const TR = {
   ingestNewer: "Yeni veri hazır ({date}).",
   ingestOpenNewer: "Yeni veriyle aç",
   ingestError: "Veri alınamadı: {error}",
+  sourceMark: "Kaynak",
+  marketNote: "Piyasa notu",
+  kindEtf: "BYF",
+  kindEtfLong: "Borsa yatırım fonu",
+  kindStock: "Pay",
+  kindStockLong: "Pay senedi (hisse)",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -402,6 +413,11 @@ const EN: Record<LabelKey, string> = {
   editBlock: "edit",
   blockEdited: "edited",
   restoreBlock: "Restore the original",
+  deleteBlock: "Delete",
+  deleteSection: "Delete section",
+  blockDeleted: "Deleted",
+  undoDelete: "Undo",
+  disclaimerNote: "The note \"not investment advice\" is always added.",
   mustFix: "Must be fixed",
   warnOnly: "Warning",
   approveBlocked: "Fix the marked sections before the approval.",
@@ -419,6 +435,12 @@ const EN: Record<LabelKey, string> = {
   ingestNewer: "New data is ready ({date}).",
   ingestOpenNewer: "Open with the new data",
   ingestError: "The data could not be fetched: {error}",
+  sourceMark: "Source",
+  marketNote: "Market note",
+  kindEtf: "ETF",
+  kindEtfLong: "Exchange-traded fund",
+  kindStock: "Share",
+  kindStockLong: "Share (stock)",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };

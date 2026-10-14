@@ -327,3 +327,41 @@ test("a decision without a time (an older run) shows the status only", () => {
   renderDashboard({ ...v, result: { ...v.result, rm_decided_at: null } });
   expect(screen.getByTestId("decided-at")).toHaveTextContent(/^Onaylandı$/);
 });
+
+// --- W15 part 3: market note -----------------------------------------------------------
+
+test("market note card: value, date and K per item, under the brief", async () => {
+  const v = sample("run_p01_ready");
+  const ev = vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
+  renderDashboard(v);
+  const card = screen.getByTestId("market-note");
+  expect(card).toHaveTextContent("Piyasa notu · TCMB EVDS");
+  expect(screen.getByTestId("brief-card").compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const rows = within(card).getAllByTestId("market-item");
+  expect(rows).toHaveLength(v.market_note.length);
+  const nf = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 4 });
+  v.market_note.forEach((m, i) => {
+    expect(rows[i]).toHaveTextContent(m.label);
+    expect(rows[i]).toHaveTextContent(m.unit === "pct" ? `%${nf.format(m.value)}` : `${nf.format(m.value)} TL`);
+    expect(rows[i]).toHaveTextContent(m.as_of.split("-").reverse().join("."));
+  });
+  await userEvent.click(within(rows[1]).getByRole("button", { name: "Kanıt" }));
+  expect(ev).toHaveBeenCalledWith(v.result.snapshot_id, v.market_note[1].evidence_id);
+});
+
+test("market values: a percent and a TRY price", async () => {
+  const { marketValue } = await import("../components/MarketNote");
+  const item = { key: "k", label: "l", as_of: "2026-10-09", evidence_id: "E" };
+  expect(marketValue({ ...item, value: 37.25, unit: "pct" })).toBe("%37,25");
+  expect(marketValue({ ...item, value: 49.1267, unit: "TRY" })).toBe("49,1267 TL");
+});
+
+test("no market note: no card", () => {
+  renderDashboard({ ...sample("run_p01_ready"), market_note: [] });
+  expect(screen.queryByTestId("market-note")).toBeNull();
+});
+
+test("market note card in EN", () => {
+  renderDashboard(sample("run_p01_ready"), () => {}, "EN");
+  expect(screen.getByTestId("market-note")).toHaveTextContent("Market note · TCMB EVDS");
+});
