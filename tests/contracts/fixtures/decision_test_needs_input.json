@@ -77,5 +77,7 @@
  "recommended": [],
  "rm_decided_at": null,
  "allocation": [],
- "allocation_notes": []
+ "allocation_notes": [],
+ "holdings_input": null,
+ "effective_weights": {}
 }

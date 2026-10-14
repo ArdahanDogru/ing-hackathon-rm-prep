@@ -72,7 +72,9 @@
   "allocation": [],
   "allocation_notes": [
    "Dosyaya göre varlık TL mevduat ağırlıklı: nakit benzeri bandı aşılıyor olabilir."
-  ]
+  ],
+  "holdings_input": null,
+  "effective_weights": {}
  },
  "test_run": true,
  "persona_changes": [

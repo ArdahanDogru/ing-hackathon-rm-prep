@@ -20,6 +20,7 @@ from rmprep.contracts import (
     DecisionResult,
     DecisionState,
     EvidenceSet,
+    HoldingsInput,
     NarrativeDraft,
     NarrativeSection,
     NarrativeSentence,
@@ -60,11 +61,14 @@ class _Inputs:
     snapshot_id: str
     excluded_sources: frozenset[str]
     answers: tuple[tuple[str, str], ...] = ()   # sorted (question_id, answer)
+    holdings: HoldingsInput | None = None       # v1.10
 
 
 def _run_id(inputs: _Inputs) -> str:
     key = [inputs.persona.to_dict(), inputs.snapshot_id, sorted(inputs.excluded_sources),
            list(inputs.answers)]
+    if inputs.holdings is not None:             # v1.10: without input the id stays as before
+        key.append([dict(inputs.holdings.shares), inputs.holdings.origin])
     blob = json.dumps(key, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return "R" + hashlib.sha1(blob, usedforsecurity=False).hexdigest()[:10]
 
@@ -137,6 +141,17 @@ class FakeBackend:
         new = dataclasses.replace(result, run_id=_run_id(inputs), questions=questions, state=state,
                                   rm_status=RmStatus.PENDING, rm_note="", rm_selected=(),
                                   rm_option_notes={})
+        return self._keep(new, inputs)
+
+    def set_holdings(self, run_id: str, shares: Mapping[str, float] | None,
+                     origin: str = "rm") -> DecisionResult:
+        """v1.10: the stored run with the RM's split; no scoring change in the fake."""
+        result, inputs = self._runs[run_id]
+        holdings = None if shares is None else HoldingsInput(shares, origin)
+        inputs = dataclasses.replace(inputs, holdings=holdings)
+        new = dataclasses.replace(result, run_id=_run_id(inputs), holdings_input=holdings,
+                                  rm_status=RmStatus.PENDING, rm_note="", rm_selected=(),
+                                  rm_option_notes={}, rm_decided_at=None)
         return self._keep(new, inputs)
 
     def approve(self, run_id: str, status: RmStatus, note: str = "",

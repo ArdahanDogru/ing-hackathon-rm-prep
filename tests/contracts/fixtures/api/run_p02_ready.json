@@ -34144,7 +34144,14 @@
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:BVF",
-    "note": ""
+    "note": "",
+    "current": null,
+    "current_low": null,
+    "current_high": null,
+    "current_source": "",
+    "current_ref": "",
+    "gap": null,
+    "active": false
    },
    {
     "asset_class": "borclanma",
@@ -34153,7 +34160,14 @@
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:NJR",
-    "note": ""
+    "note": "",
+    "current": null,
+    "current_low": null,
+    "current_high": null,
+    "current_source": "",
+    "current_ref": "",
+    "gap": null,
+    "active": false
    },
    {
     "asset_class": "hisse",
@@ -34162,7 +34176,14 @@
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:CPU",
-    "note": ""
+    "note": "",
+    "current": null,
+    "current_low": null,
+    "current_high": null,
+    "current_source": "",
+    "current_ref": "",
+    "gap": null,
+    "active": false
    },
    {
     "asset_class": "altin_doviz",
@@ -34171,7 +34192,14 @@
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:KZL",
-    "note": "negative_real"
+    "note": "negative_real",
+    "current": null,
+    "current_low": null,
+    "current_high": null,
+    "current_source": "",
+    "current_ref": "",
+    "gap": null,
+    "active": false
    },
    {
     "asset_class": "dengeli",
@@ -34180,10 +34208,19 @@
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:IRF",
-    "note": ""
+    "note": "",
+    "current": null,
+    "current_low": null,
+    "current_high": null,
+    "current_source": "",
+    "current_ref": "",
+    "gap": null,
+    "active": false
    }
   ],
-  "allocation_notes": []
+  "allocation_notes": [],
+  "holdings_input": null,
+  "effective_weights": {}
  },
  "test_run": false,
  "persona_changes": [],

@@ -25747,7 +25747,14 @@
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:PPN",
-    "note": ""
+    "note": "",
+    "current": null,
+    "current_low": null,
+    "current_high": null,
+    "current_source": "",
+    "current_ref": "",
+    "gap": null,
+    "active": false
    },
    {
     "asset_class": "borclanma",
@@ -25756,7 +25763,14 @@
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:OSD",
-    "note": ""
+    "note": "",
+    "current": null,
+    "current_low": null,
+    "current_high": null,
+    "current_source": "",
+    "current_ref": "",
+    "gap": null,
+    "active": false
    },
    {
     "asset_class": "hisse",
@@ -25765,7 +25779,14 @@
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": null,
-    "note": "ceiling"
+    "note": "ceiling",
+    "current": null,
+    "current_low": null,
+    "current_high": null,
+    "current_source": "",
+    "current_ref": "",
+    "gap": null,
+    "active": false
    },
    {
     "asset_class": "altin_doviz",
@@ -25774,7 +25795,14 @@
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:KZL",
-    "note": "negative_real"
+    "note": "negative_real",
+    "current": null,
+    "current_low": null,
+    "current_high": null,
+    "current_source": "",
+    "current_ref": "",
+    "gap": null,
+    "active": false
    },
    {
     "asset_class": "dengeli",
@@ -25783,12 +25811,21 @@
     "source": "Ata Yatırım, 28.04.2026",
     "inferred": false,
     "option_id": "fund:KCV",
-    "note": ""
+    "note": "",
+    "current": null,
+    "current_low": null,
+    "current_high": null,
+    "current_source": "",
+    "current_ref": "",
+    "gap": null,
+    "active": false
    }
   ],
   "allocation_notes": [
    "Dosyaya göre varlık TL mevduat ağırlıklı: nakit benzeri bandı aşılıyor olabilir."
-  ]
+  ],
+  "holdings_input": null,
+  "effective_weights": {}
  },
  "test_run": true,
  "persona_changes": [

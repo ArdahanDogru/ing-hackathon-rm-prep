@@ -235,6 +235,10 @@ class SourceStatus:
 # v1.9 (2026-10-14): option kinds etf and stock (docs/decision.md section 16,
 # D26); NarrativeDraft.rm_edits[block] == "" = the RM deleted the block
 # (docs/narrator.md N14).
+# v1.10 (2026-10-14): the client's current split in AllocationBand (current,
+# source, gap, active), HoldingsInput, DecisionResult.holdings_input and
+# effective_weights, Backend.set_holdings (docs/decision.md section 17, D27;
+# spec docs/superpowers/specs/2026-10-14-portfolio-projection-design.md).
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -434,6 +438,13 @@ class AllocationBand:
     inferred: bool              # the band is our inference, not a source value
     option_id: str | None       # the best scored option of the class for this client
     note: str                   # "" | "ceiling" | "none" | "negative_real" (texts in config)
+    current: float | None = None        # v1.10: the client's current share, % (point)
+    current_low: float | None = None    # v1.10: range of the estimate (= current for RM values)
+    current_high: float | None = None
+    current_source: str = ""            # v1.10: "" | HOLDINGS_SOURCES
+    current_ref: str = ""               # v1.10: rule id, profile label or source short text
+    gap: float | None = None            # v1.10: points to the band edge; + under, - over, 0 inside
+    active: bool = False                # v1.10: counts in the ranking (ACTIVE_HOLDINGS_SOURCES)
 
     def __post_init__(self) -> None:
         if not self.asset_class.strip():
@@ -442,6 +453,46 @@ class AllocationBand:
             raise ValueError("low and high are both set or both None")
         if self.low is not None and not 0 <= self.low <= self.high <= 100:
             raise ValueError(f"band must satisfy 0 <= low <= high <= 100, got {self.low}-{self.high}")
+        if self.current is not None:
+            lo = self.current if self.current_low is None else self.current_low
+            hi = self.current if self.current_high is None else self.current_high
+            if not 0 <= lo <= self.current <= hi <= 100:
+                raise ValueError("current must satisfy 0 <= current_low <= current <= current_high"
+                                 f" <= 100, got {lo}-{self.current}-{hi}")
+            if self.current_source not in HOLDINGS_SOURCES:
+                raise ValueError(f"current_source must be one of {HOLDINGS_SOURCES}, "
+                                 f"got {self.current_source!r}")
+        if self.active and self.current_source not in ACTIVE_HOLDINGS_SOURCES:
+            raise ValueError("active only with an active source (rm, rm_confirmed, persona_text)")
+
+
+# v1.10: the asset classes of D19/D20 (config allocation.classes must be the same).
+ALLOCATION_CLASSES = ("nakit_benzeri", "borclanma", "hisse", "altin_doviz", "dengeli")
+HOLDINGS_SOURCES = ("rm", "rm_confirmed", "persona_text", "profile", "national")
+ACTIVE_HOLDINGS_SOURCES = ("rm", "rm_confirmed", "persona_text")   # change the ranking
+HOLDINGS_ORIGINS = ("rm", "rm_confirmed")
+HOLDINGS_TOTAL_TOLERANCE = 0.5
+
+
+@dataclass(frozen=True)
+class HoldingsInput:
+    """v1.10: the client's current split typed (rm) or accepted (rm_confirmed) by the RM."""
+
+    shares: Mapping[str, float]     # asset class -> %, all ALLOCATION_CLASSES, total 100 ± 0.5
+    origin: str                     # HOLDINGS_ORIGINS
+
+    def __post_init__(self) -> None:
+        if self.origin not in HOLDINGS_ORIGINS:
+            raise ValueError(f"origin must be one of {HOLDINGS_ORIGINS}, got {self.origin!r}")
+        if set(self.shares) != set(ALLOCATION_CLASSES):
+            raise ValueError(f"shares must name exactly the classes {ALLOCATION_CLASSES}, "
+                             f"got {sorted(self.shares)}")
+        if any(not 0 <= v <= 100 for v in self.shares.values()):
+            raise ValueError("each share must be in 0-100")
+        total = sum(self.shares.values())
+        if abs(total - 100) > HOLDINGS_TOTAL_TOLERANCE:
+            raise ValueError(f"shares must add to 100 (± {HOLDINGS_TOTAL_TOLERANCE}), got total {total}")
+        object.__setattr__(self, "shares", {k: float(self.shares[k]) for k in ALLOCATION_CLASSES})
 
 
 @dataclass(frozen=True)
@@ -477,6 +528,8 @@ class DecisionResult:
     rm_decided_at: datetime | None = None           # v1.7: when the RM approved / rejected (Europe/Istanbul)
     allocation: tuple[AllocationBand, ...] = ()     # v1.8, D20: model bands per asset class
     allocation_notes: tuple[str, ...] = ()          # v1.8, D20: holding hints from the persona text
+    holdings_input: HoldingsInput | None = None     # v1.10, D27: the RM's split (a run input)
+    effective_weights: Mapping[str, float] = field(default_factory=dict)  # v1.10: criterion -> weight used
 
     @property
     def persona_id(self) -> str:
@@ -719,6 +772,12 @@ class Backend(Protocol):
 
     def answer_question(self, run_id: str, question_id: str, answer: str) -> DecisionResult:
         """New run: the inputs of run_id plus this answer (earlier answers kept)."""
+        ...
+
+    def set_holdings(self, run_id: str, shares: Mapping[str, float] | None,
+                     origin: str = "rm") -> DecisionResult:
+        """v1.10: new run with the RM's current split (HoldingsInput); None removes it,
+        so the run id is again the one without input."""
         ...
 
     def approve(self, run_id: str, status: RmStatus, note: str = "",
