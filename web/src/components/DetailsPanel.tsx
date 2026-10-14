@@ -1,5 +1,5 @@
 // "Detaylar" (B4 item 5): one line with counts that opens one panel with tabs.
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { RejectedByRule, RunView } from "../api/types";
 import { useT, type LabelKey } from "../i18n";
 import { CategoryList } from "./CategoryList";
@@ -27,22 +27,32 @@ function RuleRow({ rule }: { rule: RejectedByRule }) {
   );
 }
 
-type Tab = "categories" | "assumptions" | "dataNotes" | "eliminated" | "warnings" | "rmNote";
+export type Tab = "categories" | "assumptions" | "dataNotes" | "eliminated" | "warnings" | "rmNote";
 
 export function DetailsPanel({
   view,
   selected,
   onToggle,
   onOpen,
+  request,
 }: {
   view: RunView;
   selected: string[];
   onToggle: (id: string) => void;
   onOpen: (id: string) => void;
+  /** W16: open the panel on this tab (a new `n` opens it again). */
+  request?: { tab: Tab; n: number } | null;
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("categories");
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!request) return;
+    setOpen(true);
+    setTab(request.tab);
+    ref.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  }, [request]);
   const tabs: [Tab, LabelKey, number][] = [
     ["categories", "categories", view.categories.length],
     ["assumptions", "assumptions", view.assumptions.length],
@@ -78,7 +88,7 @@ export function DetailsPanel({
   };
 
   return (
-    <section className="rounded-2xl bg-white shadow-sm">
+    <section ref={ref} className="rounded-2xl bg-white shadow-sm">
       <button
         type="button"
         aria-expanded={open}

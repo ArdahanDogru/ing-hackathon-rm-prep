@@ -383,7 +383,31 @@ comes from `DecisionResult` (no new decision logic):
   (`api/views.py priority_criteria`). The samples got the key without a rerun
   (the rerun needs the narrator); the value is the same function's output.
 - The `why` lines stay in the API; `FundCard` shows them when no explanation is
-  given. Next step: the decision pipeline section on the dashboard (board 1).
+  given.
+- The "Paraya erişim" tile text is 16 px (the 24 px of the other tiles broke
+  "Vade sonunda (32 gün)" over lines).
+
+### Explainability: decision pipeline on the dashboard (W16, 2026-10-14)
+
+Approved by the user 2026-10-14 (canvas "Explainability Mockup", board 1). A
+section between the client card and Gündem / Öneriler, closed by default: one
+line "Bu öneriler nasıl seçildi? {universe} seçenek → {rejected} elendi →
+{scored} puanlandı → {picks} öneri". Open, five steps (every value from the
+RunView):
+
+1. **Müşteri profili:** `risk_ceiling`, risk profile and horizon, and the
+   persona levels that set the income, principal and liquidity weights.
+2. **Ürün evreni:** scored + rejected options.
+3. **Kesin kurallar:** `rejected_by_rule` counts as bars (a fund can fail
+   several rules).
+4. **Puanlama:** the scored candidates.
+5. **Öneri:** the recommended options with score, overall rank and rank in
+   their group (shown when it differs); a click opens the fund card.
+
+Each step links to the matching DetailsPanel tab (Varsayımlar, Veri notları,
+Elenen, Kategoriler): `DetailsPanel` takes `request = {tab, n}` and opens on
+that tab. Below the steps: the lowest stability of the recommended options
+with the W15 level. Gündem, the options and the DetailsPanel are unchanged.
 
 ### Not in this redesign (later, with data)
 
