@@ -35,6 +35,7 @@ from rmprep.narrator.brief import (
 from rmprep.narrator.config import NarratorConfig, load_config
 from rmprep.narrator.facts import Facts, build_facts
 from rmprep.narrator.llm import LlmClient, LlmError, LlmReply, client_from_env
+from rmprep.narrator.market import with_market_note
 from rmprep.narrator.prompt import build_request, parse_need_tags, parse_sections
 from rmprep.narrator.template import template_draft
 from rmprep.narrator.validator import persona_wording, validate
@@ -63,19 +64,21 @@ class Narrator:
         if path.exists():
             return NarrativeDraft.from_dict(json.loads(path.read_text(encoding="utf-8")))
         if self.client is None:
-            return self._template(f, lang, (f"llm: no API key ({self.config.api_key_env})",), 0.0)
+            return self._template(f, ev, lang,
+                                  (f"llm: no API key ({self.config.api_key_env})",), 0.0)
 
         cost, previous, findings = 0.0, None, ()
         for attempt in range(1, ATTEMPTS + 1):
             spent, limit = self.spent_today(), self.config.max_cost_usd_per_day
             if spent >= limit:
                 budget = f"budget: daily limit ${limit:.2f} reached (${spent:.2f} spent today)"
-                return self._template(f, lang, (*findings, budget), cost)
+                return self._template(f, ev, lang, (*findings, budget), cost)
             request = build_request(f, lang, self.config, previous=previous, findings=findings)
             try:
                 reply = self.client.complete(request)
             except LlmError as e:
-                return self._template(f, lang, (*findings, f"llm: {e.kind}: {e.message}"), cost)
+                return self._template(f, ev, lang, (*findings, f"llm: {e.kind}: {e.message}"),
+                                      cost)
             sections, tags, findings = self._check(reply, f, r, lang)
             cost += self._ledger_add(run_id=r.run_id, lang=lang, reply=reply,
                                      attempt=attempt, findings=findings)
@@ -85,9 +88,9 @@ class Narrator:
                     model=reply.model, prompt_version=self.config.prompt_version, checks=(),
                     created_at=self.clock(), cost_usd=cost,
                     need_tags=persona_wording(tags, r.persona))
-                return self._save(path, draft)
+                return self._save(path, with_market_note(draft, ev, self.config))
             previous = reply.text or ""
-        return self._save(path, self._template(f, lang, findings, cost))
+        return self._save(path, self._template(f, ev, lang, findings, cost))
 
     def brief(self, r: DecisionResult, ev: EvidenceSet, lang: str) -> NarrativeBrief:
         """The dashboard brief of a ready run (contract v1.4, docs/web-ui.md "LLM
@@ -217,9 +220,10 @@ class Narrator:
             fh.write(json.dumps(row) + "\n")
         return cost
 
-    def _template(self, f: Facts, lang: str, checks, cost: float) -> NarrativeDraft:
+    def _template(self, f: Facts, ev: EvidenceSet, lang: str, checks,
+                  cost: float) -> NarrativeDraft:
         d = template_draft(f, lang, self.config, created_at=self.clock(), checks=tuple(checks))
-        return dataclasses.replace(d, cost_usd=cost)
+        return with_market_note(dataclasses.replace(d, cost_usd=cost), ev, self.config)
 
     def _save(self, path: Path, d: NarrativeDraft) -> NarrativeDraft:
         path.parent.mkdir(parents=True, exist_ok=True)

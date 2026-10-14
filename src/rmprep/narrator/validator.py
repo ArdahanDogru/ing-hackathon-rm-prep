@@ -36,7 +36,7 @@ from rmprep.narrator.facts import (
     REAL_RETURN,
     Facts,
 )
-from rmprep.narrator.template import INTERNAL_NAME, tr_lower
+from rmprep.narrator.template import INTERNAL_NAME, MARKET_NOTE, tr_lower
 
 SECTIONS = NARRATIVE_SECTIONS_V13
 CITED_SECTIONS = ("talking_points", "oneriler", "alternatifler", "dikkat")
@@ -540,7 +540,9 @@ def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
              need_tags: Mapping[str, Sequence[str]] | None = None) -> tuple[str, ...]:
     """All findings of the text; () means it passed. r is the result the facts
     were built from (the validator needs the names the facts leave out). With
-    need_tags (N9), the tags are checked too."""
+    need_tags (N9), the tags are checked too. N14: the code-written market note
+    (piyasa_notu) is left out; the LLM does not write it."""
+    sections = [s for s in sections if s.key != MARKET_NOTE]
     out = _check_sections(sections)
     out += _check_numbers(sections, f)
     out += _check_options(sections, f, r)

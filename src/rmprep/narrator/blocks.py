@@ -2,8 +2,9 @@
 docs/web-ui.md "Section-by-section editing"; narrator N11). rmprep.edits (lead
 glue) calls block_ids and check_block.
 
-Blocks: the whole sections ozet, teklif_metni, dikkat, alternatifler, sorular,
-varsayimlar; talking_points:<i>; oneriler:<first option id of the sentence>.
+Blocks: the whole sections ozet, piyasa_notu (N14), teklif_metni, dikkat,
+alternatifler, sorular, varsayimlar; talking_points:<i>; oneriler:<first option
+id of the sentence>. N14: rm_edits[block] == "" deletes a block.
 The check runs the validator rules that apply to one text: phrase, option
 (short names too), internal, label (these block the approval) and number (a
 warning). Each finding is "<kind>: <message>" in the draft's language, for the RM."""
@@ -11,6 +12,7 @@ warning). Each finding is "<kind>: <message>" in the draft's language, for the R
 from __future__ import annotations
 
 import re
+from datetime import date
 
 from rmprep.contracts import (
     DecisionResult,
@@ -21,8 +23,8 @@ from rmprep.contracts import (
 )
 from rmprep.narrator.config import NarratorConfig, load_config
 from rmprep.narrator.facts import build_facts
-from rmprep.narrator.template import WHOLE_SECTIONS, block_of
-from rmprep.narrator.validator import block_findings
+from rmprep.narrator.template import MARKET_NOTE, WHOLE_SECTIONS, block_of
+from rmprep.narrator.validator import _matches, _readings, block_findings, dates_in, numbers_in
 
 __all__ = ["block_ids", "block_text", "check_block", "WHOLE_SECTIONS"]
 
@@ -102,6 +104,20 @@ def _for_rm(finding: str, lang: str, labels: dict[str, str]) -> str:
     return f"{kind}: {detail}"
 
 
+_NUMBER_FINDING = re.compile(r"(?:number|internal): [^:]+: (?:date (?P<date>\d{4}-\d{2}-\d{2})"
+                             r"|(?P<tok>\S+)) is (?:not in the facts|an internal value)")
+
+
+def _known(finding: str, original: str) -> bool:
+    """A number or date finding about a value the original block text has."""
+    m = _NUMBER_FINDING.match(finding)
+    if m is None:
+        return False
+    if m.group("date"):
+        return date.fromisoformat(m.group("date")) in dates_in(original)
+    return _matches(_readings(m.group("tok")), {v for v, _ in numbers_in(original)})
+
+
 def check_block(d: NarrativeDraft, r: DecisionResult, ev: EvidenceSet | None, block_id: str,
                 text: str, config: NarratorConfig | None = None) -> tuple[str, ...]:
     """Findings of one edited block: "<kind>: <message>", kinds phrase, option,
@@ -117,5 +133,8 @@ def check_block(d: NarrativeDraft, r: DecisionResult, ev: EvidenceSet | None, bl
                          excluded_sources=frozenset(), source_status={}, datapoints=())
     f = build_facts(r, ev)
     findings = block_findings([section], f, r, config or load_config())
+    if key == MARKET_NOTE:      # N14: its values are not in the facts pack; the original's count
+        orig = " ".join(s.text for s in original)
+        findings = [x for x in findings if not _known(x, orig)]
     labels = {o.option.option_id: o.option.label for o in (*r.options, *r.rejected)}
     return tuple(dict.fromkeys(_for_rm(x, d.lang, labels) for x in findings))
