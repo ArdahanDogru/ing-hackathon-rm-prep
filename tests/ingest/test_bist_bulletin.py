@@ -179,7 +179,8 @@ def test_fetch_references_the_cached_files(tmp_path, bcfg):
     assert [p.meta["date"] for p in rec.payloads] == [d.isoformat() for d in days]
     assert not (snap.path / "payloads" / "bist_bulletin").exists()
     assert rec.request["files"] == {"fetched": 60, "from_cache": 0,
-                                    "not_published": len(WINDOW) - 60, "unreadable": 0}
+                                    "not_published": len(WINDOW) - 60, "unreadable": 0,
+                                    "closed": 0}
     assert rec.request["history_from"] == bist_trading_days()[0].isoformat()
 
 
@@ -197,7 +198,8 @@ def test_second_fetch_reuses_the_cache(tmp_path, bcfg):
     # 9 October (not yet published). The holiday is not asked again.
     assert [r.url.path.rsplit("/", 1)[-1] for r in fake.requests] == ["thb202610091.zip"]
     assert rec.request["files"] == {"fetched": 0, "from_cache": 60,
-                                    "not_published": len(WINDOW) - 60, "unreadable": 0}
+                                    "not_published": len(WINDOW) - 60, "unreadable": 0,
+                                    "closed": 0}
     assert len(rec.payloads) == 60
 
 
@@ -329,6 +331,80 @@ def test_history_starts_after_the_newest_unreadable_file(tmp_path, bcfg):
     assert rec.request["history_from"] == days[13].isoformat()
     assert rec.request["files"]["unreadable"] == 2
     assert rec.request["unreadable_newest"]["file"] == bist_name(days[12])
+
+
+# --- a day without trading (I11e) ------------------------------------------------------------
+
+def _closed_day(day):
+    """A valid bulletin of `day` without a share with a closing price, as on
+    8-14.02.2023 (Borsa İstanbul closed after the earthquake): other rows only."""
+    return bulletin_zip(day, [bist_row(day, "XETF.F", "ORNEK BYF", 12.5, 12.4, group="ETF"),
+                              bist_row(day, "ZERO.E", "ISLEM GORMEYEN", 0, 5.0)])
+
+
+def test_closed_day_in_the_history_does_not_cut_it(tmp_path, bcfg):
+    files = dict(bist_history())
+    files[bist_name(OLD)] = _closed_day(OLD)
+    rec, _, _ = _fetch(tmp_path, bcfg, FakeEvds(bist_files=files))
+    days = bist_trading_days()
+    assert rec.status == "ok"
+    assert rec.request["history_from"] == days[0].isoformat()
+    assert [p.meta["date"] for p in rec.payloads] == [d.isoformat() for d in days if d != OLD]
+    assert rec.request["files"]["closed"] == 1 and rec.request["files"]["unreadable"] == 0
+    assert "unreadable_newest" not in rec.request
+    assert (tmp_path / CACHE / f"thb{OLD:%Y%m%d}1.closed").is_file()
+    assert not (tmp_path / CACHE / f"thb{OLD:%Y%m%d}1.bad").exists()
+    assert not (tmp_path / CACHE / bist_name(OLD)).exists()
+
+
+def test_closed_old_day_is_not_asked_again(tmp_path, bcfg):
+    files = dict(bist_history())
+    files[bist_name(OLD)] = _closed_day(OLD)
+    _fetch(tmp_path, bcfg, FakeEvds(bist_files=files))
+    rec, _, fake = _fetch(tmp_path, bcfg, FakeEvds(bist_files=files), sid="20261009-150000-0002")
+    assert bist_name(OLD) not in [r.url.path.rsplit("/", 1)[-1] for r in fake.requests]
+    assert rec.request["files"]["closed"] == 1
+
+
+def test_closed_day_in_the_recheck_window_does_not_fail(tmp_path, bcfg):
+    files = dict(bist_history())
+    files[bist_name(BIST_END)] = _closed_day(BIST_END)
+    rec, _, _ = _fetch(tmp_path, bcfg, FakeEvds(bist_files=files))
+    assert rec.status == "ok" and rec.request["files"]["closed"] == 1
+    assert rec.payloads[-1].meta["date"] == bist_trading_days()[-2].isoformat()
+
+
+def test_closed_day_with_another_date_still_fails(tmp_path, bcfg):
+    files = dict(bist_history())
+    files[bist_name(BIST_END)] = _closed_day(date(2026, 10, 7))
+    rec, _, _ = _fetch(tmp_path, bcfg, FakeEvds(bist_files=files))
+    assert rec.status == "failed" and "bulletin date 2026-10-07, expected 2026-10-08" in rec.error
+
+
+def test_old_bad_marker_with_0_shares_is_reclassified(tmp_path, bcfg):
+    # Markers written by I11d for the closed days of February 2023.
+    cache = tmp_path / CACHE
+    cache.mkdir(parents=True)
+    bad = cache / f"thb{OLD:%Y%m%d}1.bad"
+    bad.write_text("only 0 shares with a closing price (minimum 2)\n", encoding="utf-8")
+    files = dict(bist_history())
+    del files[bist_name(OLD)]
+    rec, _, fake = _fetch(tmp_path, bcfg, FakeEvds(bist_files=files))
+    assert rec.status == "ok"
+    assert rec.request["history_from"] == bist_trading_days()[0].isoformat()   # not cut
+    assert rec.request["files"]["closed"] == 1 and rec.request["files"]["unreadable"] == 0
+    assert not bad.exists() and (cache / f"thb{OLD:%Y%m%d}1.closed").is_file()
+    assert bist_name(OLD) not in [r.url.path.rsplit("/", 1)[-1] for r in fake.requests]
+
+
+def test_old_bad_marker_with_another_reason_stays(tmp_path, bcfg):
+    cache = tmp_path / CACHE
+    cache.mkdir(parents=True)
+    (cache / f"thb{OLD:%Y%m%d}1.bad").write_text("only 1 shares with a closing price "
+                                                 "(minimum 2)\n", encoding="utf-8")
+    rec, _, _ = _fetch(tmp_path, bcfg)
+    assert rec.request["files"]["unreadable"] == 1
+    assert rec.request["history_from"] > OLD.isoformat()
 
 
 def test_no_bulletin_in_the_window_fails(tmp_path, bcfg):

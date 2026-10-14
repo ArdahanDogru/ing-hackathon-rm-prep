@@ -24,7 +24,10 @@ columns, TARIH = the day of the URL, at least `min_shares` shares). A bad file
 of the last `recheck_days` days fails the source and is not cached. A bad
 older file (I11d: e.g. another format in old years) gets a `.bad` marker and
 the history starts after it; the manifest request records `history_from` and
-`unreadable_newest`. Probe 2026-10-14 (one file per year, 2021-2025): the same
+`unreadable_newest`. A valid bulletin of the day without any share close is a
+day without trading (I11e: 8-14.02.2023, after the earthquake): a `.closed`
+marker, counted as `files.closed`, never a failure; an I11d `.bad` marker
+with the reason "only 0 shares ..." is reclassified to `.closed`. Probe 2026-10-14 (one file per year, 2021-2025): the same
 columns every year; 2023 added "BIST KATILIM TUM ENDEKS" at the end; no BOM
 before 2026.
 
@@ -73,6 +76,8 @@ RETURN_MONTHS = {"stock_return_1m": 1, "stock_return_3m": 3, "stock_return_6m": 
 VOLATILITY_MONTHS = {"stock_volatility_1y": 12, "stock_volatility_5y": 60}
 MISSING_SUFFIX = ".missing"       # a weekday without a bulletin
 BAD_SUFFIX = ".bad"               # an old bulletin that cannot be read (I11d)
+CLOSED_SUFFIX = ".closed"         # a valid bulletin without a share close: no trading (I11e)
+NO_TRADING = "only 0 shares with a closing price"   # an I11d .bad reason that means closed
 
 
 class BulletinError(ValueError):
@@ -231,12 +236,14 @@ def fetch(
     cache. A failed request or a bad file of the last `recheck_days` days fails
     the source (the good files fetched before stay in the cache). A bad OLDER
     file (another format, I11d) does not: it gets a `.bad` marker, and the
-    history starts after the newest such file, so it has no gap."""
+    history starts after the newest such file, so it has no gap. A valid file
+    without any share close is a day without trading (`.closed`, I11e); like
+    a missing day, it is asked again only in the last `recheck_days` days."""
     cache = writer.cache_dir(src.name)
     cache.mkdir(parents=True, exist_ok=True)
     start = today - timedelta(days=src.history_days)
     recheck_from = today - timedelta(days=src.recheck_days)
-    counts = {"fetched": 0, "from_cache": 0, "not_published": 0, "unreadable": 0}
+    counts = {"fetched": 0, "from_cache": 0, "not_published": 0, "unreadable": 0, "closed": 0}
     request: dict[str, Any] = {
         "method": "GET", "url": src.url, "user_agent": src.user_agent,
         "from": start.isoformat(), "to": today.isoformat(),
@@ -258,14 +265,23 @@ def fetch(
         url = src.day_url(current)
         name = url.rsplit("/", 1)[-1]
         stem = name.rsplit(".", 1)[0]
-        file, marker, bad = cache / name, cache / (stem + MISSING_SUFFIX), cache / (stem + BAD_SUFFIX)
+        file, marker = cache / name, cache / (stem + MISSING_SUFFIX)
+        bad, closed = cache / (stem + BAD_SUFFIX), cache / (stem + CLOSED_SUFFIX)
         if file.is_file():
             used.append((current, name))
             counts["from_cache"] += 1
             continue
         if bad.is_file():
-            counts["unreadable"] += 1
-            unreadable = (current, name, bad.read_text(encoding="utf-8").strip())
+            reason = bad.read_text(encoding="utf-8").strip()
+            if not reason.startswith(NO_TRADING):
+                counts["unreadable"] += 1
+                unreadable = (current, name, reason)
+                continue
+            # I11e: I11d marked a day without trading as unreadable; reclassify it.
+            closed.write_text(f"{reason}: no trading day (was {BAD_SUFFIX})\n", encoding="utf-8")
+            bad.unlink()
+        if closed.is_file() and current < recheck_from:
+            counts["closed"] += 1
             continue
         if marker.is_file() and current < recheck_from:
             counts["not_published"] += 1
@@ -295,6 +311,14 @@ def fetch(
         except BulletinError as e:
             problem = str(e)
         else:
+            if not shares:
+                # I11e: a valid bulletin of this day without a share close is a
+                # day without trading (e.g. 8-14.02.2023 after the earthquake).
+                closed.write_text(f"{now().isoformat()}: {NO_TRADING}: no trading day\n",
+                                  encoding="utf-8")
+                marker.unlink(missing_ok=True)
+                counts["closed"] += 1
+                continue
             if len(shares) < src.min_shares:
                 problem = (f"only {len(shares)} shares with a closing price "
                            f"(minimum {src.min_shares})")
