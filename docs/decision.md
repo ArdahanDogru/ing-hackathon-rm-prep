@@ -975,6 +975,33 @@ Details fixed in D26b (merged 2026-10-14, decision@00f5ad4):
   left out of the band computation, also for the ceiling note; a class with
   only shares gets no example and the note "none".
 
+Details fixed in D26c (decided by the user 2026-10-14; merged, decision@cd7bbca):
+
+- A return of a period shorter than 1 year is never annualised, for all
+  kinds. Periods of 1 year or longer give the yearly rate as before. The
+  fallback is unchanged: the horizon period, else the next shorter available
+  period; the shorter-period confidence factor and the track_record penalty
+  apply as before.
+- With a period return of y years (y < 1): net = R × (1 − stopaj); entry and
+  exit fees = their yearly share × y; real = (1 + net) / (1 + TÜFE)^y − 1;
+  underperformance benchmark = (1 + net market deposit rate)^y − 1; the
+  scales of `real_loss` (`real_return.loss_scale`) and underperformance
+  (`underperformance.scale`) are × y. The return criterion ranks the raw
+  period returns together with the yearly ones (conservative for positive
+  returns). Reason texts `return_period`, `return_period_net` and
+  `return_period_real` ("{months} aylık getiri ... (yıllıklandırılmadı)").
+  Display facts and talking points use only the 1-year return.
+- Shares: `stock_return_3y` and `stock_return_5y` are used like the fund 3y/5y
+  returns. The risk comes from `stock_volatility_5y` when the row exists (the
+  SPK method uses 5 years): no risk_estimate confidence factor, the floor
+  `stock.risk_floor` stays, reason `texts.constraint.stock_risk_5y`; else from
+  `stock_volatility_1y` as an estimate (× risk_estimate). Older snapshots
+  without the new quantities give the D26 result.
+- Effect on snapshot 20261014-164524-42c2: options with a not-annualised
+  return P01 14, P02 30, P03 92, P04 30, P05 15. Recommended: P01–P04
+  unchanged; P05 EIL, NJR, KSK → EIL, GBL, KSK. EFOR (P03): "Yıllık getiri
+  %906.4 (6m)" → "6 aylık getiri %217.2 (yıllıklandırılmadı)".
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only

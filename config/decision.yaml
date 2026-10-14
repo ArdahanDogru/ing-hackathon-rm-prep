@@ -360,6 +360,10 @@ texts:
     "penalty:risk_unknown": "Risk değeri yok; türündeki en yüksek risk ({risk}) varsayıldı."
     "penalty:track_record": "{period} getirisi yok; daha kısa dönem kullanıldı."
     return_missing: "Getiri verisi yok ({period} ve daha kısa dönemler)."
+    # D26c: a period shorter than 1 year is not annualised (the user, 2026-10-14)
+    return_period: "{months} aylık getiri %{nominal:.1f} (yıllıklandırılmadı) ({period}); adayların %{pct:.0f}'inden iyi."
+    return_period_net: "{months} aylık getiri %{nominal:.1f} (yıllıklandırılmadı), stopaj sonrası %{net:.1f}; reel getiri hesaplanmadı (TÜFE yok); adayların %{pct:.0f}'inden iyi."
+    return_period_real: "{months} aylık getiri %{nominal:.1f} (yıllıklandırılmadı), stopaj sonrası %{net:.1f}, aynı dönemin enflasyonu sonrası reel %{real:+.1f}; adayların %{pct:.0f}'inden iyi."
     "penalty:fund_size": "Fon küçük ({size_m:.0f} milyon TL, {investors:.0f} yatırımcı)."
   constraint:
     short_history: "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
@@ -373,6 +377,7 @@ texts:
     # D26: a share's risk value from its 1-year volatility (SPK method), at least the floor
     stock_risk: "Risk değeri {risk}/7: 1 yıllık oynaklıktan (%{volatility:.1f}) SPK yöntemiyle tahmin; tek şirket payı için en az {floor}. Sınır {ceiling}/7."
     stock_risk_missing: "Oynaklık verisi yok: risk değeri 7 kabul edildi (tahmin). Sınır {ceiling}/7."
+    stock_risk_5y: "Risk değeri {risk}/7: 5 yıllık oynaklıktan (%{volatility:.1f}) SPK yöntemiyle; tek şirket payı için en az {floor}. Sınır {ceiling}/7."   # D26c
   questions:
     # non-blocking questions show in "Teyit edin" (web UI): written as commands (D16)
     override_fx_limit: "Döviz fonları müşterinin açık kısıtı nedeniyle elendi; kısıtın gerekçeyle kaldırılıp kaldırılmayacağını müşteriyle netleştirin."
