@@ -17,6 +17,16 @@ from typing import Any, Protocol
 
 from rmprep.contracts import ConstraintResult, DataPoint, ProductOption, RejectedOption
 from rmprep.decision.config import DEPOSIT_KINDS, PENALTY_RULES, DecisionConfig
+from rmprep.decision.exchange import (
+    ETF,
+    MARKET_KINDS,
+    STOCK,
+    STOCK_BIST100,
+    STOCK_TURNOVER,
+    STOCK_VOLATILITY,
+    return_prefix,
+    stock_risk,
+)
 from rmprep.decision.persona import LEVEL_ATTR, Levels
 from rmprep.decision.universe import Candidate, Universe, stopaj_entity
 from rmprep.grouping import group_key
@@ -122,12 +132,12 @@ def _short_history_rows(cand: Candidate, config: DecisionConfig) -> list[DataPoi
     else its shorter return rows (e.g. fund_return_1m), the evidence (D15)."""
     c = config.raw
     sh = c.get("short_history")
-    if sh is None or cand.option.kind != "fund":
+    if sh is None or cand.option.kind not in MARKET_KINDS:
         return None
     years = c["horizon"]["years"]
     least = years[sh["min_period"]]
-    returns = {q[len("fund_return_"):]: r for q, r in cand.values.items()
-               if q.startswith("fund_return_")}
+    prefix = return_prefix(cand.option.kind)
+    returns = {q[len(prefix):]: r for q, r in cand.values.items() if q.startswith(prefix)}
     if any(p in years and years[p] >= least for p in returns):
         return None
     return [returns[p] for p in sorted(returns)]
@@ -147,7 +157,7 @@ def class_risk_estimates(universe: Universe, config: DecisionConfig) -> dict[str
     values: dict[str, list[int]] = {}
     for cand in universe.candidates:
         row = cand.values.get(_RISK_Q)
-        if cand.option.kind == "fund" and row is not None:
+        if cand.option.kind in ("fund", ETF) and row is not None:
             values.setdefault(cand.option.asset_class, []).append(int(round(row.value)))
     out = {}
     for cls, vals in values.items():
@@ -239,6 +249,7 @@ class Features:
     liquidity_proxy: bool = False       # fund_detail configured, but liquidity from the kind table
     short_history: bool = False         # listed although its history is short (D15, Agresif)
     risk_by_class: bool = False         # the risk estimate comes from its asset class (D21)
+    risk_proxy: bool = False            # a share: risk from 1 year of volatility (D26)
 
     @property
     def constraints(self) -> tuple[ConstraintResult, ...]:
@@ -246,11 +257,22 @@ class Features:
         return (*self.passed_before, self.constraint)
 
 
-def _risk_of(cand: Candidate) -> int | None:
+def _risk_of(cand: Candidate, config: DecisionConfig) -> int | None:
+    """Known risk value: deposits 1, a share from its volatility (D26), a fund or
+    ETF from its SPK row; None = unknown (estimated later)."""
     if cand.option.kind in DEPOSIT_KINDS:
         return RISK_MIN
+    if cand.option.kind == STOCK:
+        return stock_risk(cand.values.get(STOCK_VOLATILITY), config)
     row = cand.values.get(_RISK_Q)
     return None if row is None else int(round(row.value))
+
+
+def _risk_ids(cand: Candidate) -> tuple[str, ...]:
+    """The row the known risk value comes from (none for a share without volatility)."""
+    q = STOCK_VOLATILITY if cand.option.kind == STOCK else _RISK_Q
+    row = cand.values.get(q)
+    return (row.id,) if row is not None else ()
 
 
 def _return_of(cand: Candidate, levels: Levels, config: DecisionConfig
@@ -262,8 +284,9 @@ def _return_of(cand: Candidate, levels: Levels, config: DecisionConfig
         return row.value / 100, "1y", row
     fallback = h["fallback"]
     start = fallback.index(levels.period) if levels.period in fallback else 0
+    prefix = return_prefix(cand.option.kind)
     for period in fallback[start:]:
-        row = cand.values.get(f"fund_return_{period}")
+        row = cand.values.get(f"{prefix}{period}")
         if row is not None:
             return annualize(row.value, h["years"][period]), period, row
     return None, None, None
@@ -290,13 +313,12 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
                 rule_id="not_buyable", passed=ok,
                 reason=texts["constraint"]["buyable" if ok else "not_buyable"],
                 evidence_ids=(status.id,)))
-        risk = _risk_of(cand)
+        risk = _risk_of(cand, config)
         if risk is not None and risk > levels.ceiling:
-            row = cand.values[_RISK_Q]
             failed.append(ConstraintResult(
                 rule_id="risk_ceiling", passed=False,
                 reason=texts["constraint"]["failed"].format(risk=risk, ceiling=levels.ceiling),
-                evidence_ids=(row.id,)))
+                evidence_ids=_risk_ids(cand)))
         failed += _constraint_rules(cand, levels, config)
         short_rows = _short_history_rows(cand, config)
         if short_rows is not None:
@@ -365,6 +387,12 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
     funds = [cand for cand, _ in kept if cand.option.kind == "fund"]
     sizes = [f.values[_SIZE_Q].value for f in funds if _SIZE_Q in f.values]
     investors = [f.values[_INVESTORS_Q].value for f in funds if _INVESTORS_Q in f.values]
+    # D26: an ETF's quality = its size among the ETFs (TEFAS gives no investor
+    # count); a share's = its 3-month turnover among the shares
+    etf_sizes = [cand.values[_SIZE_Q].value for cand, _ in kept
+                 if cand.option.kind == ETF and _SIZE_Q in cand.values]
+    turnovers = [cand.values[STOCK_TURNOVER].value for cand, _ in kept
+                 if cand.option.kind == STOCK and STOCK_TURNOVER in cand.values]
 
     pv = c["principal_value"]
     smin = c["fund_size_min"]
@@ -372,6 +400,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
     for cand, known in kept:
         opt = cand.option
         is_fund = opt.kind == "fund"
+        is_market = opt.kind in MARKET_KINDS        # fund, ETF, share (D26)
         kind_row = c["kinds"][group_key(opt)]
         estimated = known is None
         risk_by_class = estimated and opt.asset_class in by_class
@@ -392,11 +421,21 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
 
         size_row = cand.values.get(_SIZE_Q)
         inv_row = cand.values.get(_INVESTORS_Q)
+        vol_row = cand.values.get(STOCK_VOLATILITY)
+        turnover = cand.values.get(STOCK_TURNOVER)
+        if is_market:
+            principal = max(0.0, pv["fund_base"] - pv["fund_step"] * (risk - 1))
         if is_fund:
             q_size = percentile_rank(size_row.value, sizes) if size_row else 0.0
             q_inv = percentile_rank(inv_row.value, investors) if inv_row else 0.0
             quality = (q_size + q_inv) / 2
-            principal = max(0.0, pv["fund_base"] - pv["fund_step"] * (risk - 1))
+        elif opt.kind == ETF:
+            quality = percentile_rank(size_row.value, etf_sizes) if size_row else 0.0
+        elif opt.kind == STOCK:
+            quality = percentile_rank(turnover.value, turnovers) if turnover else 0.0
+            bist100 = cand.values.get(STOCK_BIST100)
+            if bist100 is not None and bist100.value >= 0.5:
+                quality = max(quality, 0.5)     # BIST 100 members (D26)
         else:
             qv = c.get("quality_value", {})
             quality = qv.get(opt.kind, qv.get("deposit", 1.0))
@@ -414,9 +453,15 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             "quality": quality,
         }
 
-        horizon_missing = is_fund and period != levels.period
-        if not is_fund:
+        horizon_missing = is_market and period != levels.period
+        if not is_market:
             size_violation = 0.0
+        elif opt.kind == ETF:
+            size_violation = (1.0 if size_row is None
+                              else _clamp(1 - size_row.value / smin["total_value_try"]))
+        elif opt.kind == STOCK:
+            size_violation = (1.0 if turnover is None else
+                              _clamp(1 - turnover.value / c["stock"]["min_turnover_try"]))
         elif size_row is None or inv_row is None:
             size_violation = 1.0
         else:
@@ -437,7 +482,8 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
         }
 
         rows = {q: d for q, d in cand.values.items()
-                if q in (_RISK_Q, _SIZE_Q, _INVESTORS_Q, "deposit_rate")}
+                if q in (_RISK_Q, _SIZE_Q, _INVESTORS_Q, "deposit_rate", STOCK_VOLATILITY,
+                         STOCK_TURNOVER, STOCK_BIST100)}
         if ret_row is not None:
             rows[ret_row.quantity] = ret_row
         if net is not None:
@@ -464,10 +510,16 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             "real": (real or 0.0) * 100, "loss": -(real or 0.0) * 100,
             "valor": valor.value if valor is not None else None,
             "fees": fee_pct, "years": c["horizon"]["years"][levels.period],
+            "volatility": vol_row.value if vol_row is not None else 0.0,
+            "floor": c[STOCK]["risk_floor"] if STOCK in c else 0,
         }
         if estimated:
             reason = _risk_unknown_text(texts["reasons"], risk_by_class).format(**fields)
             risk_ids: tuple[str, ...] = ()
+        elif opt.kind == STOCK:     # D26: SPK band of the 1-year volatility, an estimate
+            key = "stock_risk" if vol_row is not None else "stock_risk_missing"
+            reason = texts["constraint"][key].format(**fields)
+            risk_ids = _risk_ids(cand)
         else:
             reason = texts["constraint"]["passed"].format(**fields)
             risk_ids = (rows[_RISK_Q].id,) if _RISK_Q in rows else ()
@@ -477,12 +529,12 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             constraint=ConstraintResult(rule_id="risk_ceiling", passed=True, reason=reason,
                                         evidence_ids=risk_ids),
             risk=risk, risk_estimated=estimated, period=period,
-            shorter_period=is_fund and period is not None and period != levels.period,
+            shorter_period=is_market and period is not None and period != levels.period,
             annual_return=annual, rows=rows, net_return=net, real_return=real,
             stopaj_entity=st_entity, stopaj_missing=net is not None and st_row is None,
             passed_before=passed_before[opt.option_id], risk_by_class=risk_by_class,
             liquidity_proxy=fd is not None and is_fund and valor is None,
-            short_history=opt.option_id in short))
+            short_history=opt.option_id in short, risk_proxy=opt.kind == STOCK))
     return out, rejected
 
 

@@ -102,6 +102,11 @@ def build_warnings(options: Sequence[ScoredOption], levels: Levels,
     if (fx_question or levels.fx_level != _FX_SAFE_LEVEL) and not has_fx_rate:
         out.append(DecisionWarning(code="no_fx_deposit_data", message=tpl["no_fx_deposit_data"]))
 
+    shares = [oid for oid in recommended if by_id[oid].option.kind == "stock"]
+    if shares and "single_stock" in tpl:            # D26: one company in the top 3
+        out.append(DecisionWarning(code="single_stock", message=tpl["single_stock"],
+                                   option_ids=tuple(shares)))
+
     stale = sorted({r.id: r for r in real_inputs if Flag.STALE in r.flags}.values(),
                    key=lambda r: r.id)
     if stale and "stale_tax_input" in tpl:
@@ -179,6 +184,9 @@ def build_notes(used_ids: frozenset[str], universe: Universe, evidence: Evidence
         out.append(DataQualityNote(
             message=tpl["time_deposit_missing"].format(entity=universe.missing_time_deposit),
             sources=(td["source"],)))
+    if "excluded_exchange_groups" in tpl and any(
+            cand.option.kind in ("etf", "stock") for cand in universe.candidates):
+        out.append(DataQualityNote(message=tpl["excluded_exchange_groups"]))   # D26
     for text, ids in universe.unknown_holding_types.items():     # D23, sorted by text
         out.append(DataQualityNote(
             message=tpl["unknown_holding_type"].format(text=text, count=len(ids)),

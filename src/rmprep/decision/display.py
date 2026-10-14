@@ -14,6 +14,13 @@ from dataclasses import dataclass
 
 from rmprep.contracts import DecisionResult, EvidenceSet, ProductOption
 from rmprep.decision.config import DEPOSIT_KINDS, DecisionConfig
+from rmprep.decision.exchange import (
+    EXCHANGE_KINDS,
+    STOCK,
+    STOCK_VOLATILITY,
+    return_prefix,
+    stock_risk,
+)
 from rmprep.decision.scoring import _net
 from rmprep.decision.text import normalize
 from rmprep.decision.universe import EvidenceIndex, stopaj_entity
@@ -37,6 +44,7 @@ class DisplayFacts:
     sell_valor_days: Fact | None
     lock_days: int | None                # time deposit: time_deposit.term_days; else None
     why: tuple[tuple[str, str], ...]     # (persona priority as written, text)
+    kind: str = ""                       # the option kind (D26: etf and stock settle T+2)
 
 
 def tr_percent(x: float) -> str:
@@ -45,10 +53,14 @@ def tr_percent(x: float) -> str:
     return f"{sign}%{abs(x):.1f}".replace(".", ",")
 
 
-def access_text(facts: DisplayFacts, config: DecisionConfig) -> str | None:
+def access_text(facts: DisplayFacts, config: DecisionConfig, lang: str = "TR") -> str | None:
     """The "Paraya erişim" value (config display.access): same day, n business
-    days (sell valör), or the term of a time deposit; None without data."""
+    days (sell valör), or the term of a time deposit; None without data. An ETF
+    or a share (D26): the exchange settlement text display.access.exchange in
+    `lang` (TR or EN); the other texts are Turkish only."""
     texts = config.raw["display"]["access"]
+    if facts.kind in EXCHANGE_KINDS and "exchange" in texts:
+        return texts["exchange"][lang]
     if facts.lock_days is not None:
         return texts["term"].format(days=facts.lock_days)
     if facts.sell_valor_days is None:
@@ -87,14 +99,19 @@ def facts_of(option: ProductOption, idx: EvidenceIndex,
         if option.kind == "time_deposit":
             lock_days = section.get("term_days")
     else:
+        prefix = return_prefix(option.kind)
         for period in PERIODS:
-            row = idx.get(f"fund_return_{period}", option.entity)
+            row = idx.get(f"{prefix}{period}", option.entity)
             if row is not None:
                 returns[period] = Fact(row.value, row.id)
-        row = idx.get("fund_risk_level", option.entity)
-        risk = Fact(row.value, row.id) if row is not None else None
+        if option.kind == STOCK:        # D26: SPK band of the volatility; none without it
+            row = idx.get(STOCK_VOLATILITY, option.entity)
+            risk = Fact(stock_risk(row, config), row.id) if row is not None else None
+        else:
+            row = idx.get("fund_risk_level", option.entity)
+            risk = Fact(row.value, row.id) if row is not None else None
         fd = c.get("fund_detail")
-        if fd is not None:
+        if fd is not None and option.kind != STOCK:
             row = idx.get(fd["sell_valor_quantity"], option.entity)
             valor = Fact(row.value, row.id) if row is not None else None
     real_1y = None
@@ -103,7 +120,8 @@ def facts_of(option: ProductOption, idx: EvidenceIndex,
         if real is not None:
             real_1y = Fact(real * 100, returns["1y"].evidence_id)
     return DisplayFacts(option_id=option.option_id, returns=returns, real_1y=real_1y,
-                        risk=risk, sell_valor_days=valor, lock_days=lock_days, why=())
+                        risk=risk, sell_valor_days=valor, lock_days=lock_days, why=(),
+                        kind=option.kind)
 
 
 def _why(facts: DisplayFacts, priorities: tuple[str, ...],
