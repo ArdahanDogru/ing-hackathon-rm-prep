@@ -201,6 +201,26 @@ def test_an_uncited_sentence_never_takes_the_source_of_its_line(blocks, cited):
     assert not any("garanti" in f.text for f in r.findings)
 
 
+OPENER = {'"': '"', ")": "(", "**": "**", "”": "“"}
+
+
+@pytest.mark.parametrize("close", list(OPENER))
+@pytest.mark.parametrize("where", ["cited block end", "inside the uncited block"])
+def test_a_closer_after_a_sentence_end_also_ends_the_finding(close, where):
+    op = OPENER[close]
+    if where == "cited block end":      # the cited span ends with the sentence end and the closer
+        blocks = [text("- Fon "), text(f"{op}PPN kodlu fon kayıtlıdır.{close}", FVT),
+                  text(" Fon devlet garantilidir.\n")]
+        cited = f"Fon {op}PPN kodlu fon kayıtlıdır.{close}"
+    else:                               # the sentence end and the closer are in the next, uncited block
+        blocks = [text("- Fon kodu "), text("PPN", FVT),
+                  text(f" olarak {op}kayıtlıdır.{close} Fon devlet garantilidir.\n")]
+        cited = f"Fon kodu PPN olarak {op}kayıtlıdır.{close}"
+    r = provider(FakeSdk(message([results(FVT), *blocks]))).research_product(PPN, "TR")
+    assert [(f.text, [s.url for s in f.sources]) for f in r.findings] == [(cited.replace("**", ""), [FVT])]
+    assert not any("garanti" in f.text for f in r.findings)
+
+
 def test_a_non_web_search_result_url_is_not_a_source():
     bad = "javascript:alert(1)"
     sdk = FakeSdk(message([

@@ -23,8 +23,9 @@ MAX_CONTINUATIONS = 2                                # pause_turn: send the paus
 MIN_CHARS = 15
 MARKER = re.compile(r"(?:ŞİRKET|COMPANY)\s*:\s*(.+)", re.IGNORECASE)
 BULLET = re.compile(r"^(?:[-*•]|\d+[.)])\s+")         # a list marker at the start of a line
-SENTENCE_END = (".", "!", "?")
-BOUNDARY = re.compile(r"\n|(?<=[.!?])\s+")            # a unit ends at a newline or a sentence end
+SENTENCE_END = r"[.!?](?:[\"')\]”’»]|\*\*)*"         # a sentence mark and its closers (quote, paren, bold)
+BOUNDARY = re.compile(rf"({SENTENCE_END})\s+|\n")     # a unit ends at a newline or a sentence end
+BLOCK_END = re.compile(rf"{SENTENCE_END}\s*$")
 PRODUCT_PROMPT = {
     "TR": ("Şu yatırım ürününü ve onu yöneten veya ihraç eden şirketi web'de araştır: {label} ({code}). "
            "Önce ürün hakkında kısa, kaynaklı cümleler yaz. Sonra 'ŞİRKET: <şirket adı>' satırını yaz "
@@ -40,6 +41,17 @@ QUESTION_PROMPT = {
 FORMAT = {"TR": " Her cümle bir web kaynağına dayansın.", "EN": " Base every sentence on a web source."}
 
 
+def _pieces(text: str) -> list[str]:
+    """The text split at newlines and sentence ends; a sentence end keeps its
+    closers ('kayıtlı.)', 'fon."', 'fon.**') in the left piece."""
+    parts = BOUNDARY.split(text)            # [piece, end or None, piece, end or None, ...]
+    pieces = [parts[0]]
+    for end, nxt in zip(parts[1::2], parts[2::2]):
+        pieces[-1] += end or ""
+        pieces.append(nxt)
+    return pieces
+
+
 def _units(blocks: Sequence) -> list[tuple[str, list]]:
     """(text, citations) per unit of the answer. The real reply splits a line into
     text blocks: only the cited span has citations, the words around it are other
@@ -53,14 +65,14 @@ def _units(blocks: Sequence) -> list[tuple[str, list]]:
         if getattr(b, "type", "") != "text":
             continue
         block_cits = list(getattr(b, "citations", None) or [])
-        for i, part in enumerate(BOUNDARY.split(b.text or "")):
+        for i, part in enumerate(_pieces(b.text or "")):
             if i:
                 units.append((text, cits))
                 text, cits = "", []
             text += part
             if part.strip():
                 cits = cits + block_cits
-        if (b.text or "").rstrip().endswith(SENTENCE_END):
+        if BLOCK_END.search(b.text or ""):
             units.append((text, cits))
             text, cits = "", []
     units.append((text, cits))

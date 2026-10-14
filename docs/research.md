@@ -119,7 +119,8 @@ müşteri bilgisi içeriyor; yalnızca ürün veya şirket hakkında sorun."
   code sends the refusal-fallback beta like the narrator and sends a `pause_turn`
   back at most twice. The reply splits a line into text blocks: only the cited
   span has citations. A finding is one sentence of the reply: a unit ends at a
-  newline or at a sentence end (`.`, `!`, `?`), also inside a block. It has only
+  newline or at a sentence end (`.`, `!`, `?`, also with closers after it: `"`,
+  `'`, `)`, `]`, `”`, `’`, `»`, `**`), also inside a block. It has only
   the citations of its own blocks, so a sentence of the model's own words never
   takes the source of a cited span on the same line. An abbreviation such as
   "A.Ş. " can split a sentence; then a part without citations is lost, but no
@@ -264,7 +265,9 @@ Texts are in `i18n.ts` (TR and EN).
   at a block end, so an uncited sentence on the line of a cited span showed that
   source. An offline replay of the recorded replies with the final parser gives
   20 findings (first experiment) and 23 findings (live call after the fix); the
-  live call itself was made with the first version (17 findings).
+  live call itself was made with the first version (17 findings). A second review
+  fix: a sentence end followed by a closer (`kayıtlı.)`, `fon."`, `fon.**`) also
+  ends a unit (test `test_a_closer_after_a_sentence_end_also_ends_the_finding`).
 
 ## Open points
 
