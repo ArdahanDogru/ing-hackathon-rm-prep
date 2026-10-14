@@ -34,8 +34,11 @@ if (-not (Test-Path $Python)) { throw "No virtual environment: $Python" }
 $Log = Join-Path $Root "data\logs\ingest.log"
 
 # run_ingest.cmd writes the start time, the ingest output and the exit code to the log.
+# conhost --headless: no console window. On 2026-10-14 a visible window got a
+# close event during the run (exit 0xC000013A, "Fatal Python error") at 10:20.
 $Runner = Join-Path $PSScriptRoot "run_ingest.cmd"
-$Action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$Runner`"" -WorkingDirectory $Root
+$Action = New-ScheduledTaskAction -Execute "conhost.exe" `
+    -Argument "--headless cmd.exe /c `"$Runner`"" -WorkingDirectory $Root
 $Trigger = New-ScheduledTaskTrigger -Daily -At $At
 $Settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1) `
