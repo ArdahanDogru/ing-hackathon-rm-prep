@@ -8,6 +8,7 @@ Turkish only; the English template quotes them as they are."""
 from __future__ import annotations
 
 import dataclasses
+import functools
 import re
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime
@@ -19,7 +20,7 @@ from rmprep.contracts import (
     NarrativeSection,
     NarrativeSentence,
 )
-from rmprep.narrator.config import NarratorConfig
+from rmprep.narrator.config import NarratorConfig, load_config
 from rmprep.narrator.facts import (
     INTERNAL_PARTS,
     MARKET_NAMES,
@@ -540,7 +541,8 @@ def block_of(key: str, i: int, s: NarrativeSentence) -> str | None:
 
 def apply_edits(d: NarrativeDraft) -> NarrativeDraft:
     """The draft with each edited block (d.rm_edits) as one sentence in place of
-    the block's sentences (title and citations of its first sentence kept);
+    the block's sentences (title and citations of its first sentence kept); a
+    deleted block (rm_edits[block] == "", v1.9, N14) loses its sentences;
     rm_edits then empty."""
     if not d.rm_edits:
         return d
@@ -550,24 +552,33 @@ def apply_edits(d: NarrativeDraft) -> NarrativeDraft:
         for i, s in enumerate(sec.sentences):
             block = block_of(sec.key, i, s)
             if block in d.rm_edits:
-                if block not in done:
-                    done.add(block)
+                if block not in done and d.rm_edits[block]:
                     out.append(NarrativeSentence(d.rm_edits[block], s.option_ids,
                                                  s.evidence_ids, s.title))
+                done.add(block)
                 continue
             out.append(s)
         sections.append(NarrativeSection(sec.key, tuple(out)))
     return dataclasses.replace(d, sections=tuple(sections), rm_edits={})
 
 
-def to_markdown(d: NarrativeDraft, names: Mapping[str, str] | None = None) -> str:
+@functools.lru_cache(maxsize=1)
+def _default_disclaimers() -> Mapping[str, str]:
+    return load_config().disclaimer
+
+
+def to_markdown(d: NarrativeDraft, names: Mapping[str, str] | None = None,
+                disclaimer: str | None = None) -> str:
     """The draft as Markdown: the text the RM approves (rm_text); an edited block
     (rm_edits, v1.5) stands in place of its sentences. N13: the screen order
     (ozet, talking_points, teklif_metni, oneriler with a ### heading per option,
     dikkat, then alternatifler, sorular, varsayimlar under "Ek bilgiler"). names:
-    option id -> heading (default: the fund code)."""
+    option id -> heading (default: the fund code). N14: a section with no
+    sentence left (deleted blocks) has no heading; the disclaimer (default:
+    config/narrator.yaml in the draft's language) always stays, as the last line
+    when the text no longer has it."""
     d = apply_edits(d)
-    by_key = {sec.key: sec for sec in d.sections}
+    by_key = {sec.key: sec for sec in d.sections if sec.sentences}
     lines = [f"# {TEXTS[d.lang]['title']} · {d.run_id}"]
     if banner(d):
         lines += ["", f"> ⚠ {banner(d)}"]
@@ -597,4 +608,7 @@ def to_markdown(d: NarrativeDraft, names: Mapping[str, str] | None = None) -> st
         lines += ["", f"## {HEADINGS['ek'][d.lang]}"]
         for sec in extra:
             lines += ["", f"### {HEADINGS[sec.key][d.lang]}", ""] + body(sec)
+    disclaimer = disclaimer or _default_disclaimers()[d.lang]
+    if disclaimer not in "\n".join(lines):
+        lines += ["", disclaimer]
     return "\n".join(lines) + "\n"
