@@ -14,6 +14,7 @@ data/cards/
 data/narratives/
 data/eval/
 data/logs/
+data/cache/
 data/.ingest.lock
 .superpowers/
 web/node_modules/
