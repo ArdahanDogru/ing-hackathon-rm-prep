@@ -23,7 +23,8 @@ out). A new file is checked before it is cached (a ZIP with one CSV, the
 columns, TARIH = the day of the URL, at least `min_shares` shares); a bad file
 fails the source and is not cached.
 
-Parse (pure, from the files in the manifest): adjusted closes (`adjust`),
+Parse (pure, from the files in the manifest): adjusted closes (`adjust`: jumps
+beyond ±`adjust_jump_pct` are corporate actions, I11b; dividends not adjusted),
 returns over 1/3/6/12 months (`period_return`), the SPK weekly volatility
 (`spk_volatility`), the mean daily traded value of the last 63 bulletins, the
 BIST 100 membership. as_of = the date of the newest bulletin.
@@ -51,9 +52,8 @@ from rmprep.ingest.config import BIST_HOST, BistBulletinSource, Config
 from rmprep.ingest.snapshot import PayloadRef, Snapshot, SnapshotWriter, SourceRecord, raw_ref
 
 REQUIRED_COLUMNS = ("TARIH", "ISLEM KODU", "BULTEN ADI", "PAZAR", "ENSTRUMAN GRUBU",
-                    "BIST 100 ENDEKS", "ONCEKI KAPANIS FIYATI", "KAPANIS FIYATI",
+                    "BIST 100 ENDEKS", "ACILIS FIYATI", "KAPANIS FIYATI",
                     "TOPLAM ISLEM HACMI")
-ADJUST_TOLERANCE = 0.001          # previous close differs by more -> corporate action
 TURNOVER_DAYS = 63                # about 3 months of bulletins
 MIN_WEEKS = 26                    # fewer weekly returns -> no volatility row
 RETURN_MONTHS = {"stock_return_1m": 1, "stock_return_3m": 3, "stock_return_6m": 6,
@@ -72,7 +72,7 @@ class Share:
     market: str                   # PAZAR, e.g. "Z"
     bist100: bool
     close: float
-    prev_close: float | None      # ONCEKI KAPANIS FIYATI as published (None if empty or 0)
+    open_price: float             # ACILIS FIYATI (0 when the share did not open)
     turnover: float               # TOPLAM ISLEM HACMI, TRY
 
 
@@ -146,11 +146,11 @@ def read_bulletin(data: bytes, day: date | None = None) -> list[Share]:
         if code in seen:
             raise BulletinError(f"line {n}: share {code} twice")
         seen.add(code)
-        prev = _number(f[col["ONCEKI KAPANIS FIYATI"]], n, "ONCEKI KAPANIS FIYATI")
+        open_price = _number(f[col["ACILIS FIYATI"]], n, "ACILIS FIYATI")
         shares.append(Share(
             code=code[:-2], name=f[col["BULTEN ADI"]].strip(), market=f[col["PAZAR"]].strip(),
             bist100=f[col["BIST 100 ENDEKS"]].strip() == "1", close=close,
-            prev_close=prev if prev else None,
+            open_price=open_price if open_price and open_price > 0 else 0.0,
             turnover=_number(f[col["TOPLAM ISLEM HACMI"]], n, "TOPLAM ISLEM HACMI") or 0.0))
     return shares
 
@@ -260,17 +260,26 @@ def fetch(
 
 # --- calculations (pure) ---------------------------------------------------------------------
 
-def adjust(observations: list[tuple[date, float, float | None]]) -> tuple[list[tuple[date, float]], int]:
-    """Adjusted closes of one share from (day, close, published previous close),
-    oldest first. When a day's published previous close differs from the
-    close of the share's previous row by more than 0.1 % (split, bonus
-    shares, dividend), all earlier closes are multiplied by their ratio.
-    Returns (day, adjusted close) and the number of adjustments."""
-    ratios = [None] * len(observations)
+def adjust(observations: list[tuple[date, float, float]],
+           jump_pct: float) -> tuple[list[tuple[date, float]], int]:
+    """Adjusted closes of one share from (day, close, open), oldest first (I11b).
+
+    The bulletins publish the previous close NOT adjusted and no reference
+    price, so a corporate action (split, bonus shares, reverse split) is found
+    by its jump: close / close of the share's previous row outside
+    [1 - jump_pct %, 1 + jump_pct %] (the daily price limit is ±10 %). Then all
+    earlier closes are multiplied by open / previous close (by close /
+    previous close when the open is 0). [VARSAYIM] The open stands for the
+    theoretical base price, so the move from the base to the open that day is
+    lost. Cash dividends stay below the limit and are not adjusted.
+    Returns (day, adjusted close) and the number of jumps."""
+    limit = jump_pct / 100
+    ratios: list[float | None] = [None] * len(observations)
     for i in range(1, len(observations)):
-        prev_pub, last_close = observations[i][2], observations[i - 1][1]
-        if prev_pub and last_close and abs(prev_pub / last_close - 1) > ADJUST_TOLERANCE + 1e-12:
-            ratios[i] = prev_pub / last_close
+        _, close, open_price = observations[i]
+        last_close = observations[i - 1][1]
+        if abs(close / last_close - 1) > limit + 1e-12:
+            ratios[i] = (open_price if open_price > 0 else close) / last_close
     factor, out = 1.0, []
     for i in range(len(observations) - 1, -1, -1):
         out.append((observations[i][0], observations[i][1] * factor))
@@ -364,7 +373,7 @@ def parse(cfg: Config, src: BistBulletinSource, snap: Snapshot, *,
     recent = {d for d, _, _ in files[-TURNOVER_DAYS:]}
     for d, _, shares in files:
         for s in shares:
-            history.setdefault(s.code, []).append((d, s.close, s.prev_close))
+            history.setdefault(s.code, []).append((d, s.close, s.open_price))
             if d in recent:
                 turnover.setdefault(s.code, []).append(s.turnover)
     all_files = f"files={files[0][0]}..{newest_day}"
@@ -379,8 +388,9 @@ def parse(cfg: Config, src: BistBulletinSource, snap: Snapshot, *,
                 source_url=src.source_url, fetched_at=rec.fetched_at, snapshot_id=sid,
                 raw_ref=raw_ref(snap.snapshot_id, newest_ref.path, locator), note=note)
 
-        adjusted, n_adj = adjust(history[s.code])
-        adj_note = f"{s.name}; adjusted closes, {_plural(n_adj, 'price adjustment')}"
+        adjusted, jumps = adjust(history[s.code], src.adjust_jump_pct)
+        adj_note = (f"{s.name}; adjusted closes ({_plural(jumps, 'jump')} beyond "
+                    f"±{src.adjust_jump_pct:g} %); dividends not adjusted")
         points.append(point("stock_close", s.close, s.code, s.name))
         for quantity, months in RETURN_MONTHS.items():
             r = period_return(adjusted, months)
