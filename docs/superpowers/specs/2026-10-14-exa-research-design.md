@@ -1,6 +1,6 @@
 # Web research with Exa — design
 
-Status: **draft 2026-10-14 by ing-lead-2, for review by the user.** Branch
+Status: **approved by the user 2026-10-14** (daily limit $2; no limit per run: the daily limit covers it). Branch
 `research`, worktree `C:/Users/yardang/dev/ing-wt/research`. Code:
 `src/rmprep/research/`, tests: `tests/research/`.
 
@@ -222,7 +222,6 @@ claude:
   price_output_per_mtok: 10.0
   price_per_search: 0.01
 max_cost_usd_per_day: 2.0        # both providers together; over it -> error "günlük limit"
-max_questions_per_run: 10
 client_words: [müşteri, müşterim, müşterinin, client, customer]
 system_prompt: {...}             # TR / EN, section 5
 ```
@@ -242,8 +241,7 @@ system_prompt: {...}             # TR / EN, section 5
   "products": [ProductResearch], "questions": [QuestionAnswer]}`; `200
   {"state": "off", "reason": "..."}` when no provider has a key.
 - `POST /api/runs/{run_id}/research/questions` body `{question, lang}` → `200
-  QuestionAnswer`; `422` with the reason for a refused question or the run
-  limit.
+  QuestionAnswer`; `422` with the reason for a refused question.
 
 Connection lines in lead-owned files (made on the `research` branch, merged by
 ing-lead):
