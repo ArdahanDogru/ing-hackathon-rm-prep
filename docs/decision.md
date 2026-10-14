@@ -859,6 +859,15 @@ it — the stability was not meaningful for the top 3.
   its class in half the runs → ≤ 0.5 and the warning; a client without the
   class rule (P01-like) → recommended stability = share of runs in the plain
   top 3; options outside the top 3 unchanged; deterministic.
+- As built (merged 2026-10-14, `decision@5e0b07e`): `confidence.stability(...,
+  recommended=(), pick=None)`; the engine passes `recommend.choose` on the
+  rows of each perturbed order (memoized), and now runs `choose()` on the
+  scored rows before the options are built (same result). `low_stability`
+  gives one warning per shaky recommendation (the text has one
+  `{stability}`), in recommended order; display places 1–3 that are not
+  recommended no longer warn. Check on `20261014-102329-8fca`: P03 IDY (fund
+  place 41) and OKT (56) 0.00 → 1.00; every recommendation of P01–P05 is
+  ≥ 0.83, so no `low_stability`; 5 personas in 6.5 s.
 
 ## Later / optional
 
