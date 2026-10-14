@@ -263,6 +263,12 @@ def config_raw():
     # The hand export source is off in the real config (2026-10-10; tefas_detail
     # gives the same values), but its adapter stays usable: tests keep it on.
     raw["sources"]["tefas"]["enabled"] = True
+    # Sources added to the real config later (I10, I11) have their own fixtures;
+    # the end-to-end tests keep the source list they were written for.
+    for name in ("tefas_byf", "bist_bulletin"):
+        raw["sources"].pop(name, None)
+    if isinstance(raw["sources"].get("tefas_detail", {}).get("funds_from"), list):
+        raw["sources"]["tefas_detail"]["funds_from"] = "tefas_web"
     for name, q in TEST_DETAIL_QUANTITIES.items():
         raw["quantities"].setdefault(name, copy.deepcopy(q))
     raw["sources"]["tefas_detail"] = copy.deepcopy(TEST_TEFAS_DETAIL)

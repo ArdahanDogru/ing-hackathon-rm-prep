@@ -298,6 +298,32 @@ sources:
       getiri5y: fund_return_5y
       riskDegeri: fund_risk_level
 
+  # I10 (2026-10-14): exchange-traded funds (BYF), the BYF view of the same page
+  # (linked from it); the tefas_web parser. 37 ETFs on 2026-10-14.
+  tefas_byf:
+    adapter: tefas_web
+    enabled: true
+    on_failure: previous
+    source_url: https://www.tefas.gov.tr/tr/fon-getirileri?fundType=BYF
+    tos_note: >-
+      As tefas_web: the BYF view of the allowed HTML page (robots.txt allows
+      "/"; /api/ is never called). ONE GET per ingest. The site states that
+      Takasbank does not guarantee the data.
+    url: https://www.tefas.gov.tr/tr/fon-getirileri?fundType=BYF
+    user_agent: rmprep-hackathon-prototype/0.1 (ING hackathon; one request per day)
+    timeout_seconds: 30
+    min_funds: 20
+    flag_needs_check: false
+    value_fields:
+      getiri1a: fund_return_1m
+      getiri3a: fund_return_3m
+      getiri6a: fund_return_6m
+      getiriyb: fund_return_ytd
+      getiri1y: fund_return_1y
+      getiri3y: fund_return_3y
+      getiri5y: fund_return_5y
+      riskDegeri: fund_risk_level
+
   tefas_detail:
     adapter: tefas_detail
     enabled: true
@@ -319,7 +345,7 @@ sources:
     min_interval_s: 1.0      # seconds between requests
     max_fail_share: 0.05     # more failed pages -> the page changed -> source fails
     # max_funds: 20          # limit the fund list for trials
-    funds_from: tefas_web
+    funds_from: [tefas_web, tefas_byf]   # I10: the BYF codes too
     exclude_categories: ["Serbest Şemsiye Fonu"]
     flag_needs_check: false  # 2026-10-14 (user): stable since 2026-10-10 (12 snapshots); was true
     # "<page data object>.<field>" -> quantity. Required: a page without the
@@ -353,6 +379,7 @@ sources:
         "TEFAS'ta işlem görmüyor": 0
         "Fon Alımına Kapalı, Fon Bozumuna Kapalı": 0
         "Fon Alımına Kapalı, Fon Bozumuna Açık": 0     # seen 2026-10-14 (4 funds): sell only
+        "Platformda İşlem Görmüyor": 0     # I10: ETFs trade on the exchange; D26 ignores fund_buyable for etf
 
   manual:
     adapter: manual
