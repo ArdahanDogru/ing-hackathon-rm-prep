@@ -232,6 +232,9 @@ class SourceStatus:
 # NarrativeDraft.approved_at (deliverable 6, the decision record).
 # v1.8 (2026-10-13): model allocation bands, DecisionResult.allocation and
 # allocation_notes (docs/decision.md section 11, D20).
+# v1.9 (2026-10-14): option kinds etf and stock (docs/decision.md section 16,
+# D26); NarrativeDraft.rm_edits[block] == "" = the RM deleted the block
+# (docs/narrator.md N14).
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -303,13 +306,13 @@ class RmStatus(StrEnum):
     REJECTED = "rejected"
 
 
-OPTION_KINDS = ("deposit", "time_deposit", "fund")
+OPTION_KINDS = ("deposit", "time_deposit", "fund", "etf", "stock")   # v1.9: etf, stock (D26)
 
 
 @dataclass(frozen=True)
 class ProductOption:
-    option_id: str          # "deposit:ing_turuncu" | "time_deposit:ing_e_vadeli" | "fund:<code>"
-    kind: str               # "deposit" (the baseline) | "time_deposit" (ranked) | "fund"
+    option_id: str          # "deposit:ing_turuncu" | "time_deposit:ing_e_vadeli" | "fund:<code>" | "etf:<code>" | "stock:<code>"
+    kind: str               # "deposit" (the baseline) | "time_deposit" (ranked) | "fund" | "etf" | "stock" (v1.9)
     label: str              # what the RM reads (deposit name, fund name)
     entity: str = ""        # DataPoint.entity it is measured by, e.g. a fund code
     fund_kind: str = ""     # funds only: money_market | debt | ... (config/decision.yaml)
@@ -323,6 +326,10 @@ class ProductOption:
             raise ValueError("a fund option needs a fund_kind")
         if self.kind in ("deposit", "time_deposit") and (self.fund_kind or self.fx):
             raise ValueError(f"a {self.kind} option has no fund_kind and no fx tag")
+        if self.kind == "etf" and self.fund_kind:
+            raise ValueError("an etf option has no fund_kind (v1.9)")
+        if self.kind == "stock" and (self.fund_kind or self.fx):
+            raise ValueError("a stock option has no fund_kind and no fx tag (v1.9)")
 
 
 @dataclass(frozen=True)

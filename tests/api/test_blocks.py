@@ -27,9 +27,14 @@ def test_unknown_block_422(client, persona):
     assert r.status_code == 422 and "ozet" in r.json()["detail"]
 
 
-def test_empty_edit_422(client, persona):
-    rid, _ = _text(client, persona)
-    assert client.put(f"/api/runs/{rid}/narrative/TR/blocks/ozet", json={"text": "  "}).status_code == 422
+def test_empty_edit_deletes_the_block(client, persona):
+    """v1.9 (N14): an empty text = the block is deleted; null restores it."""
+    rid, d = _text(client, persona)
+    r = client.put(f"/api/runs/{rid}/narrative/TR/blocks/ozet", json={"text": "  "})
+    assert r.status_code == 200
+    assert r.json()["rm_edits"] == {"ozet": ""} and "ozet" not in r.json()["edit_checks"]
+    back = client.put(f"/api/runs/{rid}/narrative/TR/blocks/ozet", json={"text": None}).json()
+    assert back["rm_edits"] == {} and back["markdown"] == d["markdown"]
 
 
 def test_fixing_the_block_clears_the_blocker(client, persona):

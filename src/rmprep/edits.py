@@ -63,9 +63,9 @@ def apply_edits(d: NarrativeDraft) -> NarrativeDraft:
         for i, s in enumerate(sec.sentences):
             block = _block_of(sec.key, i, s)
             if block in d.rm_edits:
-                if block not in done:
-                    done.add(block)
+                if block not in done and d.rm_edits[block]:      # "" = deleted (v1.9)
                     out.append(NarrativeSentence(d.rm_edits[block], s.option_ids, s.evidence_ids, s.title))
+                done.add(block)
                 continue
             out.append(s)
         sections.append(NarrativeSection(sec.key, tuple(out)))
@@ -101,10 +101,8 @@ def with_edit(d: NarrativeDraft, block_id: str, text: str | None,
         edits.pop(block_id, None)
         checks.pop(block_id, None)
     else:
-        if not text.strip():
-            raise ValueError("boş metin: use null to restore the original block")
-        edits[block_id] = text.strip()
-        if findings:
+        edits[block_id] = text.strip()          # v1.9 (N14): "" = the RM deleted the block
+        if findings and text.strip():
             checks[block_id] = tuple(findings)
         else:
             checks.pop(block_id, None)

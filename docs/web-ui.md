@@ -357,6 +357,31 @@ a check when the app opens. Ingest lock: docs/ingest.md I6.
   `/api/ingest` (404). A refresh from the web app also writes start, exit and
   error lines to `data/logs/ingest.log`.
 
+### Source numbers, deletable blocks, market note, product kinds (W15, 2026-10-14)
+
+Approved by the user 2026-10-14.
+
+1. **Source numbers in the meeting text** (bug: they were `#src-n` links that
+   only scrolled the page): a click opens the evidence pop-up of the
+   sentence's first evidence id and gives the matching "Kaynaklar" entry a short
+   highlight (2 s) without scrolling the page; keyboard: Enter/Space. The
+   dashboard agenda numbers keep their behaviour.
+2. **Deleting** (narrator N14): each block gets "Sil" next to the pencil; each
+   section with several blocks ("Konuşulacaklar", "Öneriler") gets "Bölümü
+   sil" (one `PUT` with `{text: ""}` per block). A deleted block shows as a
+   thin line "Silindi · Geri al" (`{text: null}` restores it). Saving an empty
+   text in the editor = delete. The approved text and the print card leave
+   deleted blocks out. The disclaimer is added by the server; the screen notes
+   it under the text ("Yatırım tavsiyesi değildir notu her zaman eklenir").
+3. **Market note** (API, lead): `RunView.market_note` = a list of `{key,
+   label, value, unit, as_of, evidence_id}` for the policy rate, USD/TRY and
+   the TCMB funding cost (EVDS; missing ones left out). The dashboard shows a
+   small card "Piyasa notu · TCMB EVDS" (value, date, "K" mark) under the
+   brief; the meeting text has the deletable block `piyasa_notu` (N14).
+4. **Product kinds** (decision D26): a small badge "BYF" or "Pay" on cards,
+   table columns and the fund card for `etf` and `stock` options; "Paraya
+   erişim" for both: "2 iş günü (borsa takası)". Samples for both kinds.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

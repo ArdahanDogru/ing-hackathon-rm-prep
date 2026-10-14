@@ -286,3 +286,33 @@ Changes (prompt version n7):
    sorular, varsayimlar under "Ek bilgiler").
 Tests with the fake LLM; one live call on P01 TR allowed (about $0.05).
 
+
+## N14: deletable blocks and the market note (approved by the user 2026-10-14)
+
+**Deleting.** The RM can delete any block of the meeting text, or a whole
+section (all its blocks), and an empty text is allowed.
+
+- Contract v1.9 (meaning, no new field): `rm_edits[block] == ""` = the block
+  is deleted. `edits.with_edit` (lead) stores "" without findings; `None`
+  restores the original, as before.
+- `apply_edits` drops the sentences of a deleted block; `to_markdown` leaves
+  out a section whose blocks are all deleted (no empty heading; "Ek bilgiler"
+  only when one of its sections is left).
+- The disclaimer ("yatırım tavsiyesi değildir", `config/narrator.yaml`
+  `disclaimer`) always stays (brief rule 9): when the composed text no longer
+  contains it (for example the `ozet` block was deleted or edited without
+  it), `to_markdown` adds it as the last line. The disclaimer config moves to
+  where `to_markdown` can read it (an argument or the draft's language).
+- Tests: delete one block; delete all blocks of `oneriler` / `talking_points`
+  (no heading); delete `ozet` → the disclaimer is the last line; restore; the
+  edits file keeps "".
+
+**Market note.** A block `piyasa_notu` (code-written, not by the LLM, so the
+validator has nothing to check in it) after `ozet`:
+"Piyasa notu (TCMB EVDS): politika faizi %{policy_rate} ({date}); USD/TRY
+{usd_try} ({date}); TCMB ağırlıklı ortalama fonlama maliyeti %{funding} ({date})."
+(EN text likewise; texts in `config/narrator.yaml` `market_note`, lead.) Values
+from the evidence (`EvidenceIndex`, the entities of `config/sources.yaml`), each
+sentence with its evidence ids; a missing series is left out; none at all → no
+block. The block is deletable like the others, so the RM can keep it out of
+the client text; the dashboard shows the same values (web W15).

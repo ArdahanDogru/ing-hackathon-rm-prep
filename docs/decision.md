@@ -870,6 +870,55 @@ it — the stability was not meaningful for the top 3.
   place 41) and OKT (56) 0.00 → 1.00; every recommendation of P01–P05 is
   ≥ 0.83, so no `low_stability`; 5 personas in 6.5 s.
 
+## 16. Exchange-traded funds and shares (D26, approved by the user 2026-10-14)
+
+The universe gets the Borsa İstanbul products: the 37 ETFs (BYF, data from
+TEFAS, docs/ingest.md I10) and the 628 shares (data from the Borsa İstanbul
+end-of-day bulletins, I11). Not included, with the reason in the data-quality
+notes: warrants and certificates (complex, leveraged products that need a
+separate appropriateness test), exchange-traded real-estate and venture capital
+funds, bonds and eurobonds (a later phase).
+
+- **Contract v1.9:** option kinds `etf` (`etf:<TEFAS code>`) and `stock`
+  (`stock:<code>`); neither has a `fund_kind`; `etf` may carry the FX tag.
+- **ETFs:** the fund rules and criteria apply (returns, SPK risk value,
+  holdings → class D23, size), with these differences: `not_buyable` does not
+  apply (bought on the exchange, not on TEFAS); liquidity from the kind table
+  (T+2 settlement: 0.8); quality and the small-fund penalty use the fund size
+  only (TEFAS gives no investor count for ETFs); stopaj row of the fund type
+  (config `real_return.stopaj.etf`, lead fills it from the source).
+- **Shares, risk value:** the SPK method of the fund guide (Yatırım Fonlarına
+  İlişkin Rehber 9.3.2.1, table changed 12.10.2023), from `stock_volatility_1y`:
+  annual volatility % [0, 2) → 1, [2, 5) → 2, [5, 10) → 3, [10, 15) → 4,
+  [15, 20) → 5, [20, 30) → 6, ≥ 30 → 7; then at least `stock.risk_floor` 6
+  (one company's risk is concentrated; volatility does not show it)
+  **[VARSAYIM]**. One year of data instead of five: the value is marked as an
+  estimate (confidence × 0.7, as `risk_estimate`) and the reason names it. No
+  volatility row → risk 7 (estimate).
+- **Shares, other criteria:** return from `stock_return_*` (period as for
+  funds; no 3y/5y → the 1-year return with the shorter-period factor);
+  liquidity from the kind table (T+2: 0.8); income 0.2, simplicity 0.4 (kind
+  table); principal by risk as for funds; quality = the percentile of
+  `stock_turnover_3m` among the shares (BIST 100 members get it ≥ 0.5); the
+  small-fund penalty applies when the 3-month mean turnover is below
+  `stock.min_turnover_try` (config, start 10 million TRY); stopaj row
+  `real_return.stopaj.stock` (lead fills it from the tax source; rule 7).
+- **Classes:** shares → `hisse`; ETFs → D23 holdings, else by name ("ALTIN",
+  "GÜMÜŞ" → `altin_doviz`; "DOLAR", "EUROBOND" → FX tag; "TLREF" → `nakit_benzeri`),
+  else `hisse`.
+- **Short list and top 3:** the caps per kind of section 4.5 count `etf` and
+  `stock` as kinds of their own; at most `stock.max_in_top3` (1) share in the
+  recommended top 3. A share in the top 3 gives the RM warning
+  `single_stock` ("Tek bir şirketin payı: şirkete özgü risk; çeşitlendirmeyi
+  RM değerlendirsin."); text in config.
+- **Narrator:** the facts carry the kind; risk notes per kind in
+  `config/narrator.yaml` (lead).
+- Tests: an ETF with TEFAS status "Platformda İşlem Görmüyor" stays in; the
+  volatility bands (each edge); the floor; no volatility row → 7, estimate;
+  a share above the ceiling is rejected; the share cap in the top 3 and the
+  warning; turnover quality; ETF class by name and holdings; the excluded
+  groups note; without the new sources the results are unchanged.
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only

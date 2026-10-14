@@ -477,6 +477,77 @@ design time was a Windows console display problem.)
   `note`, because the manual CSV puts extra `;` fields of an unquoted note
   into the last column.
 
+I10 (approved by the user 2026-10-14): exchange-traded funds (BYF) from TEFAS.
+The returns page has a BYF view, `https://www.tefas.gov.tr/tr/fon-getirileri?fundType=BYF`
+(an HTML page under the allowed `/`; linked from the page we read today). Probe
+2026-10-14: 37 ETFs, the same embedded data as `tefas_web` (returns 1m–5y,
+`riskDegeri` for 36, name, `fonTurAciklama` such as "Hisse Senedi Yoğun",
+"Endeks Fon"). The fund detail page works for ETF codes too (BOE: price, size,
+holdings 100 % Hisse Senedi; `tefasDurum` "Platformda İşlem Görmüyor", because
+ETFs trade on the exchange; `fonSatisValor` null; `yatirimciSayi` 0).
+
+- New source `tefas_byf`, adapter `tefas_web` (the same parser), its own `url`,
+  `min_funds` 20, `on_failure: previous`; `EntityInfo.source` = `tefas_byf`, so
+  the decision layer knows the kind. Same quantities and entities (fund codes;
+  BYF codes do not clash with fund codes).
+- `tefas_detail`: `funds_from` becomes a list (`[tefas_web, tefas_byf]`); the
+  BYF codes are fetched too (about 37 more pages). The status text "Platformda
+  İşlem Görmüyor" maps to `fund_buyable` 1 for a BYF code (bought on the
+  exchange) — the status map gets a per-source override, or the decision layer
+  ignores `fund_buyable` for ETFs (decision D26 does the latter; ingest maps
+  the text to 0 like "TEFAS'ta işlem görmüyor" and keeps it verbatim in the
+  note).
+- Tests: the BYF page fixture parses; entities carry `tefas_byf`; the detail
+  list joins both sources; old configs (one `funds_from` string) still work.
+
+I11 (approved by the user 2026-10-14): Borsa İstanbul shares from the official
+end-of-day bulletins. Checked 2026-10-14: `robots.txt` allows `/`; real-time
+("eşanlı") data needs a signed licence; the end-of-day bulletin files are
+published for download (paths in `/files/DataFilePaths.zip`: "Bülten Verileri"
+= `/data/thb/YYYY/AA/thbYYYYAAGG1.zip`, one ZIP of about 260 KB a day, one CSV
+`;`-separated, UTF-8 with BOM, two header lines TR and EN, decimal point). The
+13.10.2026 file: 628 shares with a closing price (`ENSTRUMAN GRUBU` `EQT`,
+code ending `.E`), 100 in BIST 100; 36 ETFs (`ETF`, `.F`); 10,298 warrants and
+certificates (`ECW`, `EPW`), not used (complex products, see decision D26).
+
+- New source `bist_bulletin`, adapter `bist_bulletin`; `url` template with
+  `{yyyy}`, `{mm}`, `{yyyymmdd}`; `history_days` 400; `min_interval_s` 1.0;
+  `user_agent` as for TEFAS; `on_failure: previous`.
+- Cache: the bulletin of a past day never changes, so each file is fetched
+  once into `data/cache/bist_bulletin/thb<date>1.zip` (immutable, read-only
+  after write) with its SHA-256. Weekends are skipped; a weekday that returns
+  404 is a holiday or not yet published, stored as a small marker so it is not
+  asked again (except for the last 3 days, which are asked again). The first
+  run fetches about 280 files (5 minutes), a daily run one.
+- Snapshot: the manifest lists every cache file used (date, path, SHA-256,
+  bytes) as payload references that live in the cache; `open_snapshot` and
+  replay verify them like snapshot payloads (a changed or missing cache file =
+  replay error). The snapshot does not copy the 70 MB of history.
+- Parse (pure, from the files of the manifest): shares only (`EQT`, `.E`,
+  closing price > 0). Adjusted closes: walking forward by day, when a day's
+  `ONCEKI KAPANIS FIYATI` differs from the previous day's `KAPANIS FIYATI` by
+  more than 0.1 %, all earlier closes of that share are multiplied by
+  their ratio (splits, bonus shares, dividends); the number of adjustments goes
+  into the note.
+- DataPoints per share (entity = the code without `.E`, e.g. `THYAO`; `as_of` =
+  the bulletin date of the newest file; `raw_ref` = the files used):
+  `stock_close` (TRY), `stock_return_1m|3m|6m|1y` (pct, adjusted close on the
+  newest day vs. the last trading day on or before the date 1/3/6/12 months
+  earlier; no row when the history is shorter), `stock_volatility_1y` (pct,
+  the SPK method on adjusted closes: weekly return = close of the week's last
+  trading day / close of its first trading day − 1 (SPK guide 9.3.2.1,
+  footnote 22), σ = √(52/(T−1) · Σ(r − r̄)²) over the T weeks of the last
+  year; no row with fewer than 26 weeks), `stock_turnover_3m` (TRY, mean daily
+  `TOPLAM ISLEM HACMI` over the last 63 trading days), `stock_bist100` (flag
+  1/0, `BIST 100 ENDEKS`). `EntityInfo(name = BULTEN ADI, category =
+  "BIST pay · " + PAZAR, source = "bist_bulletin")`.
+- Quantities (lead adds them to `config/sources.yaml` after the merge), bounds:
+  close 0.01–1e6, returns −100–10,000, volatility 0–500, turnover ≥ 0.
+- Tests: small fixture bulletins (3 shares, 60 days, one split, one holiday
+  404), cache reuse (no second request), the adjustment, returns, volatility
+  on a known series, fewer than 26 weeks, replay identical, a changed cache
+  file fails replay, no request to a disallowed path, the interval.
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes

@@ -98,7 +98,9 @@ and message formats: `docs/workflow.md`.
   `Backend.brief`; v1.5 adds the per-block edits of the meeting text; v1.6 adds
   `ProductOption.asset_class` and `DecisionResult.recommended`; v1.7 adds the
   approval times `DecisionResult.rm_decided_at` and `NarrativeDraft.approved_at`;
-  v1.8 adds `AllocationBand` and `DecisionResult.allocation`); their design is
+  v1.8 adds `AllocationBand` and `DecisionResult.allocation`; v1.9 adds the
+  option kinds `etf` and `stock` and `rm_edits[block] == ""` = a deleted
+  block); their design is
   `docs/decision.md`, `docs/ui.md` and `docs/narrator.md`.
 - GitHub: private repo `ArdahanDogru/ing-hackathon-rm-prep`; only the lead
   pushes `main`, and only when the user asks (`docs/workflow.md`).
