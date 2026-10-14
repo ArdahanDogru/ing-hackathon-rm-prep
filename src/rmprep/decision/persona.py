@@ -43,6 +43,10 @@ class Levels:
     effects: tuple[str, ...] = ()   # constraint effects applied, in order
     hard_rules: tuple[str, ...] = ()  # effects enforced as hard rules (D13), in order
     risk_profile: str = ""          # risk_profiles key (D19: risk_fit band, class rule)
+    # D27 (decision/holdings.py with_gap): factor of weights.allocation_gap.base
+    # (0 = the criterion is left out) and, per asset class, (value, reason text)
+    gap_weight: float = 0.0
+    gap: Mapping[str, tuple[float, str]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

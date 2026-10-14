@@ -66,6 +66,10 @@ def strip_d9(raw: dict) -> dict:
     raw.pop("risk_estimate", None)                           # D21
     for key in ("etf", "stock"):                             # D26
         raw.pop(key, None)
+    for key in ("holdings", "allocation_gap"):               # D27
+        raw.pop(key, None)
+    raw["weights"].pop("allocation_gap", None)
+    raw["texts"].pop("holdings", None)
     for key in ("asset_classes", "risk_fit", "recommend"):   # D19
         raw.pop(key, None)
     if "risk_fit" in raw["weights"]:

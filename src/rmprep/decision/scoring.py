@@ -76,6 +76,8 @@ def raw_weights(levels: Levels, config: DecisionConfig) -> dict[str, float]:
     if lh is not None and levels.period == lh["period"]:
         out["liquidity"] *= lh["liquidity_factor"]
         out["return"] += lh["return_add"]
+    if levels.gap_weight > 0:       # D27: only with an active class
+        out["allocation_gap"] = c["weights"]["allocation_gap"]["base"] * levels.gap_weight
     return out
 
 
@@ -472,6 +474,8 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             "principal": principal,
             "simplicity": kind_row["simplicity"],
             "quality": quality,
+            # D27: the gap of the option's class (0 without an active class)
+            "allocation_gap": levels.gap.get(opt.asset_class, (0.0, ""))[0],
         }
 
         horizon_missing = is_market and period != levels.period
@@ -534,6 +538,7 @@ def option_features(universe: Universe, levels: Levels, config: DecisionConfig
             "fees": fee_pct, "years": c["horizon"]["years"][levels.period],
             "volatility": vol_row.value if vol_row is not None else 0.0,
             "floor": c[STOCK]["risk_floor"] if STOCK in c else 0,
+            "gap_reason": levels.gap.get(opt.asset_class, (0.0, ""))[1],
         }
         if estimated:
             reason = _risk_unknown_text(texts["reasons"], risk_by_class).format(**fields)
@@ -606,6 +611,8 @@ def _reasons(f: Features, parts: Mapping[str, float], config: DecisionConfig) ->
             out[key] = tpl[name].format(**f.fields, value=v, pct=v * 100)
             if f.fields.get("fees"):
                 out[key] += " " + tpl["fees"].format(**f.fields)
+        elif key == "allocation_gap":             # D27: the text of the class
+            out[key] = f.fields["gap_reason"]
         elif key == "liquidity" and f.fields.get("valor") is not None:
             out[key] = tpl["liquidity_valor"].format(**f.fields, value=v)
         else:

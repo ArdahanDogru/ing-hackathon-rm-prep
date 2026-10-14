@@ -8,6 +8,7 @@ copy of it. The engine reads the tables from `DecisionConfig.raw`; stability
 from __future__ import annotations
 
 import copy
+import dataclasses
 import string
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -16,7 +17,13 @@ from typing import Any
 
 import yaml
 
-from rmprep.contracts import WARNING_AUDIENCES, Flag
+from rmprep.contracts import (
+    ACTIVE_HOLDINGS_SOURCES,
+    ALLOCATION_CLASSES,
+    WARNING_AUDIENCES,
+    Flag,
+    Persona,
+)
 from rmprep.decision.text import fold, normalize
 
 CONFIG_VERSION = 1
@@ -49,7 +56,7 @@ WARNING_CODES = ("concentration", "fx_exposure", "risk_estimate", "low_stability
                  "single_stock")
 RM_ONLY_WARNINGS = ("stale_tax_input", "single_stock")   # never for the client (D22, D26)
 TALKING_CODES = ("deposit_real", "best_alternative", "access", "risk_fit")
-_D9_SECTIONS = ("etf", "stock", "risk_estimate", "allocation", "asset_classes", "risk_fit", "recommend", "talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
+_D9_SECTIONS = ("holdings", "allocation_gap", "etf", "stock", "risk_estimate", "allocation", "asset_classes", "risk_fit", "recommend", "talking_points", "to_confirm", "real_return", "long_horizon", "quality_value", "underperformance",
                 "fund_detail", "constraint_rules", "short_history")
 _TOP = ("version", "deposit", "fund_kinds", "fx_name_words", "risk_profiles", "horizon",
         "levels", "fx_levels", "safe_levels", "priorities", "priority_boost", "constraints",
@@ -160,17 +167,19 @@ def _check(c: dict) -> None:
     _check_persona_tables(c)
     _check_scoring(c)
 
-    _keys(c["texts"], "texts", TEXT_SECTIONS)
+    _keys(c["texts"], "texts", TEXT_SECTIONS, ("holdings",))       # D27
     _keys(c["texts"]["reasons"], "texts.reasons",
           (*criteria(c), *(f"penalty:{p}" for p in PENALTY_RULES), "return_missing"),
           ("low_risk", "risk_fit", "class_rule", "return_real", "return_net",
            "penalty:risk_unknown_class", "holdings_class",
            "return_period", "return_period_net", "return_period_real",
+           "allocation_gap", "allocation_gap_inactive", "allocation_gap_no_band",
            "penalty:real_loss", "penalty:underperformance", "liquidity_valor", "fees"))
     if "real_loss" in c["penalties"] and "penalty:real_loss" not in c["texts"]["reasons"]:
         raise ConfigError("texts.reasons: penalties.real_loss needs penalty:real_loss")
     _check_d9(c)
     _check_exchange(c)
+    _check_holdings(c)
     _keys(c["texts"]["constraint"], "texts.constraint", ("passed", "failed"),
           ("not_buyable", "buyable", "fx_limit", "liquidity_need_valor",
            "liquidity_need_lock", "short_history", "stock_risk", "stock_risk_missing",
@@ -270,7 +279,7 @@ def _check_scoring(c: dict) -> None:
         _num(v, f"principal_value.{k}", 0, 1)
 
     weights = c["weights"]
-    _keys(weights, "weights", criteria(c))
+    _keys(weights, "weights", criteria(c), ("allocation_gap",))      # D27
     for crit, w in weights.items():
         path = f"weights.{crit}"
         _keys(w, path, ("base",), ("appetite", "level", "per_level"))
@@ -545,6 +554,113 @@ def _check_display_texts(d: Mapping[str, Any], crits: tuple[str, ...]) -> None:
                 texts = [v]
             if not all(isinstance(t, str) and t.strip() for t in texts):
                 raise ConfigError(f"display.access.{k}: must be a non-empty text")
+
+
+def _shares(d: Any, path: str) -> None:
+    """A split over ALLOCATION_CLASSES: every class, each 0..100, total 100."""
+    _keys(d, path, ALLOCATION_CLASSES)
+    for k, v in d.items():
+        _num(v, f"{path}.{k}", 0, 100)
+    if abs(sum(d.values()) - 100) > 1e-6:
+        raise ConfigError(f"{path}: the shares must add up to 100, got {sum(d.values())}")
+
+
+def _fields_of(text: Any) -> set[str] | None:
+    if not isinstance(text, str) or not text.strip():
+        return None
+    return {f for _, f, _, _ in string.Formatter().parse(text) if f}
+
+
+def _check_holdings(c: dict) -> None:
+    """Optional D27 sections holdings and allocation_gap (docs/decision.md section 17)."""
+    if "holdings" not in c:
+        for key in ("allocation_gap",):
+            if key in c:
+                raise ConfigError(f"{key}: needs the holdings section")
+        if "allocation_gap" in c["weights"]:
+            raise ConfigError("weights.allocation_gap: needs the holdings section")
+        return
+    for key in ("allocation", "asset_classes"):
+        if key not in c:
+            raise ConfigError(f"{key}: the holdings section needs it")
+    if tuple(c["allocation"]["classes"]) != ALLOCATION_CLASSES:
+        raise ConfigError(f"allocation.classes: must be {ALLOCATION_CLASSES} for holdings")
+    h = c["holdings"]
+    _keys(h, "holdings", ("national", "profiles", "text_rules", "spread"))
+    _keys(h["national"], "holdings.national", ("label", "source", "url", "shares"))
+    _shares(h["national"]["shares"], "holdings.national.shares")
+    if not isinstance(h["profiles"], list):
+        raise ConfigError("holdings.profiles: a list of rows")
+    for i, row in enumerate(h["profiles"]):
+        path = f"holdings.profiles[{i}]"
+        _keys(row, path, ("match", "label", "rule", "source", "shares"))
+        if not isinstance(row["match"], list) or not row["match"] or not all(
+                isinstance(w, str) and w.strip() for w in row["match"]):
+            raise ConfigError(f"{path}.match: a non-empty list of words")
+        _shares(row["shares"], f"{path}.shares")
+    persona_fields = {f.name for f in dataclasses.fields(Persona)}
+    if not isinstance(h["text_rules"], list):
+        raise ConfigError("holdings.text_rules: a list of rules")
+    ids: set[str] = set()
+    for i, rule in enumerate(h["text_rules"]):
+        path = f"holdings.text_rules[{i}]"
+        _keys(rule, path, ("id", "fields", "match", "class", "range"), ("note",))
+        if not isinstance(rule["id"], str) or not rule["id"] or rule["id"] in ids:
+            raise ConfigError(f"{path}.id: a unique non-empty id")
+        ids.add(rule["id"])
+        if (not isinstance(rule["fields"], list) or not rule["fields"]
+                or not set(rule["fields"]) <= persona_fields):
+            raise ConfigError(f"{path}.fields: persona fields")
+        if not isinstance(rule["match"], str) or not rule["match"].strip():
+            raise ConfigError(f"{path}.match: a non-empty phrase")
+        if rule["class"] not in ALLOCATION_CLASSES:
+            raise ConfigError(f"{path}.class: one of {ALLOCATION_CLASSES}")
+        rg = rule["range"]
+        if not (isinstance(rg, list) and len(rg) == 2 and all(
+                isinstance(x, (int, float)) and not isinstance(x, bool) for x in rg)
+                and 0 <= rg[0] <= rg[1] <= 100):
+            raise ConfigError(f"{path}.range: [low, high] with 0 <= low <= high <= 100")
+    _num(h["spread"], "holdings.spread", 0, 100)
+
+    th = c["texts"].get("holdings")
+    _keys(th, "texts.holdings", ("source_labels", "class_labels", "to_confirm"))
+    _keys(th["source_labels"], "texts.holdings.source_labels", ACTIVE_HOLDINGS_SOURCES)
+    _keys(th["class_labels"], "texts.holdings.class_labels", ALLOCATION_CLASSES)
+    for k, v in (*th["source_labels"].items(), *th["class_labels"].items(),
+                 ("to_confirm", th["to_confirm"])):
+        if _fields_of(v) is None:
+            raise ConfigError(f"texts.holdings.{k}: must be a non-empty text")
+
+    if "allocation_gap" not in c:
+        return
+    ag = c["allocation_gap"]
+    _keys(ag, "allocation_gap", ("scale", "overweight_factor", "per_signal", "max_signals",
+                                 "source_factor", "signals"))
+    if _num(ag["scale"], "allocation_gap.scale", 0) <= 0:
+        raise ConfigError("allocation_gap.scale: must be > 0")
+    _num(ag["overweight_factor"], "allocation_gap.overweight_factor", 0)
+    _num(ag["per_signal"], "allocation_gap.per_signal", 0)
+    v = ag["max_signals"]
+    if not isinstance(v, int) or isinstance(v, bool) or v < 0:
+        raise ConfigError("allocation_gap.max_signals: an integer >= 0")
+    _keys(ag["source_factor"], "allocation_gap.source_factor", ACTIVE_HOLDINGS_SOURCES)
+    for k, f in ag["source_factor"].items():
+        _num(f, f"allocation_gap.source_factor.{k}", 0)
+    if not isinstance(ag["signals"], list) or not all(
+            isinstance(x, str) and x.strip() for x in ag["signals"]):
+        raise ConfigError("allocation_gap.signals: a list of phrases")
+    if "allocation_gap" not in c["weights"]:
+        raise ConfigError("weights.allocation_gap: the allocation_gap section needs it")
+    why = "the allocation_gap section"
+    allowed = {"allocation_gap": {"class_label", "source_label", "current", "profile", "low",
+                                  "high"},
+               "allocation_gap_inactive": {"class_label"},
+               "allocation_gap_no_band": {"class_label"}}
+    for key, ok in allowed.items():
+        _text(c, "reasons", key, why)
+        fields = _fields_of(c["texts"]["reasons"][key])
+        if fields is None or not fields <= ok:
+            raise ConfigError(f"texts.reasons.{key}: only the fields {sorted(ok)}")
 
 
 def _check_exchange(c: dict) -> None:

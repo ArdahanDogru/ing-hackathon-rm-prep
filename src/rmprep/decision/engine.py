@@ -14,6 +14,7 @@ from rmprep.contracts import (
     DecisionResult,
     DecisionState,
     EvidenceSet,
+    HoldingsInput,
     Persona,
     ScoredOption,
 )
@@ -24,6 +25,7 @@ from rmprep.decision.notes import build_notes, build_warnings, source_notes
 from rmprep.decision.persona import read_persona
 from rmprep.decision.scoring import score_options
 from rmprep.decision.display import facts_of
+from rmprep.decision.holdings import estimate, holdings_status, with_gap
 from rmprep.decision.recommend import class_rule_applies, choose
 from rmprep.decision.talking import talking_points
 from rmprep.decision.universe import EvidenceIndex, build_universe
@@ -44,9 +46,14 @@ def config_hash(config: DecisionConfig) -> str:
 
 
 def run_id(cfg_hash: str, persona: Persona, snapshot_id: str,
-           excluded_sources: frozenset[str], answers: Mapping[str, str]) -> str:
+           excluded_sources: frozenset[str], answers: Mapping[str, str],
+           holdings: HoldingsInput | None = None) -> str:
+    """The key gets the RM's holdings input only when it is set (D27), so a reset
+    gives the run id of the run without input back."""
     key = [cfg_hash, persona.to_dict(), snapshot_id, sorted(excluded_sources),
            sorted(answers.items())]
+    if holdings is not None:
+        key.append({"holdings": dict(holdings.shares), "origin": holdings.origin})
     return "R" + hashlib.sha1(_canonical(key), usedforsecurity=False).hexdigest()[:10]
 
 
@@ -102,21 +109,31 @@ def _with_class_reason(o: ScoredOption, text: str) -> ScoredOption:
 
 
 def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
-           answers: Mapping[str, str] = {}, *, created_at: datetime) -> DecisionResult:
+           answers: Mapping[str, str] = {}, *, created_at: datetime,
+           holdings: HoldingsInput | None = None) -> DecisionResult:
+    """holdings: the client's current split from the RM (D27), a run input."""
     reading = read_persona(persona, config, answers)
     cfg_hash = config_hash(config)
     standard = standard_assumption_items(config, evidence)
     keys = tuple(k for k, _ in standard) + reading.assumption_keys
     hints = holding_notes(persona, config)
+    current = estimate(persona, config, holdings)           # D27; () without the section
 
     def confirm(keys: tuple[str, ...]) -> tuple[str, ...]:
-        """to_confirm of the assumption keys, then the holding question (D20)."""
+        """to_confirm of the assumption keys, then the holding question (D20). With
+        the holdings section (D27) the split question comes first while the RM has
+        not given or confirmed the split, and replaces the D20 question."""
+        if "holdings" in config.raw:
+            ask = holdings_status(current) not in ("rm", "rm_confirmed")
+            first = (config.raw["texts"]["holdings"]["to_confirm"],) if ask else ()
+            return first + to_confirm(config, keys)
         holding = (config.raw["allocation"]["holding_confirm"],) if hints else ()
         return to_confirm(config, keys) + holding
 
     common = dict(
         run_id=run_id(cfg_hash, persona, evidence.snapshot_id, evidence.excluded_sources,
-                      answers),
+                      answers, holdings),
+        holdings_input=holdings,
         config_hash=cfg_hash, created_at=created_at, persona=persona,
         snapshot_id=evidence.snapshot_id, excluded_sources=evidence.excluded_sources,
         questions=reading.questions,
@@ -128,7 +145,7 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
         return DecisionResult(state=DecisionState.NEEDS_RM_INPUT,
                               data_quality=tuple(source_notes(evidence, config)), **common)
 
-    levels = reading.levels
+    levels = with_gap(reading.levels, persona, config, current)     # D27
     universe = build_universe(evidence, config)
     scoring = score_options(universe, levels, config)
     # recommended top 3 with the class rule (D19); the reason of an option the rule
@@ -224,5 +241,6 @@ def decide(evidence: EvidenceSet, persona: Persona, config: DecisionConfig,
                               top=[by_id[i] for i in rec_ids]),
                           recommended=rec_ids,
                           allocation=allocation(options, scoring.rejected, levels, config,
-                                                real_of, estimates),
+                                                real_of, estimates, current),
+                          effective_weights=dict(scoring.weights),
                           **common)
