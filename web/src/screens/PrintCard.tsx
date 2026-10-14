@@ -82,6 +82,7 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
               {texts("ozet").join(" ")}
             </p>
           )}
+          {texts("piyasa_notu").length > 0 && <p className="mt-2 text-xs text-muted">{texts("piyasa_notu").join(" ")}</p>}
           <div className="mt-2 flex flex-wrap gap-1.5">
             {p.oncelikler.map((x) => (
               <span key={x} className="rounded-full border border-gray-300 px-2 py-0.5 text-xs">

@@ -148,7 +148,8 @@ export type SectionKey =
   | "sorular"
   | "teklif_metni"
   | "varsayimlar"
-  | "talking_points";
+  | "talking_points"
+  | "piyasa_notu";
 
 export interface NarrativeSentence {
   text: string;
@@ -305,6 +306,19 @@ export interface RunView {
   rejected_by_rule: RejectedByRule[];
   allocation: AllocationRow[];
   allocation_notes: string[];
+  /** W15: policy rate, USD/TRY, TCMB funding cost (EVDS); missing ones left out. Optional until the API has it. */
+  market_note?: MarketNoteItem[];
+}
+
+/** One value of the market note ("Piyasa notu · TCMB EVDS"). */
+export interface MarketNoteItem {
+  key: string;
+  label: string;
+  value: number;
+  unit: string;
+  /** a plain date "2026-10-09" */
+  as_of: string;
+  evidence_id: string;
 }
 
 export interface RunInputs {

@@ -60,3 +60,15 @@ test("print card leaves deleted blocks out and prints edited ones", () => {
   expect(document.body).toHaveTextContent("Kendi cümlem.");
   expect(document.body).toHaveTextContent(text("teklif_metni"));
 });
+
+test("print card: the market note, unless deleted", () => {
+  const v = sample("run_p01_approved");
+  const n = sample("narrative_p01_tr");
+  const text = "Piyasa notu (TCMB EVDS): politika faizi %40,5 (09.10.2026).";
+  n.sections.push({ key: "piyasa_notu", sentences: [{ text, option_ids: [], evidence_ids: ["ev-policy-rate"], title: "" }] });
+  const { unmount } = renderPrint(v, n);
+  expect(document.body).toHaveTextContent(text);
+  unmount();
+  renderPrint(v, { ...n, rm_edits: { piyasa_notu: "" } });
+  expect(document.body).not.toHaveTextContent(text);
+});

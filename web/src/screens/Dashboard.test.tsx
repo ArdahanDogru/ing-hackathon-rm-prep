@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { api, ApiError } from "../api/client";
 import { renderDashboard, renderWith } from "../test/render";
-import { sample } from "../test/samples";
+import { sample, withMarketNote } from "../test/samples";
 import { Dashboard } from "./Dashboard";
 
 beforeEach(() => localStorage.clear());
@@ -326,4 +326,34 @@ test("a decision without a time (an older run) shows the status only", () => {
   const v = sample("run_p01_approved");
   renderDashboard({ ...v, result: { ...v.result, rm_decided_at: null } });
   expect(screen.getByTestId("decided-at")).toHaveTextContent(/^Onaylandı$/);
+});
+
+// --- W15 part 3: market note -----------------------------------------------------------
+
+test("market note card: value, date and K per item, under the brief", async () => {
+  const v = withMarketNote(sample("run_p01_ready"));
+  const ev = vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
+  renderDashboard(v);
+  const card = screen.getByTestId("market-note");
+  expect(card).toHaveTextContent("Piyasa notu · TCMB EVDS");
+  expect(screen.getByTestId("brief-card").compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const rows = within(card).getAllByTestId("market-item");
+  expect(rows).toHaveLength(3);
+  expect(rows[0]).toHaveTextContent("Politika faizi");
+  expect(rows[0]).toHaveTextContent("%40,5");
+  expect(rows[0]).toHaveTextContent("09.10.2026");
+  expect(rows[1]).toHaveTextContent("41,2345 TL");
+  expect(rows[2]).toHaveTextContent("%40,48");
+  await userEvent.click(within(rows[1]).getByRole("button", { name: "Kanıt" }));
+  expect(ev).toHaveBeenCalledWith(v.result.snapshot_id, "ev-usd-try");
+});
+
+test("no market note: no card", () => {
+  renderDashboard({ ...sample("run_p01_ready"), market_note: [] });
+  expect(screen.queryByTestId("market-note")).toBeNull();
+});
+
+test("market note card in EN", () => {
+  renderDashboard(withMarketNote(sample("run_p01_ready")), () => {}, "EN");
+  expect(screen.getByTestId("market-note")).toHaveTextContent("Market note · TCMB EVDS");
 });

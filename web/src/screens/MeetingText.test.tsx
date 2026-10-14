@@ -477,3 +477,28 @@ test("the screen notes that the disclaimer is always added", async () => {
   renderMeeting(sample("run_p01_approved"));
   expect(await screen.findByText("Yatırım tavsiyesi değildir notu her zaman eklenir.")).toBeInTheDocument();
 });
+
+// --- W15 part 3: the market note block ---------------------------------------------------
+
+test("the market note block after the aim, with its source number, deletable", async () => {
+  const n = narrative();
+  const note = { text: "Piyasa notu (TCMB EVDS): politika faizi %40,5 (09.10.2026).", option_ids: [], evidence_ids: ["ev-policy-rate"], title: "" };
+  n.sections.push({ key: "piyasa_notu", sentences: [note] });
+  mockNarrative(n);
+  const edit = statefulEdit(n);
+  renderMeeting(sample("run_p01_approved"));
+  const heads = (await screen.findAllByTestId("doc-heading")).map((h) => h.textContent);
+  expect(heads.slice(0, 2)).toEqual(["Görüşmenin amacı", "Piyasa notu"]);
+  const block = document.querySelector('[data-block="piyasa_notu"]')!;
+  expect(block).toHaveTextContent(note.text);
+  expect(within(block as HTMLElement).getByTestId("src-mark")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Piyasa notu: Sil" }));
+  expect(edit).toHaveBeenCalledWith(expect.any(String), "TR", "piyasa_notu", "");
+});
+
+test("no market note section: no Piyasa notu heading", async () => {
+  mockNarrative(narrative());
+  renderMeeting(sample("run_p01_approved"));
+  const heads = (await screen.findAllByTestId("doc-heading")).map((h) => h.textContent);
+  expect(heads).not.toContain("Piyasa notu");
+});

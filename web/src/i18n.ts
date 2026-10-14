@@ -215,6 +215,7 @@ const TR = {
   ingestOpenNewer: "Yeni veriyle aç",
   ingestError: "Veri alınamadı: {error}",
   sourceMark: "Kaynak",
+  marketNote: "Piyasa notu",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -431,6 +432,7 @@ const EN: Record<LabelKey, string> = {
   ingestOpenNewer: "Open with the new data",
   ingestError: "The data could not be fetched: {error}",
   sourceMark: "Source",
+  marketNote: "Market note",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };

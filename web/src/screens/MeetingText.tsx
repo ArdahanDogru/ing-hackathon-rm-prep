@@ -216,6 +216,7 @@ export function MeetingText({ view }: { view: RunView }) {
   const live = (block: string, cs: Cited[]) => (block in edits ? [] : cs);
   const ordered = [
     ...live("ozet", sentences("ozet")),
+    ...live("piyasa_notu", sentences("piyasa_notu")),
     ...points.flatMap((c, i) => (tpFromNarrator ? live(`talking_points:${i}`, [c]) : [c])),
     ...live("teklif_metni", sentences("teklif_metni")),
     ...perOption.flatMap((o) => live(`oneriler:${o.id}`, o.sentences)),
@@ -420,6 +421,12 @@ export function MeetingText({ view }: { view: RunView }) {
                 {!hidden(["ozet"]) && (
                   <DocumentSection title={t("meetingAim")}>
                     {block("ozet", t("meetingAim"), sentences("ozet"), <p className="max-w-[68ch]">{prose(sentences("ozet"))}</p>)}
+                  </DocumentSection>
+                )}
+
+                {sentences("piyasa_notu").length > 0 && !hidden(["piyasa_notu"]) && (
+                  <DocumentSection title={t("marketNote")}>
+                    {block("piyasa_notu", t("marketNote"), sentences("piyasa_notu"), <p className="max-w-[68ch]">{prose(sentences("piyasa_notu"))}</p>)}
                   </DocumentSection>
                 )}
 
