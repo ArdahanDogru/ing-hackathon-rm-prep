@@ -1,13 +1,21 @@
 // "Bu öneriler nasıl seçildi?" on the dashboard (docs/web-ui.md W17; mockup
 // "Explainability Mockup", board 1): the decision pipeline in five steps, from
 // the client profile to the three recommendations. Closed, it is one line of counts.
-import { useState, type ReactNode } from "react";
+import { useContext, useState, type ReactNode } from "react";
 import type { RunView, ScoredOption } from "../api/types";
 import { stabilityLevel } from "../explain";
 import { fmtScore } from "../format";
-import { fill, useT } from "../i18n";
+import { fill, LangContext, useT, type LabelKey } from "../i18n";
 import { colors } from "../theme";
 import type { Tab } from "./DetailsPanel";
+
+/** The holdings status line of step 1 (W17b). */
+const HOLDINGS_LINE: Record<string, LabelKey> = {
+  estimate: "pipeHoldEstimate",
+  persona_text: "pipeHoldPersona",
+  rm: "pipeHoldRm",
+  rm_confirmed: "pipeHoldRmConfirmed",
+};
 
 const groupOf = (o: ScoredOption) => o.option.fund_kind || o.option.kind;
 const byScore = (a: ScoredOption, b: ScoredOption) =>
@@ -50,6 +58,7 @@ export function PipelinePanel({ view, onOpen, onDetails }: {
   onDetails: (tab: Tab) => void;
 }) {
   const t = useT();
+  const lang = useContext(LangContext);
   const [open, setOpen] = useState(false);
   const r = view.result;
   const p = r.persona;
@@ -74,6 +83,17 @@ export function PipelinePanel({ view, onOpen, onDetails }: {
     [t("crit_principal"), p.anapara_koruma_tercihi],
     [t("crit_liquidity"), p.likidite_ihtiyaci],
   ];
+  // W17b: the normalised weights used for this client, largest first; a missing key has weight 0
+  const levels: Record<string, string> = {
+    income: p.gelir_nakit_akisi_ihtiyaci,
+    principal: p.anapara_koruma_tercihi,
+    liquidity: p.likidite_ihtiyaci,
+  };
+  const effective = Object.entries(view.effective_weights ?? {})
+    .filter(([, w]) => w > 0)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const pctText = (w: number) => (lang === "TR" ? `%${Math.round(w * 100)}` : `${Math.round(w * 100)} %`);
+  const holdingsLine = view.holdings ? HOLDINGS_LINE[view.holdings.status] : undefined;
 
   return (
     <section data-testid="pipeline" className="mb-6 rounded-2xl bg-white shadow-sm">
@@ -95,15 +115,47 @@ export function PipelinePanel({ view, onOpen, onDetails }: {
               link={link(t("pipeSeeAssumptions"), "assumptions")}>
               <div className="text-[13px] leading-normal text-[#344054]">{`${p.risk_profili} · ${p.yatirim_ufku}`}</div>
               <div className="h-px bg-gray-200" />
-              <div className="text-xs font-semibold text-muted">{t("pipeWeights")}</div>
-              <ul className="flex flex-col gap-2 text-[13px]">
-                {weights.map(([label, value]) => (
-                  <li key={label} className="flex justify-between gap-2">
-                    <span>{label}</span>
-                    <b style={{ color: colors.chart }}>{value}</b>
-                  </li>
-                ))}
-              </ul>
+              <div className="text-xs font-semibold text-muted">{t(effective.length > 0 ? "pipeWeightsUsed" : "pipeWeights")}</div>
+              {effective.length > 0 ? (
+                <ul className="flex flex-col gap-2 text-[13px]">
+                  {effective.map(([key, w]) => (
+                    <li key={key} data-testid="weight-row" className="flex flex-col gap-1">
+                      <div className="flex justify-between gap-2">
+                        <span>
+                          <span data-testid="weight-label">{t(`crit_${key}` as LabelKey) ?? key}</span>
+                          {levels[key] && (
+                            <b className="ml-1.5" style={{ color: colors.chart }}>
+                              {levels[key]}
+                            </b>
+                          )}
+                        </span>
+                        <span className="tabular-nums text-[#344054]">{pctText(w)}</span>
+                      </div>
+                      <div className="h-1.5 rounded bg-[#F2F4F7]" aria-hidden="true">
+                        <div
+                          data-testid="weight-bar"
+                          className="h-1.5 rounded"
+                          style={{ width: `${Math.round(w * 1000) / 10}%`, backgroundColor: colors.chart }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <ul className="flex flex-col gap-2 text-[13px]">
+                  {weights.map(([label, value]) => (
+                    <li key={label} className="flex justify-between gap-2">
+                      <span>{label}</span>
+                      <b style={{ color: colors.chart }}>{value}</b>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {holdingsLine && (
+                <div data-testid="pipe-holdings" className="text-xs text-[#344054]">
+                  {t(holdingsLine)}
+                </div>
+              )}
             </Step>
             <Step n={2} title={t("pipeUniverse")} big={String(universe)} unit={t("pipeOptions")}
               link={link(t("pipeSeeDataNotes"), "dataNotes")}>
