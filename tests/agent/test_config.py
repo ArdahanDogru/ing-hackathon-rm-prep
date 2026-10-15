@@ -16,7 +16,7 @@ def test_loads_the_test_copy(cfg):
     assert cfg.effort == "medium"
     assert cfg.max_tool_calls == {"karsilastir": 4, "arastir": 2}
     assert cfg.timeout_s == 90 and cfg.max_cost_usd_per_day == 3.0
-    assert cfg.candidates == 10 and cfg.prompt_version == "a1"
+    assert cfg.candidates == 10 and cfg.prompt_version == "a2"
     assert cfg.words == {"reason": 30, "summary": 40, "amac": 20}
     assert cfg.labels["estimate"]["TR"] == "(tahmini dağılıma göre)"
     assert cfg.labels["web"]["EN"] == "(web, not verified)"

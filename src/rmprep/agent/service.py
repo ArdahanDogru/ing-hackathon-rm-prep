@@ -200,6 +200,16 @@ PROMPTS = {
             "plain words for the RM; name the products, and put the ids only in kaynaklar."),
     },
 }
+# a2 (A1b): numbers in the form of the meeting text (narrator): TR "%47,5", EN "47.5%".
+NUMBER_RULE = {
+    "TR": (" Sayıları Türkçe biçimde yaz: ondalık ayırıcı virgül, en fazla bir ondalık, "
+           "yüzde işareti sayıdan önce (örneğin %47,5; binlik ayırıcı nokta: 1.250). Bir değeri "
+           "yuvarlarsan verideki değerin bir ondalığa yuvarlanmışı olsun."),
+    "EN": (" Write numbers in the English form: decimal point, at most one decimal, the "
+           "percent sign after the number (e.g. 47.5%; thousands with a comma: 1,250). When "
+           "you round a value, round the value of the data to one decimal."),
+}
+PROMPTS["a2"] = {lang: text + NUMBER_RULE[lang] for lang, text in PROMPTS["a1"].items()}
 TASKS = {
     "TR": ("Görev: Veri paketindeki adaylardan bu müşteri için en uygun 3 ürünü seç. Gerekirse "
            "önce araçları kullan, sonra karar_ver'i çağır."),
