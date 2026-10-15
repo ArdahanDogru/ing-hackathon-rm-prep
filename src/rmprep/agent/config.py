@@ -13,7 +13,7 @@ import yaml
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "agent.yaml"
 LANGS = ("TR", "EN")
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
-PROMPT_VERSIONS = ("a1",)                      # the prompts of service.py
+PROMPT_VERSIONS = ("a1", "a2")                # the known prompts (service.PROMPTS)
 TOOL_NAMES = ("karsilastir", "arastir")
 WORD_KEYS = ("reason", "summary", "amac")
 LABEL_KEYS = ("estimate", "web")

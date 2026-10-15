@@ -49,7 +49,7 @@ def test_happy_path_decides_and_labels(svc_factory, ready_p01, ev):
     assert analysis.children[0].notes == ("Getirileri karşılaştır.",)
     assert research.many_calls == [cand_ids(ready_p01)]       # all 10 researched first
     assert len(d.nodes[1].children) == 10
-    assert d.model == "claude-sonnet-5-5" and d.prompt_version == "a1"
+    assert d.model == "claude-sonnet-5-5" and d.prompt_version == "a2"
     # 2 turns x (1000 in x $2 + 200 out x $10) / 1M
     assert abs(d.cost_usd - 2 * (1000 * 2 + 200 * 10) / 1e6) < 1e-9
     assert d.summary.startswith("Borçlanma")

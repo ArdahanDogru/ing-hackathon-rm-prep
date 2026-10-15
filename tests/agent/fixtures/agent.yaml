@@ -8,7 +8,7 @@ price_input_per_mtok: 2.0        # USD per 1M tokens, Sonnet 5.5 (as config/narr
 price_output_per_mtok: 10.0
 api_key_env: ANTHROPIC_API_KEY
 workspace_id_env: ANTHROPIC_WORKSPACE_ID
-prompt_version: "a1"
+prompt_version: "a2"
 candidates: 10
 max_tool_calls: {karsilastir: 4, arastir: 2}
 timeout_s: 90
