@@ -30,3 +30,16 @@ test("a snapshot id shows its date and time", async () => {
   expect(snapshotLabel("20261010-183835-6813")).toBe("10.10.2026 18:38 · 6813");
   expect(snapshotLabel("odd-id")).toBe("odd-id");
 });
+
+test("scores ×100 without decimals (W21): half away from zero, a true minus sign, no sign on 0", async () => {
+  const { fmtScore } = await import("./format");
+  expect(fmtScore(0.85, false)).toBe("85");
+  expect(fmtScore(0.2449)).toBe("+24");
+  expect(fmtScore(0.245)).toBe("+25");
+  expect(fmtScore(-0.1)).toBe("−10");
+  expect(fmtScore(-0.245)).toBe("−25");
+  expect(fmtScore(0)).toBe("0");
+  expect(fmtScore(0.004)).toBe("0");
+  expect(fmtScore(-0.004)).toBe("0");
+  expect(fmtScore(1, false)).toBe("100");
+});

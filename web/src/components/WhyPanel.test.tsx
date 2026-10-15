@@ -18,7 +18,7 @@ test("the fund card shows the engine's reasoning instead of the why lines", () =
   expect(container).toHaveTextContent(`${x.of} aday içinde 1. sıra`);
   expect(screen.getAllByTestId("score-row")).toHaveLength(x.criteria.length + x.penalties.length);
   x.criteria.forEach((r) => expect(container).toHaveTextContent(r.reason));
-  expect(screen.getByTestId("total-score")).toHaveTextContent(new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(x.score));
+  expect(screen.getByTestId("total-score").textContent).toBe(String(Math.round(x.score * 100))); // W21: ×100
   expect(container).toHaveTextContent("Kararlılık %100 · kararlı");
   expect(container).toHaveTextContent("Veri güveni %90 · yüksek");
 });

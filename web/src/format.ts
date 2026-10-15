@@ -63,11 +63,12 @@ export function snapshotLabel(id: string): string {
   return m ? `${m[3]}.${m[2]}.${m[1]} ${m[4]}:${m[5]} · ${m[6]}` : id;
 }
 
-const nf2 = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-/** A score part with two decimals and a sign: "+0,24", "−0,10", "0,00" (W16). */
+/**
+ * A score or a score part ×100 without decimals (W21; before: "0,85", W16): "85", "+24", "−10", "0".
+ * Half away from zero; the small epsilon keeps 0.245 × 100 = 24.4999… at 25. Display only.
+ */
 export function fmtScore(value: number, signed = true): string {
-  const text = nf2.format(Math.abs(value));
-  if (text === "0,00") return text;
-  return value < 0 ? MINUS + text : signed ? "+" + text : text;
+  const n = Math.round(Math.abs(value) * 100 + 1e-9);
+  if (n === 0) return "0";
+  return value < 0 ? `${MINUS}${n}` : signed ? `+${n}` : String(n);
 }
