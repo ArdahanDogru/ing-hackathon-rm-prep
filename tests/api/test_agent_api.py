@@ -19,8 +19,13 @@ class FakeAgent:
         self.started: list[str] = []
         self.done: dict[str, AgentDecision] = {}
 
-    def start(self, result, evidence, lang="TR"):
+    def start(self, result, evidence, lang="TR", n=None):
+        if n is not None and not 3 <= n <= 20:
+            raise ValueError(f"n must be 3-20, got {n}")
+        if result.run_id in self.started and result.run_id not in self.done:
+            return                                  # one job per run while it runs
         self.started.append(result.run_id)
+        self.n = n
 
     def status(self, run_id):
         if run_id in self.done:
@@ -50,11 +55,43 @@ def _ready(c, backend):
     raise AssertionError("no ready run in the fixtures")
 
 
+def test_a_ready_run_does_not_start_the_agent(backend):
+    """v1.12 (the user, 2026-10-15): the agent runs only when the RM starts it."""
+    agent = FakeAgent()
+    c = _client(backend, agent)
+    rid = _ready(c, backend)["result"]["run_id"]
+    assert agent.started == []
+    r = c.get(f"/api/runs/{rid}/agent")
+    assert r.status_code == 200 and r.json()["state"] == "off"
+    assert r.json()["fallback_reason"] == "henüz çalıştırılmadı"
+    assert agent.started == []                      # a GET never starts it
+
+
+def test_post_starts_the_agent_with_n(backend):
+    agent = FakeAgent()
+    c = _client(backend, agent)
+    rid = _ready(c, backend)["result"]["run_id"]
+    r = c.post(f"/api/runs/{rid}/agent", json={"n": 12})
+    assert r.status_code == 202 and r.json()["state"] == "running" and agent.n == 12
+    r = c.post(f"/api/runs/{rid}/agent", json={})
+    assert r.status_code == 202 and agent.started == [rid]   # double start = one job
+
+
+def test_agent_start_rejects_bad_n(backend):
+    agent = FakeAgent()
+    c = _client(backend, agent)
+    rid = _ready(c, backend)["result"]["run_id"]
+    for bad in (2, 21, "abc"):
+        assert c.post(f"/api/runs/{rid}/agent", json={"n": bad}).status_code == 422
+    assert agent.started == []
+
+
 def test_a_ready_run_starts_the_agent_and_the_status_is_running_then_done(backend):
     agent = FakeAgent()
     c = _client(backend, agent)
     v = _ready(c, backend)
     rid = v["result"]["run_id"]
+    c.post(f"/api/runs/{rid}/agent", json={})
     assert rid in agent.started
     r = c.get(f"/api/runs/{rid}/agent")
     assert r.status_code == 202 and r.json()["state"] == "running" and r.json()["nodes"]
@@ -68,13 +105,15 @@ def test_agent_status_unknown_and_not_ready(backend):
     agent = FakeAgent()
     c = _client(backend, agent)
     assert c.get("/api/runs/Rnope000000/agent").status_code == 404
+    assert c.post("/api/runs/Rnope000000/agent", json={}).status_code == 404
     for p in c.get("/api/personas").json():
         v = c.post("/api/runs", json={"persona": p}).json()
         if v["result"]["state"] == DecisionState.NEEDS_RM_INPUT.value:
             rid = v["result"]["run_id"]
-            assert rid not in agent.started
             r = c.get(f"/api/runs/{rid}/agent")
             assert r.status_code == 200 and r.json()["state"] == "off" and r.json()["fallback_reason"]
+            assert c.post(f"/api/runs/{rid}/agent", json={}).status_code == 422
+            assert rid not in agent.started
             return
     raise AssertionError("no needs_rm_input run in the fixtures")
 
@@ -112,6 +151,7 @@ def test_the_brief_follows_the_agent_top3_when_it_changed(backend):
     rid = v["result"]["run_id"]
     from rmprep.contracts import DecisionResult
     r = DecisionResult.from_dict(v["result"])
+    c.post(f"/api/runs/{rid}/agent", json={})
     c.get(f"/api/runs/{rid}/brief")
     assert calls[-1] is None                                          # agent still running
     ids = [o.option.option_id for o in r.options if o.option.kind != "deposit"]

@@ -24,6 +24,11 @@ class HoldingsRequest(BaseModel):
     origin: str = "rm"
 
 
+class AgentStartRequest(BaseModel):
+    """v1.12: the RM starts the agent; n = number of candidates (None = config default)."""
+    n: int | None = None
+
+
 class ApprovalRequest(BaseModel):
     status: Literal["approved", "rejected"]
     note: str = ""

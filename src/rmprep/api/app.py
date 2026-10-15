@@ -47,6 +47,9 @@ GLOSSARY = Path(__file__).resolve().parents[3] / "config" / "glossary.yaml"
 ViewFn = Callable[[DecisionResult], dict]
 
 
+NOT_STARTED = "henüz çalıştırılmadı"    # v1.12: GET /agent before the RM started it
+
+
 def create_app(backend: Backend, *, views: ViewFn | None = None,
                narrative_timeout_s: float = 120.0,
                glossary_path: Path | str = GLOSSARY,
@@ -80,8 +83,6 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         runs[result.run_id] = result
         if research is not None and result.state == DecisionState.READY:
             research.start(result, "TR")      # web research of the top 3 (docs/research.md)
-        if _agent_on() and result.state == DecisionState.READY:
-            _start_agent(result)              # the agentic top 3 (docs/agent.md), in the background
         changes = _changes(result.persona)
         out = {"result": result.to_dict(), "test_run": bool(changes), "persona_changes": changes}
         if views is not None:
@@ -303,8 +304,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     def _agent_on() -> bool:
         return agent is not None and getattr(agent, "enabled", True)
 
-    def _start_agent(result: DecisionResult) -> None:
-        agent.start(result, backend.evidence(result.snapshot_id, result.excluded_sources), "TR")
+    def _start_agent(result: DecisionResult, n: int | None = None) -> None:
+        agent.start(result, backend.evidence(result.snapshot_id, result.excluded_sources), "TR", n=n)
 
     def _agent_off(result: DecisionResult, reason: str) -> dict:
         return AgentDecision(result.run_id, "off", (), (), "", tuple(result.recommended), (), "", "",
@@ -332,15 +333,30 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         if result.state != DecisionState.READY:
             return _agent_off(result, "the run is not ready: an RM question is open")
         d = agent.status(run_id)
-        if d is None:                      # e.g. a run made before the server started the agent
-            _start_agent(result)
-            d = agent.status(run_id)
-        if d is None or d.state == "running":
-            body = d.to_dict() if d is not None else _agent_off(result, "starting")
-            if d is None:
-                body["state"] = "running"
-            return JSONResponse(status_code=202, content=body)
+        if d is None:                      # v1.12: the agent runs only on the RM's request
+            return _agent_off(result, NOT_STARTED)
+        if d.state == "running":
+            return JSONResponse(status_code=202, content=d.to_dict())
         return d.to_dict()
+
+    @app.post("/api/runs/{run_id}/agent")
+    def agent_start(run_id: str, req: schemas.AgentStartRequest):
+        """v1.12: the RM starts the agent with N candidates (default in config/agent.yaml)."""
+        result = _run(run_id)
+        if not _agent_on():
+            raise ValueError("the agent is off: " + (getattr(agent, "off_reason", "") if agent else
+                                                     "not configured"))
+        if result.state != DecisionState.READY:
+            raise ValueError("the run is not ready: an RM question is open")
+        _start_agent(result, req.n)        # ValueError for n out of range -> 422
+        marks = dict(research.marks()) if research is not None and hasattr(research, "marks") else {}
+        _log("agent_started", run=result, details={
+            "n": req.n if req.n is not None else getattr(getattr(agent, "config", None), "candidates", None),
+            "marks_ok": sum(1 for m in marks.values() if m == "ok"),
+            "marks_wrong": sum(1 for m in marks.values() if m == "wrong")})
+        d = agent.status(run_id)
+        body = d.to_dict() if d is not None else _agent_off(result, "starting") | {"state": "running"}
+        return JSONResponse(status_code=202, content=body)
 
     @app.get("/api/runs/{run_id}/card.md")
     def card_md(run_id: str, lang: str = "TR"):

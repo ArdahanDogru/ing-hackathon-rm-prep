@@ -219,3 +219,13 @@ def test_one_file_per_day(tmp_path):
     log.append("notes_saved", run_id="R0000000001")
     log.append("notes_saved", run_id="R0000000001")
     assert log.path_for(date(2026, 10, 15)).exists() and log.path_for(date(2026, 10, 16)).exists()
+
+
+def test_agent_started_is_logged(backend, tmp_path):
+    from tests.api.test_agent_api import FakeAgent
+    agent = FakeAgent()
+    c, log = _setup(backend, tmp_path, agent=agent)
+    rid = _ready(c)["result"]["run_id"]
+    c.post(f"/api/runs/{rid}/agent", json={"n": 10})
+    r = _records(log)[-1]
+    assert r["action"] == "agent_started" and r["details"] == {"n": 10, "marks_ok": 0, "marks_wrong": 0}
