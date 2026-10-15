@@ -59,7 +59,7 @@ export function PipelinePanel({ view, onOpen, onDetails }: {
 }) {
   const t = useT();
   const lang = useContext(LangContext);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const r = view.result;
   const p = r.persona;
   const scored = r.options.length;
