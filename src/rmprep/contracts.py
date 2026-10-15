@@ -10,6 +10,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import math
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -239,6 +240,8 @@ class SourceStatus:
 # source, gap, active), HoldingsInput, DecisionResult.holdings_input and
 # effective_weights, Backend.set_holdings (docs/decision.md section 17, D27;
 # spec docs/superpowers/specs/2026-10-14-portfolio-projection-design.md).
+# v1.11 (2026-10-15): the agent decision (AgentNode, AgentReason, AgentPick,
+# AgentDecision; spec docs/superpowers/specs/2026-10-15-agent-decision-design.md).
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -752,6 +755,97 @@ class NarrativeBrief:
 
     @classmethod
     def from_dict(cls, d: Mapping) -> NarrativeBrief:
+        return _from_json(cls, d)
+
+
+# --- agent decision (v1.11, spec 2026-10-15-agent-decision-design) --------------
+
+AGENT_STATES = ("running", "done", "fallback", "off")
+NODE_STATES = ("waiting", "running", "done", "failed")
+_AGENT_CITE = re.compile(r"^(E[0-9a-f]{8}|F[0-9a-f]{8}|puan:[a-z_]+|portfoy:[a-z_]+)$")
+
+
+@dataclass(frozen=True)
+class AgentNode:
+    """v1.11: one step of the agent's process view (node or sub-node)."""
+
+    id: str
+    label: str
+    state: str                                   # NODE_STATES
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    cost_usd: float = 0.0
+    notes: tuple[str, ...] = ()                  # the `amac` fields and check results (no raw thinking)
+    children: tuple[AgentNode, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.state not in NODE_STATES:
+            raise ValueError(f"node state must be one of {NODE_STATES}, got {self.state!r}")
+
+
+@dataclass(frozen=True)
+class AgentReason:
+    """v1.11: one reason of a pick; cites evidence (E…), a web finding (F…), a score
+    part (puan:<criterion>) or a portfolio class (portfoy:<class>)."""
+
+    text: str
+    cites: tuple[str, ...]
+    labels: tuple[str, ...] = ()                 # added by code: "(tahmini dağılıma göre)", "(web, doğrulanmamış)"
+
+    def __post_init__(self) -> None:
+        if not self.text.strip():
+            raise ValueError("a reason needs a text")
+        if not self.cites or not all(_AGENT_CITE.match(c) for c in self.cites):
+            raise ValueError(f"a reason must cite E…, F…, puan:… or portfoy:… ids, got {self.cites}")
+
+
+@dataclass(frozen=True)
+class AgentPick:
+    """v1.11: an option the agent picked (or dropped from the engine's top 3)."""
+
+    option_id: str
+    reasons: tuple[AgentReason, ...]
+    uses_estimate: bool = False
+    uses_web: bool = False
+
+
+@dataclass(frozen=True)
+class AgentDecision:
+    """v1.11: the agent's top 3 for a run (the engine's `recommended` does not change)."""
+
+    run_id: str
+    state: str                                   # AGENT_STATES
+    picks: tuple[AgentPick, ...]
+    dropped: tuple[AgentPick, ...]               # engine top-3 options the agent dropped, with why
+    summary: str
+    engine_top3: tuple[str, ...]
+    nodes: tuple[AgentNode, ...]
+    model: str
+    prompt_version: str
+    cost_usd: float
+    created_at: datetime
+    fallback_reason: str = ""                    # fallback: why the engine's top 3 is used; off: why no agent
+
+    def __post_init__(self) -> None:
+        if self.state not in AGENT_STATES:
+            raise ValueError(f"state must be one of {AGENT_STATES}, got {self.state!r}")
+        ids = [p.option_id for p in self.picks]
+        if self.state == "done":
+            if len(ids) != 3:
+                raise ValueError("a done decision has 3 picks")
+            if len(set(ids)) != 3:
+                raise ValueError("a pick appears twice")
+        if self.state == "fallback" and (ids or not self.fallback_reason.strip()):
+            raise ValueError("a fallback has no picks and needs a fallback_reason")
+        if self.created_at.tzinfo is None:
+            raise ValueError("created_at must be timezone-aware")
+        object.__setattr__(self, "created_at", self.created_at.astimezone(TR_TZ))
+
+    def to_dict(self) -> dict:
+        return _to_json(self)
+
+    @classmethod
+    def from_dict(cls, d: Mapping) -> AgentDecision:
         return _from_json(cls, d)
 
 

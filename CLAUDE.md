@@ -106,7 +106,8 @@ and message formats: `docs/workflow.md`.
   block, and the section key `piyasa_notu`, `NARRATIVE_SECTIONS_V19`; v1.10
   adds the current split in `AllocationBand`, `HoldingsInput`,
   `DecisionResult.holdings_input` / `effective_weights` and
-  `Backend.set_holdings`); their design is
+  `Backend.set_holdings`; v1.11 adds the agent decision types `AgentNode`,
+  `AgentReason`, `AgentPick`, `AgentDecision`); their design is
   `docs/decision.md`, `docs/ui.md` and `docs/narrator.md`.
 - GitHub: private repo `ArdahanDogru/ing-hackathon-rm-prep`; only the lead
   pushes `main`, and only when the user asks (`docs/workflow.md`).
