@@ -24,6 +24,7 @@ def test_the_v2_keys_load():
     assert (c.shape.bullet_max_words, c.shape.repeat_jaccard) == (20, 0.6)
     assert "saklayıcı" in c.shape.known_terms
     assert set(c.highlights_prompt) == {"TR", "EN"}
+    assert set(c.news_prompt) == {"TR", "EN"} and "olay" in c.news_prompt["TR"]
     assert c.exa.news_query.format(name="Ak Portföy", code="AIS") == "Ak Portföy AIS haber"
     assert c.exa.news_type == "auto"
 
@@ -54,6 +55,7 @@ def _broken(path: str, value):
     ("shape.news_days", 0, "shape.news_days"),
     ("shape.known_terms", "x", "shape.known_terms"),
     ("highlights_prompt.EN", None, "highlights_prompt.EN"),
+    ("news_prompt.EN", None, "news_prompt.EN"),
     ("exa.news_query", None, "exa.news_query"),
 ])
 def test_bad_values_name_their_path(path, value, starts):

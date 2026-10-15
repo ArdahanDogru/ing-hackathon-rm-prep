@@ -95,8 +95,10 @@ def shape_product(p: ProductResearch, cfg: ShapeConfig, today: date) -> ProductR
     dated.sort(key=lambda n: n.date, reverse=True)
     news, more = _tidy(dated, cfg, cfg.news_max, known=False)
     checks += [c.replace("bullets over the cap", "news items over the cap") for c in more]
-    # the Claude fallback makes no news search: news_days 0 hides the news section of the panel
-    news_days = 0 if p.provider == "claude" else cfg.news_days
+    # A news check from the provider (a failed Exa news call, or the Claude fallback that makes no
+    # news search) means "we do not know": news_days 0 hides the news section. Read p.checks, not
+    # the local list, which already holds the checks of this function.
+    news_days = 0 if any(c.startswith("news: ") for c in p.checks) else cfg.news_days
     return dataclasses.replace(p, findings=tuple(highlights), news=tuple(news), summary="",
                                news_days=news_days, version=SHAPE_VERSION, checks=tuple(checks))
 

@@ -262,10 +262,17 @@ ledger and the daily limit are the same as above.
      shares: `is`, `finansal`, `sermaye`. A bullet with another topic is dropped.
    - A failed news call (credit, 5xx, a bad reply) never loses the highlights. It
      becomes a line in `checks` (for example `news: credit`). A news call that
-     Exa billed still counts in the cost of the product.
+     Exa billed still counts in the cost of the product. A news line in `checks`
+     (`news: ...`, from Exa or from the Claude fallback) sets `news_days` to 0, so
+     the panel shows no news section and never says "no news in 90 days" after a
+     failed call (`shape.py`).
+   - The news call has its own prompt, `news_prompt` (TR and EN), added to the system
+     prompt: only concrete recent events, no general description, an empty list when
+     there is none. It was added after the live AIS check showed a LinkedIn
+     description as news. It is not yet checked live.
 2. **Less text.** The long summary is dropped: `summary` is always `""`, in the
    file and in the HTTP JSON. The panel shows no summary. Every bullet is cut to
-   `bullet_max_words` words; a longer bullet ends with "..." (`cut_words`).
+   `bullet_max_words` words; a longer bullet ends with "…" (`cut_words`).
 3. **No known facts, no repeats** (`shape.py`, code):
    - The highlights prompt (`highlights_prompt`, TR and EN) tells Exa not to write
      the fund code, the ISIN, the launch date, the umbrella fund, the custodian, the
@@ -302,7 +309,7 @@ ledger and the daily limit are the same as above.
   answers. The RM can ask about fees, so an answer with a fee must stay.
 - **Repeat rule:** Jaccard of the word sets (not of the characters), at or above
   0.6.
-- **Word cut** with "...", not a hard drop of a long bullet.
+- **Word cut** with "…", not a hard drop of a long bullet.
 - **Claude fallback:** the same shape. The model makes no news search, so `news`
   is empty, `news_days` is 0 (the panel then shows no news section) and a line in
   `checks` says so. The service shapes the result of every provider before it
@@ -315,6 +322,8 @@ ledger and the daily limit are the same as above.
   list of word starts).
 - `highlights_prompt.TR` and `highlights_prompt.EN` (added to the system prompt of
   the highlights call only, not to news, not to questions).
+- `news_prompt.TR` and `news_prompt.EN` (added to the system prompt of the news call
+  only).
 - `exa.news_query` (template with `{name}` and `{code}`) and `exa.news_type`
   (`auto`).
 - Types: `Finding` has `date`; `ProductResearch` has `news`, `news_days` and
@@ -325,8 +334,8 @@ ledger and the daily limit are the same as above.
 
 About $0.02 to $0.025 for each product: the deep highlights call ($0.012), the
 auto news call (about $0.007) and the contents. The live check of AIS cost $0.019.
-The daily limit of $2 is the same. The ledger gets one line for each paid call,
-as before; the cost of the product is the sum of both calls.
+The daily limit of $2 is the same. The ledger gets one line for each product (the
+cost of both calls), not one for each paid call.
 
 ### Live check (AIS, 2026-10-15)
 

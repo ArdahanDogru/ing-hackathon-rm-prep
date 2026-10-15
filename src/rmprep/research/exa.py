@@ -56,7 +56,7 @@ def _bullets_schema(key: str, description: str) -> dict:
             "required": [key]}
 
 
-NEWS_SCHEMA = _bullets_schema("haberler", "what happened, one sentence of at most 20 words")
+NEWS_SCHEMA = _bullets_schema("haberler", "one event: what happened, at most 20 words; an empty list when there is no event")
 QUESTION_SCHEMA = _bullets_schema("bulgular", "one sourced bullet of at most 20 words")
 CONTEXT = {"TR": " İlgili ürünler: {products}.", "EN": " Related products: {products}."}
 
@@ -212,12 +212,14 @@ class ExaProvider:
     name = "exa"
 
     def __init__(self, config: ExaConfig, system_prompt: Mapping[str, str], api_key: str, *,
-                 highlights_prompt: Mapping[str, str] | None = None, news_days: int = 90,
+                 highlights_prompt: Mapping[str, str] | None = None,
+                 news_prompt: Mapping[str, str] | None = None, news_days: int = 90,
                  transport: httpx.BaseTransport | None = None,
                  now: Callable[[], datetime] = lambda: datetime.now(TR_TZ)) -> None:
         self._config = config
         self._system = system_prompt
         self._highlights = highlights_prompt or {}
+        self._news_prompt = news_prompt or {}
         self._news_days = news_days
         self._now = now
         self._key = api_key
@@ -249,6 +251,9 @@ class ExaProvider:
         """The news call: items, check lines, cost. A failure never loses the highlights:
         it becomes a check line, and the cost of a billed bad reply still counts."""
         start = self._now().date() - timedelta(days=self._news_days)
+        system = self._system[lang]
+        if self._news_prompt.get(lang):
+            system += " " + self._news_prompt[lang]
         body = None
         try:
             body = self._post({
@@ -257,7 +262,7 @@ class ExaProvider:
                 "category": "news",
                 "startPublishedDate": f"{start.isoformat()}T00:00:00.000Z",
                 "excludeDomains": list(self._config.exclude_domains),
-                "systemPrompt": self._system[lang],
+                "systemPrompt": system,
                 "outputSchema": NEWS_SCHEMA,
                 "contents": {"highlights": True},
             })

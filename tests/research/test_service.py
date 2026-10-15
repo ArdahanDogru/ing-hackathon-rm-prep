@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from rmprep.contracts import ProductOption
+from rmprep.research.claude_search import NEWS_CHECK
 from rmprep.research.config import DEFAULT_PATH, load_config
 from rmprep.research.types import Finding, ProductResearch, QuestionAnswer, Source
 from rmprep.research.service import (LIMIT_ERROR, QuestionRefused, ResearchService,
@@ -168,6 +169,7 @@ def test_research_from_root_reads_keys(tmp_path):
     assert off.status(ready_result(), "TR") == {"state": "off", "reason": "no key in .env: EXA_API_KEY"}
     on = research_from_root(tmp_path, env={"EXA_API_KEY": "k"})
     assert on.enabled and [p.name for p in on._providers] == ["exa"]
+    assert on._providers[0]._news_prompt == on._config.news_prompt
 
 
 def test_a_failed_cache_write_never_blocks_a_product(tmp_path):
@@ -298,7 +300,8 @@ class LongProvider(FakeProvider):
         self._maybe_fail()
         fs = tuple(Finding(t, "strateji", (SRC,), "high") for t in SIX)
         return ProductResearch(option.option_id, option.label, "Şirket A.Ş.", "Çok uzun bir özet. " * 30,
-                               fs, lang, self.name, NOW, self.cost)
+                               fs, lang, self.name, NOW, self.cost,
+                               checks=(NEWS_CHECK,) if self.name == "claude" else ())   # as the real fallback does
 
     def answer_question(self, question, products, lang):
         self.calls.append(("question", question, lang, ()))

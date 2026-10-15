@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import date, datetime
 
 from rmprep.contracts import TR_TZ
@@ -98,3 +99,16 @@ def test_a_known_fact_company_bullet_does_not_block_a_valid_one():
     assert p.findings[1].text.startswith("Ak Portföy bir Akbank")
     assert "1 bullets dropped (known facts)" in p.checks
     assert not any("company bullets dropped" in c for c in p.checks)
+
+
+def test_a_failed_news_call_hides_the_news_section_for_both_providers():
+    for provider_name, check in (("exa", "news: server"), ("exa", "news: credit"), ("exa", "news: connection"),
+                                 ("exa", "news: request"), ("claude", "news: not available from the fallback")):
+        p = dataclasses.replace(product([f("Strateji maddesi.")]), provider=provider_name, checks=(check,))
+        assert shape_product(p, CFG, TODAY).news_days == 0, check
+
+
+def test_an_exa_product_without_a_news_check_keeps_the_window():
+    p = dataclasses.replace(product([f("Strateji maddesi.")]), provider="exa", checks=("1 findings dropped",))
+    assert shape_product(p, CFG, TODAY).news_days == 90
+    assert shape_product(product([f("Strateji maddesi.")]), CFG, TODAY).news_days == 90

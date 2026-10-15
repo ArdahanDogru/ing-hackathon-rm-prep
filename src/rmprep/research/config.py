@@ -74,6 +74,7 @@ class ResearchConfig:
     cache_dir: str
     shape: ShapeConfig
     highlights_prompt: Mapping[str, str]   # per language
+    news_prompt: Mapping[str, str]         # per language; added to the system prompt of the news call
 
 
 def _get(raw: Mapping, path: str):
@@ -158,7 +159,8 @@ def parse_config(raw: Mapping) -> ResearchConfig:
         system_prompt={lang: _str(raw, f"system_prompt.{lang}") for lang in LANGS},
         cache_dir=_str(raw, "cache_dir"),
         shape=shape,
-        highlights_prompt={lang: _str(raw, f"highlights_prompt.{lang}") for lang in LANGS})
+        highlights_prompt={lang: _str(raw, f"highlights_prompt.{lang}") for lang in LANGS},
+        news_prompt={lang: _str(raw, f"news_prompt.{lang}") for lang in LANGS})
 
 
 def load_config(path: Path | str = DEFAULT_PATH) -> ResearchConfig:

@@ -79,7 +79,8 @@ NEWS_BODY = {
 
 def provider(handler, key="k-123"):
     return ExaProvider(CONFIG.exa, CONFIG.system_prompt, key, highlights_prompt=CONFIG.highlights_prompt,
-                       news_days=90, transport=httpx.MockTransport(handler), now=lambda: NOW)
+                       news_prompt=CONFIG.news_prompt, news_days=90,
+                       transport=httpx.MockTransport(handler), now=lambda: NOW)
 
 
 def answering(body, seen=None, status=200):
@@ -134,7 +135,7 @@ def test_product_makes_two_calls_highlights_then_news():
         "category": "news",
         "startPublishedDate": "2026-07-16T00:00:00.000Z",
         "excludeDomains": ["kap.org.tr"],
-        "systemPrompt": CONFIG.system_prompt["TR"],
+        "systemPrompt": CONFIG.system_prompt["TR"] + " " + CONFIG.news_prompt["TR"],
         "outputSchema": NEWS_SCHEMA,
         "contents": {"highlights": True},
     }
@@ -222,7 +223,7 @@ def test_stock_topics_and_stock_schema():
     assert payload["query"] == "TÜRK HAVA YOLLARI (THYAO) hissesi ve şirket"
     assert payload["systemPrompt"] == CONFIG.system_prompt["EN"] + " " + CONFIG.highlights_prompt["EN"]
     assert payload["outputSchema"] == product_schema("stock")
-    assert json.loads(seen[1].content)["systemPrompt"] == CONFIG.system_prompt["EN"]
+    assert json.loads(seen[1].content)["systemPrompt"] == CONFIG.system_prompt["EN"] + " " + CONFIG.news_prompt["EN"]
 
 
 def test_deposit_has_no_query():
@@ -388,3 +389,8 @@ def test_an_iso_week_date_is_not_a_news_date():
     assert items[0].date == "2026-10-01"
     items, _ = parse_news(_news_with_dates("2026-W40-1"), ())
     assert items[0].date == ""
+
+
+def test_the_news_schema_asks_for_one_event_or_an_empty_list():
+    desc = NEWS_SCHEMA["properties"]["haberler"]["items"]["properties"]["metin"]["description"]
+    assert desc == "one event: what happened, at most 20 words; an empty list when there is no event"
