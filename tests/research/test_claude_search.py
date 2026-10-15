@@ -326,6 +326,15 @@ def test_the_system_prompt_without_a_highlights_prompt_is_v1_text():
     assert sdk.calls[0]["system"] == CONFIG.system_prompt["TR"] + FORMAT["TR"]
 
 
+def test_the_highlights_prompt_goes_only_to_product_calls():
+    sdk = FakeSdk(message([results(NUROL)]), message([results(NUROL)]))
+    p = provider(sdk)
+    p.research_product(PPN, "TR")
+    p.answer_question("PPN yönetim ücreti nedir?", [PPN], "TR")
+    assert CONFIG.highlights_prompt["TR"] in sdk.calls[0]["system"]
+    assert sdk.calls[1]["system"] == CONFIG.system_prompt["TR"] + FORMAT["TR"]
+
+
 def test_from_env_passes_the_highlights_prompt():
     p = ClaudeSearchProvider.from_env(CONFIG.claude, CONFIG.system_prompt, (), {"ANTHROPIC_API_KEY": "k"},
                                       highlights_prompt=CONFIG.highlights_prompt)

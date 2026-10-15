@@ -155,7 +155,7 @@ class ClaudeSearchProvider:
 
     def research_product(self, option: ProductOption, lang: str) -> ProductResearch:
         prompt = PRODUCT_PROMPT[lang].format(label=option.label, code=option_code(option))
-        blocks, cost = self._run(prompt, lang)
+        blocks, cost = self._run(prompt, lang, highlights=True)
         if option.kind == "stock":
             findings, company, dropped = parse_blocks(blocks, self._domains, "is", "is")
         else:
@@ -168,18 +168,19 @@ class ClaudeSearchProvider:
     def answer_question(self, question: str, products: Sequence[ProductOption],
                         lang: str) -> QuestionAnswer:
         names = "; ".join(f"{p.label} ({option_code(p)})" for p in products) or "-"
+        # no highlights prompt: the RM may ask about fees, returns and the like
         blocks, cost = self._run(QUESTION_PROMPT[lang].format(question=question, products=names), lang)
         findings, _, dropped = parse_blocks(blocks, self._domains, "soru")
         checks = (f"{dropped} findings without a valid source dropped",) if dropped else ()
         return QuestionAnswer(question, "", tuple(findings), lang, self.name, self._now(), cost, checks)
 
-    def _run(self, prompt: str, lang: str) -> tuple[list, float]:
+    def _run(self, prompt: str, lang: str, *, highlights: bool = False) -> tuple[list, float]:
         messages: list[dict] = [{"role": "user", "content": prompt}]
         blocks: list = []
         cost = 0.0
         for _ in range(MAX_CONTINUATIONS + 1):
             try:
-                msg = self._create(messages, lang)
+                msg = self._create(messages, lang, highlights)
             except ResearchError as e:      # the replies before this one were billed
                 raise ResearchError(e.kind, e.message, cost + e.cost_usd) from e
             cost += self._cost(msg.usage)
@@ -191,7 +192,7 @@ class ClaudeSearchProvider:
             messages = [*messages, {"role": "assistant", "content": msg.content}]
         return blocks, cost
 
-    def _create(self, messages: list[dict], lang: str):
+    def _create(self, messages: list[dict], lang: str, highlights: bool):
         import anthropic
         # "direct": without it, 20260209 searches from code execution (dynamic filtering)
         # and the answer has no citations (live 2026-10-15: one text block, citations None)
@@ -202,7 +203,7 @@ class ClaudeSearchProvider:
         try:
             return self._sdk.beta.messages.create(
                 model=self._config.model, max_tokens=self._config.max_tokens,
-                system=self._system_text(lang), messages=messages, tools=[tool],
+                system=self._system_text(lang, highlights), messages=messages, tools=[tool],
                 betas=[FALLBACK_BETA], fallbacks="default")
         except (anthropic.AuthenticationError, anthropic.PermissionDeniedError) as e:
             raise ResearchError("auth", e.message) from e
@@ -216,8 +217,8 @@ class ClaudeSearchProvider:
         except anthropic.APIConnectionError as e:     # includes timeouts
             raise ResearchError("connection", str(e)) from e
 
-    def _system_text(self, lang: str) -> str:
-        extra = " " + self._highlights[lang] if self._highlights else ""
+    def _system_text(self, lang: str, highlights: bool) -> str:
+        extra = " " + self._highlights[lang] if highlights and self._highlights else ""
         return self._system[lang] + extra + FORMAT[lang]
 
     def _cost(self, usage) -> float:

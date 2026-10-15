@@ -5,8 +5,8 @@ only auth, credit, server and connection errors fall back to the next one.
 
 Research is per product, not per client: the cache key is (option id, language,
 Turkish date, shape version). Every provider result is shaped (shape.py) before it
-is cached, so the cache holds what the panel shows; v1 files are never read. A failed product is not cached; `start` (a new run view) tries it
-again, `status` (polling) never does, so a lasting error ends the polling."""
+is cached, so the cache holds what the panel shows; v1 files are never read. A
+failed product is not cached; `start` (a new run view) tries it again, `status` (polling) never does, so a lasting error ends the polling."""
 
 from __future__ import annotations
 
@@ -117,7 +117,8 @@ class ResearchService:
         return jobs
 
     def _product(self, opt: ProductOption, lang: str, day: date) -> ProductResearch:
-        path = self._root / "products" / f"{opt.option_id.replace(':', '_')}-{lang}-{day:%Y%m%d}-v{SHAPE_VERSION}.json"
+        name = f"{opt.option_id.replace(':', '_')}-{lang}-{day:%Y%m%d}-v{SHAPE_VERSION}.json"
+        path = self._root / "products" / name
         try:
             cached = _read(path, ProductResearch)
             if cached is not None:
@@ -161,7 +162,8 @@ class ResearchService:
         return out
 
     def questions(self, run_id: str, lang: str) -> list[QuestionAnswer]:
-        found = (_read(p, QuestionAnswer) for p in (self._root / "questions").glob(f"{run_id}-{lang}-v{SHAPE_VERSION}-*.json"))
+        files = (self._root / "questions").glob(f"{run_id}-{lang}-v{SHAPE_VERSION}-*.json")
+        found = (_read(p, QuestionAnswer) for p in files)
         return sorted((q for q in found if q is not None), key=lambda q: q.created_at)
 
     # --- providers, cost ------------------------------------------------------
@@ -214,7 +216,8 @@ class ResearchService:
         if exc is None:
             return job.result()
         return ProductResearch(opt.option_id, opt.label, "", "", (), lang, "", self._now(),
-                               error=f"{type(exc).__name__}: {exc}", news_days=self._config.shape.news_days)
+                               error=f"{type(exc).__name__}: {exc}",
+                               news_days=self._config.shape.news_days)
 
     def _record(self, provider: str, kind: str, ref: str, cost: float) -> None:
         """Adds a paid call to the in-memory total, then to the ledger file. A file error
