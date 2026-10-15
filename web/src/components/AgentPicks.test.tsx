@@ -175,3 +175,32 @@ test("W20 EN", async () => {
   expect(box).toHaveTextContent("The agent changed 1 recommendation");
   expect(screen.getByRole("button", { name: /Engine ranking/ })).toBeInTheDocument();
 });
+
+// --- W23: the layout of the dashboard rows ------------------------------------------------------
+
+test("with the agent box: row 1 = Gündem and the agent box at the same height, row 2 = Öneriler over the full width", async () => {
+  await showWith(agentDecision(view(), "done"));
+  const row1 = await screen.findByTestId("dash-row1");
+  const row2 = screen.getByTestId("dash-row2");
+  expect(row1).toHaveClass("grid", "items-stretch", "lg:grid-cols-[1fr_2fr]");
+  expect(within(row1).getByTestId("agenda")).toHaveClass("h-full");
+  expect(within(row1).getByTestId("agent-picks")).toHaveClass("h-full");
+  expect(within(row1).queryByTestId("options-compare")).toBeNull();
+  expect(within(row2).getByTestId("options-compare")).toBeInTheDocument();
+  expect(row1.compareDocumentPosition(row2) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+test("while the agent runs the box is in row 1 too", async () => {
+  await showWith(agentDecision(view(), "running"));
+  expect(within(await screen.findByTestId("dash-row1")).getByTestId("agent-picks")).toBeInTheDocument();
+  expect(within(screen.getByTestId("dash-row2")).getByTestId("options-compare")).toBeInTheDocument();
+});
+
+test("without the agent box (off): Gündem and Öneriler side by side as before, no second row", async () => {
+  await showWith(agentDecision(view(), "off"));
+  const row1 = screen.getByTestId("dash-row1");
+  expect(row1).toHaveClass("lg:grid-cols-[1fr_2fr]");
+  expect(within(row1).getByTestId("agenda")).toBeInTheDocument();
+  expect(within(row1).getByTestId("options-compare")).toBeInTheDocument();
+  expect(screen.queryByTestId("dash-row2")).toBeNull();
+});

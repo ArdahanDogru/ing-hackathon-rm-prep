@@ -130,7 +130,7 @@ export function AgentPicks({
     </ul>
   );
 
-  const box = "mb-4 rounded-2xl bg-white px-5 py-4 shadow-sm";
+  const box = "h-full min-w-0 rounded-2xl bg-white px-5 py-4 shadow-sm"; // W23: as tall as Gündem next to it
   if (decision.state === "running")
     return (
       <section data-testid="agent-picks" className={box}>

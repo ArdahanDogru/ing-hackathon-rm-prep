@@ -24,7 +24,7 @@ export function Agenda({
 }) {
   const t = useT();
   return (
-    <section className="rounded-2xl bg-white px-[22px] py-5 shadow-sm">
+    <section data-testid="agenda" className="h-full rounded-2xl bg-white px-[22px] py-5 shadow-sm">
       <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.06em] text-muted">{t("agenda")}</h2>
       <ul>
         {points.slice(0, 3).map((p, i) => (
