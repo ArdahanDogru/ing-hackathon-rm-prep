@@ -8,10 +8,11 @@ import duckdb
 import pytest
 import yaml
 
-from tests.ingest.conftest import (BIST_END, FIXTURES, KEY, T0, FakeEvds, add_bist, add_byf,
-                                   add_cpi_annual, add_holdings, bist_name,
-                                   default_detail_pages, detail_page)
+from tests.ingest.conftest import (BIST_END, FIXTURES, ING_URL, KEY, T0, FakeEvds, FakeIng,
+                                   add_bist, add_byf, add_cpi_annual, add_holdings,
+                                   add_ing_web, bist_name, default_detail_pages, detail_page)
 from rmprep.cli import main
+from rmprep.decision.universe import EvidenceIndex
 from rmprep.contracts import EntityInfo, Flag
 from rmprep.ingest.pipeline import ExclusionError, Paths, build_evidence, ingest, replay
 from rmprep.ingest.snapshot import MANIFEST, SnapshotIntegrityError, open_snapshot
@@ -197,6 +198,58 @@ def test_second_ingest_uses_the_bist_cache(tmp_path, config_raw):
     assert ev.source_status["bist_bulletin"].status == "ok"
     assert [r.url.path.rsplit("/", 1)[-1] for r in fake.requests
             if r.url.host == "www.borsaistanbul.com"] == ["thb202610091.zip"]
+
+
+# --- ing_web (I14) -------------------------------------------------------------------------
+
+T16 = T0 + timedelta(days=7)                       # 2026-10-16 15:00, the day of the ING pages
+CELL = "ING e-Vadeli Mevduat, 32-45 gün, 99.999,99-250.000 TL"
+
+
+def _manual_ing_row(as_of: str, value: str) -> str:
+    return ("quantity;entity;value;unit;as_of;source_url;note\n"
+            f"deposit_rate;{CELL};{value};pct;{as_of};{ING_URL};hand copy\n")
+
+
+def test_ingest_with_ing_web_and_replay(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_ing_web(config_raw))
+    ev = run(paths, at=T16)
+    assert ev.source_status["ing_web"].status == "ok"
+    rows = by(ev, source="ing_web")
+    assert len(rows) == 116 and {p.as_of.isoformat() for p in rows} == {"2026-10-16"}
+    os.remove(paths.db)
+    os.remove(paths.config)
+    assert replay(paths, ev.snapshot_id) == ev
+
+
+def test_web_row_wins_over_the_older_manual_row(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_ing_web(config_raw),
+                         manual_text=_manual_ing_row("10.10.2026", "35,00"))
+    ev = run(paths, at=T16)
+    [manual] = by(ev, source="manual", entity=CELL)
+    [web] = by(ev, source="ing_web", entity=CELL)
+    assert (manual.value, web.value) == (35.0, 34.5)
+    assert Flag.CONFLICT not in web.flags                        # another as_of: no conflict
+    assert EvidenceIndex(ev).get("deposit_rate", CELL) == web     # the latest as_of wins
+
+
+def test_same_as_of_different_value_is_a_conflict(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_ing_web(config_raw),
+                         manual_text=_manual_ing_row("16.10.2026", "35,00"))
+    ev = run(paths, at=T16)
+    [manual] = by(ev, source="manual", entity=CELL)
+    [web] = by(ev, source="ing_web", entity=CELL)
+    assert Flag.CONFLICT in manual.flags and Flag.CONFLICT in web.flags
+
+
+def test_failed_ing_web_falls_back_to_the_previous_snapshot(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_ing_web(config_raw))
+    first = run(paths, at=T16)
+    ev = run(paths, fake=FakeEvds(ing=FakeIng(status=503)), at=T16 + timedelta(days=1))
+    rec = ev.source_status["ing_web"]
+    assert rec.status == "failed" and rec.fallback_from == first.snapshot_id
+    rows = by(ev, source="ing_web")
+    assert len(rows) == 116 and all(Flag.FALLBACK_SNAPSHOT in p.flags for p in rows)
 
 
 def test_replay_twice_is_idempotent(paths):

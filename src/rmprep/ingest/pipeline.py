@@ -26,7 +26,8 @@ import httpx
 from dotenv import dotenv_values
 
 from rmprep.contracts import TR_TZ, DataPoint, EntityInfo, EvidenceSet, Flag
-from rmprep.ingest.adapters import bist_bulletin, evds, manual, tefas, tefas_detail, tefas_web
+from rmprep.ingest.adapters import (bist_bulletin, evds, ing_web, manual, tefas, tefas_detail,
+                                    tefas_web)
 from rmprep.ingest.config import (
     Config,
     EvdsSource,
@@ -47,7 +48,7 @@ from rmprep.ingest.store import EvidenceStore
 
 _PARSERS = {"evds": evds.parse, "tefas": tefas.parse, "tefas_web": tefas_web.parse,
             "tefas_detail": tefas_detail.parse, "manual": manual.parse,
-            "bist_bulletin": bist_bulletin.parse}
+            "bist_bulletin": bist_bulletin.parse, "ing_web": ing_web.parse}
 # Adapters that also give EntityInfo (fund and share names, types) from their payloads.
 _ENTITY_READERS = {"tefas_web": tefas_web.entities, "bist_bulletin": bist_bulletin.entities}
 _log = logging.getLogger(__name__)
@@ -179,7 +180,7 @@ def ingest(
     now: Callable[[], datetime] | None = None,
     sleep: Callable[[float], None] = time.sleep,
 ) -> EvidenceSet:
-    """`sleep` is for the wait between tefas_detail and bist_bulletin requests
+    """`sleep` is for the wait between tefas_detail, bist_bulletin and ing_web requests
     (tests pass a fake).
     Raises IngestBusy if another ingest runs (lock file, I6)."""
     now = now or (lambda: datetime.now(TR_TZ))
@@ -237,6 +238,8 @@ def _fetch(src: SourceConfig, w: SnapshotWriter, cfg: Config, paths: Paths,
         return tefas_detail.fetch(src, w, listings=listings, client=client, now=now, sleep=sleep)
     if src.adapter == "manual":
         return manual.fetch(src, w, cfg, inbox=paths.inbox(src.inbox), now=now)
+    if src.adapter == "ing_web":
+        return ing_web.fetch(src, w, client=client, now=now, sleep=sleep)
     if src.adapter == "bist_bulletin":
         return bist_bulletin.fetch(src, w, client=client, today=created_at.date(), now=now,
                                    sleep=sleep)
