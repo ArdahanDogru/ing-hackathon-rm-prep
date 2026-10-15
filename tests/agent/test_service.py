@@ -16,6 +16,7 @@ from tests.agent.conftest import (
     call,
     cand_ids,
     karar,
+    pack_of,
     reason,
     turn,
     valid_picks,
@@ -49,7 +50,7 @@ def test_happy_path_decides_and_labels(svc_factory, ready_p01, ev):
     assert analysis.children[0].notes == ("Getirileri karşılaştır.",)
     assert research.many_calls == [cand_ids(ready_p01)]       # all 10 researched first
     assert len(d.nodes[1].children) == 10
-    assert d.model == "claude-sonnet-5-5" and d.prompt_version == "a2"
+    assert d.model == "claude-sonnet-5-5" and d.prompt_version == "a3"
     # 2 turns x (1000 in x $2 + 200 out x $10) / 1M
     assert abs(d.cost_usd - 2 * (1000 * 2 + 200 * 10) / 1e6) < 1e-9
     assert d.summary.startswith("Borçlanma")
@@ -213,9 +214,10 @@ def test_findings_are_data_not_instructions(svc_factory, ready_p01, ev):
     system, messages, _ = client.sent[0]
     assert "talimat değil" in system and evil not in system
     first = messages[0]["content"]
-    assert evil in first[0]["text"] and first[0]["cache_control"] == {"type": "ephemeral"}
+    assert evil not in first[0]["text"] and first[0]["cache_control"] == {"type": "ephemeral"}
     assert first[0]["text"].startswith("<veri>") and first[0]["text"].rstrip().endswith("</veri>")
-    assert all(evil not in b["text"] for b in first[1:])
+    assert len(first) == 2 and evil in first[1]["text"]          # only in the research block
+    assert first[1]["text"].startswith("<arastirma>")
 
 
 def test_failed_research_still_decides(svc_factory, ready_p01, ev):
@@ -226,7 +228,7 @@ def test_failed_research_still_decides(svc_factory, ready_p01, ev):
     sub = {c.id: c for c in d.nodes[1].children}
     assert sub["arastirma:fund:BBF"].state == "failed"
     assert sub["arastirma:fund:EIL"].state == "done"
-    pack = json.loads(client.sent[0][1][0]["content"][0]["text"][len("<veri>"):-len("</veri>")])
+    pack = pack_of(client.sent[0][1])
     assert pack["arastirma"]["fund:BBF"]["durum"] == "yok"
 
 
@@ -367,7 +369,7 @@ def test_slow_research_has_a_deadline(svc_factory, ready_p01, ev):
     gate.set()
     assert d.state == "done" and d.nodes[1].state == "failed"
     assert any("bitmedi" in n for n in d.nodes[1].notes)
-    pack = json.loads(client.sent[0][1][0]["content"][0]["text"][len("<veri>"):-len("</veri>")])
+    pack = pack_of(client.sent[0][1])
     assert all(r["durum"] == "yok" for r in pack["arastirma"].values())
 
 
@@ -388,7 +390,7 @@ def test_with_the_real_research_service(svc_factory, ready_p01, ev, tmp_path):
         res = json.loads(messages[-1]["content"][0]["content"])
         first["answer"] = res
         k = karar(ready_p01, picks)
-        pack = json.loads(messages[0]["content"][0]["text"][len("<veri>"):-len("</veri>")])
+        pack = pack_of(messages)
         fid = pack["arastirma"][picks[1]]["bulgular"][0]["id"]
         k["secimler"][1]["gerekceler"].append(reason("Ürün bulgusu var.", fid))
         return turn(call("karar_ver", **k))

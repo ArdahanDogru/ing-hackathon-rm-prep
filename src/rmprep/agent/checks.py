@@ -26,6 +26,7 @@ from datetime import date
 from itertools import combinations
 from typing import Any
 
+from rmprep.agent.pack import CONFIRMED
 from rmprep.contracts import AgentPick, AgentReason
 from rmprep.decision.config import DecisionConfig
 from rmprep.narrator.template import tr_lower
@@ -34,8 +35,11 @@ from rmprep.narrator.validator import _PERCENT, _matches, _token_readings, dates
 N = 3
 MAX_REASONS = 3
 SMALL = frozenset(float(i) for i in range(1, 11))        # places and counts
-DEFAULT_LABELS = {"TR": {"estimate": "(tahmini dağılıma göre)", "web": "(web, doğrulanmamış)"},
-                  "EN": {"estimate": "(based on the estimated split)", "web": "(web, not verified)"}}
+DEFAULT_LABELS = {"TR": {"estimate": "(tahmini dağılıma göre)", "web": "(web, doğrulanmamış)",
+                         "web_confirmed": "(web, RM doğruladı)"},
+                  "EN": {"estimate": "(based on the estimated split)", "web": "(web, not verified)",
+                         "web_confirmed": "(web, confirmed by the RM)"}}
+LABEL_ORDER = ("estimate", "web_confirmed", "web")
 DEFAULT_WORDS = {"reason": 30, "summary": 40}
 _CITE = re.compile(r"^(E[0-9a-f]{8}|F[0-9a-f]{8}|puan:[a-z_]+|portfoy:[a-z_]+)$")
 _OPTION_IDS = re.compile(r"\b(?:deposit|time_deposit|fund|etf|stock):\S+")
@@ -69,6 +73,7 @@ class _Index:
         self.f_owner: dict[str, str] = {}
         self.f_nums: dict[str, set[float]] = {}
         self.f_dates: dict[str, set[date]] = {}
+        self.f_ok: set[str] = set()                  # A2: findings the RM confirmed
         self.portfoy: dict[str, tuple[set[float], bool]] = {}
         for oid, c in self.cands.items():
             for eid, row in c.get("kanitlar", {}).items():
@@ -90,6 +95,8 @@ class _Index:
         for oid, block in pack.get("arastirma", {}).items():
             for f in (*block.get("bulgular", ()), *block.get("haberler", ())):
                 self.f_owner[f["id"]] = oid
+                if f.get("dogrulama") == CONFIRMED:
+                    self.f_ok.add(f["id"])
                 self.f_nums[f["id"]] = {v for v, _ in numbers_in(f["metin"])}
                 self.f_dates[f["id"]] = dates_in(f["metin"]) | (
                     {_date(f["tarih"])} if _date(f.get("tarih", "")) else set())
@@ -153,7 +160,7 @@ def _check_reason(oid: str, raw: Any, idx: _Index, phrases: Sequence[str],
         problems.append(f"{oid}: reason without a citation: \"{text[:60]}\"")
     nums: set[float] = set()
     dates: set[date] = set()
-    estimate = web = False
+    estimate = web = confirmed = False
     for c in cites:
         if not _CITE.match(c):
             problems.append(f"{oid}: bad citation {c!r} (use E…, F…, puan:<part>, portfoy:<class>)")
@@ -168,7 +175,10 @@ def _check_reason(oid: str, raw: Any, idx: _Index, phrases: Sequence[str],
                 problems.append(f"{oid}: unknown finding id {c}")
             elif owner != oid:
                 problems.append(f"{oid}: finding {c} does not belong to {oid} (it is of {owner})")
-            web = True
+            if c in idx.f_ok:
+                confirmed = True
+            else:
+                web = True
             nums |= idx.f_nums.get(c, set())
             dates |= idx.f_dates.get(c, set())
         elif c.startswith("puan:"):
@@ -198,14 +208,15 @@ def _check_reason(oid: str, raw: Any, idx: _Index, phrases: Sequence[str],
             problems.append(f"{oid}: forbidden phrase \"{p}\": \"{text[:60]}\"")
     if len(problems) > n:
         return None
-    return AgentReason(text, tuple(cites),
-                       tuple(labels[k] for k, on in (("estimate", estimate), ("web", web)) if on))
+    on = {"estimate": estimate, "web": web, "web_confirmed": confirmed}
+    return AgentReason(text, tuple(cites), tuple(labels[k] for k in LABEL_ORDER if on[k]))
 
 
 def _pick(oid: str, reasons: list[AgentReason], labels: Mapping[str, str]) -> AgentPick:
     return AgentPick(oid, tuple(reasons),
                      uses_estimate=any(labels["estimate"] in r.labels for r in reasons),
-                     uses_web=any(labels["web"] in r.labels for r in reasons))
+                     uses_web=any(labels["web"] in r.labels or labels["web_confirmed"] in r.labels
+                                  for r in reasons))
 
 
 def _fits(ids: Sequence[str], cands: Mapping[str, Mapping], per_class: int | None,
@@ -252,7 +263,7 @@ def check_decision(raw: Mapping, pack: dict, decision_config: DecisionConfig,
                    words: Mapping[str, int] | None = None,
                    ) -> tuple[list[AgentPick], list[AgentPick], str, list[str]]:
     """(picks with labels, dropped, summary, problems); problems == [] means accepted."""
-    labels = labels or DEFAULT_LABELS.get(lang, DEFAULT_LABELS["TR"])
+    labels = {**DEFAULT_LABELS.get(lang, DEFAULT_LABELS["TR"]), **(labels or {})}
     words = {**DEFAULT_WORDS, **(words or {})}
     idx = _Index(pack)
     problems: list[str] = []

@@ -41,7 +41,7 @@ from typing import Any, Protocol
 from rmprep.agent.checks import check_decision
 from rmprep.agent.client import AgentClient, AgentError, AgentTurn, agent_client_from_env
 from rmprep.agent.config import AgentConfig, load_agent_config
-from rmprep.agent.pack import build_pack, candidates, finding_item
+from rmprep.agent.pack import MARKS, build_pack, candidates, finding_items, marks_hash
 from rmprep.agent.tools import TOOLS, karsilastir
 from rmprep.contracts import (
     TR_TZ,
@@ -210,6 +210,16 @@ NUMBER_RULE = {
            "you round a value, round the value of the data to one decimal."),
 }
 PROMPTS["a2"] = {lang: text + NUMBER_RULE[lang] for lang, text in PROMPTS["a1"].items()}
+# a3 (A2): the RM's marks on the research findings (spec 2026-10-15-rm-run-agent-design).
+MARKS_RULE = {
+    "TR": (' Araştırma bulgularında dogrulama alanı vardır: "RM doğruladı" = RM bulguyu '
+           'kontrol etti; "doğrulanmamış" = henüz incelenmedi, yanlış değil. Bir adayı '
+           'yalnızca bulguları RM tarafından doğrulandığı için tercih etme.'),
+    "EN": (' Research findings have the field dogrulama: "RM doğruladı" = the RM checked '
+           'the finding; "doğrulanmamış" = not reviewed yet, not wrong. Do not prefer a '
+           'candidate only because the RM confirmed its findings.'),
+}
+PROMPTS["a3"] = {lang: text + MARKS_RULE[lang] for lang, text in PROMPTS["a2"].items()}
 TASKS = {
     "TR": ("Görev: Veri paketindeki adaylardan bu müşteri için en uygun 3 ürünü seç. Gerekirse "
            "önce araçları kullan, sonra karar_ver'i çağır."),
@@ -230,9 +240,21 @@ class ResearchLike(Protocol):
 
 
 class _Fallback(Exception):
-    def __init__(self, reason: str):
+    """transient: a provider error, the time or the cost limit, an internal error;
+    such a fallback is not used again for the same key (a re-run tries again)."""
+
+    def __init__(self, reason: str, transient: bool = False):
         super().__init__(reason)
         self.reason = reason
+        self.transient = transient
+
+
+class _Stored(Exception):
+    """The decision of the same key (run, N, marks) is stored: no model call (A2)."""
+
+    def __init__(self, decision: AgentDecision):
+        super().__init__(decision.run_id)
+        self.decision = decision
 
 
 @dataclass
@@ -265,6 +287,8 @@ class _Run:
     result: DecisionResult
     lang: str
     nodes: list[_Node]
+    n: int = 10                                  # A2: the number of candidates (N)
+    marks_hash: str = ""                         # A2: set after node 2
     cost: float = 0.0
 
     @property
@@ -311,16 +335,28 @@ class AgentService:
 
     # --- public ------------------------------------------------------------------
 
-    def start(self, result: DecisionResult, evidence: EvidenceSet, lang: str = "TR") -> None:
-        """Starts the agent for a run if it has no decision yet (idempotent; returns at
-        once, the work runs in the pool). A run that is not ready, or no client: `off`."""
+    def check_n(self, n: object) -> int:
+        """A2: N, the number of candidates; None -> config.candidates; ValueError
+        outside 3..config.max_candidates or for a value that is not an integer."""
+        if n is None:
+            return self._config.candidates
+        if isinstance(n, bool) or not isinstance(n, int) or not (
+                3 <= n <= self._config.max_candidates):
+            raise ValueError(f"n must be an integer from 3 to {self._config.max_candidates}, "
+                             f"got {n!r}")
+        return n
+
+    def start(self, result: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
+              n: int | None = None) -> None:
+        """Starts the agent for a run with N candidates (A2: on the RM's request; returns
+        at once, the work runs in the pool). While a job of the run runs, a new start
+        does nothing (one job). The job uses the stored decision of the same run, N and
+        marks without a model call. A run that is not ready, or no client: `off`."""
+        n = self.check_n(n)
         rid = result.run_id
         with self._lock:
-            if rid in self._live or rid in self._jobs:
-                return
-            cached = self._cached(rid)
-            if cached is not None:
-                self._live[rid] = cached
+            job = self._jobs.get(rid)
+            if job is not None and not job.done():
                 return
             texts = TEXTS.get(lang, TEXTS["TR"])
             if result.state != DecisionState.READY:
@@ -330,13 +366,14 @@ class AgentService:
                 self._live[rid] = self._off(result, f"{texts['no_client']}: {self.off_reason}")
                 return
             run = _Run(result, lang, [_Node(i, label) for i, label
-                                      in zip(NODE_IDS, NODE_LABELS.get(lang, NODE_LABELS["TR"]))])
+                                      in zip(NODE_IDS, NODE_LABELS.get(lang, NODE_LABELS["TR"]))],
+                       n=n)
             self._live[rid] = self._snapshot(run)
             self._jobs[rid] = self._pool.submit(self._job, run, evidence)
 
     def status(self, run_id: str) -> AgentDecision | None:
-        """The current decision (running, done, fallback or off); None: never started
-        (and no stored decision of today)."""
+        """The latest decision of the run (running, done, fallback or off); None: never
+        started (and no stored decision of today)."""
         with self._lock:
             if run_id in self._live:
                 return self._live[run_id]
@@ -376,14 +413,19 @@ class AgentService:
     # --- the job -------------------------------------------------------------------
 
     def _job(self, run: _Run, evidence: EvidenceSet) -> None:
+        keep = True                     # write the decision under its key (N, marks)
         try:
             decision = self._decide(run, evidence)
+        except _Stored as s:
+            decision = s.decision
         except _Fallback as f:
             decision = self._fallback(run, f.reason)
+            keep = not f.transient
         except Exception as e:          # never crash the API; the engine's top 3 stays
             log.exception("agent run %s failed", run.result.run_id)
             decision = self._fallback(run, run.text["internal"].format(what=type(e).__name__))
-        self._store(decision)
+            keep = False
+        self._store(decision, keep)
 
     def _decide(self, run: _Run, evidence: EvidenceSet) -> AgentDecision:
         cfg, t, result = self._config, run.text, run.result
@@ -391,29 +433,40 @@ class AgentService:
         t0 = self._clock()
 
         n_cands.begin(self._now())
-        cands = candidates(result, cfg.candidates)
+        cands = candidates(result, run.n)
         n_cands.notes.append(t["candidates"].format(n=len(cands)))
         n_cands.end(self._now())
         self._publish(run)
         if len(cands) < 3:
             raise _Fallback(t["too_few"])
-        if self.spent_today() >= cfg.max_cost_usd_per_day:
-            raise _Fallback(t["limit"].format(limit=cfg.max_cost_usd_per_day))
 
         research = self._research_all(run, cands)
+        marks = self._marks()
+        ids = {o.option.option_id for o in cands}
+        run.marks_hash = marks_hash({k: v for k, v in research.items() if k in ids}, marks)
+        stored = self._stored(result.run_id, run.n, run.marks_hash)
+        if stored is not None:
+            raise _Stored(stored)
+        if self.spent_today() >= cfg.max_cost_usd_per_day:
+            raise _Fallback(t["limit"].format(limit=cfg.max_cost_usd_per_day), transient=True)
         pack = build_pack(result, evidence, self._decision_config, research, run.lang,
-                          n=cfg.candidates)
+                          n=run.n, marks=marks)
 
         n_analysis.begin(self._now())
         self._publish(run)
         system = PROMPTS[cfg.prompt_version].get(run.lang, PROMPTS[cfg.prompt_version]["TR"])
         system = system.format(k=cfg.max_tool_calls["karsilastir"],
                                a=cfg.max_tool_calls["arastir"], **cfg.words)
-        data = json.dumps(pack, ensure_ascii=False, separators=(",", ":"))
+        # A2: block 1 = the stable data (the cached prefix); block 2 = the research with
+        # the RM's marks and the task (it changes with the marks; after the cache mark)
+        stable = {k: v for k, v in pack.items() if k != "arastirma"}
+        data = json.dumps(stable, ensure_ascii=False, separators=(",", ":"))
+        found = json.dumps(pack["arastirma"], ensure_ascii=False, separators=(",", ":"))
+        task = TASKS.get(run.lang, TASKS["TR"])
         messages: list[dict] = [{"role": "user", "content": [
             {"type": "text", "text": f"<veri>\n{data}\n</veri>",
              "cache_control": {"type": "ephemeral"}},
-            {"type": "text", "text": TASKS.get(run.lang, TASKS["TR"])}]}]
+            {"type": "text", "text": f"<arastirma>\n{found}\n</arastirma>\n\n{task}"}]}]
         counts: Counter[str] = Counter()
         failures = 0
         while True:
@@ -422,11 +475,11 @@ class AgentService:
                 turn = self._client.step(system, messages, TOOLS)
             except AgentError as e:
                 n_analysis.end(self._now(), "failed")
-                raise _Fallback(t["error"].format(kind=e.kind)) from e
+                raise _Fallback(t["error"].format(kind=e.kind), transient=True) from e
             self._pay(run, n_analysis, turn)
             if self._clock() - t0 > cfg.timeout_s:
                 n_analysis.end(self._now(), "failed")
-                raise _Fallback(t["timeout"].format(s=cfg.timeout_s))
+                raise _Fallback(t["timeout"].format(s=cfg.timeout_s), transient=True)
             messages.append({"role": "assistant", "content": self._assistant_content(turn)})
             if not turn.calls:
                 failures += 1
@@ -496,10 +549,10 @@ class AgentService:
         cfg, t = self._config, run.text
         if self._clock() - t0 > cfg.timeout_s:
             run.nodes[2].end(self._now(), "failed")
-            raise _Fallback(t["timeout"].format(s=cfg.timeout_s))
+            raise _Fallback(t["timeout"].format(s=cfg.timeout_s), transient=True)
         if self.spent_today() >= cfg.max_cost_usd_per_day:
             run.nodes[2].end(self._now(), "failed")
-            raise _Fallback(t["limit"].format(limit=cfg.max_cost_usd_per_day))
+            raise _Fallback(t["limit"].format(limit=cfg.max_cost_usd_per_day), transient=True)
 
     def _research_all(self, run: _Run, cands) -> dict[str, ProductResearch]:
         """Node 2: all candidates researched first (fairness); one sub-node each."""
@@ -568,7 +621,7 @@ class AgentService:
             return {"hata": answer}, 0.0
         if answer.error:
             return {"hata": answer.error}, answer.cost_usd
-        items = [finding_item(oid, f) for f in answer.findings]
+        items = finding_items(oid, answer.findings, self._marks())
         block = pack["arastirma"].setdefault(oid, {"durum": "var", "neden": "", "bulgular": [],
                                                    "haberler": []})
         block["bulgular"] = [*block["bulgular"], *items]
@@ -624,8 +677,9 @@ class AgentService:
                              engine_top3=tuple(run.result.recommended),
                              nodes=tuple(n.freeze() for n in run.nodes), model=c.model,
                              prompt_version=c.prompt_version, cost_usd=round(run.cost, 6),
-                             created_at=self._now(), **({"picks": (), "dropped": (),
-                                                         "summary": ""} | kw))
+                             created_at=self._now(), n_candidates=run.n,
+                             marks_hash=run.marks_hash, **({"picks": (), "dropped": (),
+                                                            "summary": ""} | kw))
 
     def _snapshot(self, run: _Run) -> AgentDecision:
         return self._decision(run, "running")
@@ -653,33 +707,40 @@ class AgentService:
                              c.model, c.prompt_version, 0.0, self._now(), fallback_reason=reason)
 
     def _publish(self, run: _Run) -> None:
-        """The running state, live for `status` and on disk."""
+        """The running state, live for `status` (memory only: the files hold finished
+        decisions, so a restart never shows a stale running state)."""
         snap = self._snapshot(run)
         with self._lock:
             self._live[run.result.run_id] = snap
-        self._write(snap)
 
-    def _store(self, decision: AgentDecision) -> None:
+    def _store(self, decision: AgentDecision, keep: bool = True) -> None:
+        """The latest decision of the run (<run_id>.json, read by `status`) and, unless
+        it is a transient fallback, the decision of its key (<run_id>.n<N>.<marks>.json)."""
         with self._lock:
             self._live[decision.run_id] = decision
-        self._write(decision)
+        self._write(self._path(decision.run_id), decision)
+        if keep and decision.state in ("done", "fallback"):
+            self._write(self._key_path(decision.run_id, decision.n_candidates,
+                                       decision.marks_hash), decision)
 
     def _path(self, run_id: str) -> Path:
         return self.cache_root / f"{run_id}.json"
 
-    def _write(self, decision: AgentDecision) -> None:
+    def _key_path(self, run_id: str, n: int, mh: str) -> Path:
+        return self.cache_root / f"{run_id}.n{n}.{mh or 'nomarks'}.json"
+
+    def _write(self, path: Path, decision: AgentDecision) -> None:
         try:
             self.cache_root.mkdir(parents=True, exist_ok=True)
-            self._path(decision.run_id).write_text(
-                json.dumps(decision.to_dict(), ensure_ascii=False, indent=1) + "\n",
-                encoding="utf-8", newline="\n")
+            path.write_text(json.dumps(decision.to_dict(), ensure_ascii=False, indent=1) + "\n",
+                            encoding="utf-8", newline="\n")
         except OSError:
             log.warning("cannot write the agent decision of %s", decision.run_id)
 
-    def _cached(self, run_id: str) -> AgentDecision | None:
+    def _read(self, path: Path) -> AgentDecision | None:
         """A stored done or fallback decision of today with this prompt version and model."""
         try:
-            d = AgentDecision.from_dict(json.loads(self._path(run_id).read_text(encoding="utf-8")))
+            d = AgentDecision.from_dict(json.loads(path.read_text(encoding="utf-8")))
         except (OSError, ValueError, KeyError, TypeError):
             return None
         c = self._config
@@ -687,6 +748,27 @@ class AgentService:
                 and d.model == c.model and d.created_at.date() == self._now().date()):
             return d
         return None
+
+    def _cached(self, run_id: str) -> AgentDecision | None:
+        """The latest stored decision of the run (status after a restart)."""
+        return self._read(self._path(run_id))
+
+    def _stored(self, run_id: str, n: int, mh: str) -> AgentDecision | None:
+        """The stored decision of the same run, N and marks (the A2 cache key)."""
+        d = self._read(self._key_path(run_id, n, mh))
+        return d if d is not None and d.n_candidates == n and d.marks_hash == mh else None
+
+    def _marks(self) -> dict[str, str]:
+        """The RM's marks (R4: finding id -> ok | wrong); none when the research has no
+        marks or they cannot be read."""
+        fn = getattr(self._research, "marks", None) if self._research is not None else None
+        if not callable(fn):
+            return {}
+        try:
+            return {k: v for k, v in dict(fn()).items() if v in MARKS}
+        except Exception as e:
+            log.warning("cannot read the research marks: %s", type(e).__name__)
+            return {}
 
 
 def agent_from_root(root: Path | str, research: ResearchLike | None,

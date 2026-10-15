@@ -92,13 +92,14 @@ class FakeResearch:
 
     def __init__(self, texts: dict[str, str] | None = None, errors: set[str] = frozenset(),
                  answer: QuestionAnswer | str | None = None, raise_many: bool = False,
-                 block=None):
+                 block=None, marks: dict[str, str] | None = None):
         self.texts = texts or {}
         self.errors = set(errors)
         self.answer = answer
         self.raise_many = raise_many
         self.block = block                      # a threading.Event: research_many waits for it
         self.personas: list = []
+        self.marks_map = marks if marks is not None else {}     # finding id -> ok | wrong (R4)
         self.many_calls: list[list[str]] = []
         self.questions: list[tuple[str, str]] = []
 
@@ -122,6 +123,9 @@ class FakeResearch:
                 news=(finding("Fon büyüklüğü 2025'te %12 arttı.", "https://www.bloomberght.com/a",
                               "haber", "2026-09-30"),), news_days=90))
         return out
+
+    def marks(self):
+        return dict(self.marks_map)
 
     def ask_product(self, option, question, lang, persona=None):
         self.questions.append((option.option_id, question))
@@ -174,6 +178,17 @@ def call(name: str, **inp) -> ToolCall:
 
 def turn(*calls: ToolCall, inp: int = 1000, out: int = 200) -> AgentTurn:
     return AgentTurn(tuple(calls), inp, out, "tool_use" if calls else "end_turn", MODEL)
+
+
+def pack_of(messages: list[dict]) -> dict:
+    """The data pack of the first user message: block 1 <veri> (stable), block 2
+    <arastirma> (research with the marks) and the task text."""
+    blocks = messages[0]["content"]
+    pack = json.loads(blocks[0]["text"].removeprefix("<veri>\n").removesuffix("\n</veri>"))
+    text = blocks[1]["text"]
+    start = text.index("<arastirma>\n") + len("<arastirma>\n")
+    pack["arastirma"] = json.loads(text[start:text.index("\n</arastirma>")])
+    return pack
 
 
 def cand_ids(result: DecisionResult) -> list[str]:
