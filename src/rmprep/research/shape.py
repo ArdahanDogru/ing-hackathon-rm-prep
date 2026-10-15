@@ -45,9 +45,12 @@ def _has_known_term(text: str, terms: Iterable[str]) -> bool:
 
 def _tidy(items: Sequence[Finding], cfg: ShapeConfig, cap: int, *,
           known: bool) -> tuple[list[Finding], list[str]]:
-    """Known-fact filter (highlights only), repeat filter, word cut, cap; check lines."""
+    """Known-fact filter (highlights only), repeat filter, one company bullet (highlights
+    only; it counts after the first two filters, so a known-fact company bullet does not
+    block a valid one), word cut, cap; check lines."""
     kept: list[Finding] = []
-    n_known = n_repeat = 0
+    n_known = n_repeat = n_company = 0
+    company_seen = False
     for f in items:
         if known and _has_known_term(f.text, cfg.known_terms):
             n_known += 1
@@ -55,25 +58,20 @@ def _tidy(items: Sequence[Finding], cfg: ShapeConfig, cap: int, *,
         if any(_jaccard(_tokens(f.text), _tokens(g.text)) >= cfg.repeat_jaccard for g in kept):
             n_repeat += 1
             continue
+        if known and f.topic in COMPANY_TOPICS:
+            if company_seen:
+                n_company += 1
+                continue
+            company_seen = True
         kept.append(dataclasses.replace(f, text=cut_words(f.text, cfg.bullet_max_words)))
     checks = []
     if n_known:
         checks.append(f"{n_known} bullets dropped (known facts)")
     if n_repeat:
         checks.append(f"{n_repeat} bullets dropped (repeats)")
+    if n_company:
+        checks.append(f"{n_company} company bullets dropped (one allowed)")
     return kept[:cap], checks + ([f"{len(kept) - cap} bullets over the cap"] if len(kept) > cap else [])
-
-
-def _one_company_bullet(items: Sequence[Finding]) -> tuple[list[Finding], int]:
-    out, seen, dropped = [], False, 0
-    for f in items:
-        if f.topic in COMPANY_TOPICS:
-            if seen:
-                dropped += 1
-                continue
-            seen = True
-        out.append(f)
-    return out, dropped
 
 
 def _in_window(f: Finding, start: date, today: date) -> bool:
@@ -88,10 +86,7 @@ def shape_product(p: ProductResearch, cfg: ShapeConfig, today: date) -> ProductR
     if p.error:
         return dataclasses.replace(p, summary="", news_days=cfg.news_days, version=SHAPE_VERSION)
     checks = list(p.checks)
-    highlights, n_company = _one_company_bullet(p.findings)
-    if n_company:
-        checks.append(f"{n_company} company bullets dropped (one allowed)")
-    highlights, more = _tidy(highlights, cfg, cfg.highlights_max, known=True)
+    highlights, more = _tidy(p.findings, cfg, cfg.highlights_max, known=True)
     checks += more
     start = today - timedelta(days=cfg.news_days)
     dated = [n for n in p.news if _in_window(n, start, today)]

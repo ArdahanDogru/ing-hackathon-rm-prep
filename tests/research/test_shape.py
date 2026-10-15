@@ -86,3 +86,15 @@ def test_news_keep_known_terms_and_answers_keep_fees():
 def test_an_error_product_keeps_its_error():
     p = shape_product(ProductResearch("fund:AIS", "AIS", "", "", (), "TR", "", NOW, error="daily limit"), CFG, TODAY)
     assert p.error == "daily limit" and p.news_days == 90 and p.version == 2
+
+
+def test_a_known_fact_company_bullet_does_not_block_a_valid_one():
+    p = shape_product(product([
+        f("Fon, vadesi kısa likit araçlara yatırım yapar."),
+        f("Fonun kurucusu Ak Portföy Yönetimi A.Ş.'dir.", "yonetici_sirket"),
+        f("Ak Portföy bir Akbank iştirakidir ve 2000 yılında kuruldu.", "yonetici_sirket"),
+    ]), CFG, TODAY)
+    assert [x.topic for x in p.findings] == ["strateji", "yonetici_sirket"]
+    assert p.findings[1].text.startswith("Ak Portföy bir Akbank")
+    assert "1 bullets dropped (known facts)" in p.checks
+    assert not any("company bullets dropped" in c for c in p.checks)
