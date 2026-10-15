@@ -18,8 +18,10 @@ class QuestionRequest(BaseModel):
     lang: str = "TR"
 
 
-def research_router(service: ResearchService, get_run: Callable[[str], DecisionResult]) -> APIRouter:
-    """get_run: the app's run registry (404 for an unknown run)."""
+def research_router(service: ResearchService, get_run: Callable[[str], DecisionResult],
+                    log: Callable[..., None] | None = None) -> APIRouter:
+    """get_run: the app's run registry (404 for an unknown run). log: the RM action log
+    (L1): every research question, also a refused one."""
     router = APIRouter()
 
     def _lang(lang: str) -> str:
@@ -37,9 +39,18 @@ def research_router(service: ResearchService, get_run: Callable[[str], DecisionR
     @router.post("/api/runs/{run_id}/research/questions")
     def ask(run_id: str, req: QuestionRequest):
         result = get_run(run_id)
+        lang = _lang(req.lang)
         try:
-            return service.ask(result, req.question, _lang(req.lang)).to_dict()
+            answer = service.ask(result, req.question, lang)
         except QuestionRefused as e:
+            if log is not None:
+                log("research_question", run=result, lang=lang,
+                    details={"question": req.question, "refused": True, "findings": 0})
             raise HTTPException(422, str(e)) from e
+        if log is not None:
+            log("research_question", run=result, lang=lang,
+                details={"question": req.question, "refused": False,
+                         "findings": len(getattr(answer, "findings", ()) or ())})
+        return answer.to_dict()
 
     return router

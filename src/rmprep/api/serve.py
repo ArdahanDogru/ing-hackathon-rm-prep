@@ -35,9 +35,12 @@ def build_app(root: Path, personas_dir: Path | None = None):
     if (Path(root) / "config" / "agent.yaml").is_file():
         from rmprep.agent.service import agent_from_root
         agent = agent_from_root(root, research)
+    # L1: every decision and edit of the RM (spec 2026-10-15-rm-action-log-design)
+    from rmprep.api.action_log import ActionLog
+    action_log = ActionLog(Path(root) / "data" / "logs" / "rm-actions")
     return create_app(backend, views=views, static_dir=dist,
                       ingest=IngestControl(Paths(Path(root).resolve())), research=research,
-                      agent=agent)
+                      agent=agent, action_log=action_log)
 
 
 def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None) -> None:

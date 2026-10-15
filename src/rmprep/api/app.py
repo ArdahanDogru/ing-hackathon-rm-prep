@@ -52,12 +52,13 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
                glossary_path: Path | str = GLOSSARY,
                static_dir: Path | None = None,
                ingest: IngestControl | None = None,
-               research=None, agent=None) -> FastAPI:
+               research=None, agent=None, action_log=None) -> FastAPI:
     """static_dir: the built web app (web/dist); its index.html answers every
     non-API path, so the client-side routes (/meeting/..., /print/...) work.
     ingest: the data age and refresh (W14); None = /api/ingest answers 404.
     research: a rmprep.research.service.ResearchService (docs/research.md); None = no research routes.
-    agent: a rmprep.agent.service.AgentService (docs/agent.md); None = the agent route answers "off"."""
+    agent: a rmprep.agent.service.AgentService (docs/agent.md); None = the agent route answers "off".
+    action_log: a rmprep.api.action_log.ActionLog (L1); None = no RM action log."""
     app = FastAPI(title="rmprep", docs_url="/api/docs", openapi_url="/api/openapi.json")
     runs: dict[str, DecisionResult] = {}
     texts: dict[tuple[str, str], NarrativeDraft] = {}   # (run_id, lang) -> last draft / approved text
@@ -86,6 +87,18 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         if views is not None:
             out.update(views(result))
         return out
+
+    def _log(action: str, **kw) -> None:
+        """L1: one RM action record; nothing without an action log."""
+        if action_log is not None:
+            action_log.append(action, **kw)
+
+    def _block_text(d: NarrativeDraft, block_id: str) -> str:
+        """L1: the text of a block as the RM sees it (the edit, "" when deleted, else
+        the sentences of the draft)."""
+        if block_id in d.rm_edits:
+            return d.rm_edits[block_id]
+        return edits.block_text(d, block_id)
 
     def _run(run_id: str) -> DecisionResult:
         if run_id not in runs:
@@ -126,7 +139,12 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     def new_run(req: schemas.RunRequest):
         persona = Persona.from_dict(req.persona)
         snap = req.snapshot_id or backend.list_snapshots()[0]
-        return _view(backend.decide(persona, snap, frozenset(req.exclude_sources)))
+        result = backend.decide(persona, snap, frozenset(req.exclude_sources))
+        view = _view(result)
+        _log("run_opened", run=result, details={
+            "test_run": view["test_run"], "persona_changes": view["persona_changes"],
+            "excluded_sources": sorted(result.excluded_sources), "state": result.state.value})
+        return view
 
     @app.get("/api/runs/{run_id}")
     def get_run(run_id: str):
@@ -135,21 +153,41 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     @app.post("/api/runs/{run_id}/answers")
     def answer(run_id: str, req: schemas.AnswerRequest):
         _run(run_id)
-        return _view(backend.answer_question(run_id, req.question_id, req.answer))
+        new = backend.answer_question(run_id, req.question_id, req.answer)
+        view = _view(new)
+        _log("question_answered", run=new, run_id=run_id, new_run_id=new.run_id,
+             details={"question_id": req.question_id, "answer": req.answer})
+        return view
 
     @app.post("/api/runs/{run_id}/holdings")
     def holdings(run_id: str, req: schemas.HoldingsRequest):
         """v1.10 (W18): a new run with the RM's split; a bad split -> 422 (ValueError)."""
         _run(run_id)
-        return _view(backend.set_holdings(run_id, req.shares, req.origin))
+        new = backend.set_holdings(run_id, req.shares, req.origin)
+        view = _view(new)
+        if req.shares is None:
+            _log("holdings_reset", run=new, run_id=run_id, new_run_id=new.run_id)
+        else:
+            _log("holdings_set", run=new, run_id=run_id, new_run_id=new.run_id,
+                 details={"shares": dict(new.holdings_input.shares), "origin": req.origin})
+        return view
 
     @app.post("/api/runs/{run_id}/approval")
     def approval(run_id: str, req: schemas.ApprovalRequest):
         if _changes(_run(run_id).persona):      # every backend, not only RealBackend
             raise ValueError("a test run (edited persona) cannot be approved or rejected")
-        view = _view(backend.approve(run_id, RmStatus(req.status), req.note, tuple(req.selected)))
+        before = _run(run_id)
+        decided = backend.approve(run_id, RmStatus(req.status), req.note, tuple(req.selected))
+        view = _view(decided)
         for lang in NARRATIVE_LANGS:              # the texts of an earlier decision no longer apply
             texts.pop((run_id, lang), None)
+        d = agent.status(run_id) if _agent_on() else None
+        _log("decision_approved" if decided.rm_status == RmStatus.APPROVED else "decision_rejected",
+             run=decided, details={
+                 "engine_top3": list(before.recommended),
+                 "agent_top3": [p.option_id for p in d.picks] if d is not None else [],
+                 "agent_state": d.state if d is not None else "none",
+                 "selected": list(req.selected), "note": req.note})
         return view
 
     @app.put("/api/runs/{run_id}/notes")
@@ -157,6 +195,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         _run(run_id)
         view = _view(backend.annotate(run_id, req.note, req.option_notes))
         _save_card(run_id, "TR")
+        _log("notes_saved", run=_run(run_id), details={"note": req.note,
+                                                       "option_notes": dict(req.option_notes)})
         return view
 
     # --- meeting text, card, evidence, glossary ----------------------------------
@@ -236,8 +276,19 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     @app.put("/api/runs/{run_id}/narrative/{lang}/blocks/{block_id}")
     def edit_block(run_id: str, lang: str, block_id: str, req: schemas.BlockRequest):
-        _run(run_id)
-        return _text_view(backend.edit_narrative(run_id, _lang(lang), block_id, req.text))
+        result = _run(run_id)
+        lang = _lang(lang)
+        old = texts.get((run_id, lang))
+        before = _block_text(old, block_id) if old is not None else ""
+        d = backend.edit_narrative(run_id, lang, block_id, req.text)
+        view = _text_view(d)
+        after = _block_text(d, block_id)
+        action = ("text_block_restored" if req.text is None else
+                  "text_block_deleted" if not req.text.strip() else "text_block_edited")
+        _log(action, run=result, lang=lang, details={
+            "block_id": block_id, "before": before, "after": after,
+            "findings": list(d.edit_checks.get(block_id, ()))})
+        return view
 
     @app.get("/api/runs/{run_id}/brief")
     def brief(run_id: str, lang: str = "TR"):
@@ -293,7 +344,15 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     @app.get("/api/runs/{run_id}/card.md")
     def card_md(run_id: str, lang: str = "TR"):
-        md = _save_card(run_id, _lang(lang), strict=True)
+        lang = _lang(lang)
+        try:
+            md = _save_card(run_id, lang, strict=True)
+        except ValueError:
+            _log("card_downloaded", run=runs.get(run_id), run_id=run_id, lang=lang,
+                 details={"format": "md", "has_text": False, "refused": True})
+            raise
+        _log("card_downloaded", run=_run(run_id), lang=lang, details={
+            "format": "md", "has_text": f"## {card.t('nar_title', lang)}" in md, "refused": False})
         return Response(md, media_type="text/markdown; charset=utf-8")
 
     @app.get("/api/evidence/{snapshot_id}/{evidence_id}")
@@ -319,7 +378,7 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     if research is not None:      # before the web app's catch-all route
         from rmprep.api.research import research_router
-        app.include_router(research_router(research, _run))
+        app.include_router(research_router(research, _run, log=_log))
 
     if static_dir is not None:
         static = Path(static_dir)

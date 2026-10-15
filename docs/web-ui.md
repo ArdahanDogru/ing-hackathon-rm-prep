@@ -486,6 +486,22 @@ Approved by the user 2026-10-15 ("the button is just detrimental").
 - The RM approval of the recommendation ("Onayla ve metni hazırla") stays, so
   the record still shows the RM's approval (brief, traceability).
 
+### RM action log (L1, 2026-10-15)
+
+Approved by the user 2026-10-15 (spec
+`docs/superpowers/specs/2026-10-15-rm-action-log-design.md`). The API writes every
+decision and edit of the RM as one JSON line to
+`data/logs/rm-actions/<YYYY-MM-DD>.jsonl` (server side; no web change; nothing to
+an LLM or an outside service): `run_opened`, `question_answered`, `holdings_set`,
+`holdings_reset`, `decision_approved` / `decision_rejected` (the engine's top 3,
+the agent's top 3 and state, the RM's choice, the note), `notes_saved`,
+`text_block_edited` / `_deleted` / `_restored` (block, text before and after,
+findings), `card_downloaded` (.md; also when refused), `research_question` (also
+when refused). The PDF print is not logged (the server cannot tell it from a page
+view). A failed write never changes the action. **KVKK:** the records can contain
+the RM's notes and edited text; with the synthetic personas this is acceptable,
+with real client data a KVKK review is required before the log is kept or used.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

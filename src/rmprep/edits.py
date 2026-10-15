@@ -53,6 +53,14 @@ def _block_of(key: str, i: int, s: NarrativeSentence) -> str | None:
     return None
 
 
+def block_text(d: NarrativeDraft, block_id: str) -> str:
+    """The original plain text of a block (L1 action log; the narrator's rule when present)."""
+    if _narrator_blocks is not None:
+        return _narrator_blocks.block_text(d, block_id)
+    return " ".join(s.text for sec in d.sections for i, s in enumerate(sec.sentences)
+                    if _block_of(sec.key, i, s) == block_id)
+
+
 def apply_edits(d: NarrativeDraft) -> NarrativeDraft:
     """The draft with each edited block written as one sentence (rm_edits then
     empty), for any renderer that does not know the edits. The narrator's own
