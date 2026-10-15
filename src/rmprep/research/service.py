@@ -96,10 +96,10 @@ class ResearchService:
 
     def status(self, result: DecisionResult, lang: str) -> dict:
         """{"state": "off", "reason"} | {"state": "running"} |
-        {"state": "ready", "products": [...], "candidates": [...], "questions": [...]}
-        (JSON-ready). `products` are the run's top products; `candidates` are its other
-        researchable options that already have research today (never started here). Every
-        finding and news item of both has "mark": "ok" | "wrong" | None."""
+        {"state": "ready", "products": [...], "questions": [...]} (JSON-ready). `products`
+        holds the run's top products (recommended order), then its other researchable
+        options that already have research today (the run's option order; never started
+        here). Every finding and news item has "mark": "ok" | "wrong" | None."""
         if not self._providers:
             return {"state": "off", "reason": self._off_reason}
         day = self._now().date()
@@ -109,8 +109,8 @@ class ResearchService:
         marks = self.marks(day)
         top = {o.option_id for _, o in jobs}
         return {"state": "ready",
-                "products": [_marked(self._job_result(j, o, lang), marks) for j, o in jobs],
-                "candidates": self._candidates(result, lang, day, top, marks),
+                "products": ([_marked(self._job_result(j, o, lang), marks) for j, o in jobs]
+                             + self._candidates(result, lang, day, top, marks)),
                 "questions": [q.to_dict() for q in self.questions(result.run_id, lang)]}
 
     def _candidates(self, result: DecisionResult, lang: str, day: date, top: set[str],

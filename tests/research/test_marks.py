@@ -1,5 +1,5 @@
-"""R4: RM marks on research bullets (per finding id and Turkish day) and the candidates
-in the run's research status (no network)."""
+"""R4: RM marks on research bullets (per finding id and Turkish day) and the other candidates
+(entries of `products` after the top 3) in the run's research status (no network)."""
 
 import dataclasses
 import json
@@ -143,8 +143,13 @@ def test_answers_to_questions_carry_no_mark(tmp_path):
 ONE = ("fund:BBF",)        # the run's top 3 holds one product; AAL, AKE, ABU are the others
 
 
-def candidate_ids(st):
-    return [c["option_id"] for c in st["candidates"]]
+def others(st, top=1):
+    """The candidates: the entries of `products` after the run's top products."""
+    return st["products"][top:]
+
+
+def candidate_ids(st, top=1):
+    return [c["option_id"] for c in others(st, top)]
 
 
 def test_candidates_are_the_other_researched_options_in_display_order(tmp_path):
@@ -154,20 +159,24 @@ def test_candidates_are_the_other_researched_options_in_display_order(tmp_path):
     s.research_many([fund("BBF"), fund("ABU"), fund("AAL")], "TR")
     st = s.status(result, "TR")
     assert st["state"] == "ready"
-    assert [x["option_id"] for x in st["products"]] == ["fund:BBF"]
-    assert candidate_ids(st) == ["fund:AAL", "fund:ABU"]            # the run's option order
-    assert all("mark" in f and f["mark"] is None for c in st["candidates"] for f in c["findings"] + c["news"])
-    first = st["candidates"][0]
-    assert set(first) == set(st["products"][0])                      # the shape of `products`
+    assert "candidates" not in st
+    assert [x["option_id"] for x in st["products"][:1]] == ["fund:BBF"]      # the top product first
+    assert candidate_ids(st) == ["fund:AAL", "fund:ABU"]            # then the run's option order
+    assert all("mark" in f and f["mark"] is None for c in st["products"] for f in c["findings"] + c["news"])
+    first = others(st)[0]
+    assert set(first) == set(st["products"][0])                      # one shape
     s.set_mark(first["findings"][0]["id"], "ok", result.run_id, first["option_id"])
-    assert s.status(result, "TR")["candidates"][0]["findings"][0]["mark"] == "ok"
+    assert others(s.status(result, "TR"))[0]["findings"][0]["mark"] == "ok"
 
 
 def test_the_top_products_are_not_candidates(tmp_path):
     s = service(tmp_path, FakeProvider(), workers=3)
     st = ready_status(s, ready_result())             # BBF, AAL, AKE
     assert [x["option_id"] for x in st["products"]] == ["fund:BBF", "fund:AAL", "fund:AKE"]
-    assert st["candidates"] == []
+    assert candidate_ids(st, 3) == []
+    s.research_many([fund("ABU")], "TR")
+    st = s.status(ready_result(), "TR")      # the top 3 in recommended order, then the candidate
+    assert [x["option_id"] for x in st["products"]] == ["fund:BBF", "fund:AAL", "fund:AKE", "fund:ABU"]
 
 
 def test_an_option_researched_in_another_run_appears(tmp_path):
@@ -186,7 +195,7 @@ def test_no_research_today_means_no_candidate_and_no_call(tmp_path):
     s.research_many([fund("BBF")], "TR")
     n = len(p.calls)
     st = s.status(ready_result(ONE), "TR")
-    assert st["candidates"] == [] and len(p.calls) == n
+    assert candidate_ids(st) == [] and len(p.calls) == n
     ready_status(service(tmp_path, p), ready_result(ONE))
     assert len(p.calls) == n
 
@@ -195,7 +204,7 @@ def test_other_language_and_other_day_are_no_candidates(tmp_path):
     p = FakeProvider()
     service(tmp_path, p).research_many([fund("AAL")], "EN")
     service(tmp_path, p, now=NOW - timedelta(days=1)).research_many([fund("AKE")], "TR")
-    assert ready_status(service(tmp_path, p), ready_result(ONE))["candidates"] == []
+    assert candidate_ids(ready_status(service(tmp_path, p), ready_result(ONE))) == []
 
 
 def test_a_running_candidate_is_left_out_and_a_failed_one_shows_its_error(tmp_path):
@@ -224,7 +233,7 @@ def test_a_running_candidate_is_left_out_and_a_failed_one_shows_its_error(tmp_pa
     bad.start(result)
     bad.wait()
     bad.research_many([fund("AKE")], "TR")
-    [c] = bad.status(result, "TR")["candidates"]
+    [c] = others(bad.status(result, "TR"))
     assert c["option_id"] == "fund:AKE" and c["error"] == "exa: credit"
 
 
@@ -235,7 +244,7 @@ def test_a_new_service_shows_the_candidates_from_the_cache_files(tmp_path):
     fresh = service(tmp_path, fresh_provider)
     st = ready_status(fresh, ready_result(ONE))
     assert st["state"] == "ready" and candidate_ids(st) == ["fund:AAL", "fund:ABU"]
-    assert isinstance(ProductResearch.from_dict({k: v for k, v in st["candidates"][0].items()}),
+    assert isinstance(ProductResearch.from_dict(dict(others(st)[0])),
                       ProductResearch)
     assert [c[1] for c in fresh_provider.calls] == ["fund:BBF"]      # only the top product is started
     assert list(fresh._jobs) == [("fund:BBF", "TR", TODAY)]
@@ -250,4 +259,4 @@ def test_a_broken_cache_file_is_no_candidate(tmp_path):
 
 def test_status_off_has_no_candidates(tmp_path):
     st = service(tmp_path).status(ready_result(ONE), "TR")
-    assert st["state"] == "off" and "candidates" not in st
+    assert st["state"] == "off" and "candidates" not in st and "products" not in st
