@@ -133,7 +133,11 @@ const HEADING = "mt-2 text-xs font-bold uppercase tracking-[0.06em] text-muted";
 
 function ProductBlock({ p }: { p: ProductResearch }) {
   const t = useT();
-  const groups = [p.news, p.findings];
+  // No news section without a news search (news_days 0: the Claude fallback), and no crash on a payload without news.
+  const showNews = (p.news_days ?? 0) > 0;
+  const news = showNews ? (p.news ?? []) : [];
+  const findings = p.findings ?? [];
+  const groups = [news, findings];
   const index = sourceIndex(groups);
   return (
     <article data-testid="research-product" className="rounded-xl bg-[#F7F9FC] px-4 py-3">
@@ -145,14 +149,18 @@ function ProductBlock({ p }: { p: ProductResearch }) {
         <ErrorLine error={p.error} />
       ) : (
         <>
-          <h4 className={HEADING}>{t("researchNews")}</h4>
-          {p.news.length > 0 ? (
-            <Bullets items={p.news} index={index} dated />
-          ) : (
-            <p className="text-sm text-muted">{fill(t("researchNoNews"), { n: p.news_days })}</p>
+          {showNews && (
+            <>
+              <h4 className={HEADING}>{t("researchNews")}</h4>
+              {news.length > 0 ? (
+                <Bullets items={news} index={index} dated />
+              ) : (
+                <p className="text-sm text-muted">{fill(t("researchNoNews"), { n: p.news_days })}</p>
+              )}
+            </>
           )}
           <h4 className={HEADING}>{t("researchHighlights")}</h4>
-          {p.findings.length > 0 ? <Bullets items={p.findings} index={index} /> : <p className="text-sm text-muted">{t("researchNoFindings")}</p>}
+          {findings.length > 0 ? <Bullets items={findings} index={index} /> : <p className="text-sm text-muted">{t("researchNoFindings")}</p>}
           <SourceList sources={distinctSources(groups)} />
         </>
       )}

@@ -104,6 +104,24 @@ test("no news gives the no-news line with the window", async () => {
   expect(screen.getByText("Kaynaklar (3)")).toBeInTheDocument();
 });
 
+test("a product without a news field does not crash and shows its highlights", async () => {
+  const p = product() as Partial<ProductResearch>;
+  delete p.news;
+  vi.spyOn(api, "research").mockResolvedValue(ready([p as ProductResearch]));
+  panel();
+  expect(await screen.findByText(/Fon kısa vadeli borçlanma araçlarına yatırım yapar\./)).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Öne çıkanlar" })).toBeInTheDocument();
+});
+
+test("no news search (news_days 0) shows no news section, only the highlights", async () => {
+  vi.spyOn(api, "research").mockResolvedValue(ready([product({ news: [], news_days: 0 })]));
+  panel();
+  expect(await screen.findByRole("heading", { name: "Öne çıkanlar" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Son haberler" })).toBeNull();
+  expect(screen.queryByText(/haber bulunamadı/)).toBeNull();
+  expect(screen.getByText(/Getiri faiz oranına duyarlıdır\./)).toBeInTheDocument();
+});
+
 test("only a low-confidence bullet shows the mark", async () => {
   const findings = [
     finding("Düşük bilgi.", [src(NUROL)], { confidence: "low" }),
