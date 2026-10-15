@@ -4,6 +4,7 @@ import gzip
 import io
 import json
 import re
+import urllib.parse
 import zipfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -324,6 +325,99 @@ def add_bist(config_raw: dict) -> dict:
     return config_raw
 
 
+# --- ING rate page (I14) ------------------------------------------------------------------------
+
+ING_URL = "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari"
+ING_PRODUCTS = ("E_TIME_DEPOSIT_ACCOUNT", "E_ORANGE_ACCOUNT_GROUP")
+TEST_ING_WEB = {
+    "adapter": "ing_web", "enabled": True, "on_failure": "previous",
+    "source_url": ING_URL,
+    "tos_note": "test copy of the ing_web source",
+    "url": ING_URL,
+    "user_agent": "rmprep-hackathon-prototype/0.1 (ING hackathon; test)",
+    "timeout_seconds": 30, "delay_seconds": 2,
+    "quantity": "deposit_rate",
+    "form": {"currency_field": "5575$DdlCurrencyType", "product_field": "5575$DdlProductList",
+             "send_target": "5575$BtnSend", "currency": "0", "no_product": "-1"},
+    "products": [
+        {"value": "E_TIME_DEPOSIT_ACCOUNT", "layout": "grid",
+         "entity": "ING e-Vadeli Mevduat, {row}, {column} TL",
+         "min_rows": 11, "min_columns": 8},
+        {"value": "E_ORANGE_ACCOUNT_GROUP", "layout": "balance",
+         "entity": "ING Turuncu Hesap {rate}, {balance}",
+         "balance_header": "Turuncu Hesap Bakiyesi (TL)",
+         "no_interest_column": "Faiz İşletilmeyecek Tutar (TL)",
+         "rates": {"Standart Faiz": "standart", "Hoş Geldin Faizi": "hoş geldin"},
+         "balance_labels": {"9.999,99 'e kadar": "0-9.999,99 TL",
+                            "35.000.000 üzeri": "35.000.000 TL üzeri"},
+         "min_rows": 14, "min_columns": 3},
+    ],
+}
+
+
+@functools.lru_cache(maxsize=None)
+def ing_page(step: str) -> str:
+    """A saved real response of 2026-10-16: "step1_get", "step2_currency" or
+    "step3_<product>" (with the table)."""
+    return gzip.decompress((FIXTURES / "ing_web" / f"{step}_20261016.html.gz").read_bytes()
+                           ).decode("utf-8")
+
+
+def ing_hidden(html: str) -> dict[str, str]:
+    return dict(re.findall(r'<input type="hidden" name="(__[A-Z]+)" id="__[A-Z]+" value="([^"]*)"',
+                           html))
+
+
+def add_ing_web(config_raw: dict) -> dict:
+    """config_raw with the I14 ing_web source."""
+    config_raw["sources"]["ing_web"] = copy.deepcopy(TEST_ING_WEB)
+    return config_raw
+
+
+class FakeIng:
+    """The ASP.NET form of the ING rate page, as checked on 2026-10-16: GET ->
+    step 1 page and a session cookie; POST of the currency postback -> step 2
+    page; POST of the send button with the step-2 __VIEWSTATE, the cookie and a
+    product -> that product's step-3 page (with the table). Anything else gives
+    the step-1 page again (no table), as the real site does. `pages` replaces
+    a step-3 page (product -> HTML); `status` forces an HTTP status."""
+
+    COOKIE = "ASP.NET_SessionId=test123"
+
+    def __init__(self, pages=None, status=None):
+        self.pages = pages or {}
+        self.status = status
+        self.requests: list[httpx.Request] = []
+        self.forms: list[dict[str, str]] = []
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        if self.status is not None:
+            return httpx.Response(self.status, headers={"Location": ING_URL + "?x=1"})
+        if request.method == "GET":
+            return httpx.Response(200, text=ing_page("step1_get"),
+                                  headers={"Set-Cookie": self.COOKIE + "; path=/"})
+        form = {k: v[0] for k, v in urllib.parse.parse_qs(
+            request.content.decode("ascii"), keep_blank_values=True).items()}
+        self.forms.append(form)
+        has_cookie = self.COOKIE in request.headers.get("cookie", "")
+        step1, step2 = ing_hidden(ing_page("step1_get")), ing_hidden(ing_page("step2_currency"))
+        f = TEST_ING_WEB["form"]
+        if (has_cookie and form.get("__EVENTTARGET") == f["currency_field"]
+                and form.get("__VIEWSTATE") == step1["__VIEWSTATE"]):
+            return httpx.Response(200, text=ing_page("step2_currency"))
+        product = form.get(f["product_field"])
+        if (has_cookie and form.get("__EVENTTARGET") == f["send_target"]
+                and form.get("__VIEWSTATE") == step2["__VIEWSTATE"]
+                and form.get(f["currency_field"]) == f["currency"] and product in ING_PRODUCTS):
+            page = self.pages.get(product) or ing_page(f"step3_{product}")
+            return httpx.Response(200, text=page)
+        return httpx.Response(200, text=ing_page("step1_get"))
+
+    def client(self) -> httpx.Client:
+        return httpx.Client(transport=httpx.MockTransport(self))
+
+
 class FakeEvds:
     """httpx transport that serves fixture files and records requests. Also
     serves the TEFAS web page (tefas_page=None -> HTTP 503 for it), the BYF
@@ -331,8 +425,9 @@ class FakeEvds:
     name -> ZIP; others -> HTTP 404)."""
 
     def __init__(self, status=200, body=None, error=None, tefas_page=b"default",
-                 detail_pages=None, byf_page=b"default", bist_files=None):
+                 detail_pages=None, byf_page=b"default", bist_files=None, ing=None):
         self.status, self.body, self.error = status, body, error
+        self.ing = ing or FakeIng()                 # the ING rate page (I14)
         self.bist_files = bist_files                # None -> _default_bist_files()
         self.tefas_page = tefas_web_page() if tefas_page == b"default" else tefas_page
         self.byf_page = tefas_web_page(TEFAS_BYF_FUNDS) if byf_page == b"default" else byf_page
@@ -342,6 +437,8 @@ class FakeEvds:
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
+        if request.url.host == "www.ing.com.tr":
+            return self.ing(request)
         if request.url.host == "www.borsaistanbul.com":
             files = _default_bist_files() if self.bist_files is None else self.bist_files
             data = files.get(request.url.path.rsplit("/", 1)[-1])

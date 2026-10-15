@@ -8,6 +8,7 @@ manifest copy and never re-reads the file.
 from __future__ import annotations
 
 import re
+import string
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -17,9 +18,11 @@ from urllib.parse import urlsplit
 import yaml
 
 CONFIG_VERSION = 1
-ADAPTERS = ("evds", "tefas", "tefas_web", "tefas_detail", "manual", "bist_bulletin")
+ADAPTERS = ("evds", "tefas", "tefas_web", "tefas_detail", "manual", "bist_bulletin", "ing_web")
 TEFAS_WEB_HOST = "www.tefas.gov.tr"
 BIST_HOST = "www.borsaistanbul.com"
+ING_HOST = "www.ing.com.tr"
+ING_LAYOUTS = ("grid", "balance")
 # I11: the quantities the bist_bulletin adapter writes; each must be in `quantities`.
 BIST_QUANTITIES = ("stock_close", "stock_return_1m", "stock_return_3m", "stock_return_6m",
                    "stock_return_1y", "stock_volatility_1y", "stock_turnover_3m",
@@ -164,6 +167,62 @@ class BistBulletinSource(SourceConfig):
 
     def day_url(self, day: date) -> str:
         return self.url.format(yyyy=f"{day:%Y}", mm=f"{day:%m}", yyyymmdd=f"{day:%Y%m%d}")
+
+
+@dataclass(frozen=True)
+class IngForm:
+    """I14: the field names and values of the ASP.NET rate form (config, not code)."""
+    currency_field: str              # "5575$DdlCurrencyType"; also the postback target of step 2
+    product_field: str               # "5575$DdlProductList"
+    send_target: str                 # "5575$BtnSend", the postback target of step 3
+    currency: str                    # "0" = TL
+    no_product: str                  # "-1" = no product chosen (step 2)
+
+
+@dataclass(frozen=True)
+class IngProduct:
+    value: str                       # the product value in the form, e.g. E_TIME_DEPOSIT_ACCOUNT
+    layout: Literal["grid", "balance"]
+    entity: str                      # grid: {row}, {column}; balance: {rate}, {balance}
+    min_rows: int
+    min_columns: int                 # value columns, without the row label column
+    balance_header: str = ""         # balance: the first header cell
+    no_interest_column: str = ""     # balance: the column of the amount without interest
+    rates: dict[str, str] | None = None             # balance: rate column -> word in the entity
+    balance_labels: dict[str, str] | None = None    # balance: page label -> name text
+
+
+@dataclass(frozen=True)
+class IngWebSource(SourceConfig):
+    url: str
+    user_agent: str
+    timeout_seconds: float
+    delay_seconds: float             # at least this long between two requests
+    quantity: str
+    form: IngForm
+    products: tuple[IngProduct, ...]
+
+
+# ing.com.tr/robots.txt (checked 2026-10-16): Disallow /documents/*, /objects/*,
+# /assets/* (but Allow their .css/.js, and images under /assets/), /*-tamam$,
+# /*-hata$, /*?IsPreview=1$, /*-mim$, /*-mim?*, /*-kaydet-ve-cik$, /error-page,
+# /hata-sayfasi, /*1000$, */search/, */arama/.
+_ING_ALLOWED_EXT = {"/documents/": {"css", "js"}, "/objects/": {"css", "js"},
+                    "/assets/": {"css", "js", "png", "jpg", "jpeg", "gif", "svg", "webp", "ico",
+                                 "bmp"}}
+
+
+def ing_robots_disallows(url: str) -> bool:
+    parts = urlsplit(url)
+    path = parts.path
+    full = path + (f"?{parts.query}" if parts.query else "")
+    for prefix, allowed in _ING_ALLOWED_EXT.items():
+        if path.startswith(prefix):
+            last = path.rsplit("/", 1)[-1]
+            return not ("." in last and last.rsplit(".", 1)[-1].lower() in allowed)
+    return (full.endswith(("-tamam", "-hata", "-mim", "-kaydet-ve-cik", "1000", "?IsPreview=1"))
+            or "-mim?" in full or path.startswith(("/error-page", "/hata-sayfasi"))
+            or "/search/" in path or "/arama/" in path)
 
 
 @dataclass(frozen=True)
@@ -633,6 +692,85 @@ def _parse_bist_bulletin(name, s, path, quantities) -> BistBulletinSource:
     )
 
 
+_ING_FORM_KEYS = {"currency_field", "product_field", "send_target", "currency", "no_product"}
+_ING_PRODUCT_KEYS = {"value", "layout", "entity", "min_rows", "min_columns"}
+_ING_BALANCE_KEYS = {"balance_header", "no_interest_column", "rates"}
+_ING_ENTITY_FIELDS = {"grid": {"row", "column"}, "balance": {"rate", "balance"}}
+
+
+def _str_map(v: Any, path: str, *, non_empty: bool) -> dict[str, str]:
+    m = _mapping(v, path)
+    if non_empty and not m:
+        raise ConfigError(f"{path}: must not be empty")
+    return {_str(k, f"{path} key"): _str(x, f"{path}.{k}") for k, x in m.items()}
+
+
+def _parse_ing_product(item: Any, p: str) -> IngProduct:
+    item = _mapping(item, p)
+    layout = _choice(item.get("layout"), f"{p}.layout", ING_LAYOUTS)
+    if layout == "grid":
+        _check_keys(item, p, _ING_PRODUCT_KEYS, set())
+    else:
+        _check_keys(item, p, _ING_PRODUCT_KEYS | _ING_BALANCE_KEYS, {"balance_labels"})
+    entity = _str(item["entity"], f"{p}.entity")
+    try:
+        fields = {f for _, f, _, _ in string.Formatter().parse(entity) if f is not None}
+    except ValueError as e:
+        raise ConfigError(f"{p}.entity: {e}") from None
+    if fields != _ING_ENTITY_FIELDS[layout]:
+        raise ConfigError(f"{p}.entity: must use exactly the fields "
+                          f"{sorted(_ING_ENTITY_FIELDS[layout])}, got {sorted(fields)}")
+    extra: dict[str, Any] = {}
+    if layout == "balance":
+        extra = dict(
+            balance_header=_str(item["balance_header"], f"{p}.balance_header"),
+            no_interest_column=_str(item["no_interest_column"], f"{p}.no_interest_column"),
+            rates=_str_map(item["rates"], f"{p}.rates", non_empty=True),
+            balance_labels=_str_map(item.get("balance_labels", {}), f"{p}.balance_labels",
+                                    non_empty=False))
+    return IngProduct(value=_str(item["value"], f"{p}.value"), layout=layout, entity=entity,
+                      min_rows=_pos_int(item["min_rows"], f"{p}.min_rows"),
+                      min_columns=_pos_int(item["min_columns"], f"{p}.min_columns"), **extra)
+
+
+def _parse_ing_web(name, s, path, quantities) -> IngWebSource:
+    """I14: ING's own rate page, an ASP.NET form (3 requests per product)."""
+    _check_keys(s, path, _COMMON_REQUIRED | {"url", "user_agent", "quantity", "form", "products"},
+                _COMMON_OPTIONAL | {"timeout_seconds", "delay_seconds"})
+    url = _str(s["url"], f"{path}.url")
+    parts = urlsplit(url)
+    if parts.scheme != "https" or parts.netloc != ING_HOST:
+        raise ConfigError(f"{path}.url: must be an https URL on {ING_HOST}")
+    if ing_robots_disallows(url):
+        raise ConfigError(f"{path}.url: {parts.path!r} is disallowed by ing.com.tr/robots.txt")
+    form = _mapping(s["form"], f"{path}.form")
+    _check_keys(form, f"{path}.form", _ING_FORM_KEYS, set())
+    if not isinstance(s["products"], list) or not s["products"]:
+        raise ConfigError(f"{path}.products: must be a non-empty list")
+    products: list[IngProduct] = []
+    for i, item in enumerate(s["products"]):
+        product = _parse_ing_product(item, f"{path}.products[{i}]")
+        if any(product.value == other.value for other in products):
+            raise ConfigError(f"{path}.products[{i}].value: {product.value!r} is listed twice")
+        products.append(product)
+    timeout = _num(s.get("timeout_seconds", 30), f"{path}.timeout_seconds")
+    if timeout <= 0:
+        raise ConfigError(f"{path}.timeout_seconds: must be > 0")
+    delay = _num(s.get("delay_seconds", 2), f"{path}.delay_seconds")
+    if delay < 0:
+        raise ConfigError(f"{path}.delay_seconds: must be >= 0")
+    return IngWebSource(
+        **_common(name, s, path),
+        url=url,
+        user_agent=_str(s["user_agent"], f"{path}.user_agent"),
+        timeout_seconds=timeout,
+        delay_seconds=delay,
+        quantity=_quantity_ref(s["quantity"], f"{path}.quantity", quantities),
+        form=IngForm(**{k: _str(form[k], f"{path}.form.{k}") for k in sorted(_ING_FORM_KEYS)}),
+        products=tuple(products),
+    )
+
+
 _PARSERS = {"evds": _parse_evds, "tefas": _parse_tefas, "tefas_web": _parse_tefas_web,
             "tefas_detail": _parse_tefas_detail, "manual": _parse_manual,
-            "bist_bulletin": _parse_bist_bulletin}
+            "bist_bulletin": _parse_bist_bulletin, "ing_web": _parse_ing_web}
