@@ -95,8 +95,10 @@ def shape_product(p: ProductResearch, cfg: ShapeConfig, today: date) -> ProductR
     dated.sort(key=lambda n: n.date, reverse=True)
     news, more = _tidy(dated, cfg, cfg.news_max, known=False)
     checks += [c.replace("bullets over the cap", "news items over the cap") for c in more]
+    # the Claude fallback makes no news search: news_days 0 hides the news section of the panel
+    news_days = 0 if p.provider == "claude" else cfg.news_days
     return dataclasses.replace(p, findings=tuple(highlights), news=tuple(news), summary="",
-                               news_days=cfg.news_days, version=SHAPE_VERSION, checks=tuple(checks))
+                               news_days=news_days, version=SHAPE_VERSION, checks=tuple(checks))
 
 
 def shape_answer(a: QuestionAnswer, cfg: ShapeConfig) -> QuestionAnswer:

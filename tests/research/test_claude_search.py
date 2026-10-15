@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from rmprep.contracts import TR_TZ, ProductOption
-from rmprep.research.claude_search import ClaudeSearchProvider
+from rmprep.research.claude_search import FORMAT, ClaudeSearchProvider
 from rmprep.research.config import DEFAULT_PATH, load_config
 from rmprep.research.service import research_from_root
 from rmprep.research.types import ResearchError
@@ -46,8 +46,13 @@ class FakeSdk:
         return reply
 
 
+NEWS_CHECK = "news: not available from the fallback"
+THY = ProductOption("stock:THYAO", "stock", "TÜRK HAVA YOLLARI")
+
+
 def provider(sdk):
-    return ClaudeSearchProvider(CONFIG.claude, CONFIG.system_prompt, CONFIG.exa.exclude_domains, sdk=sdk, now=lambda: NOW)
+    return ClaudeSearchProvider(CONFIG.claude, CONFIG.system_prompt, CONFIG.exa.exclude_domains, sdk=sdk,
+                                highlights_prompt=CONFIG.highlights_prompt, now=lambda: NOW)
 
 
 def test_product_findings_company_and_cost():
@@ -62,17 +67,18 @@ def test_product_findings_company_and_cost():
     ]))
     r = provider(sdk).research_product(PPN, "TR")
     assert [(f.topic, f.text) for f in r.findings] == [
-        ("urun", "Fon kısa vadeli para piyasası araçlarına yatırım yapar."),
-        ("sirket", "Şirket Nurol Yatırım Bankası iştirakidir.")]
+        ("strateji", "Fon kısa vadeli para piyasası araçlarına yatırım yapar."),
+        ("yonetici_sirket", "Şirket Nurol Yatırım Bankası iştirakidir.")]
     assert r.company == "Nurol Portföy Yönetimi A.Ş." and r.summary == "" and r.provider == "claude"
-    assert r.checks == ("2 findings without a valid source dropped",)
+    assert r.checks == ("2 findings without a valid source dropped", NEWS_CHECK)
+    assert r.news == ()
     assert r.cost_usd == pytest.approx(10000 * 0.10 / 1e6 + 500 * 0.50 / 1e6 + 0.01)
     kw = sdk.calls[0]
     assert kw["model"] == "claude-haiku-5-5" and kw["max_tokens"] == 8000
     assert kw["tools"] == [{"type": "web_search_20260209", "name": "web_search", "max_uses": 3,
                             "allowed_callers": ["direct"], "blocked_domains": ["kap.org.tr"]}]
     assert "NUROL PORTFÖY PARA PİYASASI (TL) FONU (PPN)" in kw["messages"][0]["content"]
-    assert kw["system"].startswith(CONFIG.system_prompt["TR"])
+    assert kw["system"] == CONFIG.system_prompt["TR"] + " " + CONFIG.highlights_prompt["TR"] + FORMAT["TR"]
     assert kw["betas"] == ["server-side-fallback-2026-07-01"] and kw["fallbacks"] == "default"
 
 
@@ -155,19 +161,19 @@ def test_live_reply_shape_cited_spans_inside_lines():
     ], searches=2))
     r = provider(sdk).research_product(PPN, "TR")
     assert [(f.topic, f.text, [s.url for s in f.sources]) for f in r.findings] == [
-        ("urun", "Fon kodu PPN, ISIN kodu TRYNRPO00029 olarak kayıtlı.", [TEFAS]),
-        ("urun", "Fonun kurucusu ve yöneticisi Nurol Portföy Yönetimi A.Ş.; fon, Para Piyasası Şemsiye "
+        ("strateji", "Fon kodu PPN, ISIN kodu TRYNRPO00029 olarak kayıtlı.", [TEFAS]),
+        ("strateji", "Fonun kurucusu ve yöneticisi Nurol Portföy Yönetimi A.Ş.; fon, Para Piyasası Şemsiye "
                  "Fonu yapısı içinde bir para piyasası fonu olarak sınıflandırılıyor.", [FVT]),
-        ("urun", "Fonun kuruluş tarihi 8 Temmuz 2021 ve halka arzı 9 Ağustos 2021 olarak görünüyor.", [FVT, BHT]),
-        ("urun", "Fonun risk değeri 1 / 7 olarak görünüyor ve bu, düşük risk aralığına karşılık gelir.",
+        ("strateji", "Fonun kuruluş tarihi 8 Temmuz 2021 ve halka arzı 9 Ağustos 2021 olarak görünüyor.", [FVT, BHT]),
+        ("strateji", "Fonun risk değeri 1 / 7 olarak görünüyor ve bu, düşük risk aralığına karşılık gelir.",
          [TEFAS, FVT]),
-        ("sirket", "Şirket, Nurol Yatırım Bankası A.Ş.'nin %100 bağlı ortaklığı olarak tanımlanıyor.",
+        ("yonetici_sirket", "Şirket, Nurol Yatırım Bankası A.Ş.'nin %100 bağlı ortaklığı olarak tanımlanıyor.",
          [HAKKIMIZDA]),
-        ("sirket", "Şirket, Sermaye Piyasası Kurulu'ndan 25.11.2020 tarih ve 11934 sayılı yazı ile kuruluş "
+        ("yonetici_sirket", "Şirket, Sermaye Piyasası Kurulu'ndan 25.11.2020 tarih ve 11934 sayılı yazı ile kuruluş "
                    "izni almış; faaliyet izni ve portföy yöneticiliği yetki belgesi ise 06.04.2021 ve 4576 "
                    "sayılı yazı ile verilmiş.", [LINKEDIN]),
     ]
-    assert r.company == "Nurol Portföy Yönetimi A.Ş." and r.checks == ()
+    assert r.company == "Nurol Portföy Yönetimi A.Ş." and r.checks == (NEWS_CHECK,)
 
 
 def test_live_reply_markdown_and_period_after_a_quote_are_removed():
@@ -234,7 +240,7 @@ def test_a_non_web_search_result_url_is_not_a_source():
     ]))
     r = provider(sdk).research_product(PPN, "TR")
     assert r.findings == ()
-    assert r.checks == ("1 findings without a valid source dropped",)
+    assert r.checks == ("1 findings without a valid source dropped", NEWS_CHECK)
 
 
 def test_a_refusal_after_a_priced_reply_carries_the_cost():
@@ -298,3 +304,29 @@ def test_a_malformed_url_in_a_result_or_citation_is_ignored():
     ]))
     r = provider(sdk).research_product(PPN, "TR")
     assert [f.text for f in r.findings] == ["Fon kısa vadeli para piyasası araçlarına yatırım yapar."]
+
+
+def test_a_stock_has_only_the_topic_is_and_the_prompt_asks_for_short_bullets():
+    sdk = FakeSdk(message([
+        results(NUROL, FONOLOJI),
+        text("Şirket Türkiye'nin en büyük havayolu taşıyıcısıdır.", NUROL),
+        text("ŞİRKET: Türk Hava Yolları A.O.\n"),
+        text("Şirket Star Alliance üyesidir ve geniş bir ağı vardır.", FONOLOJI),
+    ]))
+    r = provider(sdk).research_product(THY, "TR")
+    assert [f.topic for f in r.findings] == ["is", "is"]
+    assert r.company == "Türk Hava Yolları A.O." and r.news == () and NEWS_CHECK in r.checks
+    prompt = sdk.calls[0]["messages"][0]["content"]
+    assert "4" in prompt and "20" in prompt and "TÜRK HAVA YOLLARI (THYAO)" in prompt
+
+
+def test_the_system_prompt_without_a_highlights_prompt_is_v1_text():
+    sdk = FakeSdk(message([results(NUROL)]))
+    ClaudeSearchProvider(CONFIG.claude, CONFIG.system_prompt, (), sdk=sdk).research_product(PPN, "TR")
+    assert sdk.calls[0]["system"] == CONFIG.system_prompt["TR"] + FORMAT["TR"]
+
+
+def test_from_env_passes_the_highlights_prompt():
+    p = ClaudeSearchProvider.from_env(CONFIG.claude, CONFIG.system_prompt, (), {"ANTHROPIC_API_KEY": "k"},
+                                      highlights_prompt=CONFIG.highlights_prompt)
+    assert p is not None and p._highlights == CONFIG.highlights_prompt
