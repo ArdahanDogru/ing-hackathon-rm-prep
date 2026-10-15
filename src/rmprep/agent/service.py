@@ -31,6 +31,7 @@ import time
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from concurrent.futures import wait as wait_all
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -49,6 +50,7 @@ from rmprep.contracts import (
     DecisionResult,
     DecisionState,
     EvidenceSet,
+    Persona,
     ProductOption,
 )
 from rmprep.decision.config import DecisionConfig
@@ -72,6 +74,7 @@ TEXTS = {
         "research_done": "{ok}/{n} ürün araştırıldı.",
         "research_off": "Web araştırması kapalı; ajan araştırmasız karar verir.",
         "research_failed": "Web araştırması yapılamadı: {why}",
+        "research_timeout": "{s:.0f} sn içinde bitmedi",
         "not_researched": "ING ürünü; web araştırması yapılmaz.",
         "findings": "{n} bulgu, {m} haber.",
         "checks_ok": "Tüm kontroller geçti.",
@@ -98,6 +101,7 @@ TEXTS = {
         "research_done": "{ok}/{n} products researched.",
         "research_off": "Web research is off; the agent decides without it.",
         "research_failed": "Web research failed: {why}",
+        "research_timeout": "not finished in {s:.0f} s",
         "not_researched": "An ING product; not researched on the web.",
         "findings": "{n} findings, {m} news items.",
         "checks_ok": "All checks passed.",
@@ -211,8 +215,8 @@ class ResearchLike(Protocol):
 
     def research_many(self, options: Sequence[ProductOption], lang: str) -> list[ProductResearch]: ...
 
-    def ask_product(self, option: ProductOption, question: str,
-                    lang: str) -> QuestionAnswer | str: ...
+    def ask_product(self, option: ProductOption, question: str, lang: str,
+                    persona: Persona | None = None) -> QuestionAnswer | str: ...
 
 
 class _Fallback(Exception):
@@ -269,7 +273,7 @@ class AgentService:
                  phrases: Sequence[str], cache_root: Path | str, *,
                  now: Callable[[], datetime] = lambda: datetime.now(TR_TZ),
                  clock: Callable[[], float] = time.monotonic, off_reason: str = "",
-                 max_workers: int = 2) -> None:
+                 max_workers: int = 2, research_timeout_s: float | None = None) -> None:
         if config.prompt_version not in PROMPTS:
             raise ValueError(f"no prompt for prompt_version {config.prompt_version!r}")
         self._config = config
@@ -288,6 +292,12 @@ class AgentService:
         self._ledger_lock = threading.Lock()
         self._spent: dict[str, float] = {}
         self._pool = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="agent")
+        # research_many blocks without a timeout: it runs in a pool of its own, and the
+        # agent waits at most research_timeout_s (default: the agent's timeout_s)
+        self._research_pool = ThreadPoolExecutor(max_workers=max_workers,
+                                                 thread_name_prefix="agent-research")
+        self._research_timeout = (config.timeout_s if research_timeout_s is None
+                                  else research_timeout_s)
 
     # --- public ------------------------------------------------------------------
 
@@ -495,11 +505,14 @@ class AgentService:
             node.end(self._now())
             return {}
         options = [o.option for o in cands if o.option.kind in RESEARCHED_KINDS]
+        job = self._research_pool.submit(self._research.research_many, options, run.lang)
         try:
-            found = {r.option_id: r for r in self._research.research_many(options, run.lang)}
+            found = {r.option_id: r for r in job.result(timeout=self._research_timeout)}
         except Exception as e:
-            log.warning("research of run %s failed: %s", run.result.run_id, type(e).__name__)
-            node.notes.append(t["research_failed"].format(why=type(e).__name__))
+            why = (t["research_timeout"].format(s=self._research_timeout)
+                   if isinstance(e, FutureTimeout) else type(e).__name__)
+            log.warning("research of run %s failed: %s", run.result.run_id, why)
+            node.notes.append(t["research_failed"].format(why=why))
             for c in node.children:
                 c.end(self._now(), "failed")
             node.end(self._now(), "failed")
@@ -537,7 +550,8 @@ class AgentService:
         if not question:
             return {"hata": "the question (soru) is empty"}, 0.0
         try:
-            answer = self._research.ask_product(by_id[oid], question, run.lang)
+            answer = self._research.ask_product(by_id[oid], question, run.lang,
+                                                persona=run.result.persona)
         except Exception as e:
             return {"hata": f"research failed: {type(e).__name__}"}, 0.0
         if isinstance(answer, str):

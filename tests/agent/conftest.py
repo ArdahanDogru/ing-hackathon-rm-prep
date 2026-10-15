@@ -91,16 +91,21 @@ class FakeResearch:
     overrides the highlight text of an option, `errors` makes a product fail."""
 
     def __init__(self, texts: dict[str, str] | None = None, errors: set[str] = frozenset(),
-                 answer: QuestionAnswer | str | None = None, raise_many: bool = False):
+                 answer: QuestionAnswer | str | None = None, raise_many: bool = False,
+                 block=None):
         self.texts = texts or {}
         self.errors = set(errors)
         self.answer = answer
         self.raise_many = raise_many
+        self.block = block                      # a threading.Event: research_many waits for it
+        self.personas: list = []
         self.many_calls: list[list[str]] = []
         self.questions: list[tuple[str, str]] = []
 
     def research_many(self, options, lang):
         self.many_calls.append([o.option_id for o in options])
+        if self.block is not None:
+            self.block.wait(5)
         if self.raise_many:
             raise RuntimeError("research down")
         out = []
@@ -118,8 +123,9 @@ class FakeResearch:
                               "haber", "2026-09-30"),), news_days=90))
         return out
 
-    def ask_product(self, option, question, lang):
+    def ask_product(self, option, question, lang, persona=None):
         self.questions.append((option.option_id, question))
+        self.personas.append(persona)
         if self.answer is not None:
             return self.answer
         return QuestionAnswer(question, "Yanıt özeti.",

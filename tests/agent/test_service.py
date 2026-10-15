@@ -256,6 +256,7 @@ def test_arastir_answer_findings_can_be_cited(svc_factory, ready_p01, ev):
     d = _run(svc, ready_p01, ev)
     assert d.state == "done", d.fallback_reason
     assert research.questions == [(picks[0], "Yönetim ücreti nedir?")]
+    assert research.personas == [ready_p01.persona]      # the full question check (R3)
     assert d.picks[0].uses_web
     node = d.nodes[2].children[0]
     assert node.notes == ("Ücreti öğren.",) and node.cost_usd == 0.02
@@ -353,3 +354,51 @@ def test_agent_from_root(tmp_path):
     assert off.cache_root == tmp_path / "data" / "agent"
     on = agent_from_root(tmp_path, FakeResearch(), env={"ANTHROPIC_API_KEY": "sk-test"})
     assert on.enabled is True and on.off_reason == ""
+
+
+def test_slow_research_has_a_deadline(svc_factory, ready_p01, ev):
+    import threading
+
+    gate = threading.Event()
+    picks = valid_picks(ready_p01)
+    client = ScriptedClient(turn(call("karar_ver", **karar(ready_p01, picks))))
+    svc = svc_factory(client, FakeResearch(block=gate), research_timeout_s=0.05)
+    d = _run(svc, ready_p01, ev)
+    gate.set()
+    assert d.state == "done" and d.nodes[1].state == "failed"
+    assert any("bitmedi" in n for n in d.nodes[1].notes)
+    pack = json.loads(client.sent[0][1][0]["content"][0]["text"][len("<veri>"):-len("</veri>")])
+    assert all(r["durum"] == "yok" for r in pack["arastirma"].values())
+
+
+def test_with_the_real_research_service(svc_factory, ready_p01, ev, tmp_path):
+    """The ResearchLike seam against ResearchService (R3) with a fake provider:
+    the finding ids of the service are the ones the pack and the checks use."""
+    from rmprep.research.config import load_config as load_research_config
+    from rmprep.research.service import ResearchService
+    from tests.research.conftest import FakeProvider
+
+    provider = FakeProvider()
+    research = ResearchService(load_research_config(), [provider], tmp_path / "research",
+                               now=lambda: CREATED)
+    picks = valid_picks(ready_p01)
+    first = {}
+
+    def decide(messages):
+        res = json.loads(messages[-1]["content"][0]["content"])
+        first["answer"] = res
+        k = karar(ready_p01, picks)
+        pack = json.loads(messages[0]["content"][0]["text"][len("<veri>"):-len("</veri>")])
+        fid = pack["arastirma"][picks[1]]["bulgular"][0]["id"]
+        k["secimler"][1]["gerekceler"].append(reason("Ürün bulgusu var.", fid))
+        return turn(call("karar_ver", **k))
+
+    ask = turn(call("arastir", option_id=picks[0], soru="Fonun yönetim ücreti nedir?",
+                    amac="Ücreti öğren."))
+    client = _Interactive(ask, decide)
+    d = _run(svc_factory(client, research), ready_p01, ev)
+    research.wait()
+    assert d.state == "done", d.fallback_reason
+    assert d.picks[1].uses_web
+    assert sum(1 for c in provider.calls if c[0] == "product") == 10
+    assert first["answer"]["bulgular"][0]["id"].startswith("F")
