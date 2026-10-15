@@ -25,7 +25,17 @@ scenarios:
     needs: [D12]                      # decision milestones the checks need (n/a before)
     compare_to: base-p04              # the scenario a sensitivity check compares with
     expect: {...}                     # per-scenario checks (docs/eval.md "Checks")
+    holdings: {nakit_benzeri: 80, borclanma: 5, hisse: 10, altin_doviz: 5, dengeli: 0}
+                                      # E11: the RM's current split (D27), set after the answers
+    holdings_origin: rm               # rm | rm_confirmed
+    agent_news:                       # E11: a fake web news item in the agent's research
+      - {option: "@engine1", date: "2026-10-13", text: "{name}: ...", url: "https://..."}
+                                      # @engineN: the engine's Nth recommendation; {name}: its label
+    agent_watch: ["stock:KTLEV"]      # E11: options the agent section of the report follows
 ```
+
+The agent scenarios (E11) are in scenarios/agent/ and run only with the agent
+(run_suite(agent=True)); the packaged default files are scenarios/*.yaml.
 """
 
 from __future__ import annotations
@@ -34,17 +44,20 @@ import dataclasses
 import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from rmprep.contracts import NARRATIVE_LANGS, EvidenceSet, Flag, Persona
+from rmprep.contracts import NARRATIVE_LANGS, EvidenceSet, Flag, HoldingsInput, Persona
 
 SCENARIO_DIR = Path(__file__).resolve().parent / "scenarios"
+AGENT_SCENARIO_DIR = SCENARIO_DIR / "agent"
 KNOWN_NEEDS = ("D9", "D12", "D13", "D14", "D15", "D19", "I3b", "N5")
 _ID = re.compile(r"^[A-Za-z0-9_.-]+$")
 _TOP = re.compile(r"^@top([1-9][0-9]*)$")
+_ENGINE = re.compile(r"^@engine([1-3])$")
 
 
 class ScenarioError(ValueError):
@@ -62,6 +75,17 @@ class EvidenceEdit:
     value: float | None = None
     add_flags: tuple[str, ...] = ()
     drop: bool = False
+
+
+@dataclass(frozen=True)
+class AgentNews:
+    """E11: a fake news item that the agent's research gets for one option (data,
+    deterministic): option "@engineN" is the engine's Nth recommendation of the run."""
+
+    option: str
+    text: str                       # "{name}" is replaced with the option's label
+    date: str                       # YYYY-MM-DD
+    url: str = "https://www.dunya.com/finans/haberler"
 
 
 @dataclass(frozen=True)
@@ -85,6 +109,10 @@ class Scenario:
     needs: tuple[str, ...] = ()
     compare_to: str | None = None
     expect: Mapping[str, Any] = field(default_factory=dict)
+    holdings: Mapping[str, float] | None = None
+    holdings_origin: str = "rm"
+    agent_news: tuple[AgentNews, ...] = ()
+    agent_watch: tuple[str, ...] = ()
 
 
 _FIELDS = {f.name for f in dataclasses.fields(Scenario)}
@@ -130,6 +158,28 @@ def _edit(raw, i: int) -> EvidenceEdit:
                         source=raw.get("source"),
                         value=None if value is None else float(value),
                         add_flags=flags, drop=drop)
+
+
+def _news(raw, i: int) -> AgentNews:
+    what = f"agent_news[{i}]"
+    if not isinstance(raw, Mapping):
+        raise ValueError(f"{what}: must be a mapping")
+    unknown = sorted(set(raw) - {"option", "text", "date", "url"})
+    if unknown:
+        raise ValueError(f"{what}: unknown keys {unknown}")
+    for k in ("option", "text", "date"):
+        if not isinstance(raw.get(k), str) or not raw[k].strip():
+            raise ValueError(f"{what}.{k}: required (a non-empty string)")
+    if not (_ENGINE.match(raw["option"]) or ":" in raw["option"]):
+        raise ValueError(f"{what}.option: an option id or @engine1-3, got {raw['option']!r}")
+    try:
+        date.fromisoformat(raw["date"])
+    except ValueError:
+        raise ValueError(f"{what}.date: must be YYYY-MM-DD, got {raw['date']!r}") from None
+    url = raw.get("url", AgentNews.url)
+    if not isinstance(url, str) or not url.startswith("https://"):
+        raise ValueError(f"{what}.url: must be an https URL")
+    return AgentNews(raw["option"], raw["text"], raw["date"], url)
 
 
 def parse_scenario(raw) -> Scenario:
@@ -206,6 +256,25 @@ def parse_scenario(raw) -> Scenario:
         if not isinstance(raw["expect"], Mapping):
             raise ValueError("expect: must be a mapping")
         kw["expect"] = dict(raw["expect"])
+    if "holdings_origin" in raw:
+        kw["holdings_origin"] = raw["holdings_origin"]
+    if raw.get("holdings") is not None:
+        h = raw["holdings"]
+        if not isinstance(h, Mapping) or not all(
+                isinstance(v, (int, float)) and not isinstance(v, bool) for v in h.values()):
+            raise ValueError("holdings: must map asset classes to numbers")
+        try:
+            kw["holdings"] = dict(HoldingsInput(dict(h), kw.get("holdings_origin", "rm")).shares)
+        except ValueError as e:
+            raise ValueError(f"holdings: {e}") from None
+    elif "holdings_origin" in raw:
+        raise ValueError("holdings_origin: needs holdings")
+    if "agent_news" in raw:
+        if not isinstance(raw["agent_news"], list):
+            raise ValueError("agent_news: must be a list")
+        kw["agent_news"] = tuple(_news(x, i) for i, x in enumerate(raw["agent_news"]))
+    if "agent_watch" in raw:
+        kw["agent_watch"] = _strs(raw["agent_watch"], "agent_watch")
     return Scenario(**kw)
 
 
@@ -247,6 +316,20 @@ def load_scenarios(paths: Iterable[Path | str]) -> list[Scenario]:
 
 def packaged_scenario_files() -> list[Path]:
     return sorted(SCENARIO_DIR.glob("*.yaml"))
+
+
+def agent_scenario_files() -> list[Path]:
+    """E11: the agent scenarios; only with the agent (they would cost without it)."""
+    return sorted(AGENT_SCENARIO_DIR.glob("*.yaml"))
+
+
+def engine_option(placeholder: str, recommended: tuple[str, ...]) -> str | None:
+    """"@engineN" -> the engine's Nth recommendation (None if it has fewer); an id as it is."""
+    m = _ENGINE.match(placeholder)
+    if m is None:
+        return placeholder
+    n = int(m.group(1))
+    return recommended[n - 1] if n <= len(recommended) else None
 
 
 def edit_persona(persona: Persona, s: Scenario) -> Persona:

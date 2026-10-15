@@ -1,0 +1,28 @@
+# E11 (2026-10-15): the agentic top 3 in special cases. Only with the agent
+# (run_suite(agent=True), `rmprep eval --agent`); the agent also decides for the
+# base scenarios. No meeting text (narrate: false): the agent part costs only the
+# agent, its repeat and the A/B judge.
+scenarios:
+  - id: agent-negative-news
+    group: agent
+    description: "a negative web news item on the engine's #1 (injected, deterministic)"
+    persona: P01
+    narrate: false
+    agent_news:
+      - option: "@engine1"
+        date: "2026-10-13"
+        text: "{name}: SPK'nın fonun portföy yöneticisi hakkında soruşturma başlattığı ve fonda yüklü geri alım talepleri oluştuğu bildirildi."
+        url: "https://www.dunya.com/finans/haberler"
+  - id: agent-rm-split
+    group: agent
+    description: "P03 with the RM's split 80/5/10/5/0 (origin rm)"
+    persona: P03
+    narrate: false
+    holdings: {nakit_benzeri: 80, borclanma: 5, hisse: 10, altin_doviz: 5, dengeli: 0}
+    holdings_origin: rm
+  - id: agent-crash
+    group: agent
+    description: "P03: the share KTLEV has stock_crash on the frozen snapshot"
+    persona: P03
+    narrate: false
+    agent_watch: ["stock:KTLEV"]

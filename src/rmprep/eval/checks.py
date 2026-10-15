@@ -4,8 +4,9 @@ gives pass | fail | n/a with details; n/a when it does not apply to the run
 
 Per run: rule5, risk_ceiling, not_buyable (D12), explicit_constraints (D13),
 no_invented_data, missing_data_shown, bad_data_handled, questions,
-narrator_valid, forbidden_phrases, traceability. Per scenario: consistency,
-sensitivity (the `expect` of the scenario)."""
+narrator_valid, forbidden_phrases, traceability, diverse_recommendations,
+allocation_projection; with the agent (E11) agent_decision. Per scenario:
+consistency, sensitivity (the `expect` of the scenario)."""
 
 from __future__ import annotations
 
@@ -547,6 +548,69 @@ def check_allocation_projection(c: Context) -> CheckResult:
     return CheckResult.of("allocation_projection", problems)
 
 
+def agent_problems(a, result: DecisionResult, decision_config: Mapping[str, Any]) -> list[str]:
+    """The rules of spec section 6 on a stored done decision: the stored picks, dropped
+    options and summary go through the agent's own check (rmprep.agent.checks) against
+    the eval's pack (3 different candidates, the share cap, the D19 caps when the
+    candidates allow them, every cite valid and known, F ids of the right option,
+    numbers in the cited data, no forbidden phrase, a reason for each dropped engine
+    option); then the labels and flags that code adds must match the cites."""
+    from rmprep.agent.checks import check_decision
+    from rmprep.decision.config import DecisionConfig
+
+    d = a.decision
+    problems = []
+    if tuple(d.engine_top3) != tuple(result.recommended):
+        problems.append(f"engine_top3 {list(d.engine_top3)} is not the run's "
+                        f"{list(result.recommended)}")
+    if a.pack is None:
+        return problems + ["no data pack to check the decision against"]
+
+    def reason(r) -> dict:
+        return {"metin": r.text, "kaynaklar": list(r.cites)}
+
+    raw = {"secimler": [{"option_id": p.option_id, "gerekceler": [reason(r) for r in p.reasons]}
+                        for p in d.picks],
+           "cikanlar": [{"option_id": p.option_id, "gerekce": reason(r)}
+                        for p in d.dropped for r in p.reasons[:1]],
+           "ozet": d.summary}
+    picks, dropped, _, found = check_decision(raw, a.pack, DecisionConfig(decision_config),
+                                              a.phrases, a.lang, labels=a.labels or None,
+                                              words=a.words or None)
+    problems += found
+    if found:
+        return problems
+    for stored, want in ((d.picks, picks), (d.dropped, dropped)):
+        for p, q in zip(stored, want):
+            for r, w in zip(p.reasons, q.reasons):
+                if tuple(r.labels) != tuple(w.labels):
+                    problems.append(f"{p.option_id}: labels {list(r.labels)}, the cites need "
+                                    f"{list(w.labels)}: \"{r.text[:60]}\"")
+            for flag in ("uses_estimate", "uses_web"):
+                if getattr(p, flag) != getattr(q, flag):
+                    problems.append(f"{p.option_id}: {flag}={getattr(p, flag)}, the cites give "
+                                    f"{getattr(q, flag)}")
+    return problems
+
+
+def check_agent_decision(c: Context) -> CheckResult:
+    """E11: the stored agent decision of the run keeps the rules of spec section 6.
+    n/a without a decision or with the agent off; a fallback (the engine's top 3)
+    passes with its reason; a decision still running at the eval's deadline fails."""
+    a = c.run.agent
+    d = None if a is None else a.decision
+    if d is None:
+        why = "no agent decision" + (f" ({a.error})" if a is not None and a.error else "")
+        return CheckResult.of("agent_decision", [], na=why)
+    if d.state == "off":
+        return CheckResult.of("agent_decision", [], na=f"agent off: {d.fallback_reason}")
+    if d.state == "running":
+        return CheckResult.of("agent_decision", [a.error or "deadline: still running"])
+    if d.state == "fallback":
+        return CheckResult("agent_decision", PASS, (f"fallback: {d.fallback_reason}",))
+    return CheckResult.of("agent_decision", agent_problems(a, c.run.result, c.decision_config))
+
+
 RUN_CHECKS: tuple[Callable[[Context], CheckResult], ...] = (
     check_rule5, check_risk_ceiling, check_not_buyable, check_explicit_constraints,
     check_no_invented_data, check_missing_data_shown, check_bad_data_handled, check_questions,
@@ -744,16 +808,17 @@ class ScenarioChecks:
 
 def run_checks(runs: list[ScenarioRun], decision_config: Mapping[str, Any],
                forbidden_phrases: Mapping[str, tuple[str, ...]],
-               narrator_config=None) -> list[ScenarioChecks]:
+               narrator_config=None, *, agent: bool = False) -> list[ScenarioChecks]:
     """All checks of all scenarios; narrator_config (NarratorConfig) enables the
-    metric validator_phrase_findings."""
+    metric validator_phrase_findings; agent adds the check agent_decision (E11)."""
     by_id = {sr.scenario.id: sr for sr in runs}
+    run_checks_ = RUN_CHECKS + ((check_agent_decision,) if agent else ())
     out = []
     for sr in runs:
         compare = by_id.get(sr.scenario.compare_to) if sr.scenario.compare_to else None
         base_run = compare.runs[0] if compare is not None and compare.runs else None
         per_run = [[chk(Context(sr.scenario, run, decision_config, forbidden_phrases, base_run))
-                    for chk in RUN_CHECKS] for run in sr.runs]
+                    for chk in run_checks_] for run in sr.runs]
         sc = [check_consistency(sr),
               check_sensitivity(sr, compare, decision_config, narrator_config)]
         if sr.error:
