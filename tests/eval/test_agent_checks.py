@@ -185,3 +185,85 @@ def test_no_pack_fails(done):
     s, run = done
     r = check(s, dataclasses.replace(run, agent=dataclasses.replace(run.agent, pack=None)))
     assert r.status == FAIL and any("pack" in d for d in r.details)
+
+
+# --- E12: agent_marks -------------------------------------------------------------------
+
+from rmprep.eval.checks import check_agent_marks  # noqa: E402
+from rmprep.eval.scenario import AgentMark  # noqa: E402
+
+CONFIRMED = "(web, RM doğruladı)"
+MARKS = (AgentMark("engine2", "findings", 0, "wrong"), AgentMark("engine1", "findings", 0, "ok"))
+
+
+@pytest.fixture
+def marked(root):
+    """P01 with ✗ on the first highlight of the engine's #2 and ✓ on the first of #1;
+    the fake keeps the engine's top 3 and cites the ✓ finding."""
+    s = Scenario(id="agent-marks", group="agent", persona="P01", narrate=False,
+                 agent_marks=MARKS)
+    runs, _ = run_with_agent(root, [s], PackClient("keep", web=True), repeat=False)
+    return s, runs[0].runs[0]
+
+
+def marks_check(s, run):
+    return check_agent_marks(Context(s, run, load_decision_config().raw, {}))
+
+
+def test_marks_pass(marked):
+    s, run = marked
+    r = marks_check(s, run)
+    assert r.status == PASS, r.details
+    assert "agent_marks" in RULE_LABELS
+    assert check(s, run).status == PASS          # agent_decision knows the confirmed label
+
+
+def test_marks_na_without_marks(done):
+    s, run = done
+    assert marks_check(s, run).status == NA
+
+
+def test_marks_na_without_a_decision(marked):
+    s, run = marked
+    assert marks_check(s, dataclasses.replace(run, agent=None)).status == NA
+
+
+def test_a_wrong_finding_in_the_pack_fails(marked):
+    s, run = marked
+    wrong = run.agent.marks[0]
+    two = run.agent.pack["arastirma"][wrong["option_id"]]
+    two["bulgular"].append({"id": wrong["finding_id"], "metin": wrong["text"], "konu": "urun",
+                            "tarih": "", "kaynak": "x", "dogrulama": "doğrulanmamış"})
+    r = marks_check(s, run)
+    assert r.status == FAIL and any("still in the pack" in d for d in r.details)
+
+
+def test_an_ok_finding_without_the_confirmation_fails(marked):
+    s, run = marked
+    ok = run.agent.marks[1]
+    run.agent.pack["arastirma"][ok["option_id"]]["bulgular"][0]["dogrulama"] = "doğrulanmamış"
+    r = marks_check(s, run)
+    assert r.status == FAIL and any("RM doğruladı" in d for d in r.details)
+
+
+def test_a_reason_on_the_ok_finding_without_the_label_fails(marked):
+    s, run = marked
+    first = run.agent.decision.picks[0]
+    reasons = tuple(dataclasses.replace(r, labels=()) for r in first.reasons)
+    bad = with_pick(run, 0, dataclasses.replace(first, reasons=reasons))
+    r = marks_check(s, bad)
+    assert r.status == FAIL and any(CONFIRMED in d for d in r.details)
+
+
+def test_no_marks_hash_fails(marked):
+    s, run = marked
+    r = marks_check(s, with_decision(run, marks_hash=""))
+    assert r.status == FAIL and any("marks_hash" in d for d in r.details)
+
+
+def test_an_unresolved_mark_fails(root):
+    s = Scenario(id="agent-marks", group="agent", persona="P01", narrate=False,
+                 agent_marks=(AgentMark("engine1", "findings", 7, "ok"),))
+    runs, _ = run_with_agent(root, [s], PackClient("keep"), repeat=False)
+    r = marks_check(s, runs[0].runs[0])
+    assert r.status == FAIL and any("no findings item 7" in d for d in r.details)

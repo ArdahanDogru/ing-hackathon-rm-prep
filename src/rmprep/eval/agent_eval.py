@@ -74,6 +74,8 @@ class AgentRecord:
     repeat_cost_usd: float = 0.0
     news: list[str] = field(default_factory=list)       # options with injected news
     watch: list[dict] = field(default_factory=list)
+    marks: list[dict] = field(default_factory=list)     # E12: the resolved scenario marks
+    marks_hash: str = ""                    # E12: the hash the marks must give (pack.marks_hash)
     error: str | None = None                # deadline | budget | an exception
 
     def to_dict(self) -> dict:
@@ -101,22 +103,58 @@ class AgentRecord:
                 "state": self.repeat.state, "top3": list(top3(self.repeat) or ()),
                 "fallback_reason": self.repeat.fallback_reason,
                 "seconds": self.repeat_seconds, "cost_usd": self.repeat_cost_usd},
-            "news": list(self.news), "watch": list(self.watch), "error": self.error,
+            "news": list(self.news), "watch": list(self.watch),
+            "marks": mark_results(self) if self.marks else [],
+            "marks_hash": {"want": self.marks_hash,
+                           "decision": None if d is None else d.marks_hash},
+            "error": self.error,
         }
 
 
 class RecordingResearch:
     """ResearchLike around the research service (or a fake, or none): adds the
     scenario's fake news to the products it names and records every product research
-    and every answered product question, so the eval can rebuild the agent's pack."""
+    and every answered product question, so the eval can rebuild the agent's pack.
+
+    E12: `marks()` gives the scenario's marks (agent_marks), resolved to finding ids
+    on the recorded research of the engine's top 3; never the RM's real marks of the
+    inner research (the eval stays deterministic)."""
 
     def __init__(self, inner: Any, news: Mapping[str, Sequence[Any]] | None = None, *,
-                 now: Callable[[], datetime] = lambda: datetime.now(TR_TZ)) -> None:
+                 now: Callable[[], datetime] = lambda: datetime.now(TR_TZ),
+                 marks: Sequence[Any] = (), recommended: Sequence[str] = ()) -> None:
         self.inner = inner
         self.news = dict(news or {})
         self.now = now
+        self.mark_specs = tuple(marks)
+        self.recommended = tuple(recommended)
         self.products: dict[str, Any] = {}
         self.answers: list[tuple[str, Any]] = []
+
+    def resolved_marks(self) -> list[dict]:
+        """One row per scenario mark: the option, the finding id and text, or the error
+        when the research of the run has no such finding (yet)."""
+        rows = []
+        for m in self.mark_specs:
+            oid = (self.recommended[m.place - 1] if m.place <= len(self.recommended)
+                   else None)
+            row = {"product": m.product, "option_id": oid, "finding": m.finding,
+                   "finding_id": None, "text": None, "mark": m.mark, "error": None}
+            r = self.products.get(oid) if oid is not None else None
+            items = () if r is None else (r.findings if m.group == "findings" else r.news)
+            if oid is None:
+                row["error"] = f"the engine has no {m.product}"
+            elif r is None or r.error:
+                row["error"] = f"{oid} has no research" + (f" ({r.error})" if r else "")
+            elif m.index >= len(items):
+                row["error"] = f"{oid} has no {m.group} item {m.index}"
+            else:
+                row["finding_id"], row["text"] = items[m.index].id, items[m.index].text
+            rows.append(row)
+        return rows
+
+    def marks(self) -> dict[str, str]:
+        return {r["finding_id"]: r["mark"] for r in self.resolved_marks() if r["finding_id"]}
 
     def research_many(self, options, lang):
         from rmprep.research.types import ProductResearch
@@ -212,10 +250,12 @@ class AgentEval:
         return AgentRecord(lang=self.lang, labels=self.labels, words=self.words,
                            phrases=self.phrases, **kw)
 
-    def _research(self, news: Mapping[str, tuple]) -> RecordingResearch | None:
-        if self.research is None and not news:
+    def _research(self, s: Scenario, result,
+                  news: Mapping[str, tuple]) -> RecordingResearch | None:
+        if self.research is None and not news and not s.agent_marks:
             return None
-        return RecordingResearch(self.research, news, now=self.now)
+        return RecordingResearch(self.research, news, now=self.now, marks=s.agent_marks,
+                                 recommended=result.recommended)
 
     def run_one(self, s: Scenario, rec, budget_left=None, spend=None) -> AgentRecord:
         result = rec.result
@@ -223,7 +263,7 @@ class AgentEval:
         news = news_findings(s, result) if result.state == DecisionState.READY else {}
         out = self._record(news=sorted(news))
         cache = self.cache_root / s.id
-        research = self._research(news)
+        research = self._research(s, result, news)
         svc = self.make_service(research, cache)
         before = svc.status(rid)
         out.cached = before is not None and before.state in ("done", "fallback")
@@ -237,6 +277,9 @@ class AgentEval:
         d = self._await(svc, rid)
         out.seconds = time.perf_counter() - t
         out.decision = d
+        # A2: a stored decision of the same key comes back without a model call
+        out.cached = (out.cached and d is not None and before is not None
+                      and d.to_dict() == before.to_dict())
         if research is not None:
             out.research_cost_usd = max(0.0, research.spent_today() - r0)
         if d is not None and d.state == "running":
@@ -246,6 +289,9 @@ class AgentEval:
             spend(out.cost_usd + out.research_cost_usd)
 
         out.pack = self._pack(result, rec.evidence, research, cache, rid, cached=out.cached)
+        if research is not None and s.agent_marks:
+            out.marks = research.resolved_marks()
+            out.marks_hash = self._marks_hash(out.pack, research)
         if d is not None and d.state in ("done", "fallback"):
             again = self.make_service(None, cache).status(rid)
             out.cache_same = again is not None and again.to_dict() == d.to_dict()
@@ -266,7 +312,7 @@ class AgentEval:
         """The data pack the agent saw: build_pack with the recorded research, plus the
         findings of its arastir answers. Stored next to the decision; a cached decision
         reads it back (its research was not recorded in this suite run)."""
-        from rmprep.agent.pack import build_pack, finding_item
+        from rmprep.agent.pack import build_pack, finding_items
 
         path = cache / f"{rid}.pack.json"
         if cached:
@@ -277,14 +323,15 @@ class AgentEval:
         if result.state != DecisionState.READY:
             return None
         products = research.products if research is not None else {}
+        marks = research.marks() if research is not None else {}
         pack = build_pack(result, evidence, self.decision_config, products, self.lang,
-                          n=self.candidates)
+                          n=self.candidates, marks=marks)
         for oid, answer in (research.answers if research is not None else ()):
             if oid not in pack["arastirma"]:
                 continue
             block = pack["arastirma"][oid]
             block["bulgular"] = [*block["bulgular"],
-                                 *(finding_item(oid, f) for f in answer.findings)]
+                                 *finding_items(oid, answer.findings, marks)]
         if not cached:
             try:
                 cache.mkdir(parents=True, exist_ok=True)
@@ -294,12 +341,22 @@ class AgentEval:
                 pass
         return pack
 
+    @staticmethod
+    def _marks_hash(pack: dict | None, research: RecordingResearch) -> str:
+        """The marks_hash the decision must carry: the agent's rule on the candidates'
+        recorded research and the resolved marks."""
+        from rmprep.agent.pack import marks_hash
+
+        ids = {c["option_id"] for c in (pack or {}).get("adaylar", ())}
+        found = {k: v for k, v in research.products.items() if k in ids}
+        return marks_hash(found, research.marks())
+
     def _repeat(self, s: Scenario, rec, news, out: AgentRecord, budget_left, spend) -> None:
         if self.repeat_root is None:
             return
         if budget_left is not None and budget_left() <= 0:
             return
-        svc = self.make_service(self._research(news), self.repeat_root / s.id)
+        svc = self.make_service(self._research(s, rec.result, news), self.repeat_root / s.id)
         t = time.perf_counter()
         svc.start(rec.result, rec.evidence, self.lang)
         d = self._await(svc, rec.result.run_id)
@@ -322,6 +379,41 @@ class AgentEval:
                          "engine_top3": oid in result.recommended,
                          "agent_top3": oid in shown})
         return rows
+
+
+def mark_results(a: AgentRecord) -> list[dict]:
+    """E12: per resolved mark of the scenario, what the run did with it: a ✗ ("wrong")
+    finding must not be in the pack; a ✓ ("ok") finding is in the pack as "RM
+    doğruladı", and every reason that cites it has the label web_confirmed.
+    `ok` is True when all of that holds; `problems` say what does not."""
+    from rmprep.agent.pack import CONFIRMED
+
+    items = {f["id"]: f for block in (a.pack or {}).get("arastirma", {}).values()
+             for f in (*block.get("bulgular", ()), *block.get("haberler", ()))}
+    d = a.decision
+    reasons = [] if d is None else [(p.option_id, r) for p in (*d.picks, *d.dropped)
+                                    for r in p.reasons]
+    label = a.labels.get("web_confirmed", "")
+    out = []
+    for m in a.marks:
+        problems = [m["error"]] if m["error"] else []
+        fid = m["finding_id"]
+        cited = None
+        if fid and m["mark"] == "wrong" and fid in items:
+            problems.append(f"the ✗ finding {fid} of {m['option_id']} is still in the pack")
+        if fid and m["mark"] == "ok":
+            got = items.get(fid, {}).get("dogrulama")
+            if got != CONFIRMED:
+                problems.append(f"the ✓ finding {fid} of {m['option_id']} is "
+                                f"{'not in the pack' if got is None else repr(got)}, not "
+                                f"\"{CONFIRMED}\"")
+            citing = [(oid, r) for oid, r in reasons if fid in r.cites]
+            cited = bool(citing)
+            problems += [f"{oid}: a reason cites the ✓ finding {fid} without the label "
+                         f"{label}: \"{r.text[:60]}\"" for oid, r in citing
+                         if label not in r.labels]
+        out.append({**m, "cited": cited, "ok": not problems, "problems": problems})
+    return out
 
 
 def eval_agent(root: Path | str, config, env: Mapping[str, str], *, client: Any = AUTO,

@@ -27,6 +27,7 @@ RULE_LABELS = {
     "allocation_projection": "Current split adds up, only RM / client-file rows rank (D27)",
     "scenario_runs": "The scenario runs",
     "agent_decision": "Agent top 3 keeps the rules (spec section 6; a fallback passes) (E11)",
+    "agent_marks": "RM marks: ✗ finding removed, ✓ finding confirmed and labelled (E12)",
 }
 
 
@@ -322,6 +323,29 @@ def agent_section(result) -> list[str]:
             kept = ", ".join(f"{o.split(':', 1)[-1]} {'kept' if o in shown else 'dropped'}"
                              for o in a.news)
             L.append(f"- **{sr.scenario.id}** injected negative news on {_top(a.news)}: {kept}")
+
+    marked = [(sr.scenario.id, sr.runs[0].agent) for sr in result.runs
+              if sr.runs and sr.runs[0].agent is not None and sr.runs[0].agent.marks]
+    if marked:
+        from rmprep.eval.agent_eval import mark_results
+
+        L += ["", "### RM marks on research findings (E12)", "",
+              "| Scenario | Product | Finding | Mark | Text | Cited | Result |",
+              "|---|---|---|---|---|---|---|"]
+        for sid, a in marked:
+            for r in mark_results(a):
+                mark = "✓ ok" if r["mark"] == "ok" else "✗ wrong"
+                cited = "-" if r["cited"] is None else ("yes" if r["cited"] else "no")
+                result_ = "passes" if r["ok"] else "FAILS: " + "; ".join(r["problems"])
+                L.append(f"| {sid} | {r['product']} {_top([r['option_id']] if r['option_id'] else [])} "
+                         f"| {r['finding']} `{r['finding_id'] or '-'}` | {mark} | "
+                         f"{_cell((r['text'] or '-')[:80])} | {cited} | {_cell(result_)} |")
+        L.append("")
+        for sid, a in marked:
+            got = a.decision.marks_hash if a.decision is not None else ""
+            ok = bool(got) and got == a.marks_hash
+            L.append(f"- **{sid}** marks_hash of the decision `{got or '-'}`, the marks give "
+                     f"`{a.marks_hash or '-'}`: {'passes' if ok else 'FAILS'}")
 
     c, t = m["cost"], m["time"]
     L += ["", "### Agent cost and time", "",
