@@ -142,7 +142,7 @@ Run ready (engine top 3 visible at once)
   - the node row "Ajan değerlendirmesi" (5 nodes; a running node shows a small
     animation; a click opens the notes, the sub-nodes and the sources);
   - when the agent is done: its top 3 replaces the engine's, with the badge
-    "Ajan önerisi" and the note "Ajan N öneriyi değiştirdi"; each reason has
+    "Ajan önerisi" and the note "Ajan {k} öneriyi değiştirdi" (k = 1–3); each reason has
     citation chips (E… opens the evidence pop-up, F… the research finding,
     `puan:` / `portfoy:` the explanation); "Motor sıralaması" is a closed
     section; a fallback shows its reason;
@@ -154,6 +154,9 @@ Run ready (engine top 3 visible at once)
 - A call that researches a list of products in parallel (the same cache, ledger
   and checks as today), used by node 2; each product is a sub-node.
 - `config/research.yaml` `max_cost_usd_per_day`: 5.
+- Every finding (highlight or news bullet) gets a stable id `F` + the first 8 hex
+  of SHA-1(option id | date | text), so the agent can cite it and the web can
+  show it.
 
 ## 10. Eval (E11, lead)
 
