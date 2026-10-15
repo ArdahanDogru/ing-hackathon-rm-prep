@@ -22,6 +22,7 @@ from rmprep.api.ingest_job import IngestControl
 from rmprep.api.names import short_name
 from rmprep.api import schemas
 from rmprep.contracts import (
+    BLOCKING_CHECK_KINDS,
     NARRATIVE_LANGS,
     Backend,
     DecisionResult,
@@ -182,13 +183,29 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         d = texts.get((run_id, lang))
         return d if d is not None and d.status == NarrativeStatus.APPROVED else None
 
-    def _save_card(run_id: str, lang: str) -> str:
+    def _current_text(run_id: str, lang: str, strict: bool) -> str | None:
+        """W19 (2026-10-15): the meeting text as it is now, with the RM's edits, for the
+        card (no "Metni onayla" any more). With an open rule finding (BLOCKING_CHECK_KINDS)
+        the text stays out: strict -> 422 for a card download, else the card has no text."""
+        d = texts.get((run_id, lang))
+        if d is None or d.status == NarrativeStatus.APPROVED:
+            return None                      # no text yet, or an older approved text
+        blocking = [f for found in d.edit_checks.values() for f in found
+                    if f.split(":", 1)[0].strip() in BLOCKING_CHECK_KINDS]
+        if blocking:
+            if strict:
+                raise ValueError("Kural bulgusu açık: kartı indirmeden önce düzeltin.")
+            return None
+        return to_markdown(edits.apply_edits(d), names=_names(run_id))
+
+    def _save_card(run_id: str, lang: str, strict: bool = False) -> str:
         result = _run(run_id)
         if result.rm_status != RmStatus.APPROVED:
             raise ValueError("only an approved run has a card")
         ev = backend.evidence(result.snapshot_id, result.excluded_sources)
         md = card.render_markdown(result, ev, lang, narrative=_approved_text(run_id, lang),
-                                  glossary_terms=terms)
+                                  glossary_terms=terms,
+                                  current_text=_current_text(run_id, lang, strict))
         backend.save_card(run_id, md)
         return md
 
@@ -224,7 +241,7 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     @app.get("/api/runs/{run_id}/card.md")
     def card_md(run_id: str, lang: str = "TR"):
-        md = _save_card(run_id, _lang(lang))
+        md = _save_card(run_id, _lang(lang), strict=True)
         return Response(md, media_type="text/markdown; charset=utf-8")
 
     @app.get("/api/evidence/{snapshot_id}/{evidence_id}")

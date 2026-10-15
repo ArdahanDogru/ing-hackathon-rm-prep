@@ -137,3 +137,34 @@ def test_markdown_headings_use_short_fund_names(client, persona):
     part = md.split("## Öneriler", 1)[1].split("\n## ", 1)[0]
     heads = [line[4:] for line in part.splitlines() if line.startswith("### ")]
     assert heads and all(" " in h and not h.startswith("fund:") for h in heads)
+
+
+# --- W19 (2026-10-15, the user): no "Metni onayla"; the card prints the current text ------
+
+def test_card_holds_the_current_text_without_a_text_approval(client, persona):
+    _, rid = _approved(client, persona)
+    client.get(f"/api/runs/{rid}/narrative")
+    r = client.put(f"/api/runs/{rid}/narrative/TR/blocks/ozet", json={"text": "GÜNCEL METİN 456."})
+    assert r.status_code == 200
+    assert "GÜNCEL METİN 456." in client.get(f"/api/runs/{rid}/card.md").text
+
+
+def test_card_refuses_while_a_rule_finding_is_open(client, persona):
+    _, rid = _approved(client, persona)
+    client.get(f"/api/runs/{rid}/narrative")
+    r = client.put(f"/api/runs/{rid}/narrative/TR/blocks/ozet",
+                   json={"text": "Bu fon garanti getiri sağlar."})
+    assert r.status_code == 200 and r.json()["edit_checks"].get("ozet")
+    card = client.get(f"/api/runs/{rid}/card.md")
+    assert card.status_code == 422 and "Kural bulgusu" in card.json()["detail"]
+    client.put(f"/api/runs/{rid}/narrative/TR/blocks/ozet", json={"text": None})   # restore
+    assert client.get(f"/api/runs/{rid}/card.md").status_code == 200
+
+
+def test_notes_still_save_the_card_while_a_rule_finding_is_open(client, backend, persona):
+    _, rid = _approved(client, persona)
+    client.get(f"/api/runs/{rid}/narrative")
+    client.put(f"/api/runs/{rid}/narrative/TR/blocks/ozet", json={"text": "Bu fon garanti getiri sağlar."})
+    r = client.put(f"/api/runs/{rid}/notes", json={"note": "NOT-W19", "option_notes": {}})
+    assert r.status_code == 200 and "NOT-W19" in backend.cards[rid]
+    assert "garanti getiri" not in backend.cards[rid]          # the blocked text stays out

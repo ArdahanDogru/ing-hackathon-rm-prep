@@ -118,8 +118,11 @@ def _terms(body: str, glossary_terms: tuple[glossary.Term, ...],
 
 def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
                     narrative: NarrativeDraft | None = None,
-                    glossary_terms: tuple[glossary.Term, ...] = ()) -> str:
-    body = _markdown_body(r, evidence, lang, narrative)
+                    glossary_terms: tuple[glossary.Term, ...] = (),
+                    current_text: str | None = None) -> str:
+    """current_text (W19, 2026-10-15): the meeting text as it is now, with the RM's
+    edits, used when there is no approved text."""
+    body = _markdown_body(r, evidence, lang, narrative, current_text)
     found = _terms(body, glossary_terms, lang)
     if not found:
         return body
@@ -129,7 +132,7 @@ def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
 
 
 def _markdown_body(r: DecisionResult, evidence: EvidenceSet, lang: str,
-                   narrative: NarrativeDraft | None) -> str:
+                   narrative: NarrativeDraft | None, current_text: str | None = None) -> str:
     lines = [f"# {_title(r, lang)}", "", _meta(r, lang)]
     lines += _approvals(r, narrative, lang)
     for s in _sections(r, evidence, lang):
@@ -137,7 +140,7 @@ def _markdown_body(r: DecisionResult, evidence: EvidenceSet, lang: str,
         for it in s.items:
             lines.append(f"- **{it.text}**" if it.strong else f"- {it.text}")
             lines += [f"  - {x}" for x in it.sub]
-    text = _narrative_text(r, narrative, lang)
+    text = _narrative_text(r, narrative, lang) or current_text
     if text is not None:
         lines += ["", f"## {t('nar_title', lang)}", "", _demoted(text.strip())]
     return "\n".join(lines) + "\n"
@@ -152,7 +155,8 @@ border-bottom:1px solid #d6d5d0}.meta{color:#5c5b56}li{margin:.15rem 0}
 
 def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
                 narrative: NarrativeDraft | None = None,
-                glossary_terms: tuple[glossary.Term, ...] = ()) -> str:
+                glossary_terms: tuple[glossary.Term, ...] = (),
+                current_text: str | None = None) -> str:
     e = html.escape
     parts = ["<!DOCTYPE html>", f'<html lang="{lang.lower()}"><head><meta charset="utf-8">',
              f"<title>{e(_title(r, lang))}</title><style>{_CSS}</style></head><body>",
@@ -164,10 +168,10 @@ def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
             sub = "".join(f"<li>{e(x)}</li>" for x in it.sub)
             parts.append(f"<li>{text}{f'<ul>{sub}</ul>' if sub else ''}</li>")
         parts.append("</ul>")
-    text = _narrative_text(r, narrative, lang)
+    text = _narrative_text(r, narrative, lang) or current_text
     if text is not None:   # the RM's Markdown as written (no converter: no new dependency)
         parts.append(f'<h2>{e(t("nar_title", lang))}</h2><pre class="narrative">{e(text)}</pre>')
-    found = _terms(_markdown_body(r, evidence, lang, narrative), glossary_terms, lang)
+    found = _terms(_markdown_body(r, evidence, lang, narrative, current_text), glossary_terms, lang)
     if found:      # the same terms as the Markdown card
         items = "".join(f"<li><strong>{e(f.form)}</strong>: {e(f.explanation)}</li>"
                         for f in found)

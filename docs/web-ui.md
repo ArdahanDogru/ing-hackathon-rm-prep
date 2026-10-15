@@ -469,6 +469,23 @@ plan `docs/superpowers/plans/2026-10-14-portfolio-projection.md` Task 5.
 - The fund card ("Neden bu öneri?", W16) shows the criterion "Portföy açığı"
   like the others.
 
+### No "Metni onayla"; the card prints the current text (W19, 2026-10-15)
+
+Approved by the user 2026-10-15 ("the button is just detrimental").
+
+- The Görüşme metni screen has no "Metni onayla" button. The "Kart" box (PDF,
+  .md, footer) moves to the top of the aside.
+- The card prints the current text with the RM's edits and deletions (API
+  `_current_text`: `to_markdown(apply_edits(draft))`); an older approved text
+  is still used when it exists.
+- The safety check moves to the card: while a rule finding of a kind in
+  `BLOCKING_CHECK_KINDS` is open, `GET card.md` gives 422 "Kural bulgusu açık:
+  kartı indirmeden önce düzeltin." and the web disables both card links with
+  that reason; a card saved by the notes or the decision approval leaves the
+  text out. Number findings only warn.
+- The RM approval of the recommendation ("Onayla ve metni hazırla") stays, so
+  the record still shows the RM's approval (brief, traceability).
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no
