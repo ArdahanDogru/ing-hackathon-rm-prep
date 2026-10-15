@@ -94,6 +94,18 @@ export function Dashboard({
   };
 
   const opened = openId ? view.options[openId] : undefined;
+  // W23: the agent box (running, done or fallback) takes the place next to Gündem
+  const agentBox = ready && !!agent && agent.state !== "off";
+  const options = (
+    <OptionsCompare
+      view={view}
+      onOpen={setOpenId}
+      onEvidence={setEvidenceId}
+      onView={onView}
+      top={picks}
+      allocationRequest={allocationRequest}
+    />
+  );
   const closeDrawer = useCallback(() => setOpenId(null), []);
 
   return (
@@ -125,7 +137,13 @@ export function Dashboard({
 
       {ready && <AgentPanel decision={agent} />}
 
-      <div className="mb-6 grid items-start gap-6 lg:grid-cols-[1fr_2fr]">
+      {/* W23: with the agent box, row 1 = Gündem and the agent box (same height: the grid
+          stretches both; the taller content sets the row height), row 2 = Öneriler over the full
+          width. Without it, Gündem and Öneriler side by side as before. One column on narrow screens. */}
+      <div
+        data-testid="dash-row1"
+        className={`mb-6 grid gap-6 lg:grid-cols-[1fr_2fr] ${agentBox ? "items-stretch" : "items-start"}`}
+      >
         <Agenda
           points={view.talking_points}
           confirm={view.to_confirm}
@@ -136,32 +154,27 @@ export function Dashboard({
           onAnswer={answer}
           onEvidence={setEvidenceId}
         />
-        {ready ? (
-          view.top.length > 0 ? (
-            <div className="min-w-0">
-              <AgentPicks
-                view={view}
-                decision={agent}
-                onOpen={setOpenId}
-                onEvidence={setEvidenceId}
-                onAllocation={() => setAllocationRequest((n) => n + 1)}
-              />
-              <OptionsCompare
-                view={view}
-                onOpen={setOpenId}
-                onEvidence={setEvidenceId}
-                onView={onView}
-                top={picks}
-                allocationRequest={allocationRequest}
-              />
-            </div>
-          ) : (
-            <p className="rounded-2xl bg-white p-5 text-sm text-muted shadow-sm">{t("noOptions")}</p>
-          )
-        ) : (
+        {!ready ? (
           <QuestionsPanel questions={r.questions} onAnswer={answer} />
+        ) : !view.top.length ? (
+          <p className="rounded-2xl bg-white p-5 text-sm text-muted shadow-sm">{t("noOptions")}</p>
+        ) : agentBox ? (
+          <AgentPicks
+            view={view}
+            decision={agent}
+            onOpen={setOpenId}
+            onEvidence={setEvidenceId}
+            onAllocation={() => setAllocationRequest((n) => n + 1)}
+          />
+        ) : (
+          options
         )}
       </div>
+      {ready && view.top.length > 0 && agentBox && (
+        <div data-testid="dash-row2" className="mb-6">
+          {options}
+        </div>
+      )}
 
       {ready && note && (
         <DetailNote
