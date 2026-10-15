@@ -74,6 +74,8 @@ export function Dashboard({
   // until the RM changes them
   const agent = useAgent(runId);
   const picks = agentTop(view, agent);
+  // W20c: the API writes the brief from the agent's top 3 once the agent changed it: ask again then
+  const agentChanged = agent?.state === "done" && agent.picks.some((p) => !agent.engine_top3.includes(p.option_id));
   const touched = useRef(false);
   const [allocationRequest, setAllocationRequest] = useState(0);
   useEffect(() => {
@@ -103,6 +105,7 @@ export function Dashboard({
         confirmOpen={openConfirms}
         onEdit={onPersona && (() => setEditing(true))}
         onEvidence={setEvidenceId}
+        refresh={agentChanged ? 1 : 0}
       />
       <MarketNote items={view.market_note} onEvidence={setEvidenceId} />
       {error && (

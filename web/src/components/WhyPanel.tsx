@@ -9,7 +9,8 @@ import { colors } from "../theme";
 
 const chip: Record<Level, { bg: string; fg: string }> = colors;
 
-function useLabelOf() {
+/** The label of a score part: the criterion, or "Ceza · <rule>" for "penalty:<rule>". */
+export function useLabelOf() {
   const lang = useContext(LangContext);
   const t = useT();
   return (row: Pick<ScoreRow, "key" | "penalty">): string => {
