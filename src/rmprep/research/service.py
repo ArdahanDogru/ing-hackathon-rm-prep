@@ -21,6 +21,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import threading
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor, wait
@@ -37,6 +38,8 @@ from rmprep.research.types import SHAPE_VERSION, ProductResearch, QuestionAnswer
 RESEARCHED_KINDS = ("fund", "etf", "stock")      # deposit, time_deposit: ING's own products
 FALLBACK_KINDS = ("auth", "credit", "server", "connection")
 LIMIT_ERROR = "daily limit"
+MARKS = ("ok", "wrong")                          # the RM's marks on a research bullet
+FINDING_ID = re.compile(r"^F[0-9a-f]{8}$")
 
 T = TypeVar("T", ProductResearch, QuestionAnswer)
 
@@ -79,6 +82,7 @@ class ResearchService:
         self._lock = threading.Lock()
         self._ledger_lock = threading.Lock()
         self._spent: dict[str, float] = {}      # Turkish day -> USD, also when the ledger cannot be written
+        self._marks_lock = threading.Lock()
 
     @property
     def enabled(self) -> bool:
@@ -92,14 +96,99 @@ class ResearchService:
 
     def status(self, result: DecisionResult, lang: str) -> dict:
         """{"state": "off", "reason"} | {"state": "running"} |
-        {"state": "ready", "products": [...], "questions": [...]} (JSON-ready)."""
+        {"state": "ready", "products": [...], "questions": [...]} (JSON-ready). `products`
+        holds the run's top products (recommended order), then its other researchable
+        options that already have research today (the run's option order; never started
+        here). Every finding and news item has "mark": "ok" | "wrong" | None."""
         if not self._providers:
             return {"state": "off", "reason": self._off_reason}
-        jobs = self._jobs_for(result, lang, self._now().date(), retry=False)
+        day = self._now().date()
+        jobs = self._jobs_for(result, lang, day, retry=False)
         if any(not j.done() for j, _ in jobs):
             return {"state": "running"}
-        return {"state": "ready", "products": [self._job_result(j, o, lang).to_dict() for j, o in jobs],
+        marks = self.marks(day)
+        top = {o.option_id for _, o in jobs}
+        return {"state": "ready",
+                "products": ([_marked(self._job_result(j, o, lang), marks) for j, o in jobs]
+                             + self._candidates(result, lang, day, top, marks)),
                 "questions": [q.to_dict() for q in self.questions(result.run_id, lang)]}
+
+    def _candidates(self, result: DecisionResult, lang: str, day: date, top: set[str],
+                    marks: Mapping[str, str]) -> list[dict]:
+        """The run's other researchable options with research today, in the run's option
+        order: a done job, else a readable cache file. A running job is left out; nothing
+        is started."""
+        if result.state != DecisionState.READY:
+            return []
+        options = [s.option for s in result.options
+                   if researchable(s.option) and s.option.option_id not in top]
+        with self._lock:
+            jobs = {o.option_id: self._jobs.get((o.option_id, lang, day)) for o in options}
+        cached: set[str] = set()
+        if any(j is None for j in jobs.values()):   # one folder scan, not a file check per option
+            suffix = _product_file_name("", lang, day)      # "-<lang>-<day>-v<n>.json"
+            cached = {p.name for p in (self._root / "products").glob(f"*{suffix}")}
+        out = []
+        for opt in options:
+            job = jobs[opt.option_id]
+            if job is not None:
+                if job.done():
+                    out.append(_marked(self._job_result(job, opt, lang), marks))
+                continue
+            name = _product_file_name(opt.option_id, lang, day)
+            if name in cached:
+                found = _read(self._root / "products" / name, ProductResearch)
+                if found is not None:
+                    out.append(_marked(found, marks))
+        return out
+
+    # --- RM marks -------------------------------------------------------------
+
+    def _marks_path(self, day: date) -> Path:
+        return self._root / "marks" / f"{day:%Y%m%d}.json"
+
+    def _load_marks(self, day: date) -> dict:
+        """The raw file content; a missing or unreadable file is no marks."""
+        try:
+            data = json.loads(self._marks_path(day).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def marks(self, day: date | None = None) -> Mapping[str, str]:
+        """Finding id -> "ok" | "wrong" for the Turkish day (default: today). A mark belongs
+        to a finding and a day, so every run that shows the finding that day shows it."""
+        with self._marks_lock:      # on Windows os.replace fails while a reader has the file open
+            raw = self._load_marks(day or self._now().date())
+        return {fid: row["mark"] for fid, row in raw.items()
+                if isinstance(row, dict) and row.get("mark") in MARKS}
+
+    def set_mark(self, finding_id: str, mark: str | None, run_id: str, option_id: str) -> None:
+        """Sets, replaces (mark "ok" | "wrong") or removes (mark None) the mark of a finding
+        for today. The finding id is not checked against the findings: a mark of an unknown
+        finding is kept and never shown. Raises ValueError for a bad mark or finding id."""
+        if mark is not None and mark not in MARKS:
+            raise ValueError(f"mark must be 'ok', 'wrong' or null, got {mark!r}")
+        if not isinstance(finding_id, str) or not FINDING_ID.match(finding_id):
+            raise ValueError(f"finding_id must look like F + 8 hex digits, got {finding_id!r}")
+        now = self._now()
+        path = self._marks_path(now.date())
+        with self._marks_lock:
+            data = self._load_marks(now.date())     # an unreadable file starts a new dict
+            if mark is None:
+                if data.pop(finding_id, None) is None:
+                    return
+            else:
+                data[finding_id] = {"mark": mark, "run_id": run_id, "option_id": option_id,
+                                    "at": now.isoformat()}
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+            try:
+                tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n",
+                               encoding="utf-8", newline="\n")
+                os.replace(tmp, path)               # atomic: a reader sees the old or the new file
+            finally:
+                tmp.unlink(missing_ok=True)
 
     def wait(self) -> None:
         """Waits for every started job (tests)."""
@@ -159,7 +248,7 @@ class ResearchService:
                                error=error, news_days=self._config.shape.news_days)
 
     def _product(self, opt: ProductOption, lang: str, day: date) -> ProductResearch:
-        name = f"{opt.option_id.replace(':', '_')}-{lang}-{day:%Y%m%d}-v{SHAPE_VERSION}.json"
+        name = _product_file_name(opt.option_id, lang, day)
         path = self._root / "products" / name
         try:
             cached = _read(path, ProductResearch)
@@ -306,6 +395,19 @@ class ResearchService:
                     f.write(json.dumps(row, ensure_ascii=False) + "\n")
             except OSError:
                 pass
+
+
+def _product_file_name(option_id: str, lang: str, day: date) -> str:
+    """The cache file of the research of one product, language and Turkish day."""
+    return f"{option_id.replace(':', '_')}-{lang}-{day:%Y%m%d}-v{SHAPE_VERSION}.json"
+
+
+def _marked(research: ProductResearch, marks: Mapping[str, str]) -> dict:
+    """research.to_dict() with "mark" on every finding and news item."""
+    d = research.to_dict()
+    for f in d["findings"] + d["news"]:
+        f["mark"] = marks.get(f["id"])
+    return d
 
 
 def _read(path: Path, cls):
