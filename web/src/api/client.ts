@@ -81,8 +81,6 @@ export const api = {
   notes: (runId: string, note: string, option_notes: Record<string, string>) =>
     request<RunView>("PUT", `/runs/${enc(runId)}/notes`, { note, option_notes }),
   narrative: (runId: string, lang: Lang) => request<NarrativeView>("GET", `/runs/${enc(runId)}/narrative?lang=${lang}`),
-  approveNarrative: (runId: string, lang: Lang, text: string) =>
-    request<NarrativeView>("POST", `/runs/${enc(runId)}/narrative/${lang}/approval`, { text }),
   cardUrl: (runId: string, lang: Lang = "TR") =>
     `${BASE}/runs/${enc(runId)}/card.md${lang === "TR" ? "" : `?lang=${lang}`}`,
   evidence: (snapshotId: string, evidenceId: string) =>

@@ -181,18 +181,6 @@ export function MeetingText({ view }: { view: RunView }) {
     }
   };
 
-  const approveText = async () => {
-    if (!draft) return;
-    setActionError(null);
-    try {
-      // the server composes the Markdown with the edits; it refuses while a blocking finding is open
-      setDraft(await api.approveNarrative(runId, lang, draft.markdown));
-      setOpenBlock(null);
-    } catch (e) {
-      setActionError((e as Error).message);
-    }
-  };
-
   // --- blocks and sentences ------------------------------------------------------------
   const edits = draft?.rm_edits ?? {};
   const checks = draft?.edit_checks ?? {};
@@ -546,24 +534,47 @@ export function MeetingText({ view }: { view: RunView }) {
           </article>
 
           <aside>
-            {/* the action first: the column is long with the glossary */}
-            {!approved && (
-              <div className="mb-4">
-                <button
-                  type="button"
-                  disabled={blocking}
-                  className="rounded-xl bg-brand px-[22px] py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={approveText}
-                >
-                  {t("approveText")}
-                </button>
-                {blocking && (
-                  <p data-testid="approve-reason" className="mt-2 text-sm text-[#B42318]">
-                    {t("approveBlocked")}
+            {/* W19: the card first, where "Metni onayla" was; it is closed while a rule finding is open */}
+            <section data-testid="card-box" className={box}>
+              <h3 className="mb-1 font-bold">{t("card")}</h3>
+              {blocking ? (
+                <>
+                  {[t("pdfDownload"), t("mdDownload")].map((label) => (
+                    <a
+                      key={label}
+                      role="link"
+                      aria-disabled="true"
+                      className="flex cursor-not-allowed items-center gap-2 border-t border-gray-100 py-2.5 text-[15px] font-semibold text-muted opacity-60"
+                    >
+                      {`⤓ ${label}`}
+                    </a>
+                  ))}
+                  <p data-testid="card-blocked" className="mt-1 text-sm text-[#B42318]">
+                    {t("cardBlocked")}
                   </p>
-                )}
+                </>
+              ) : (
+                <>
+                  <Link
+                    to={`/print/${encodeURIComponent(runId)}`}
+                    target="_blank"
+                    className="flex items-center gap-2 border-t border-gray-100 py-2.5 text-[15px] font-semibold text-[#2C4F8F]"
+                  >
+                    {`⤓ ${t("pdfDownload")}`}
+                  </Link>
+                  <a
+                    href={api.cardUrl(runId, lang)}
+                    download={`${runId}.md`}
+                    className="flex items-center gap-2 border-t border-gray-100 py-2.5 text-[15px] font-semibold text-[#2C4F8F]"
+                  >
+                    {`⤓ ${t("mdDownload")}`}
+                  </a>
+                </>
+              )}
+              <div data-testid="card-footer" className="mt-1 text-[13px] text-muted">
+                {[...modelLine, `$${cost}`].join(" · ")}
               </div>
-            )}
+            </section>
             <div className="mb-4 rounded-2xl shadow-sm">
               <NotesBox value={note} onChange={editNote} state={saveState} />
             </div>
@@ -580,26 +591,6 @@ export function MeetingText({ view }: { view: RunView }) {
             </section>
             {!markdown && <SourceList sources={sources} onEvidence={setEvidenceId} highlight={highlight} />}
             <TermsBox terms={terms} />
-            <section className={box}>
-              <h3 className="mb-1 font-bold">{t("card")}</h3>
-              <Link
-                to={`/print/${encodeURIComponent(runId)}`}
-                target="_blank"
-                className="flex items-center gap-2 border-t border-gray-100 py-2.5 text-[15px] font-semibold text-[#2C4F8F]"
-              >
-                {`⤓ ${t("pdfDownload")}`}
-              </Link>
-              <a
-                href={api.cardUrl(runId, lang)}
-                download={`${runId}.md`}
-                className="flex items-center gap-2 border-t border-gray-100 py-2.5 text-[15px] font-semibold text-[#2C4F8F]"
-              >
-                {`⤓ ${t("mdDownload")}`}
-              </a>
-              <div data-testid="card-footer" className="mt-1 text-[13px] text-muted">
-                {[...modelLine, `$${cost}`].join(" · ")}
-              </div>
-            </section>
           </aside>
         </div>
       )}

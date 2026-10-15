@@ -48,11 +48,9 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
         .map((s) => s.text),
     );
   const shownOptions = r.rm_selected.filter((id) => view.options[id] && edits[`oneriler:${id}`] !== "");
-  // an approved text prints as Markdown only when the RM edited it
-  const approvedText =
-    narrative.status === "approved" && narrative.rm_text.trim() !== (narrative.draft_markdown ?? "").trim()
-      ? narrative.rm_text
-      : null;
+  // the current text (W19: a draft too, no approval needed) prints as Markdown when the RM edited it;
+  // `markdown` is the composed text with the edits and deletions (the approved text when approved)
+  const editedText = narrative.markdown.trim() !== (narrative.draft_markdown ?? "").trim() ? narrative.markdown : null;
 
   return (
     <article className="print-page mx-auto max-w-[190mm] bg-white p-8 text-[13px] leading-relaxed text-ink">
@@ -70,9 +68,9 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
         </div>
       </header>
 
-      {approvedText !== null ? (
+      {editedText !== null ? (
         <section className="mt-4">
-          <Markdown text={approvedText} />
+          <Markdown text={editedText} />
         </section>
       ) : (
         <>

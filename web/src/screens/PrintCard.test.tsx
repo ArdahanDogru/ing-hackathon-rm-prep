@@ -39,6 +39,15 @@ test("an approved edited text prints as formatted Markdown", () => {
   expect(screen.getByRole("heading", { name: "Düzenlenmiş başlık" })).toBeInTheDocument();
 });
 
+test("a draft with the RM's edits prints its current markdown, no approval needed (W19)", () => {
+  const d = sample("narrative_p01_tr");
+  const n = { ...d, status: "draft" as const, rm_edits: { ozet: "Yeni amaç." }, markdown: "## Görüşmenin amacı\n\nYeni amaç." };
+  renderPrint(sample("run_p01_approved"), n);
+  expect(screen.getByRole("heading", { name: "Görüşmenin amacı" })).toBeInTheDocument();
+  expect(document.body).toHaveTextContent("Yeni amaç.");
+  expect(document.body).not.toHaveTextContent(d.sections.find((s) => s.key === "teklif_metni")!.sentences[0].text);
+});
+
 test("an approved unedited text prints the sections", () => {
   const d = sample("narrative_p01_tr");
   const n = { ...d, status: "approved" as const, rm_text: d.draft_markdown, markdown: d.draft_markdown };

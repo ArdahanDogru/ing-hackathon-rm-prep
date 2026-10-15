@@ -202,7 +202,7 @@ export interface NarrativeDraft {
   approved_at: string | null; // v1.7: when the text was approved (ISO, +03:00)
 }
 
-/** Finding kinds that block "Metni onayla" (contract v1.5); "number" only warns. */
+/** Finding kinds that block the card download (contract v1.5; W19, before: "Metni onayla"); "number" only warns. */
 export const BLOCKING_CHECK_KINDS = ["phrase", "option", "internal", "label"] as const;
 
 /** GET /runs/{id}/narrative: the draft plus its Markdown (the approved text when approved)
