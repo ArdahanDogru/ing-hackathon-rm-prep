@@ -381,3 +381,10 @@ def test_a_malformed_news_reply_keeps_the_highlights(content, grounding):
     assert len(r.findings) == 2 and r.news == ()
     assert r.cost_usd == pytest.approx(0.019)
     assert "news: request" in r.checks
+
+
+def test_an_iso_week_date_is_not_a_news_date():
+    items, _ = parse_news(_news_with_dates("2026-W40-1", "2026-10-01"), ())
+    assert items[0].date == "2026-10-01"
+    items, _ = parse_news(_news_with_dates("2026-W40-1"), ())
+    assert items[0].date == ""

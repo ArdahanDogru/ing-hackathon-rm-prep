@@ -9,6 +9,7 @@ x-api-key header. This module returns raw findings; the service shapes them."""
 from __future__ import annotations
 
 import dataclasses
+import re
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import date, datetime, timedelta
 
@@ -111,8 +112,8 @@ def _topic_for(kind: str, item: Mapping) -> str | None:
 
 
 def _iso_date(text: str) -> bool:
-    """Exactly YYYY-MM-DD and a real day."""
-    if len(text) != 10:
+    """Exactly YYYY-MM-DD with digits and a real day (fromisoformat alone also takes week dates)."""
+    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", text):
         return False
     try:
         date.fromisoformat(text)
@@ -248,6 +249,7 @@ class ExaProvider:
         """The news call: items, check lines, cost. A failure never loses the highlights:
         it becomes a check line, and the cost of a billed bad reply still counts."""
         start = self._now().date() - timedelta(days=self._news_days)
+        body = None
         try:
             body = self._post({
                 "query": self._config.news_query.format(name=name, code=option_code(option)),
@@ -263,7 +265,7 @@ class ExaProvider:
         except ResearchError as e:
             return [], [f"news: {e.kind}"], e.cost_usd
         except (TypeError, ValueError, AttributeError):    # a 200 reply of a wrong shape (billed)
-            return [], ["news: request"], _cost(body)
+            return [], ["news: request"], _cost(body) if body is not None else 0.0
         return items, _drop_checks(dropped, what="news items"), _cost(body)
 
     def answer_question(self, question: str, products: Sequence[ProductOption],
