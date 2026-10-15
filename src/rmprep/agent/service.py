@@ -65,15 +65,15 @@ LIMITED_TOOLS = ("karsilastir", "arastir")
 MAX_FAILURES = 2                                # one retry
 MAX_NOTES = 6
 NODE_IDS = ("adaylar", "arastirma", "analiz", "kontrol", "karar")
-NODE_LABELS = {"TR": ("Adaylar", "Web araştırması", "Ajan analizi", "Kontrol", "Karar"),
-               "EN": ("Candidates", "Web research", "Agent analysis", "Checks", "Decision")}
+NODE_LABELS = {"TR": ("Adaylar", "Ajan araştırması", "Ajan analizi", "Kontrol", "Karar"),
+               "EN": ("Candidates", "Agent research", "Agent analysis", "Checks", "Decision")}
 
 TEXTS = {
     "TR": {
         "candidates": "Motorun en iyi {n} adayı (mevduat hariç).",
         "research_done": "{ok}/{n} ürün araştırıldı.",
-        "research_off": "Web araştırması kapalı; ajan araştırmasız karar verir.",
-        "research_failed": "Web araştırması yapılamadı: {why}",
+        "research_off": "Ajan araştırması kapalı; ajan araştırmasız karar verir.",
+        "research_failed": "Ajan araştırması yapılamadı: {why}",
         "research_timeout": "{s:.0f} sn içinde bitmedi",
         "not_researched": "ING ürünü; web araştırması yapılmaz.",
         "findings": "{n} bulgu, {m} haber.",
@@ -99,8 +99,8 @@ TEXTS = {
     "EN": {
         "candidates": "The engine's best {n} candidates (without the deposit).",
         "research_done": "{ok}/{n} products researched.",
-        "research_off": "Web research is off; the agent decides without it.",
-        "research_failed": "Web research failed: {why}",
+        "research_off": "Agent research is off; the agent decides without it.",
+        "research_failed": "Agent research failed: {why}",
         "research_timeout": "not finished in {s:.0f} s",
         "not_researched": "An ING product; not researched on the web.",
         "findings": "{n} findings, {m} news items.",
