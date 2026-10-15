@@ -380,7 +380,11 @@ export interface ResearchFinding {
   sources: ResearchSource[];
   date: string; // YYYY-MM-DD for news, "" otherwise
   id?: string; // R3: "F" + sha1(option_id | date | text)[:8]; the agent cites it
+  mark?: FindingMark; // W24 (R4): the RM's mark; null = not checked ("doğrulanmamış")
 }
+
+/** W24: the RM's mark of a research finding: ✓ checked, ✗ wrong or not relevant (not given to the agent). */
+export type FindingMark = "ok" | "wrong" | null;
 
 export interface ProductResearch {
   option_id: string;
@@ -460,5 +464,7 @@ export interface AgentDecision {
   prompt_version: string;
   cost_usd: number;
   created_at: string;
-  fallback_reason: string;
+  fallback_reason: string; // off: "henüz çalıştırılmadı" (W24: not started yet) or why there is no agent
+  n_candidates?: number; // v1.12 (W24): the N of the run
+  marks_hash?: string; // v1.12: the hash of the RM's marks the decision used
 }

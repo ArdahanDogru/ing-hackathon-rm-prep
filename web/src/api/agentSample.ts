@@ -9,6 +9,8 @@ interface RunLike {
 }
 
 export const SAMPLE_FINDING = "Fa1b2c3d4";
+/** W24: the reason of GET /agent before the RM started the agent of the run. */
+export const NOT_STARTED = "henüz çalıştırılmadı";
 const T0 = "2026-10-15T10:00:00+03:00";
 const at = (s: number) => new Date(Date.parse(T0) + s * 1000).toISOString().replace("Z", "+00:00");
 
@@ -80,6 +82,11 @@ function nodes(run: RunLike, finished: number, fallback: boolean): AgentNode[] {
   });
 }
 
+/** W24: the answer of GET /agent before the RM started the agent (state off, reason NOT_STARTED). */
+export function notStarted(run: RunLike): AgentDecision {
+  return { ...agentDecision(run, "off"), fallback_reason: NOT_STARTED };
+}
+
 /** A decision in one state; `step` (running only) = the number of finished nodes, 0–4. */
 export function agentDecision(run: RunLike, state: AgentState, step = 2): AgentDecision {
   const engine = run.result.recommended.slice(0, 3);
@@ -97,8 +104,10 @@ export function agentDecision(run: RunLike, state: AgentState, step = 2): AgentD
     cost_usd: 0,
     created_at: T0,
     fallback_reason: "",
+    n_candidates: 0,
   };
   if (state === "off") return { ...base, fallback_reason: "ANTHROPIC_API_KEY yok" };
+  base.n_candidates = Math.min(10, cands.length);
   if (state === "running") return { ...base, nodes: nodes(run, step, false), cost_usd: 0.03 };
   if (state === "fallback")
     return {

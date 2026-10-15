@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { Persona, RunView } from "../api/types";
-import { AgentPanel, useAgent } from "../components/AgentPanel";
+import { AgentPanel, useAgentRun } from "../components/AgentPanel";
 import { AgentPicks, agentTop } from "../components/AgentPicks";
 import { Agenda } from "../components/Agenda";
 import { ApprovalBar } from "../components/ApprovalBar";
@@ -72,7 +72,7 @@ export function Dashboard({
 
   // W20: the agent's top 3 replaces the engine's when it is done; the meeting chips follow it
   // until the RM changes them
-  const agent = useAgent(runId);
+  const { decision: agent, start: startAgent } = useAgentRun(runId);
   const picks = agentTop(view, agent);
   // W20c: the API writes the brief from the agent's top 3 once the agent changed it: ask again then
   const agentChanged = agent?.state === "done" && agent.picks.some((p) => !agent.engine_top3.includes(p.option_id));
@@ -95,7 +95,11 @@ export function Dashboard({
 
   const opened = openId ? view.options[openId] : undefined;
   // W23: the agent box (running, done or fallback) takes the place next to Gündem
-  const agentBox = ready && !!agent && agent.state !== "off";
+  // W24: after an agent run the research status holds the other candidates too: ask again
+  const researchRefresh =
+    agent && (agent.state === "done" || agent.state === "fallback") ? `${agent.state}|${agent.created_at}|${agent.n_candidates ?? ""}` : "";
+  // W24: the box is always there when the server has an agent (the start form before a run)
+  const agentBox = ready && !!agent;
   const options = (
     <OptionsCompare
       view={view}
@@ -117,7 +121,7 @@ export function Dashboard({
         confirmOpen={openConfirms}
         onEdit={onPersona && (() => setEditing(true))}
         onEvidence={setEvidenceId}
-        refresh={agentChanged ? 1 : 0}
+        refresh={agentChanged ? agent.picks.map((p) => p.option_id).join("|") : ""}
       />
       <MarketNote items={view.market_note} clientWarnings={view.client_warnings} rmWarnings={view.rm_warnings} onEvidence={setEvidenceId} />
       {error && (
@@ -165,6 +169,7 @@ export function Dashboard({
             onOpen={setOpenId}
             onEvidence={setEvidenceId}
             onAllocation={() => setAllocationRequest((n) => n + 1)}
+            onStart={startAgent}
           />
         ) : (
           options
@@ -189,7 +194,7 @@ export function Dashboard({
           onClose={() => setNote(null)}
         />
       )}
-      {ready && <ResearchPanel view={view} />}
+      {ready && <ResearchPanel view={view} refresh={researchRefresh} />}
 
       {ready && <ApprovalBar view={view} selected={selected} openConfirms={openConfirms} onRemove={toggle} onView={onView} />}
 

@@ -2,7 +2,7 @@
 // sections 4 and 8): the agent's five nodes in a row with their state, time and cost; a click
 // opens the notes and the sub-nodes. No raw model thinking: the notes are the `amac` texts and
 // the check results.
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { AgentDecision, AgentNode, AgentNodeState } from "../api/types";
 import { fill, LangContext, useT, type LabelKey } from "../i18n";
@@ -10,14 +10,18 @@ import { fill, LangContext, useT, type LabelKey } from "../i18n";
 const POLL_MS = 2000;
 const MAX_POLLS = 60;
 
-/** The agent decision of a run: asked at once, then every 2 s while it runs (at most 60 times). */
-export function useAgent(runId: string): AgentDecision | null {
+/** The agent decision of a run and a way to start it (W24: the RM starts it). The decision is
+ * asked at once, then every 2 s while it runs (at most 60 times); `start(n)` posts N and polls again. */
+export function useAgentRun(runId: string): { decision: AgentDecision | null; start: (n: number) => Promise<void> } {
   const [decision, setDecision] = useState<AgentDecision | null>(null);
+  const [round, setRound] = useState(0); // a new round polls again (after a start)
+  const shownRun = useRef(runId);
   useEffect(() => {
     let live = true;
     let polls = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    setDecision(null);
+    if (shownRun.current !== runId) setDecision(null); // another run: not the old decision
+    shownRun.current = runId;
     const poll = () => {
       polls += 1;
       api.agentStatus(runId).then(
@@ -34,8 +38,21 @@ export function useAgent(runId: string): AgentDecision | null {
       live = false;
       clearTimeout(timer);
     };
-  }, [runId]);
-  return decision;
+  }, [runId, round]);
+  const start = useCallback(
+    async (n: number) => {
+      const d = await api.startAgent(runId, n); // an ApiError goes to the caller (the form shows it)
+      setDecision(d);
+      setRound((r) => r + 1);
+    },
+    [runId],
+  );
+  return { decision, start };
+}
+
+/** The agent decision of a run (polled). */
+export function useAgent(runId: string): AgentDecision | null {
+  return useAgentRun(runId).decision;
 }
 
 const STATE_WORD: Record<AgentNodeState, LabelKey> = {

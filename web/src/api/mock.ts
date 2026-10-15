@@ -2,7 +2,7 @@
 // (../tests/contracts/fixtures/api/). Pure: the Vite
 // middleware in vite.config.ts gives it a loader by sample name.
 
-import { agentDecision, SAMPLE_FINDING } from "./agentSample";
+import { agentDecision, notStarted, SAMPLE_FINDING } from "./agentSample";
 
 export type Loader = (name: string) => unknown | undefined;
 export type MockAnswer = { status: number; body: unknown; type?: string };
@@ -32,11 +32,11 @@ const MOCK_RESEARCH = {
     {
       option_id: "fund:PPN", label: "NUROL PORTFÖY PARA PİYASASI (TL) FONU", company: "Nurol Portföy Yönetimi A.Ş.",
       summary: "",
-      news: [{ ...MOCK_FINDING, text: "Nurol Portföy yeni bir fon başlattı.", topic: "haber", date: "2026-10-12" }],
+      news: [{ ...MOCK_FINDING, id: "Fa0000003", text: "Nurol Portföy yeni bir fon başlattı.", topic: "haber", date: "2026-10-12" }],
       news_days: 90,
       findings: [
-        MOCK_FINDING,
-        { ...MOCK_FINDING, text: "Getiri faiz oranlarına duyarlıdır.", topic: "dikkat", confidence: "medium" },
+        { ...MOCK_FINDING, id: "Fa0000001" },
+        { ...MOCK_FINDING, id: "Fa0000002", text: "Getiri faiz oranlarına duyarlıdır.", topic: "dikkat", confidence: "medium" },
         // the finding that the mock agent cites (W20)
         { ...MOCK_FINDING, id: SAMPLE_FINDING, text: "Yönetim ücreti benzer fonlardan düşük.", topic: "is", confidence: "medium" },
       ],
@@ -46,25 +46,80 @@ const MOCK_RESEARCH = {
   questions: [],
 };
 
-// Agent (W20): running for AGENT_RUN_MS after the first ask of a run, then done; P02 falls back.
+// Agent (W24): off ("henüz çalıştırılmadı") until the RM starts it (POST {n}); then running for
+// AGENT_RUN_MS, then done; P02 falls back. The research marks are kept in memory.
 const AGENT_RUN_MS = 15_000;
-const agentStarted = new Map<string, number>();
+const agentStarted = new Map<string, { at: number; n: number }>();
+const marks = new Map<string, "ok" | "wrong">();
 
-/** Forget the start times of the mock agent (tests). */
+/** Forget the starts of the mock agent and the marks (tests). */
 export function resetAgentMock(): void {
   agentStarted.clear();
+  marks.clear();
+}
+
+type MockRun = Parameters<typeof agentDecision>[0];
+
+function runOf(load: Loader, runId: string): { name: string; run: MockRun } | null {
+  const name = RUN_SAMPLES.find((n) => (load(n) as { result?: { run_id?: string } } | undefined)?.result?.run_id === runId);
+  return name ? { name, run: load(name) as MockRun } : null;
 }
 
 function agentAnswer(load: Loader, runId: string): MockAnswer {
-  const name = RUN_SAMPLES.find((n) => (load(n) as { result?: { run_id?: string } } | undefined)?.result?.run_id === runId);
-  if (!name) return notFound(`unknown run ${runId}`);
-  const run = load(name) as Parameters<typeof agentDecision>[0];
-  if (name === "run_p02_ready") return { status: 200, body: agentDecision(run, "fallback") };
-  const start = agentStarted.get(runId) ?? Date.now();
-  agentStarted.set(runId, start);
-  const elapsed = Date.now() - start;
-  if (elapsed >= AGENT_RUN_MS) return { status: 200, body: agentDecision(run, "done") };
-  return { status: 202, body: agentDecision(run, "running", Math.min(4, Math.floor((elapsed / AGENT_RUN_MS) * 5))) };
+  const found = runOf(load, runId);
+  if (!found) return notFound(`unknown run ${runId}`);
+  const started = agentStarted.get(runId);
+  if (!started) return { status: 200, body: notStarted(found.run) };
+  if (found.name === "run_p02_ready") return { status: 200, body: { ...agentDecision(found.run, "fallback"), n_candidates: started.n } };
+  const elapsed = Date.now() - started.at;
+  if (elapsed >= AGENT_RUN_MS) return { status: 200, body: { ...agentDecision(found.run, "done"), n_candidates: started.n } };
+  const step = Math.min(4, Math.floor((elapsed / AGENT_RUN_MS) * 5));
+  return { status: 202, body: { ...agentDecision(found.run, "running", step), n_candidates: started.n } };
+}
+
+function startAgent(load: Loader, runId: string, req: Record<string, unknown>): MockAnswer {
+  if (!runOf(load, runId)) return notFound(`unknown run ${runId}`);
+  const n = req.n === undefined ? 10 : Number(req.n);
+  if (!Number.isInteger(n) || n < 3 || n > 20) return { status: 422, body: { detail: `n must be 3–20, got ${String(req.n)}` } };
+  agentStarted.set(runId, { at: Date.now(), n });
+  return agentAnswer(load, runId);
+}
+
+type MockFinding = { id?: string; mark?: string | null };
+const withMarks = <F extends MockFinding>(f: F): F => (f.id ? { ...f, mark: marks.get(f.id) ?? null } : f);
+
+/** The research status with the marks; after a done agent run, one more candidate (W24). */
+function researchAnswer(load: Loader, runId: string): MockAnswer {
+  const products: (typeof MOCK_RESEARCH.products[number] | Record<string, unknown>)[] = [...MOCK_RESEARCH.products];
+  const found = runOf(load, runId);
+  const started = agentStarted.get(runId);
+  if (found && started && Date.now() - started.at >= AGENT_RUN_MS && found.name !== "run_p02_ready") {
+    const other = agentDecision(found.run, "done").picks.find((p) => !found.run.result.recommended.includes(p.option_id));
+    if (other)
+      products.push({
+        ...MOCK_RESEARCH.products[0],
+        option_id: other.option_id,
+        label: other.option_id.split(":")[1] ?? other.option_id,
+        company: "",
+        news: [],
+        findings: [{ ...MOCK_FINDING, id: "Fb0c0de01", text: "Fon büyük ölçüde özel sektör tahvili tutar." }],
+      });
+  }
+  const marked = products.map((p) => {
+    const q = p as { findings?: MockFinding[]; news?: MockFinding[] };
+    return { ...p, findings: (q.findings ?? []).map(withMarks), news: (q.news ?? []).map(withMarks) };
+  });
+  return { status: 200, body: { ...MOCK_RESEARCH, products: marked } };
+}
+
+function setMark(req: Record<string, unknown>): MockAnswer {
+  const id = req.finding_id;
+  const mark = req.mark ?? null;
+  if (typeof id !== "string" || !id || !(mark === null || mark === "ok" || mark === "wrong"))
+    return { status: 422, body: { detail: "finding_id and a mark ok | wrong | null are needed" } };
+  if (mark === null) marks.delete(id);
+  else marks.set(id, mark);
+  return { status: 200, body: { finding_id: id, mark } };
 }
 
 export function resolveMock(method: string, url: string, body: unknown, load: Loader): MockAnswer {
@@ -91,6 +146,8 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
     if (method === "POST") return { status: 202, body: { ...status, running: true, started_at: new Date().toISOString() } };
   }
 
+  if (method === "POST" && a === "research" && b === "marks") return setMark(req);
+
   if (a === "runs") {
     if (method === "POST" && !b) {
       const persona = (req.persona ?? {}) as { persona_id?: string };
@@ -107,8 +164,9 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
     if (method === "POST" && c === "answers") return sample(load, "run_p01_ready");
     if (method === "POST" && c === "approval") return sample(load, "run_p01_approved");
     if (method === "PUT" && c === "notes") return sample(load, "run_p01_approved");
-    if (method === "GET" && c === "research" && !d) return { status: 200, body: MOCK_RESEARCH };
+    if (method === "GET" && c === "research" && !d) return researchAnswer(load, b ?? "");
     if (method === "GET" && c === "agent" && !d) return agentAnswer(load, b ?? "");
+    if (method === "POST" && c === "agent" && !d) return startAgent(load, b ?? "", req);
     if (method === "POST" && c === "research" && d === "questions") {
       const question = String(req.question ?? "");
       if (/müşteri|client/i.test(question)) {

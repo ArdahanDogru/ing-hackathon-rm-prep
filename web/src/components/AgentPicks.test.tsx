@@ -135,8 +135,8 @@ test("fallback: the engine's top 3 with the reason", async () => {
   expect(cardLabels()).toEqual(v.top.map((id) => v.options[id].label));
 });
 
-test("off or no agent: nothing new on screen", async () => {
-  await showWith(agentDecision(view(), "off"));
+test("no agent on the server: nothing new on screen (W24: off shows its reason, see AgentRun.test)", async () => {
+  await showWith(null);
   expect(screen.queryByTestId("agent-picks")).toBeNull();
   expect(screen.queryByTestId("agent-panel")).toBeNull();
 });
@@ -196,8 +196,8 @@ test("while the agent runs the box is in row 1 too", async () => {
   expect(within(screen.getByTestId("dash-row2")).getByTestId("options-compare")).toBeInTheDocument();
 });
 
-test("without the agent box (off): Gündem and Öneriler side by side as before, no second row", async () => {
-  await showWith(agentDecision(view(), "off"));
+test("without the agent box (no agent on the server): Gündem and Öneriler side by side as before, no second row", async () => {
+  await showWith(null);
   const row1 = screen.getByTestId("dash-row1");
   expect(row1).toHaveClass("lg:grid-cols-[1fr_2fr]");
   expect(within(row1).getByTestId("agenda")).toBeInTheDocument();
