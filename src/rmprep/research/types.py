@@ -5,6 +5,8 @@ no other module reads them."""
 
 from __future__ import annotations
 
+import dataclasses
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -47,6 +49,7 @@ class Finding:
     sources: tuple[Source, ...]    # at least one
     confidence: str = "medium"     # low | medium | high (as the provider reports it)
     date: str = ""                 # YYYY-MM-DD; news only
+    id: str = ""                   # "F" + 8 hex; set by the container (finding_id), never by a provider
 
     def __post_init__(self) -> None:
         if not self.text.strip():
@@ -60,12 +63,38 @@ class Finding:
 
     def to_dict(self) -> dict:
         return {"text": self.text, "topic": self.topic, "confidence": self.confidence,
-                "sources": [s.to_dict() for s in self.sources], "date": self.date}
+                "sources": [s.to_dict() for s in self.sources], "date": self.date, "id": self.id}
 
     @classmethod
     def from_dict(cls, d: dict) -> Finding:
         return cls(d["text"], d["topic"], tuple(Source.from_dict(s) for s in d["sources"]),
-                   d.get("confidence", "medium"), d.get("date", ""))
+                   d.get("confidence", "medium"), d.get("date", ""), d.get("id", ""))
+
+
+def finding_id(option_id: str, date: str, text: str, n: int = 0) -> str:
+    """A stable id of a finding: "F" + 8 hex of sha1(option|date|text); n > 0 (a repeat in
+    one container) is added to the hashed text."""
+    raw = f"{option_id}|{date}|{text}" + (f"|{n}" if n else "")
+    return "F" + hashlib.sha1(raw.encode("utf-8")).hexdigest()[:8]
+
+
+def _with_ids(option_id: str, *groups: tuple[Finding, ...]) -> tuple[tuple[Finding, ...], ...]:
+    """The groups with every id recomputed from the final text; unique over all groups
+    (a repeat gets n = 1, 2, ... in the order of the groups, then of the items)."""
+    used: set[str] = set()
+    out = []
+    for group in groups:
+        items = []
+        for f in group:
+            n = 0
+            fid = finding_id(option_id, f.date, f.text)
+            while fid in used:
+                n += 1
+                fid = finding_id(option_id, f.date, f.text, n)
+            used.add(fid)
+            items.append(dataclasses.replace(f, id=fid))
+        out.append(tuple(items))
+    return tuple(out)
 
 
 def _aware(t: datetime) -> datetime:
@@ -93,6 +122,9 @@ class ProductResearch:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "created_at", _aware(self.created_at))
+        news, findings = _with_ids(self.option_id, self.news, self.findings)    # news first
+        object.__setattr__(self, "news", news)
+        object.__setattr__(self, "findings", findings)
 
     def to_dict(self) -> dict:
         return {"option_id": self.option_id, "label": self.label, "company": self.company,
@@ -125,20 +157,22 @@ class QuestionAnswer:
     checks: tuple[str, ...] = ()
     error: str = ""
     version: int = SHAPE_VERSION
+    option_id: str = ""            # the product of a product question; "" for a run question
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "created_at", _aware(self.created_at))
+        object.__setattr__(self, "findings", _with_ids(self.option_id, self.findings)[0])
 
     def to_dict(self) -> dict:
         return {"question": self.question, "summary": self.summary,
                 "findings": [f.to_dict() for f in self.findings], "lang": self.lang,
                 "provider": self.provider, "created_at": self.created_at.isoformat(),
                 "cost_usd": self.cost_usd, "checks": list(self.checks), "error": self.error,
-                "version": self.version}
+                "version": self.version, "option_id": self.option_id}
 
     @classmethod
     def from_dict(cls, d: dict) -> QuestionAnswer:
         return cls(d["question"], d["summary"], tuple(Finding.from_dict(f) for f in d["findings"]),
                    d["lang"], d["provider"], datetime.fromisoformat(d["created_at"]),
                    float(d.get("cost_usd", 0.0)), tuple(d.get("checks", ())), d.get("error", ""),
-                   int(d.get("version", 1)))
+                   int(d.get("version", 1)), d.get("option_id", ""))

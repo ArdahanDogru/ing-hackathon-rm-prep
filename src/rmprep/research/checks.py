@@ -93,12 +93,13 @@ def _grams(words: Sequence[str], n: int = 3) -> set[tuple[str, ...]]:
     return {tuple(words[i:i + n]) for i in range(len(words) - n + 1)}
 
 
-def check_question(question: str, persona: Persona, lang: str, client_words: Iterable[str],
+def check_question(question: str, persona: Persona | None, lang: str, client_words: Iterable[str],
                    max_chars: int) -> str | None:
     """None if the question may go to a search provider, else the reason (in `lang`)
     for the RM. Refused: empty; longer than max_chars; a word that starts with a
     client word (müşteri -> müşterim, müşterinin); the persona's age as a word; three
-    words in a row from a persona text field (Turkish lower-casing throughout)."""
+    words in a row from a persona text field (Turkish lower-casing throughout). With
+    persona None (a product question without a client) only the first three checks run."""
     reasons = REASONS[lang]
     q = question.strip()
     if not q:
@@ -107,7 +108,11 @@ def check_question(question: str, persona: Persona, lang: str, client_words: Ite
         return reasons["long"].format(n=max_chars)
     words = _words(q)
     roots = tuple(tr_lower(unicodedata.normalize("NFC", w)) for w in client_words)
-    if str(persona.yas) in words or any(roots and w.startswith(roots) for w in words):
+    if any(roots and w.startswith(roots) for w in words):
+        return reasons["client"]
+    if persona is None:
+        return None
+    if str(persona.yas) in words:
         return reasons["client"]
     asked = _grams(words)
     fields = (persona.profil, persona.durum, persona.yatirim_amaci, persona.rm_notu,
