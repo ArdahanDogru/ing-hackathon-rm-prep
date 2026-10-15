@@ -153,7 +153,7 @@ test("hidden on a server without research", async () => {
 test("off with a reason says so", async () => {
   vi.spyOn(api, "research").mockResolvedValue({ state: "off", reason: "no key in .env: EXA_API_KEY" });
   panel();
-  expect(await screen.findByText("Web araştırması kapalı: no key in .env: EXA_API_KEY")).toBeInTheDocument();
+  expect(await screen.findByText("Ajan araştırması kapalı: no key in .env: EXA_API_KEY")).toBeInTheDocument();
 });
 
 test("the daily limit and other errors of a product", async () => {
@@ -222,4 +222,14 @@ test("no research for a run that is not ready", () => {
   renderWith(<ResearchPanel view={sample("run_needs_input")} />);
   expect(research).not.toHaveBeenCalled();
   expect(screen.queryByTestId("research-panel")).toBeNull();
+});
+
+test("W22: the panel is called Ajan araştırması (EN Agent research); the finding label stays", async () => {
+  vi.spyOn(api, "research").mockResolvedValue(ready());
+  const { unmount } = panel();
+  expect(await screen.findByRole("heading", { name: "Ajan araştırması" })).toBeInTheDocument();
+  expect(screen.getAllByText(/Web kaynağı, doğrulanmamış/).length).toBeGreaterThan(0);
+  unmount();
+  panel("EN");
+  expect(await screen.findByRole("heading", { name: "Agent research" })).toBeInTheDocument();
 });

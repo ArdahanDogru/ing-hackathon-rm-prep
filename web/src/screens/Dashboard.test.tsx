@@ -112,13 +112,6 @@ test("needs_rm_input shows questions instead of Öneriler", () => {
   expect(screen.queryByRole("button", { name: "Onayla ve metni hazırla" })).toBeNull();
 });
 
-test("Detaylar opens categories, assumptions, data notes, eliminated, RM note", async () => {
-  renderDashboard(sample("run_p01_ready"));
-  await userEvent.click(screen.getByRole("button", { name: /Detaylar/ }));
-  for (const t of ["Kategoriler", "Varsayımlar", "Veri notları", "Elenen", "Uyarılar", "RM notu"])
-    expect(screen.getByRole("tab", { name: new RegExp(t) })).toBeInTheDocument();
-});
-
 test("K mark opens the evidence pop-up", async () => {
   const ev = vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
   renderDashboard(sample("run_p01_ready"));
@@ -182,51 +175,7 @@ test("Escape with the evidence pop-up over the drawer closes only the pop-up", a
   expect(screen.getAllByRole("dialog")).toHaveLength(1);
 });
 
-test("Ayrıntılar in Detaylar opens the same drawer", async () => {
-  renderDashboard(sample("run_p01_ready"));
-  await userEvent.click(screen.getByRole("button", { name: /Detaylar/ }));
-  await userEvent.click(within(screen.getAllByTestId("category")[0]).getByRole("button", { expanded: false }));
-  await userEvent.click(screen.getAllByRole("button", { name: "Ayrıntılar" })[0]);
-  expect(within(screen.getByRole("dialog")).getAllByTestId("fund-tile")).toHaveLength(3);
-});
-
 // --- kept from the first design ---------------------------------------------------
-
-test("Detaylar: a category opens at most 3 funds; RM notu holds the RM-only warnings", async () => {
-  const v = sample("run_p01_ready");
-  renderDashboard(v);
-  await userEvent.click(screen.getByRole("button", { name: /Detaylar/ }));
-  const first = screen.getAllByTestId("category")[0];
-  await userEvent.click(within(first).getByRole("button", { expanded: false }));
-  const rows = within(first).getAllByTestId("fund-row");
-  expect(rows.length).toBeGreaterThan(0);
-  expect(rows.length).toBeLessThanOrEqual(3);
-  await userEvent.click(screen.getByRole("tab", { name: /RM notu/ }));
-  v.rm_warnings.forEach((w) => expect(screen.getByRole("tabpanel")).toHaveTextContent(w.message));
-});
-
-test("Detaylar: client warnings in Uyarılar, never under RM notu", async () => {
-  const v = sample("run_p01_ready");
-  const w = { code: "concentration", message: "Üç öneri de TL faizine bağlı.", evidence_ids: [], option_ids: [], audience: "client" as const };
-  renderDashboard({ ...v, client_warnings: [w] });
-  expect(screen.getByRole("button", { name: /Detaylar/ })).toHaveTextContent("Uyarılar (1)");
-  await userEvent.click(screen.getByRole("button", { name: /Detaylar/ }));
-  await userEvent.click(screen.getByRole("tab", { name: /Uyarılar/ }));
-  expect(screen.getByRole("tabpanel")).toHaveTextContent(w.message);
-  await userEvent.click(screen.getByRole("tab", { name: /RM notu/ }));
-  expect(screen.getByRole("tabpanel")).not.toHaveTextContent(w.message);
-});
-
-test("Detaylar: Elenen opens one row per rule", async () => {
-  const v = sample("run_p01_ready");
-  renderDashboard(v);
-  await userEvent.click(screen.getByRole("button", { name: /Detaylar/ }));
-  await userEvent.click(screen.getByRole("tab", { name: /Elenen/ }));
-  const rule = v.rejected_by_rule[0];
-  await userEvent.click(screen.getByRole("button", { name: new RegExp(rule.label) }));
-  const list = screen.getByTestId(`rule-${rule.rule_id}`);
-  rule.options.slice(0, 5).forEach((o) => expect(list).toHaveTextContent(o.label.replace(/\s+/g, " ").trim()));
-});
 
 test("approval sends the selected chips", async () => {
   const approve = vi.spyOn(api, "approve").mockResolvedValue(sample("run_p01_approved"));
@@ -364,4 +313,125 @@ test("no market note: no card", () => {
 test("market note card in EN", () => {
   renderDashboard(sample("run_p01_ready"), () => {}, "EN");
   expect(screen.getByTestId("market-note")).toHaveTextContent("Market note · TCMB EVDS");
+});
+
+// --- W22: the Detaylar pane is gone; its content is in pop-up notes and the note box ---------
+
+/** Open the note of a pipeline link ("Varsayımları gör" …). */
+async function openNote(link: string) {
+  await userEvent.click(screen.getByRole("button", { name: link }));
+  return screen.getByRole("dialog");
+}
+
+test("no Detaylar pane any more", () => {
+  renderDashboard(sample("run_p01_ready"));
+  expect(screen.queryByRole("button", { name: /Detaylar/ })).toBeNull();
+  for (const tab of ["Kategoriler", "Elenen", "Uyarılar", "RM notu"]) expect(screen.queryByRole("tab", { name: new RegExp(tab) })).toBeNull();
+});
+
+test("the pipeline links open one note each, titled with the count", async () => {
+  const v = sample("run_p01_ready");
+  renderDashboard(v);
+  const cases = [
+    ["Varsayımları gör", `Varsayımlar (${v.assumptions.length})`, v.assumptions[0]],
+    ["Veri notlarını gör", `Veri notları (${v.data_notes.length})`, v.data_notes[0].message],
+    ["Elenenleri gör", `Elenen (${v.result.rejected.length})`, v.rejected_by_rule[0].label],
+    ["Kategorileri gör", `Kategoriler (${v.categories.length})`, v.categories[0].label],
+  ] as const;
+  for (const [link, title, text] of cases) {
+    const note = await openNote(link);
+    expect(within(note).getByRole("heading", { name: title })).toBeInTheDocument();
+    expect(note).toHaveAccessibleName(title);
+    expect(note).toHaveTextContent(text);
+    await userEvent.click(within(note).getByRole("button", { name: "Kapat" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  }
+});
+
+test("a note closes with Esc and an outside click; the focus goes back to its link", async () => {
+  renderDashboard(sample("run_p01_ready"));
+  const link = screen.getByRole("button", { name: "Varsayımları gör" });
+  await openNote("Varsayımları gör");
+  await userEvent.keyboard("{Escape}");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(link).toHaveFocus();
+  await openNote("Varsayımları gör");
+  await userEvent.click(screen.getByTestId("note-backdrop"));
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+test("a note keeps the focus inside (Tab and Shift+Tab wrap)", async () => {
+  renderDashboard(sample("run_p01_ready"));
+  const note = await openNote("Elenenleri gör");
+  const focusable = within(note).getAllByRole("button");
+  expect(focusable[0]).toHaveFocus();
+  await userEvent.tab({ shift: true });
+  expect(focusable.at(-1)).toHaveFocus();
+  await userEvent.tab();
+  expect(focusable[0]).toHaveFocus();
+});
+
+test("Elenen: one row per rule with its options", async () => {
+  const v = sample("run_p01_ready");
+  renderDashboard(v);
+  const note = await openNote("Elenenleri gör");
+  const rule = v.rejected_by_rule[0];
+  await userEvent.click(within(note).getByRole("button", { name: new RegExp(rule.label) }));
+  const list = within(note).getByTestId(`rule-${rule.rule_id}`);
+  rule.options.slice(0, 5).forEach((o) => expect(list).toHaveTextContent(o.label.replace(/\s+/g, " ").trim()));
+  expect(note).toHaveTextContent("Bir fon birden fazla kurala takılabilir.");
+});
+
+test("Kategoriler: a category opens at most 3 funds; Ayrıntılar opens the fund card", async () => {
+  renderDashboard(sample("run_p01_ready"));
+  const note = await openNote("Kategorileri gör");
+  const first = within(note).getAllByTestId("category")[0];
+  await userEvent.click(within(first).getByRole("button", { expanded: false }));
+  const rows = within(first).getAllByTestId("fund-row");
+  expect(rows.length).toBeGreaterThan(0);
+  expect(rows.length).toBeLessThanOrEqual(3);
+  await userEvent.click(within(note).getAllByRole("button", { name: "Ayrıntılar" })[0]);
+  expect(within(screen.getByRole("dialog")).getAllByTestId("fund-tile")).toHaveLength(3);
+});
+
+test("the note box: Piyasa notu, Uyarılar and RM notu, each with its own title", () => {
+  const v = sample("run_p01_ready");
+  const w = { code: "concentration", message: "Üç öneri de TL faizine bağlı.", evidence_ids: ["E2075d858"], option_ids: [], audience: "client" as const };
+  renderDashboard({ ...v, client_warnings: [w] });
+  const box = screen.getByTestId("notes-box");
+  expect(within(box).getByTestId("market-note")).toHaveTextContent("Piyasa notu · TCMB EVDS");
+  const warnings = within(box).getByTestId("box-warnings");
+  expect(warnings).toHaveTextContent("Uyarılar");
+  expect(warnings).toHaveTextContent(w.message);
+  expect(within(warnings).getByRole("button", { name: "Kanıt" })).toBeInTheDocument();
+  const rm = within(box).getByTestId("box-rm-note");
+  expect(rm).toHaveTextContent("RM notu");
+  v.rm_warnings.forEach((x) => expect(rm).toHaveTextContent(x.message));
+  expect(rm).not.toHaveTextContent(w.message); // client warnings never under RM notu
+});
+
+test("the note box: an empty section says so", () => {
+  const v = sample("run_p01_ready");
+  renderDashboard({ ...v, client_warnings: [], rm_warnings: [] });
+  expect(screen.getByTestId("box-warnings")).toHaveTextContent("Uyarı yok");
+  expect(screen.getByTestId("box-rm-note")).toHaveTextContent("RM notu yok");
+});
+
+test("a warning K mark opens the evidence pop-up", async () => {
+  const v = sample("run_p01_ready");
+  const ev = vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
+  const w = { code: "concentration", message: "Üç öneri de TL faizine bağlı.", evidence_ids: ["E2075d858"], option_ids: [], audience: "client" as const };
+  renderDashboard({ ...v, client_warnings: [w] });
+  await userEvent.click(within(screen.getByTestId("box-warnings")).getByRole("button", { name: "Kanıt" }));
+  expect(ev).toHaveBeenCalledWith(v.result.snapshot_id, "E2075d858");
+});
+
+test("W22 EN: the notes and the box", async () => {
+  const v = sample("run_p01_ready");
+  renderDashboard({ ...v, client_warnings: [] }, () => {}, "EN");
+  expect(screen.getByTestId("box-warnings")).toHaveTextContent("No warnings");
+  expect(screen.getByTestId("box-rm-note")).toHaveTextContent("RM note");
+  await userEvent.click(screen.getByRole("button", { name: "See the assumptions" }));
+  expect(screen.getByRole("dialog")).toHaveAccessibleName(`Assumptions (${v.assumptions.length})`);
+  expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
 });

@@ -22,7 +22,7 @@ function candidates(run: RunLike): string[] {
 
 const NODES: [string, string][] = [
   ["adaylar", "Adaylar"],
-  ["arastirma", "Web araştırması"],
+  ["arastirma", "Ajan araştırması"],
   ["analiz", "Ajan analizi"],
   ["kontrol", "Kontrol"],
   ["karar", "Karar"],
