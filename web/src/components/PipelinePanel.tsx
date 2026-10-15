@@ -7,7 +7,7 @@ import { stabilityLevel } from "../explain";
 import { fmtScore } from "../format";
 import { fill, LangContext, useT, type LabelKey } from "../i18n";
 import { colors } from "../theme";
-import type { Tab } from "./DetailsPanel";
+import type { NoteKind } from "./DetailNotes";
 
 /** The holdings status line of step 1 (W17b). */
 const HOLDINGS_LINE: Record<string, LabelKey> = {
@@ -55,7 +55,8 @@ function Bar({ pct, color }: { pct: number; color: string }) {
 export function PipelinePanel({ view, onOpen, onDetails, agent = null }: {
   view: RunView;
   onOpen: (optionId: string) => void;
-  onDetails: (tab: Tab) => void;
+  /** W22: open the pop-up note of a step link */
+  onDetails: (note: NoteKind) => void;
   /** W20b: the agent decision that the dashboard polls (no poll here) */
   agent?: AgentDecision | null;
 }) {
@@ -92,7 +93,7 @@ export function PipelinePanel({ view, onOpen, onDetails, agent = null }: {
           ? fill(t("pipeAgentEngine"), { names: picks.map((o) => nameOf(o.option.option_id, o)).join(", ") })
           : null;
   const ruleMax = Math.max(1, ...view.rejected_by_rule.map((x) => x.count));
-  const link = (label: string, tab: Tab) => (
+  const link = (label: string, tab: NoteKind) => (
     <button type="button" className="self-start text-[13px] font-semibold text-[#355FA1] underline" onClick={() => onDetails(tab)}>
       {label}
     </button>

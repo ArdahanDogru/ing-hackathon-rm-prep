@@ -8,7 +8,7 @@ import { AgentPicks, agentTop } from "../components/AgentPicks";
 import { Agenda } from "../components/Agenda";
 import { ApprovalBar } from "../components/ApprovalBar";
 import { BriefCard } from "../components/BriefCard";
-import { DetailsPanel, type Tab } from "../components/DetailsPanel";
+import { DetailNote, type NoteKind } from "../components/DetailNotes";
 import { EvidencePopup } from "../components/EvidencePopup";
 import { FundCard, FundDrawer } from "../components/FundCard";
 import { LifecycleTabs } from "../components/LifecycleTabs";
@@ -63,7 +63,7 @@ export function Dashboard({
   const [editing, setEditing] = useState(false);
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [details, setDetails] = useState<{ tab: Tab; n: number } | null>(null);
+  const [note, setNote] = useState<NoteKind | null>(null);
   const [discussed, toggleDiscussed] = useChecks(`rmprep.agenda.${runId}`);
   const [confirmed, toggleConfirmed] = useChecks(`rmprep.confirm.${runId}`);
   const pending = r.rm_status === "pending";
@@ -107,7 +107,7 @@ export function Dashboard({
         onEvidence={setEvidenceId}
         refresh={agentChanged ? 1 : 0}
       />
-      <MarketNote items={view.market_note} onEvidence={setEvidenceId} />
+      <MarketNote items={view.market_note} clientWarnings={view.client_warnings} rmWarnings={view.rm_warnings} onEvidence={setEvidenceId} />
       {error && (
         <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-white p-3 text-sm">
           {`${t("errorTitle")}: ${error}`}
@@ -118,7 +118,7 @@ export function Dashboard({
         <PipelinePanel
           view={view}
           onOpen={setOpenId}
-          onDetails={(tab) => setDetails((d) => ({ tab, n: (d?.n ?? 0) + 1 }))}
+          onDetails={setNote}
           agent={agent}
         />
       )}
@@ -163,7 +163,19 @@ export function Dashboard({
         )}
       </div>
 
-      {ready && <DetailsPanel view={view} selected={selected} onToggle={toggle} onOpen={setOpenId} request={details} />}
+      {ready && note && (
+        <DetailNote
+          kind={note}
+          view={view}
+          selected={selected}
+          onToggle={toggle}
+          onOpen={(id) => {
+            setNote(null); // the fund card opens in place of the note
+            setOpenId(id);
+          }}
+          onClose={() => setNote(null)}
+        />
+      )}
       {ready && <ResearchPanel view={view} />}
 
       {ready && <ApprovalBar view={view} selected={selected} openConfirms={openConfirms} onRemove={toggle} onView={onView} />}
