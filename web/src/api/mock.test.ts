@@ -1,6 +1,6 @@
 import { resetAgentMock, resolveMock } from "./mock";
 
-test("agent (W20): running for 15 s after the first ask (202), then done; P02 falls back; unknown run 404", () => {
+test("agent (W24): off (not started) until POST, then running 15 s (202), then done; P02 falls back; unknown run 404", () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-10-15T10:00:00+03:00"));
   resetAgentMock();
@@ -14,17 +14,37 @@ test("agent (W20): running for 15 s after the first ask (202), then done; P02 fa
   });
   const runs: Record<string, unknown> = { run_p01_ready: run("R01"), run_p02_ready: run("R02") };
   const loadRuns = (name: string) => runs[name];
-  const first = resolveMock("GET", "/api/runs/R01/agent", undefined, loadRuns);
-  expect(first.status).toBe(202);
-  expect(first.body).toMatchObject({ run_id: "R01", state: "running" });
+  const before = resolveMock("GET", "/api/runs/R01/agent", undefined, loadRuns);
+  expect(before.status).toBe(200);
+  expect(before.body).toMatchObject({ state: "off", fallback_reason: "henüz çalıştırılmadı" });
+  expect(resolveMock("POST", "/api/runs/R01/agent", { n: 2 }, loadRuns).status).toBe(422);
+  const started = resolveMock("POST", "/api/runs/R01/agent", { n: 5 }, loadRuns);
+  expect(started.status).toBe(202);
+  expect(started.body).toMatchObject({ run_id: "R01", state: "running", n_candidates: 5 });
+  expect(resolveMock("GET", "/api/runs/R01/agent", undefined, loadRuns).status).toBe(202);
   vi.advanceTimersByTime(16_000);
   const done = resolveMock("GET", "/api/runs/R01/agent", undefined, loadRuns);
   expect(done.status).toBe(200);
-  expect((done.body as { state: string; picks: unknown[] }).state).toBe("done");
+  expect(done.body).toMatchObject({ state: "done", n_candidates: 5 });
   expect((done.body as { picks: unknown[] }).picks).toHaveLength(3);
+  resolveMock("POST", "/api/runs/R02/agent", {}, loadRuns);
   expect(resolveMock("GET", "/api/runs/R02/agent", undefined, loadRuns).body).toMatchObject({ state: "fallback" });
   expect(resolveMock("GET", "/api/runs/RX/agent", undefined, loadRuns).status).toBe(404);
   vi.useRealTimers();
+});
+
+test("research marks (W24): set, read back in the research status, remove", () => {
+  resetAgentMock();
+  const none = (name: string) => (name === "run_p01_ready" ? undefined : undefined);
+  const set = resolveMock("POST", "/api/research/marks", { finding_id: "Fa1b2c3d4", option_id: "fund:PPN", mark: "ok", run_id: "R01" }, none);
+  expect(set).toMatchObject({ status: 200, body: { finding_id: "Fa1b2c3d4", mark: "ok" } });
+  const research = resolveMock("GET", "/api/runs/R01/research", undefined, none).body as { products: { findings: { id?: string; mark?: string | null }[] }[] };
+  const all = research.products.flatMap((p) => p.findings);
+  expect(all.find((f) => f.id === "Fa1b2c3d4")?.mark).toBe("ok");
+  resolveMock("POST", "/api/research/marks", { finding_id: "Fa1b2c3d4", option_id: "fund:PPN", mark: null, run_id: "R01" }, none);
+  const again = resolveMock("GET", "/api/runs/R01/research", undefined, none).body as typeof research;
+  expect(again.products.flatMap((p) => p.findings).find((f) => f.id === "Fa1b2c3d4")?.mark ?? null).toBeNull();
+  expect(resolveMock("POST", "/api/research/marks", { finding_id: "x", mark: "maybe" }, none).status).toBe(422);
 });
 
 const files: Record<string, unknown> = {

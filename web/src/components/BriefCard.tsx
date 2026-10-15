@@ -11,7 +11,7 @@ const POLL_MAX = 10;
  * at most 10 calls. A template brief, an error or 10 "running" answers give null (the
  * plain sentence stays). A new `refresh` asks again (W20c: the agent changed the top 3);
  * the brief on screen stays until the new one is there. */
-export function useLlmBrief(runId: string, lang: Lang, enabled: boolean, refresh = 0): NarrativeBrief | null {
+export function useLlmBrief(runId: string, lang: Lang, enabled: boolean, refresh: number | string = 0): NarrativeBrief | null {
   const [brief, setBrief] = useState<NarrativeBrief | null>(null);
   const shown = useRef("");
   useEffect(() => {
@@ -68,7 +68,7 @@ export function BriefCard({
   onEdit?: () => void;
   onEvidence?: (id: string) => void;
   /** a new value asks for the brief again (W20c) */
-  refresh?: number;
+  refresh?: number | string;
 }) {
   const t = useT();
   const lang = useContext(LangContext);

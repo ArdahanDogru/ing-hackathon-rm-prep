@@ -1,9 +1,11 @@
 // Web research panel (docs/research.md section 11): the recommended products and their
 // companies, researched on the web, and the RM's own questions. Information only: it
 // never changes the scores, the recommendation or the meeting text.
-import { useContext, useEffect, useState, type FormEvent } from "react";
+// W24: the RM marks each bullet ✓ (doğrulandı) or ✗ (yanlış / alakasız: not given to the
+// agent); after an agent run the other candidates' research shows too, under its own heading.
+import { useContext, useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "../api/client";
-import type { Lang, ProductResearch, QuestionAnswer, ResearchFinding, ResearchSource, ResearchView, RunView } from "../api/types";
+import type { FindingMark, Lang, ProductResearch, QuestionAnswer, ResearchFinding, ResearchSource, ResearchView, RunView } from "../api/types";
 import { fill, LangContext, useT } from "../i18n";
 
 const POLL_MS = 3000;
@@ -11,11 +13,15 @@ const POLL_MAX = 40; // 2 minutes; 3 products take about 10 s
 const LIMIT_ERROR = "daily limit"; // rmprep.research.service.LIMIT_ERROR
 
 /** The research of a ready run: asked at once, then every 3 s while it runs (at most 40 calls).
- * An error, or a server without research, gives "off" with no reason (the panel stays hidden). */
-export function useResearch(runId: string, lang: Lang, enabled: boolean): ResearchView | null {
+ * An error, or a server without research, gives "off" with no reason (the panel stays hidden).
+ * A new `refresh` asks again (W24: after an agent run); the view on screen stays meanwhile. */
+export function useResearch(runId: string, lang: Lang, enabled: boolean, refresh: number | string = 0): ResearchView | null {
   const [view, setView] = useState<ResearchView | null>(null);
+  const shown = useRef("");
   useEffect(() => {
-    setView(null);
+    const key = `${runId}|${lang}|${enabled}`;
+    if (shown.current !== key) setView(null); // another run or language: not the old view
+    shown.current = key;
     if (!enabled) return;
     let done = false;
     let calls = 0;
@@ -33,6 +39,7 @@ export function useResearch(runId: string, lang: Lang, enabled: boolean): Resear
       api.research(runId, lang).then(
         (v) => {
           if (done) return;
+          if (v.state === "running" && refresh) return; // a refresh keeps the view on screen while it runs
           setView(v);
           if (v.state !== "running") stop();
         },
@@ -45,7 +52,7 @@ export function useResearch(runId: string, lang: Lang, enabled: boolean): Resear
     const timer = setInterval(ask, POLL_MS);
     ask();
     return stop;
-  }, [runId, lang, enabled]);
+  }, [runId, lang, enabled, refresh]);
   return view;
 }
 
@@ -84,20 +91,65 @@ function distinctSources(groups: ResearchFinding[][]): ResearchSource[] {
   return [...seen.values()];
 }
 
-function Bullets({ items, index, dated = false }: { items: ResearchFinding[]; index: Map<string, number>; dated?: boolean }) {
+/** Where a finding's mark goes: the product and the run (W24). */
+interface MarkTarget {
+  optionId: string;
+  runId: string;
+}
+
+const toggle = (on: boolean) =>
+  `ml-1 inline-flex h-5 w-5 items-center justify-center rounded border text-[11px] font-bold ${
+    on ? "border-ink bg-ink text-white" : "border-gray-300 bg-white text-muted hover:border-ink"
+  }`;
+
+/** One bullet; with an id and a target it has ✓ and ✗ (a second click removes the mark). */
+function Bullet({ f, numbers, dated, target }: { f: ResearchFinding; numbers: number[]; dated: boolean; target?: MarkTarget }) {
   const t = useT();
+  const [mark, setMark] = useState<FindingMark>(f.mark ?? null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => setMark(f.mark ?? null), [f.mark]);
+  const send = (next: FindingMark) => {
+    if (!f.id || !target) return;
+    setError(null);
+    api.setMark({ finding_id: f.id, option_id: target.optionId, mark: next, run_id: target.runId }).then(
+      (r) => setMark(r.mark),
+      (e) => setError(e instanceof ApiError ? e.detail : String(e)),
+    );
+  };
+  const marks = !!f.id && !!target;
+  return (
+    <li data-mark={mark ?? undefined} className={`mb-1 ${mark === "wrong" ? "opacity-50" : ""}`}>
+      {dated && f.date ? `${dmy(f.date)} · ` : ""}
+      <span className={mark === "wrong" ? "line-through decoration-gray-400" : ""}>{f.text}</span>
+      {numbers.length > 0 && <span className="text-xs text-muted">{` [${numbers.join(", ")}]`}</span>}
+      {f.confidence === "low" && <span className="text-xs text-muted">{` · ${t("researchLowConfidence")}`}</span>}
+      {mark === "ok" && <span className="ml-1.5 rounded bg-[#ECFDF3] px-1.5 text-[11px] font-semibold text-[#067647]">{t("markOkLabel")}</span>}
+      {mark === "wrong" && <span className="ml-1.5 text-[11px] font-semibold text-[#B42318]">{t("markWrongLabel")}</span>}
+      {marks && (
+        <span className="ml-1 whitespace-nowrap align-[1px]">
+          <button type="button" aria-label={t("markOk")} title={t("markOk")} aria-pressed={mark === "ok"} className={toggle(mark === "ok")} onClick={() => send(mark === "ok" ? null : "ok")}>
+            ✓
+          </button>
+          <button type="button" aria-label={t("markWrong")} title={t("markWrong")} aria-pressed={mark === "wrong"} className={toggle(mark === "wrong")} onClick={() => send(mark === "wrong" ? null : "wrong")}>
+            ✗
+          </button>
+        </span>
+      )}
+      {error && (
+        <span role="status" className="ml-1.5 text-xs text-[#B42318]">
+          {error}
+        </span>
+      )}
+    </li>
+  );
+}
+
+function Bullets({ items, index, dated = false, target }: { items: ResearchFinding[]; index: Map<string, number>; dated?: boolean; target?: MarkTarget }) {
   return (
     <ul className="list-disc pl-5 text-sm">
       {items.map((f) => {
         const numbers = [...new Set(f.sources.map((s) => index.get(s.url)).filter((n): n is number => n !== undefined))];
-        return (
-          <li key={`${f.date}|${f.text}`} className="mb-1">
-            {dated && f.date ? `${dmy(f.date)} · ` : ""}
-            {f.text}
-            {numbers.length > 0 && <span className="text-xs text-muted">{` [${numbers.join(", ")}]`}</span>}
-            {f.confidence === "low" && <span className="text-xs text-muted">{` · ${t("researchLowConfidence")}`}</span>}
-          </li>
-        );
+        return <Bullet key={f.id ?? `${f.date}|${f.text}`} f={f} numbers={numbers} dated={dated} target={target} />;
       })}
     </ul>
   );
@@ -131,7 +183,7 @@ function ErrorLine({ error }: { error: string }) {
 
 const HEADING = "mt-2 text-xs font-bold uppercase tracking-[0.06em] text-muted";
 
-function ProductBlock({ p }: { p: ProductResearch }) {
+function ProductBlock({ p, runId }: { p: ProductResearch; runId: string }) {
   const t = useT();
   // No news section without a news search (news_days 0: the Claude fallback), and no crash on a payload without news.
   const showNews = (p.news_days ?? 0) > 0;
@@ -139,6 +191,7 @@ function ProductBlock({ p }: { p: ProductResearch }) {
   const findings = p.findings ?? [];
   const groups = [news, findings];
   const index = sourceIndex(groups);
+  const target = { optionId: p.option_id, runId };
   return (
     <article data-testid="research-product" className="rounded-xl bg-[#F7F9FC] px-4 py-3">
       <h3 className="font-semibold">
@@ -153,14 +206,14 @@ function ProductBlock({ p }: { p: ProductResearch }) {
             <>
               <h4 className={HEADING}>{t("researchNews")}</h4>
               {news.length > 0 ? (
-                <Bullets items={news} index={index} dated />
+                <Bullets items={news} index={index} dated target={target} />
               ) : (
                 <p className="text-sm text-muted">{fill(t("researchNoNews"), { n: p.news_days })}</p>
               )}
             </>
           )}
           <h4 className={HEADING}>{t("researchHighlights")}</h4>
-          {findings.length > 0 ? <Bullets items={findings} index={index} /> : <p className="text-sm text-muted">{t("researchNoFindings")}</p>}
+          {findings.length > 0 ? <Bullets items={findings} index={index} target={target} /> : <p className="text-sm text-muted">{t("researchNoFindings")}</p>}
           <SourceList sources={distinctSources(groups)} />
         </>
       )}
@@ -190,11 +243,11 @@ function AnswerBlock({ a }: { a: QuestionAnswer }) {
   );
 }
 
-export function ResearchPanel({ view }: { view: RunView }) {
+export function ResearchPanel({ view, refresh = 0 }: { view: RunView; refresh?: number | string }) {
   const t = useT();
   const lang = useContext(LangContext);
   const runId = view.result.run_id;
-  const research = useResearch(runId, lang, view.result.state === "ready");
+  const research = useResearch(runId, lang, view.result.state === "ready", refresh);
   const [asked, setAsked] = useState<QuestionAnswer[]>([]);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
@@ -242,9 +295,23 @@ export function ResearchPanel({ view }: { view: RunView }) {
       )}
       {research.state === "ready" && (
         <div className="grid gap-3">
-          {research.products.map((p) => (
-            <ProductBlock key={p.option_id} p={p} />
-          ))}
+          {research.products
+            .filter((p) => view.result.recommended.includes(p.option_id))
+            .map((p) => (
+              <ProductBlock key={p.option_id} p={p} runId={runId} />
+            ))}
+        </div>
+      )}
+      {research.state === "ready" && research.products.some((p) => !view.result.recommended.includes(p.option_id)) && (
+        <div data-testid="research-others" className="mt-4">
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-muted">{t("researchOthers")}</h3>
+          <div className="grid gap-3">
+            {research.products
+              .filter((p) => !view.result.recommended.includes(p.option_id))
+              .map((p) => (
+                <ProductBlock key={p.option_id} p={p} runId={runId} />
+              ))}
+          </div>
         </div>
       )}
       {research.state !== "off" && (

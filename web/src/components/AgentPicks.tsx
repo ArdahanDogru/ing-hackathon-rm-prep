@@ -2,8 +2,9 @@
 // section 8): while the agent runs, the engine's top 3 stays with "Motor önerisi · ajan
 // değerlendiriyor…"; when it is done, its picks replace the engine's ("Ajan önerisi"), each
 // reason with citation chips; "Motor sıralaması" is a closed section; a fallback shows its reason.
-import { useContext, useState } from "react";
-import { api } from "../api/client";
+// W24: the RM starts the agent ("Ajanı çalıştır" with N) and can run it again.
+import { useContext, useState, type FormEvent } from "react";
+import { api, ApiError } from "../api/client";
 import type { AgentDecision, AgentPick, ResearchFinding, ResearchView, RunView } from "../api/types";
 import { fill, LangContext, useT } from "../i18n";
 import { useLabelOf } from "./WhyPanel";
@@ -24,6 +25,76 @@ function findingOf(research: ResearchView | null, id: string): ResearchFinding |
   return all.find((f) => f.id === id);
 }
 
+/** GET /agent before the RM started the agent of the run (W24). */
+export const NOT_STARTED_REASONS = ["henüz çalıştırılmadı", "not_started"];
+const N_MIN = 3;
+const N_MAX = 20;
+const N_DEFAULT = 10;
+
+/** "Aday sayısı" (3–20) and the start button; the server's refusal shows under it. */
+function RunForm({
+  initial,
+  label,
+  onStart,
+  describe = false,
+}: {
+  initial: number;
+  label: string;
+  onStart: (n: number) => Promise<void>;
+  /** before a run: the sentence of what the agent does, with the N of the field */
+  describe?: boolean;
+}) {
+  const t = useT();
+  const [text, setText] = useState(String(initial));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const n = Number(text);
+  const valid = text.trim() !== "" && Number.isInteger(n) && n >= N_MIN && n <= N_MAX;
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!valid || busy) return;
+    setBusy(true);
+    setError(null);
+    onStart(n).then(
+      () => setBusy(false),
+      (err) => {
+        setBusy(false);
+        setError(err instanceof ApiError ? err.detail : String(err));
+      },
+    );
+  };
+  return (
+    <>
+    {describe && <p className="mt-1 text-sm text-[#344054]">{fill(t("agentStartText"), { n: valid ? n : initial })}</p>}
+    <form data-testid="agent-run" onSubmit={submit} className="mt-3 flex flex-wrap items-end gap-3">
+      <label className="flex flex-col gap-1 text-xs text-muted">
+        <span>
+          {t("agentN")} <span className="text-[11px]">{`(${t("agentNRange")})`}</span>
+        </span>
+        <input
+          type="number"
+          min={N_MIN}
+          max={N_MAX}
+          step={1}
+          aria-label={t("agentN")}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className={`w-20 rounded-lg border px-2 py-1 text-sm tabular-nums text-ink ${valid ? "border-gray-300" : "border-[#F04438]"}`}
+        />
+      </label>
+      <button type="submit" disabled={!valid || busy} className="rounded-[10px] bg-ink px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50">
+        {label}
+      </button>
+      {error && (
+        <p role="alert" className="basis-full text-sm text-[#B42318]">
+          {error}
+        </p>
+      )}
+    </form>
+    </>
+  );
+}
+
 const chipClass = "rounded-full border border-gray-300 bg-white px-2 py-px text-[11px] font-semibold text-[#344054] hover:border-cobalt";
 
 export function AgentPicks({
@@ -32,6 +103,7 @@ export function AgentPicks({
   onOpen,
   onEvidence,
   onAllocation,
+  onStart = async () => {},
 }: {
   view: RunView;
   decision: AgentDecision | null;
@@ -39,6 +111,8 @@ export function AgentPicks({
   onEvidence: (evidenceId: string) => void;
   /** open the Dağılım view (a portfoy:<class> chip) */
   onAllocation: () => void;
+  /** W24: start the agent with N candidates (an ApiError shows under the form) */
+  onStart?: (n: number) => Promise<void>;
 }) {
   const t = useT();
   const lang = useContext(LangContext);
@@ -46,7 +120,7 @@ export function AgentPicks({
   const [engineOpen, setEngineOpen] = useState(false);
   const [finding, setFinding] = useState<string | null>(null);
   const [research, setResearch] = useState<ResearchView | null>(null);
-  if (!decision || decision.state === "off") return null;
+  if (!decision) return null; // no agent on this server
 
   const name = (id: string) => {
     const o = view.options[id];
@@ -131,6 +205,18 @@ export function AgentPicks({
   );
 
   const box = "h-full min-w-0 rounded-2xl bg-white px-5 py-4 shadow-sm"; // W23: as tall as Gündem next to it
+  const n = decision.n_candidates || N_DEFAULT;
+  const rerun = <RunForm key={`rerun-${n}`} initial={n} label={t("agentRerun")} onStart={onStart} />;
+  if (decision.state === "off")
+    return (
+      <section data-testid="agent-picks" className={box}>
+        {NOT_STARTED_REASONS.includes(decision.fallback_reason) ? (
+          <StartText onStart={onStart} />
+        ) : (
+          <p className="text-sm text-muted">{fill(t("agentOff"), { reason: decision.fallback_reason })}</p>
+        )}
+      </section>
+    );
   if (decision.state === "running")
     return (
       <section data-testid="agent-picks" className={box}>
@@ -141,6 +227,7 @@ export function AgentPicks({
     return (
       <section data-testid="agent-picks" className={box}>
         <p className="text-sm text-[#344054]">{fill(t("agentFallback"), { reason: decision.fallback_reason })}</p>
+        {rerun}
       </section>
     );
 
@@ -198,6 +285,18 @@ export function AgentPicks({
           })}
         </ol>
       )}
+      {rerun}
     </section>
+  );
+}
+
+/** Before a run: what the agent does (with the N of the field) and the form. */
+function StartText({ onStart }: { onStart: (n: number) => Promise<void> }) {
+  const t = useT();
+  return (
+    <>
+      <b className="text-sm text-[#344054]">{t("agentTitle")}</b>
+      <RunForm initial={N_DEFAULT} label={t("agentStart")} onStart={onStart} describe />
+    </>
   );
 }

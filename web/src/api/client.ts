@@ -2,6 +2,7 @@
 // Vite proxy (dev), the mock middleware (dev:mock) or `rmprep serve` answers.
 import type {
   AgentDecision,
+  FindingMark,
   EvidenceItem,
   GlossaryTerm,
   HoldingsOrigin,
@@ -101,6 +102,11 @@ export const api = {
   brief,
   research,
   agentStatus,
+  /** POST /runs/{id}/agent {n} (W24): the RM starts the agent; 202 with the running decision; 422 for a bad n. */
+  startAgent: (runId: string, n: number) => request<AgentDecision>("POST", `/runs/${enc(runId)}/agent`, { n }),
+  /** POST /research/marks (W24): ✓ "ok", ✗ "wrong" or null (no mark) for one finding. */
+  setMark: (m: { finding_id: string; option_id: string; mark: FindingMark; run_id: string }) =>
+    request<{ finding_id: string; mark: FindingMark }>("POST", "/research/marks", m),
   /** POST a question to the web research; 422 = refused (the reason is the detail). */
   askResearch: (runId: string, question: string, lang: Lang) =>
     request<QuestionAnswer>("POST", `/runs/${enc(runId)}/research/questions`, { question, lang }),
