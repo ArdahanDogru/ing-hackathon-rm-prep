@@ -2,7 +2,7 @@
 // "Explainability Mockup", board 1): the decision pipeline in five steps, from
 // the client profile to the three recommendations. Closed, it is one line of counts.
 import { useContext, useState, type ReactNode } from "react";
-import type { RunView, ScoredOption } from "../api/types";
+import type { AgentDecision, RunView, ScoredOption } from "../api/types";
 import { stabilityLevel } from "../explain";
 import { fmtScore } from "../format";
 import { fill, LangContext, useT, type LabelKey } from "../i18n";
@@ -52,10 +52,12 @@ function Bar({ pct, color }: { pct: number; color: string }) {
   );
 }
 
-export function PipelinePanel({ view, onOpen, onDetails }: {
+export function PipelinePanel({ view, onOpen, onDetails, agent = null }: {
   view: RunView;
   onOpen: (optionId: string) => void;
   onDetails: (tab: Tab) => void;
+  /** W20b: the agent decision that the dashboard polls (no poll here) */
+  agent?: AgentDecision | null;
 }) {
   const t = useT();
   const lang = useContext(LangContext);
@@ -72,6 +74,23 @@ export function PipelinePanel({ view, onOpen, onDetails }: {
   if (picks.length === 0) return null;
   const minStability = Math.min(...picks.map((o) => o.stability));
   const level = stabilityLevel(minStability);
+  // W20b: step 5 shows the agent's picks when it is done; the engine's otherwise
+  const agentDone = agent?.state === "done" && agent.picks.length > 0;
+  const shown: { id: string; scored: ScoredOption | undefined }[] = agentDone
+    ? agent.picks.map((x) => ({ id: x.option_id, scored: ranked.find((o) => o.option.option_id === x.option_id) }))
+    : picks.map((o) => ({ id: o.option.option_id, scored: o }));
+  const nameOf = (id: string, o: ScoredOption | undefined) => {
+    const v = view.options[id];
+    return v ? [v.issuer, v.short_label].filter(Boolean).join(" ") : (o?.option.label ?? id);
+  };
+  const agentLine =
+    agent?.state === "running"
+      ? t("pipeAgentRunning")
+      : agent?.state === "fallback"
+        ? fill(t("pipeAgentFallback"), { reason: agent.fallback_reason })
+        : agentDone
+          ? fill(t("pipeAgentEngine"), { names: picks.map((o) => nameOf(o.option.option_id, o)).join(", ") })
+          : null;
   const ruleMax = Math.max(1, ...view.rejected_by_rule.map((x) => x.count));
   const link = (label: string, tab: Tab) => (
     <button type="button" className="self-start text-[13px] font-semibold text-[#355FA1] underline" onClick={() => onDetails(tab)}>
@@ -184,34 +203,49 @@ export function PipelinePanel({ view, onOpen, onDetails }: {
               <Bar pct={universe ? (scored / universe) * 100 : 0} color={colors.chart} />
             </Step>
             <li data-testid="pipeline-step" className="flex min-w-0 flex-col gap-3 rounded-[14px] border-2 border-ink bg-white p-5">
-              <div className="text-xs font-bold uppercase tracking-[0.06em] text-muted">{`5 · ${t("pipePick")}`}</div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-[0.06em] text-muted">{`5 · ${t("pipePick")}`}</span>
+                {agentDone && <span className="rounded-full bg-ink px-2 py-0.5 text-[11px] font-bold text-white">{t("agentBadge")}</span>}
+              </div>
               <div className="text-[28px] font-bold leading-tight">
-                {picks.length}
+                {shown.length}
                 <span className="text-base font-semibold text-muted">{` ${t("pipeOptions")}`}</span>
               </div>
               <div className="text-[13px] leading-normal text-[#344054]">{t("pipePickText")}</div>
               <ul className="flex flex-col gap-2">
-                {picks.map((o) => {
-                  const id = o.option.option_id;
+                {shown.map(({ id, scored: o }) => {
                   const v = view.options[id];
-                  const overall = ranked.indexOf(o) + 1;
-                  const inGroup = ranked.filter((x) => groupOf(x) === groupOf(o)).indexOf(o) + 1;
-                  const where = overall === inGroup
-                    ? fill(t("pipeRankOverall"), { n: overall })
-                    : `${fill(t("pipeRankOverall"), { n: overall })}, ${fill(t("pipeRankGroup"), { n: inGroup })}`;
+                  const fresh = agentDone && !agent.engine_top3.includes(id);
+                  let where: string;
+                  if (!o) where = t("pipeAgentNotTop3");
+                  else if (fresh) where = fill(t("pipeAgentEnginePlace"), { n: ranked.indexOf(o) + 1 });
+                  else {
+                    const overall = ranked.indexOf(o) + 1;
+                    const inGroup = ranked.filter((x) => groupOf(x) === groupOf(o)).indexOf(o) + 1;
+                    where = overall === inGroup
+                      ? fill(t("pipeRankOverall"), { n: overall })
+                      : `${fill(t("pipeRankOverall"), { n: overall })}, ${fill(t("pipeRankGroup"), { n: inGroup })}`;
+                  }
                   return (
-                    <li key={id}>
+                    <li key={id} data-testid="pipe-pick">
                       <button type="button" className="flex w-full flex-col gap-0.5 rounded-[10px] bg-surface px-3 py-2.5 text-left hover:bg-[#EEF1F5]" onClick={() => onOpen(id)}>
                         <span className="flex w-full justify-between gap-2 text-[13px]">
-                          <b>{v ? [v.issuer, v.short_label].filter(Boolean).join(" ") : o.option.label}</b>
-                          <span className="tabular-nums">{fmtScore(o.score, false)}</span>
+                          <b>{nameOf(id, o)}</b>
+                          {o && <span className="tabular-nums">{fmtScore(o.score, false)}</span>}
                         </span>
-                        <span className="text-xs text-muted">{`${v?.category_label ?? ""} · ${where}`}</span>
+                        <span className={`text-xs ${fresh ? "font-semibold text-cobalt" : "text-muted"}`}>
+                          {[v?.category_label, where].filter(Boolean).join(" · ")}
+                        </span>
                       </button>
                     </li>
                   );
                 })}
               </ul>
+              {agentLine && (
+                <div data-testid="pipe-agent" className={`text-xs text-muted ${agent?.state === "running" ? "animate-pulse" : ""}`}>
+                  {agentLine}
+                </div>
+              )}
             </li>
           </ol>
           <div className="flex flex-wrap items-center gap-3.5 rounded-xl border border-gray-200 bg-white px-[18px] py-3.5 text-[13px]">
