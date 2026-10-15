@@ -4,7 +4,7 @@ import type { AgentDecision, AgentNode, AgentPick, AgentState } from "./types";
 
 /** The part of a RunView that the builder reads. */
 interface RunLike {
-  result: { run_id: string; recommended: string[]; options: { option: { option_id: string; kind: string } }[] };
+  result: { run_id: string; recommended: string[]; options: { option: { option_id: string; kind: string; asset_class?: string } }[] };
   options: Record<string, { returns: { "1y": { evidence_id: string } | null } } | undefined>;
 }
 
@@ -105,8 +105,11 @@ export function agentDecision(run: RunLike, state: AgentState, step = 2): AgentD
       cost_usd: 0.09,
       fallback_reason: "Kontrol iki kez geçmedi (bir gerekçedeki sayı kaynakla uyuşmuyor).",
     };
-  // done: keep the 1st and 3rd engine picks, replace the 2nd with the 7th candidate (a debt fund in P01)
-  const swap = cands.find((c, i) => i >= 3 && !engine.includes(c) && c.startsWith("fund:")) ?? cands[3];
+  // done: keep the 1st and 3rd engine picks, replace the 2nd with a debt fund of the candidates
+  // (the reasons talk about the debt gap), else the first other fund
+  const classOf = (id: string) => run.result.options.find((o) => o.option.option_id === id)?.option.asset_class;
+  const others = cands.filter((c, i) => i >= 3 && !engine.includes(c) && c.startsWith("fund:"));
+  const swap = others.find((c) => classOf(c) === "borclanma") ?? others[0] ?? cands[3];
   const ev = (id: string) => run.options[id]?.returns["1y"]?.evidence_id ?? "E00000000";
   const picks: AgentPick[] = [
     {
