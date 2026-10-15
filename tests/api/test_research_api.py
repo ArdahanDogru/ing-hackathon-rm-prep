@@ -67,7 +67,7 @@ def test_question_answer_and_refusal(tmp_path):
     run_id = new_run(client)
     r = client.post(f"/api/runs/{run_id}/research/questions",
                     json={"question": "Nurol Portföy son haberler", "lang": "TR"})
-    assert r.status_code == 200 and r.json()["summary"] == "Yanıt."
+    assert r.status_code == 200 and r.json()["summary"] == "" and r.json()["version"] == 2
     bad = client.post(f"/api/runs/{run_id}/research/questions",
                       json={"question": "Müşterim için hangisi?", "lang": "TR"})
     assert bad.status_code == 422 and "müşteri bilgisi" in bad.json()["detail"]

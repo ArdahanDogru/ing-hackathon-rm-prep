@@ -1,7 +1,9 @@
 # Web research — design (as built)
 
 Status: **built 2026-10-14 by ing-lead-2; approved by the user 2026-10-14**
-(daily limit $2; no limit per run). Spec:
+(daily limit $2; no limit per run). **v2 (2026-10-15)** changes the shape of the
+result: dated news, short highlights, no known facts, no repeats. See the section
+"v2 (2026-10-15)"; where a section below says "v1", v2 replaces it. Spec:
 `docs/superpowers/specs/2026-10-14-exa-research-design.md`. Plan:
 `docs/superpowers/plans/2026-10-14-exa-research.md`. Code: `src/rmprep/research/`
 (`types`, `config`, `checks`, `exa`, `claude_search`, `service`),
@@ -71,15 +73,17 @@ One `POST https://api.exa.ai/search` per product or question. Header
 `x-api-key`; timeout 60 s; cost from `costDollars.total`. The code uses `httpx`
 (not `exa-py`).
 
-- **Product:** `type: deep` (the fields need facts from product pages and company
-  pages), `excludeDomains: [kap.org.tr]`, `systemPrompt` (the language rule and
-  the grounding rule, TR or EN, from `config/research.yaml`), `outputSchema`
-  `PRODUCT_SCHEMA` (`sirket`, `ozet`, `bulgular[{konu, metin}]`) and
-  `contents.highlights`. The query text per kind (fund, ETF, stock) is in the
-  config. A probe cost $0.012 and 8 s per call.
+- **Product (highlights call):** `type: deep` (the fields need facts from product
+  pages and company pages), `excludeDomains: [kap.org.tr]`, `systemPrompt` (the
+  language rule and the grounding rule, TR or EN, from `config/research.yaml`,
+  plus the highlights prompt in v2) and `contents.highlights`. The `outputSchema`
+  is `product_schema(kind)` in v2 (`sirket`, `bulgular[{konu, metin}]`, with the
+  topics of the kind). In v1 it was `PRODUCT_SCHEMA` with a long `ozet`. The query
+  text per kind (fund, ETF, stock) is in the config. A probe cost $0.012 and 8 s
+  per call.
 - **Question:** the RM question as the query, `type: auto`, `QUESTION_SCHEMA`
-  (`ozet`, `bulgular[{metin}]`). The system prompt names the run's researched
-  products as context.
+  (`bulgular[{metin}]`; v1 had an `ozet` too). The system prompt names the run's
+  researched products as context.
 - Findings are **objects** in an array. Exa then grounds each finding with its
   own citations (`bulgular[2].metin`). With an array of strings, the whole array
   has one citation list. The schemas are in `exa.py`.
@@ -93,8 +97,8 @@ One `POST https://api.exa.ai/search` per product or question. Header
 its citations is a URL that is in the `results` of the same call, is an http(s)
 URL and is not on an excluded domain. The code compares URLs after a light
 normal form (scheme and host in lower case, no fragment, no trailing slash).
-Other findings are dropped and counted in `checks`. The fields `sirket` and
-`ozet` with no valid source are left out and noted in `checks`. The published
+Other findings are dropped and counted in `checks`. The field `sirket` (in v1
+also `ozet`) with no valid source is left out and noted in `checks`. The published
 date of a source comes from `results[].publishedDate` (may be empty). The
 confidence of a finding is the highest one that Exa gives for it.
 
@@ -144,11 +148,12 @@ müşteri bilgisi içeriyor; yalnızca ürün veya şirket hakkında sorun."
 
 ## Cache, ledger, limit
 
-- Products: `data/research/products/<option_id>-<lang>-<YYYYMMDD>.json`, with `:`
-  in the option id written as `_`, for example
-  `data/research/products/fund_PPN-TR-20261014.json`.
-- Questions: `data/research/questions/<run_id>-<lang>-<sha1[:12]>.json` (the sha1
-  is of the stripped question).
+- Products: `data/research/products/<option_id>-<lang>-<YYYYMMDD>-v2.json`, with
+  `:` in the option id written as `_`, for example
+  `data/research/products/fund_PPN-TR-20261015-v2.json`. (v1 names had no
+  `-v2`: `fund_PPN-TR-20261014.json`. v2 never reads them.)
+- Questions: `data/research/questions/<run_id>-<lang>-v2-<sha1[:12]>.json` (the
+  sha1 is of the stripped question; v1: `<run_id>-<lang>-<sha1[:12]>.json`).
 - Ledger: `data/research/costs.jsonl`, one JSON line per paid call (`at`,
   `provider`, `kind`, `ref`, `cost_usd`). The daily limit sums the lines of the
   Turkish date. The check runs before each provider call. Over the limit, the
@@ -179,7 +184,8 @@ The panel is below the options on the dashboard (one mount line in
 `Dashboard.tsx`). It polls every 3 s while the state is `running` (at most 40
 calls). It shows one card per researched product: short name, company, summary,
 findings (product and company) with source links, the date of each source and
-a confidence mark. A skeleton shows while the research runs. The reason shows
+a confidence mark. (This is the v1 panel; the v2 panel is described in "v2".)
+A skeleton shows while the research runs. The reason shows
 when the state is `off` or a product failed. Under the cards, a question box:
 answers appear as cards of the same form; a refused question shows its reason.
 Texts are in `i18n.ts` (TR and EN).
@@ -209,8 +215,8 @@ Texts are in `i18n.ts` (TR and EN).
    `client_words` are word roots (prefix match), so it has three entries, not
    five.
 9. `status` never starts a failed product again; only `start` does (see Cache).
-10. Fields of the Exa answer (`sirket`, `ozet`) with no valid source are left out,
-    not only the findings.
+10. Fields of the Exa answer (`sirket`, `ozet`; v2 has no `ozet`) with no valid
+    source are left out, not only the findings.
 11. Live check of the Claude provider (see Tests): the first call gave no
     findings. The cause was found and fixed; see "Claude fallback: 0 findings,
     fixed".
@@ -232,6 +238,120 @@ Texts are in `i18n.ts` (TR and EN).
       `norm_url`, `is_excluded` and `is_web_url` are safe on a malformed URL
       (`""`, excluded, not a web URL).
 
+## v2 (2026-10-15)
+
+Status: built 2026-10-15 (plan: `docs/superpowers/plans/2026-10-15-research-v2.md`;
+the user approved the design the same day). The user asked for four changes: news
+with dates, shorter text, no facts the RM already has, and no repeats. v2 changes
+the shape of the result and the panel. The flow, the checks, the fallback, the
+ledger and the daily limit are the same as above.
+
+### What changed
+
+1. **Two Exa calls for each product.**
+   - NEWS: `category: "news"`, `type: auto`, `startPublishedDate` = today minus
+     `news_days` (90). The query comes from `exa.news_query` (`{name} {code}
+     haber`): `{name}` is the company that the highlights call found, or the label
+     when it found none. `kap.org.tr` stays excluded; sites that republish are
+     allowed. The schema `NEWS_SCHEMA` gives `haberler[{metin}]`: one sentence of at
+     most 20 words for each item. The date of an item is the newest
+     `publishedDate` of its own sources (a plain `YYYY-MM-DD`).
+   - HIGHLIGHTS: the product call, with a schema for each kind (`product_schema`).
+     At most `highlights_max` (4) bullets of at most 20 words. Topics of funds and
+     ETFs: `strateji`, `yonetici_sirket` (at most one bullet), `dikkat`. Topics of
+     shares: `is`, `finansal`, `sermaye`. A bullet with another topic is dropped.
+   - A failed news call (credit, 5xx, a bad reply) never loses the highlights. It
+     becomes a line in `checks` (for example `news: credit`). A news call that
+     Exa billed still counts in the cost of the product. A news line in `checks`
+     (`news: ...`, from Exa or from the Claude fallback) sets `news_days` to 0, so
+     the panel shows no news section and never says "no news in 90 days" after a
+     failed call (`shape.py`).
+   - The news call has its own prompt, `news_prompt` (TR and EN), added to the system
+     prompt: only concrete recent events, no general description, an empty list when
+     there is none. It was added after the live AIS check showed a LinkedIn
+     description as news. It is not yet checked live.
+2. **Less text.** The long summary is dropped: `summary` is always `""`, in the
+   file and in the HTTP JSON. The panel shows no summary. Every bullet is cut to
+   `bullet_max_words` words; a longer bullet ends with "…" (`cut_words`).
+3. **No known facts, no repeats** (`shape.py`, code):
+   - The highlights prompt (`highlights_prompt`, TR and EN) tells Exa not to write
+     the fund code, the ISIN, the launch date, the umbrella fund, the custodian, the
+     founder, the SPK risk value, returns or fees.
+   - Code is the guarantee: a highlight with an entry of `known_terms` (Turkish
+     lower-case, at the start of a word) is dropped. A highlight that only names
+     the company (no known term) is kept: the company fact must stay.
+   - A bullet whose word set has a Jaccard value of `repeat_jaccard` (0.6) or more
+     with a bullet that code kept before is dropped. Words of fewer than 3 letters
+     do not count.
+   - The counts go to `checks`: "n bullets dropped (known facts)", "(repeats)",
+     and "n company bullets dropped (one allowed)".
+4. **News rules** (`shape_product`). An item with no valid date, a date before the
+   window or a date in the future is dropped and counted ("n news items undated
+   or outside 90 days dropped"). It is never shown as news. The kept items are
+   sorted, newest first, and capped at `news_max` (3).
+5. **Panel** (`ResearchPanel.tsx`, TR and EN). For each product: a name line (label
+   and company); "Son haberler" with dated bullets, newest first, or "Son {n}
+   günde haber bulunamadı."; "Öne çıkanlar" with the highlights. Each bullet ends
+   with the source numbers, for example `[1, 2]`. The sources are in a closed
+   `<details>` "Kaynaklar (n)". The confidence mark shows only when it is low. The
+   label "web kaynağı, doğrulanmamış" stays. The answers to RM questions have the
+   same bullet form.
+
+### Choices of the controller
+
+- The long summary is dropped completely, not only hidden (smaller files, one
+  shape).
+- **Cache version:** `SHAPE_VERSION = 2`. The cache key and the file name have
+  `-v2`. A v1 file of the same day is never read as a v2 result (it has no
+  `news` and has long findings). `from_dict` still reads a v1 dict (`version` 1,
+  `news` empty, `news_days` 0), so old data does not crash anything.
+- **The known-term filter runs on highlights only**, not on news and not on RM
+  answers. The RM can ask about fees, so an answer with a fee must stay.
+- **Repeat rule:** Jaccard of the word sets (not of the characters), at or above
+  0.6.
+- **Word cut** with "…", not a hard drop of a long bullet.
+- **Claude fallback:** the same shape. The model makes no news search, so `news`
+  is empty, `news_days` is 0 (the panel then shows no news section) and a line in
+  `checks` says so. The service shapes the result of every provider before it
+  writes the cache.
+
+### Config keys (`config/research.yaml`)
+
+- `shape.news_days` 90, `shape.news_max` 3, `shape.highlights_max` 4,
+  `shape.bullet_max_words` 20, `shape.repeat_jaccard` 0.6, `shape.known_terms` (a
+  list of word starts).
+- `highlights_prompt.TR` and `highlights_prompt.EN` (added to the system prompt of
+  the highlights call only, not to news, not to questions).
+- `news_prompt.TR` and `news_prompt.EN` (added to the system prompt of the news call
+  only).
+- `exa.news_query` (template with `{name}` and `{code}`) and `exa.news_type`
+  (`auto`).
+- Types: `Finding` has `date`; `ProductResearch` has `news`, `news_days` and
+  `version`; `QuestionAnswer` has `version`. The HTTP JSON of a product adds
+  `news`, `news_days` and `version`; a finding adds `date`.
+
+### Cost
+
+About $0.02 to $0.025 for each product: the deep highlights call ($0.012), the
+auto news call (about $0.007) and the contents. The live check of AIS cost $0.019.
+The daily limit of $2 is the same. The ledger gets one line for each product (the
+cost of both calls), not one for each paid call.
+
+### Live check (AIS, 2026-10-15)
+
+One live run of the fund AIS ("AK PORTFÖY PARA PİYASASI KATILIM FONU"), $0.019.
+
+- Before (the v1 file of the same day): a 2-sentence summary and 4 findings of 25
+  to 45 words. Two findings were known facts (the fund code, the ISIN and the
+  launch date; the umbrella fund and the custodian).
+- After (v2): 1 news item (2026-09-25, from a LinkedIn post of the manager) and 4
+  highlights (2 `strateji`, 1 `yonetici_sirket`, 1 `dikkat`), each at most 20
+  words. No code, no ISIN, no umbrella fund, no custodian. `checks` was empty.
+- Limit seen: for a small fund the news call finds little. The one item was a
+  description of the fund, not an event. The window and the date rules cannot judge
+  whether an item is really news. The panel shows what Exa found, with its date and
+  source.
+
 ## Tests
 
 - `pytest` runs the research tests with no network: Exa with
@@ -246,6 +366,9 @@ Texts are in `i18n.ts` (TR and EN).
   Yönetimi A.Ş." and no findings. After the fix (2026-10-15): 17 findings, $0.026
   (see "Claude fallback: 0 findings, fixed").
 - Web: `cd web && npm test && npm run build`.
+- v2: the same offline tests, extended (`tests/research/test_shape.py`,
+  `test_exa.py`, `test_service.py`, `test_claude_search.py`, and
+  `ResearchPanel.test.tsx`). The live check of v2 is the AIS run in "v2".
 
 ## Claude fallback: 0 findings, fixed (2026-10-15)
 

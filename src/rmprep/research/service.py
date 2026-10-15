@@ -4,8 +4,10 @@ cache, the cost ledger and the daily limit. Providers run in the config order;
 only auth, credit, server and connection errors fall back to the next one.
 
 Research is per product, not per client: the cache key is (option id, language,
-Turkish date). A failed product is not cached; `start` (a new run view) tries it
-again, `status` (polling) never does, so a lasting error ends the polling."""
+Turkish date, shape version). Every provider result is shaped (shape.py) before it
+is cached, so the cache holds what the panel shows; v1 files are never read. A
+failed product is not cached; `start` (a new run view) tries it again, `status` (polling) never does,
+so a lasting error ends the polling."""
 
 from __future__ import annotations
 
@@ -23,7 +25,8 @@ from typing import Protocol, TypeVar
 from rmprep.contracts import TR_TZ, DecisionResult, DecisionState, ProductOption
 from rmprep.research.checks import check_question
 from rmprep.research.config import ResearchConfig, load_config
-from rmprep.research.types import ProductResearch, QuestionAnswer, ResearchError
+from rmprep.research.shape import shape_answer, shape_product
+from rmprep.research.types import SHAPE_VERSION, ProductResearch, QuestionAnswer, ResearchError
 
 RESEARCHED_KINDS = ("fund", "etf", "stock")      # deposit, time_deposit: ING's own products
 FALLBACK_KINDS = ("auth", "credit", "server", "connection")
@@ -89,7 +92,7 @@ class ResearchService:
         jobs = self._jobs_for(result, lang, self._now().date(), retry=False)
         if any(not j.done() for j, _ in jobs):
             return {"state": "running"}
-        return {"state": "ready", "products": [_job_result(j, o, lang).to_dict() for j, o in jobs],
+        return {"state": "ready", "products": [self._job_result(j, o, lang).to_dict() for j, o in jobs],
                 "questions": [q.to_dict() for q in self.questions(result.run_id, lang)]}
 
     def wait(self) -> None:
@@ -115,7 +118,8 @@ class ResearchService:
         return jobs
 
     def _product(self, opt: ProductOption, lang: str, day: date) -> ProductResearch:
-        path = self._root / "products" / f"{opt.option_id.replace(':', '_')}-{lang}-{day:%Y%m%d}.json"
+        name = f"{opt.option_id.replace(':', '_')}-{lang}-{day:%Y%m%d}-v{SHAPE_VERSION}.json"
+        path = self._root / "products" / name
         try:
             cached = _read(path, ProductResearch)
             if cached is not None:
@@ -125,7 +129,8 @@ class ResearchService:
             out = f"{type(e).__name__}: {e}"
         if isinstance(out, str):
             return ProductResearch(opt.option_id, opt.label, "", "", (), lang, "", self._now(),
-                                   error=out)
+                                   error=out, news_days=self._config.shape.news_days)
+        out = shape_product(out, self._config.shape, day)
         _try_write(path, out)
         return out
 
@@ -142,7 +147,7 @@ class ResearchService:
             raise QuestionRefused(reason)
         q = question.strip()
         digest = hashlib.sha1(q.encode("utf-8")).hexdigest()[:12]
-        path = self._root / "questions" / f"{result.run_id}-{lang}-{digest}.json"
+        path = self._root / "questions" / f"{result.run_id}-{lang}-v{SHAPE_VERSION}-{digest}.json"
         cached = _read(path, QuestionAnswer)
         if cached is not None:
             return cached
@@ -153,11 +158,13 @@ class ResearchService:
             out = f"{type(e).__name__}: {e}"
         if isinstance(out, str):
             return QuestionAnswer(q, "", (), lang, "", self._now(), error=out)
+        out = shape_answer(out, self._config.shape)
         _try_write(path, out)
         return out
 
     def questions(self, run_id: str, lang: str) -> list[QuestionAnswer]:
-        found = (_read(p, QuestionAnswer) for p in (self._root / "questions").glob(f"{run_id}-{lang}-*.json"))
+        files = (self._root / "questions").glob(f"{run_id}-{lang}-v{SHAPE_VERSION}-*.json")
+        found = (_read(p, QuestionAnswer) for p in files)
         return sorted((q for q in found if q is not None), key=lambda q: q.created_at)
 
     # --- providers, cost ------------------------------------------------------
@@ -205,6 +212,14 @@ class ResearchService:
                 total += float(row.get("cost_usd") or 0.0)
         return max(total, memory)
 
+    def _job_result(self, job: Future, opt: ProductOption, lang: str) -> ProductResearch:
+        exc = job.exception()
+        if exc is None:
+            return job.result()
+        return ProductResearch(opt.option_id, opt.label, "", "", (), lang, "", self._now(),
+                               error=f"{type(exc).__name__}: {exc}",
+                               news_days=self._config.shape.news_days)
+
     def _record(self, provider: str, kind: str, ref: str, cost: float) -> None:
         """Adds a paid call to the in-memory total, then to the ledger file. A file error
         never loses the result of the call: the in-memory total still counts."""
@@ -220,14 +235,6 @@ class ResearchService:
                     f.write(json.dumps(row, ensure_ascii=False) + "\n")
             except OSError:
                 pass
-
-
-def _job_result(job: Future, opt: ProductOption, lang: str) -> ProductResearch:
-    exc = job.exception()
-    if exc is None:
-        return job.result()
-    return ProductResearch(opt.option_id, opt.label, "", "", (), lang, "", datetime.now(TR_TZ),
-                           error=f"{type(exc).__name__}: {exc}")
 
 
 def _read(path: Path, cls):
@@ -268,11 +275,15 @@ def research_from_root(root: Path | str, env: Mapping[str, str] | None = None) -
             key = env.get(config.exa.api_key_env, "").strip()
             if key:
                 from rmprep.research.exa import ExaProvider
-                providers.append(ExaProvider(config.exa, config.system_prompt, key))
+                providers.append(ExaProvider(config.exa, config.system_prompt, key,
+                                             highlights_prompt=config.highlights_prompt,
+                                             news_prompt=config.news_prompt,
+                                             news_days=config.shape.news_days))
         elif name == "claude" and config.claude is not None:
             from rmprep.research.claude_search import ClaudeSearchProvider
             p = ClaudeSearchProvider.from_env(config.claude, config.system_prompt,
-                                              config.exa.exclude_domains, env)
+                                              config.exa.exclude_domains, env,
+                                              highlights_prompt=config.highlights_prompt)
             if p is not None:
                 providers.append(p)
     off = "" if providers else f"no key in .env: {config.exa.api_key_env}"

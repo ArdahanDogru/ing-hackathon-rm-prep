@@ -10,7 +10,8 @@ from datetime import datetime
 
 from rmprep.contracts import TR_TZ
 
-TOPICS = ("urun", "sirket", "soru")
+TOPICS = ("urun", "sirket", "soru", "haber", "strateji", "yonetici_sirket", "dikkat", "is", "finansal", "sermaye")
+SHAPE_VERSION = 2              # 2: short bullets and news (docs/research.md "v2"); 1: the long summary
 CONFIDENCE = ("low", "medium", "high")
 
 
@@ -42,9 +43,10 @@ class Source:
 @dataclass(frozen=True)
 class Finding:
     text: str
-    topic: str                     # urun | sirket | soru
+    topic: str                     # one of TOPICS
     sources: tuple[Source, ...]    # at least one
     confidence: str = "medium"     # low | medium | high (as the provider reports it)
+    date: str = ""                 # YYYY-MM-DD; news only
 
     def __post_init__(self) -> None:
         if not self.text.strip():
@@ -58,12 +60,12 @@ class Finding:
 
     def to_dict(self) -> dict:
         return {"text": self.text, "topic": self.topic, "confidence": self.confidence,
-                "sources": [s.to_dict() for s in self.sources]}
+                "sources": [s.to_dict() for s in self.sources], "date": self.date}
 
     @classmethod
     def from_dict(cls, d: dict) -> Finding:
         return cls(d["text"], d["topic"], tuple(Source.from_dict(s) for s in d["sources"]),
-                   d.get("confidence", "medium"))
+                   d.get("confidence", "medium"), d.get("date", ""))
 
 
 def _aware(t: datetime) -> datetime:
@@ -85,6 +87,9 @@ class ProductResearch:
     cost_usd: float = 0.0
     checks: tuple[str, ...] = ()   # e.g. "2 findings without a valid source dropped"
     error: str = ""                # the research failed; findings are empty
+    news: tuple[Finding, ...] = ()  # dated, newest first (v2)
+    news_days: int = 0             # the window of the news search (v2)
+    version: int = SHAPE_VERSION
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "created_at", _aware(self.created_at))
@@ -94,14 +99,18 @@ class ProductResearch:
                 "summary": self.summary, "findings": [f.to_dict() for f in self.findings],
                 "lang": self.lang, "provider": self.provider,
                 "created_at": self.created_at.isoformat(), "cost_usd": self.cost_usd,
-                "checks": list(self.checks), "error": self.error}
+                "checks": list(self.checks), "error": self.error,
+                "news": [n.to_dict() for n in self.news], "news_days": self.news_days,
+                "version": self.version}
 
     @classmethod
     def from_dict(cls, d: dict) -> ProductResearch:
         return cls(d["option_id"], d["label"], d["company"], d["summary"],
                    tuple(Finding.from_dict(f) for f in d["findings"]), d["lang"], d["provider"],
                    datetime.fromisoformat(d["created_at"]), float(d.get("cost_usd", 0.0)),
-                   tuple(d.get("checks", ())), d.get("error", ""))
+                   tuple(d.get("checks", ())), d.get("error", ""),
+                   tuple(Finding.from_dict(n) for n in d.get("news", ())), int(d.get("news_days", 0)),
+                   int(d.get("version", 1)))
 
 
 @dataclass(frozen=True)
@@ -115,6 +124,7 @@ class QuestionAnswer:
     cost_usd: float = 0.0
     checks: tuple[str, ...] = ()
     error: str = ""
+    version: int = SHAPE_VERSION
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "created_at", _aware(self.created_at))
@@ -123,10 +133,12 @@ class QuestionAnswer:
         return {"question": self.question, "summary": self.summary,
                 "findings": [f.to_dict() for f in self.findings], "lang": self.lang,
                 "provider": self.provider, "created_at": self.created_at.isoformat(),
-                "cost_usd": self.cost_usd, "checks": list(self.checks), "error": self.error}
+                "cost_usd": self.cost_usd, "checks": list(self.checks), "error": self.error,
+                "version": self.version}
 
     @classmethod
     def from_dict(cls, d: dict) -> QuestionAnswer:
         return cls(d["question"], d["summary"], tuple(Finding.from_dict(f) for f in d["findings"]),
                    d["lang"], d["provider"], datetime.fromisoformat(d["created_at"]),
-                   float(d.get("cost_usd", 0.0)), tuple(d.get("checks", ())), d.get("error", ""))
+                   float(d.get("cost_usd", 0.0)), tuple(d.get("checks", ())), d.get("error", ""),
+                   int(d.get("version", 1)))

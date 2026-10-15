@@ -1,13 +1,17 @@
-"""Exa search provider (docs/research.md sections 5 and 8): one POST /search per
-product or question, with structured output and field-level grounding. A finding
+"""Exa search provider (docs/research.md sections 5 and 8): one product research is two
+POST /search calls (highlights with a topic schema per kind, then news of the last
+days); a question is one call. Structured output with field-level grounding. A finding
 is kept only with a citation that is a result of the same call (checks.sources_for).
 Request shapes follow Exa's build-with-exa skill (query + highlights; other fields
-only for a stated need). The key goes only into the x-api-key header."""
+only for a stated need: the news call states its window). The key goes only into the
+x-api-key header. This module returns raw findings; the service shapes them."""
 
 from __future__ import annotations
 
+import dataclasses
+import re
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 import httpx
 
@@ -18,28 +22,42 @@ from rmprep.research.types import Finding, ProductResearch, QuestionAnswer, Rese
 
 # Findings are objects, so that Exa grounds each one (bulgular[i].metin); an array of
 # strings gets one citation list for the whole array (probe 2026-10-14).
-PRODUCT_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "sirket": {"type": "string", "description": "the company that manages or issues the product"},
-        "ozet": {"type": "string", "description": "what the product is, 2-3 sentences"},
-        "bulgular": {"type": "array", "items": {"type": "object", "properties": {
-            "konu": {"type": "string", "description": "urun | sirket"},
-            "metin": {"type": "string", "description": "one sourced sentence"}},
-            "required": ["konu", "metin"]}},
-    },
-    "required": ["sirket", "ozet", "bulgular"],
-}
-QUESTION_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "ozet": {"type": "string", "description": "a short answer, 1-3 sentences"},
-        "bulgular": {"type": "array", "items": {"type": "object", "properties": {
-            "metin": {"type": "string", "description": "one sourced sentence"}},
-            "required": ["metin"]}},
-    },
-    "required": ["ozet", "bulgular"],
-}
+TOPICS_BY_KIND = {"fund": ("strateji", "yonetici_sirket", "dikkat"),
+                  "etf": ("strateji", "yonetici_sirket", "dikkat"),
+                  "stock": ("is", "finansal", "sermaye")}
+_FUND_HELP = ("strateji: what it invests in; yonetici_sirket: one fact about the managing company; "
+              "dikkat: an unusual event (merger, manager change, regulatory step), only if there is one")
+TOPIC_HELP = {"fund": _FUND_HELP, "etf": _FUND_HELP,
+              "stock": "is: the business; finansal: the latest results; "
+                       "sermaye: capital actions (dividend, capital increase, buyback)"}
+
+
+def product_schema(kind: str) -> dict:
+    topics = TOPICS_BY_KIND[kind]
+    return {
+        "type": "object",
+        "properties": {
+            "sirket": {"type": "string",
+                       "description": "the name of the company that manages or issues the product"},
+            "bulgular": {"type": "array", "items": {"type": "object", "properties": {
+                "konu": {"type": "string", "description": f"one of: {' | '.join(topics)}. {TOPIC_HELP[kind]}"},
+                "metin": {"type": "string", "description": "one sourced bullet of at most 20 words"}},
+                "required": ["konu", "metin"]}},
+        },
+        "required": ["sirket", "bulgular"],
+    }
+
+
+def _bullets_schema(key: str, description: str) -> dict:
+    return {"type": "object",
+            "properties": {key: {"type": "array", "items": {"type": "object", "properties": {
+                "metin": {"type": "string", "description": description}},
+                "required": ["metin"]}}},
+            "required": [key]}
+
+
+NEWS_SCHEMA = _bullets_schema("haberler", "one event: what happened, at most 20 words; an empty list when there is no event")
+QUESTION_SCHEMA = _bullets_schema("bulgular", "one sourced bullet of at most 20 words")
 CONTEXT = {"TR": " İlgili ürünler: {products}.", "EN": " Related products: {products}."}
 
 
@@ -78,26 +96,59 @@ def _output(body: Mapping) -> tuple[Mapping, list]:
     return content, list(out.get("grounding") or ())
 
 
-def _topic(item: Mapping) -> str:
-    konu = tr_lower(str(item.get("konu") or "")).replace("ş", "s")
-    return "sirket" if konu.startswith("sirket") else "urun"
+_ASCII = str.maketrans("şıöüçğ", "sioucg")
 
 
-def _findings(content: Mapping, grounding: list, results: Mapping[str, Source],
-              domains: Iterable[str], topic_of: Callable[[Mapping], str]) -> tuple[list[Finding], int]:
-    findings, dropped = [], 0
-    for i, item in enumerate(content.get("bulgular") or ()):
+def _topic_for(kind: str, item: Mapping) -> str | None:
+    """The allowed topic of the kind that the konu of the item equals or starts with, else None."""
+    konu = tr_lower(str(item.get("konu") or "")).translate(_ASCII)
+    konu = "_".join(konu.replace("-", " ").split())
+    if not konu:
+        return None
+    for topic in TOPICS_BY_KIND.get(kind, ()):
+        if konu == topic or konu.startswith(topic):
+            return topic
+    return None
+
+
+def _iso_date(text: str) -> bool:
+    """Exactly YYYY-MM-DD with digits and a real day (fromisoformat alone also takes week dates)."""
+    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", text):
+        return False
+    try:
+        date.fromisoformat(text)
+    except ValueError:
+        return False
+    return True
+
+
+def _newest(sources: Iterable[Source]) -> str:
+    """The newest valid publication date (YYYY-MM-DD) of the sources; "" when none has one."""
+    return max((s.published for s in sources if _iso_date(s.published)), default="")
+
+
+def _findings(content: Mapping, key: str, grounding: list, results: Mapping[str, Source],
+              domains: Iterable[str], topic_of: Callable[[Mapping], str | None], *,
+              dated: bool = False) -> tuple[list[Finding], int, int]:
+    """Findings of content[key]. Second value: items dropped without a valid source.
+    Third: sourced items whose topic topic_of does not know (dropped)."""
+    findings, dropped, unknown = [], 0, 0
+    for i, item in enumerate(content.get(key) or ()):
         if not isinstance(item, Mapping):
             continue
         text = str(item.get("metin") or "").strip()
         if not text:
             continue
-        sources, conf = sources_for(f"bulgular[{i}]", grounding, results, domains)
+        sources, conf = sources_for(f"{key}[{i}]", grounding, results, domains)
         if not sources:
             dropped += 1
             continue
-        findings.append(Finding(text, topic_of(item), sources, conf))
-    return findings, dropped
+        topic = topic_of(item)
+        if topic is None:
+            unknown += 1
+            continue
+        findings.append(Finding(text, topic, sources, conf, _newest(sources) if dated else ""))
+    return findings, dropped, unknown
 
 
 def _grounded_text(key: str, content: Mapping, grounding: list, results: Mapping[str, Source],
@@ -116,17 +167,34 @@ def _cost(body: Mapping) -> float:
         return 0.0
 
 
+def _drop_checks(dropped: int, unknown: int = 0, what: str = "findings") -> list[str]:
+    checks = [f"{dropped} {what} without a valid source dropped"] if dropped else []
+    if unknown:
+        checks.append(f"{unknown} bullets with an unknown topic dropped")
+    return checks
+
+
 def parse_product(body: Mapping, option: ProductOption, lang: str, domains: Iterable[str],
                   now: datetime) -> ProductResearch:
     domains = tuple(domains)
     content, grounding = _output(body)
     results = result_sources(body)
-    findings, dropped = _findings(content, grounding, results, domains, _topic)
-    checks = [f"{dropped} findings without a valid source dropped"] if dropped else []
+    findings, dropped, unknown = _findings(content, "bulgular", grounding, results, domains,
+                                           lambda item: _topic_for(option.kind, item))
+    checks = _drop_checks(dropped, unknown)
     company = _grounded_text("sirket", content, grounding, results, domains, checks)
-    summary = _grounded_text("ozet", content, grounding, results, domains, checks)
-    return ProductResearch(option.option_id, option.label, company, summary, tuple(findings),
+    return ProductResearch(option.option_id, option.label, company, "", tuple(findings),
                            lang, "exa", now, _cost(body), tuple(checks))
+
+
+def parse_news(body: Mapping, domains: Iterable[str]) -> tuple[list[Finding], int]:
+    """News items that have a source of the same call. The date of an item is the newest
+    publishedDate of its sources ("" when none has one; the shaping drops those). Second
+    value: items dropped without a valid source. Raises ResearchError like parse_product."""
+    content, grounding = _output(body)
+    items, dropped, _ = _findings(content, "haberler", grounding, result_sources(body),
+                                  tuple(domains), lambda _: "haber", dated=True)
+    return items, dropped
 
 
 def parse_question(body: Mapping, question: str, lang: str, domains: Iterable[str],
@@ -134,21 +202,25 @@ def parse_question(body: Mapping, question: str, lang: str, domains: Iterable[st
     domains = tuple(domains)
     content, grounding = _output(body)
     results = result_sources(body)
-    findings, dropped = _findings(content, grounding, results, domains, lambda _: "soru")
-    checks = [f"{dropped} findings without a valid source dropped"] if dropped else []
-    summary = _grounded_text("ozet", content, grounding, results, domains, checks)
-    return QuestionAnswer(question, summary, tuple(findings), lang, "exa", now, _cost(body),
-                          tuple(checks))
+    findings, dropped, _ = _findings(content, "bulgular", grounding, results, domains,
+                                     lambda _: "soru")
+    return QuestionAnswer(question, "", tuple(findings), lang, "exa", now, _cost(body),
+                          tuple(_drop_checks(dropped)))
 
 
 class ExaProvider:
     name = "exa"
 
     def __init__(self, config: ExaConfig, system_prompt: Mapping[str, str], api_key: str, *,
+                 highlights_prompt: Mapping[str, str] | None = None,
+                 news_prompt: Mapping[str, str] | None = None, news_days: int = 90,
                  transport: httpx.BaseTransport | None = None,
                  now: Callable[[], datetime] = lambda: datetime.now(TR_TZ)) -> None:
         self._config = config
         self._system = system_prompt
+        self._highlights = highlights_prompt or {}
+        self._news_prompt = news_prompt or {}
+        self._news_days = news_days
         self._now = now
         self._key = api_key
         self._http = httpx.Client(base_url=config.base_url, timeout=config.timeout_s,
@@ -158,15 +230,48 @@ class ExaProvider:
         template = self._config.query.get(option.kind)
         if template is None:
             raise ResearchError("request", f"no query for option kind {option.kind}")
+        system = self._system[lang]
+        if self._highlights.get(lang):
+            system += " " + self._highlights[lang]
         body = self._post({
             "query": template.format(label=option.label, code=option_code(option)),
             "type": self._config.product_type,
             "excludeDomains": list(self._config.exclude_domains),
-            "systemPrompt": self._system[lang],
-            "outputSchema": PRODUCT_SCHEMA,
+            "systemPrompt": system,
+            "outputSchema": product_schema(option.kind),
             "contents": {"highlights": True},
         })
-        return parse_product(body, option, lang, self._config.exclude_domains, self._now())
+        p = parse_product(body, option, lang, self._config.exclude_domains, self._now())
+        news, checks, cost = self._news(option, lang, p.company or option.label)
+        return dataclasses.replace(p, news=tuple(news), cost_usd=p.cost_usd + cost,
+                                   checks=p.checks + tuple(checks))
+
+    def _news(self, option: ProductOption, lang: str,
+              name: str) -> tuple[list[Finding], list[str], float]:
+        """The news call: items, check lines, cost. A failure never loses the highlights:
+        it becomes a check line, and the cost of a billed bad reply still counts."""
+        start = self._now().date() - timedelta(days=self._news_days)
+        system = self._system[lang]
+        if self._news_prompt.get(lang):
+            system += " " + self._news_prompt[lang]
+        body = None
+        try:
+            body = self._post({
+                "query": self._config.news_query.format(name=name, code=option_code(option)),
+                "type": self._config.news_type,
+                "category": "news",
+                "startPublishedDate": f"{start.isoformat()}T00:00:00.000Z",
+                "excludeDomains": list(self._config.exclude_domains),
+                "systemPrompt": system,
+                "outputSchema": NEWS_SCHEMA,
+                "contents": {"highlights": True},
+            })
+            items, dropped = parse_news(body, self._config.exclude_domains)
+        except ResearchError as e:
+            return [], [f"news: {e.kind}"], e.cost_usd
+        except (TypeError, ValueError, AttributeError):    # a 200 reply of a wrong shape (billed)
+            return [], ["news: request"], _cost(body) if body is not None else 0.0
+        return items, _drop_checks(dropped, what="news items"), _cost(body)
 
     def answer_question(self, question: str, products: Sequence[ProductOption],
                         lang: str) -> QuestionAnswer:

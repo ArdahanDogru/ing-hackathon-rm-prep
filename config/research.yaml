@@ -7,6 +7,24 @@ max_cost_usd_per_day: 2.0         # both providers together (the user, 2026-10-1
 question_max_chars: 300
 # A question with a word that starts with one of these is refused (müşteri -> müşterim, müşterinin).
 client_words: [müşteri, client, customer]
+# Web araştırması v2 (approved 2026-10-15): short bullets, news, no known facts, no repeats
+shape:
+  news_days: 90
+  news_max: 3
+  highlights_max: 4
+  bullet_max_words: 20
+  repeat_jaccard: 0.6             # word-set Jaccard with an earlier bullet at or above it = a repeat
+  # A highlight that contains one of these (Turkish lower-casing, at a word start) is dropped:
+  # the RM already has these facts from the evidence.
+  known_terms: [isin, "fon kodu", "fund code", "kuruluş tarihi", "halka arz", "satışına başla", "satışa başla",
+                "launch date", inception, "şemsiye fon", "umbrella fund", saklayıcı, custodian, kurucu, founder,
+                "risk değeri", "risk value", getiri, return, ücret, fee]
+highlights_prompt:
+  TR: "Her madde en fazla 20 kelime olsun. Fon kodu, ISIN, kuruluş veya satış başlangıç tarihi, şemsiye fon, saklayıcı, kurucu, SPK risk değeri, getiri ve ücret yazma; RM bunları biliyor. Bir bilgiyi iki kez yazma."
+  EN: "Each bullet has at most 20 words. Do not write the fund code, ISIN, launch date, umbrella fund, custodian, founder, SPK risk value, returns or fees; the RM has them. Do not write a fact twice."
+news_prompt:                      # added to the news call only; added after the live AIS check showed a LinkedIn description as news
+  TR: "Yalnızca son dönemde olan somut olayları yaz (birleşme, yönetici değişikliği, SPK kararı, yeni ürün, finansal sonuç, temettü). Ürünün veya şirketin genel tanıtımını yazma. Olay yoksa boş liste ver."
+  EN: "Write only concrete recent events (merger, manager change, regulatory decision, new product, financial results, dividend). Do not write a general description of the product or company. If there is no event, return an empty list."
 system_prompt:
   TR: "Türkçe yaz. Yalnızca kaynaklarda açıkça yazan bilgileri kullan; tahmin etme. Getiri vaadi veya yatırım tavsiyesi yazma."
   EN: "Write in English. Use only facts that the sources state; do not guess. Do not promise returns or give investment advice."
@@ -19,6 +37,8 @@ exa:
     fund: "{label} ({code}) fonu ve yöneten portföy yönetim şirketi"
     etf: "{label} ({code}) borsa yatırım fonu ve kurucusu"
     stock: "{label} ({code}) hissesi ve şirket"
+  news_query: "{name} {code} haber"   # {name}: the company of the highlights call, else the label
+  news_type: auto
 claude:                           # fallback: the web search server tool (USD, Claude API 2026-10-14)
   model: claude-haiku-5-5         # web search supported (Models API); live PPN 2026-10-15: $0.026 (before, Sonnet 5.5 with dynamic filtering: $0.18)
   max_uses: 3

@@ -30,16 +30,19 @@ BOUNDARY = re.compile(rf"({SENTENCE_END})\s+|\n")     # a unit ends at a newline
 BLOCK_END = re.compile(rf"{SENTENCE_END}\s*$")
 PRODUCT_PROMPT = {
     "TR": ("Şu yatırım ürününü ve onu yöneten veya ihraç eden şirketi web'de araştır: {label} ({code}). "
-           "Önce ürün hakkında kısa, kaynaklı cümleler yaz. Sonra 'ŞİRKET: <şirket adı>' satırını yaz "
-           "ve şirket hakkında kısa, kaynaklı cümleler yaz."),
+           "En fazla 4 kısa madde yaz, her biri en fazla 20 kelime ve bir kaynağa dayansın: "
+           "ürünün neye yatırım yaptığı ve olağan dışı bir gelişme varsa o. Sonra 'ŞİRKET: <şirket adı>' "
+           "satırını ve şirket hakkında tek bir kısa madde yaz."),
     "EN": ("Research this investment product and the company that manages or issues it on the web: "
-           "{label} ({code}). First write short, sourced sentences about the product. Then write the "
-           "line 'COMPANY: <company name>' and short, sourced sentences about the company."),
+           "{label} ({code}). Write at most 4 short bullets, each at most 20 words and based on one "
+           "source: what the product invests in, and any unusual development. Then write the line "
+           "'COMPANY: <company name>' and one short bullet about the company."),
 }
 QUESTION_PROMPT = {
     "TR": "{question}\n\nİlgili ürünler: {products}. Kısa, kaynaklı cümlelerle yanıtla.",
     "EN": "{question}\n\nRelated products: {products}. Answer in short, sourced sentences.",
 }
+NEWS_CHECK = "news: not available from the fallback"
 FORMAT = {"TR": " Her cümle bir web kaynağına dayansın.", "EN": " Base every sentence on a web source."}
 
 
@@ -82,10 +85,10 @@ def _units(blocks: Sequence) -> list[tuple[str, list]]:
 
 
 def parse_blocks(blocks: Sequence, domains: Iterable[str],
-                 start_topic: str) -> tuple[list[Finding], str, int]:
+                 start_topic: str, company_topic: str | None = None) -> tuple[list[Finding], str, int]:
     """(findings, company, dropped). Units of the answer (_units) with citations
-    become findings; a unit that holds the company marker switches the topic from
-    urun to sirket."""
+    become findings; a unit that holds the company marker switches the topic to
+    company_topic (when it is given)."""
     domains = tuple(domains)
     allowed: dict[str, Source] = {}
     for b in blocks:
@@ -97,8 +100,8 @@ def parse_blocks(blocks: Sequence, domains: Iterable[str],
     topic, company, findings, dropped = start_topic, "", [], 0
     for text, cits in _units(blocks):
         m = MARKER.search(text)
-        if m and start_topic == "urun":
-            topic = "sirket"
+        if m and company_topic is not None:
+            topic = company_topic
             company = company or m.group(1).strip().strip("*").strip()
             text = text[:m.start()] + text[m.end():]
         # no bold marks; no list marker or the period of the last quote at the start
@@ -123,6 +126,7 @@ class ClaudeSearchProvider:
     def __init__(self, config: ClaudeSearchConfig, system_prompt: Mapping[str, str],
                  exclude_domains: Iterable[str], *, api_key: str | None = None,
                  workspace_id: str | None = None, sdk=None,
+                 highlights_prompt: Mapping[str, str] | None = None,
                  now: Callable[[], datetime] = lambda: datetime.now(TR_TZ)) -> None:
         if sdk is None:
             import anthropic          # optional extra [narrator]
@@ -131,44 +135,52 @@ class ClaudeSearchProvider:
         self._sdk = sdk
         self._config = config
         self._system = system_prompt
+        self._highlights = highlights_prompt
         self._domains = tuple(exclude_domains)
         self._now = now
 
     @classmethod
     def from_env(cls, config: ClaudeSearchConfig, system_prompt: Mapping[str, str],
-                 exclude_domains: Iterable[str], env: Mapping[str, str]) -> ClaudeSearchProvider | None:
+                 exclude_domains: Iterable[str], env: Mapping[str, str],
+                 highlights_prompt: Mapping[str, str] | None = None) -> ClaudeSearchProvider | None:
         key = env.get(config.api_key_env, "").strip()
         if not key:
             return None
         workspace = env.get(config.workspace_id_env, "").strip() or None
         try:
-            return cls(config, system_prompt, exclude_domains, api_key=key, workspace_id=workspace)
+            return cls(config, system_prompt, exclude_domains, api_key=key, workspace_id=workspace,
+                       highlights_prompt=highlights_prompt)
         except ImportError:           # the [narrator] extra is not installed
             return None
 
     def research_product(self, option: ProductOption, lang: str) -> ProductResearch:
         prompt = PRODUCT_PROMPT[lang].format(label=option.label, code=option_code(option))
-        blocks, cost = self._run(prompt, lang)
-        findings, company, dropped = parse_blocks(blocks, self._domains, "urun")
+        blocks, cost = self._run(prompt, lang, highlights=True)
+        if option.kind == "stock":
+            findings, company, dropped = parse_blocks(blocks, self._domains, "is", "is")
+        else:
+            findings, company, dropped = parse_blocks(blocks, self._domains, "strateji", "yonetici_sirket")
         checks = (f"{dropped} findings without a valid source dropped",) if dropped else ()
+        checks += (NEWS_CHECK,)
         return ProductResearch(option.option_id, option.label, company, "", tuple(findings), lang,
                                self.name, self._now(), cost, checks)
 
     def answer_question(self, question: str, products: Sequence[ProductOption],
                         lang: str) -> QuestionAnswer:
         names = "; ".join(f"{p.label} ({option_code(p)})" for p in products) or "-"
+        # no highlights prompt: the RM may ask about fees, returns and the like
         blocks, cost = self._run(QUESTION_PROMPT[lang].format(question=question, products=names), lang)
         findings, _, dropped = parse_blocks(blocks, self._domains, "soru")
         checks = (f"{dropped} findings without a valid source dropped",) if dropped else ()
         return QuestionAnswer(question, "", tuple(findings), lang, self.name, self._now(), cost, checks)
 
-    def _run(self, prompt: str, lang: str) -> tuple[list, float]:
+    def _run(self, prompt: str, lang: str, *, highlights: bool = False) -> tuple[list, float]:
         messages: list[dict] = [{"role": "user", "content": prompt}]
         blocks: list = []
         cost = 0.0
         for _ in range(MAX_CONTINUATIONS + 1):
             try:
-                msg = self._create(messages, lang)
+                msg = self._create(messages, lang, highlights)
             except ResearchError as e:      # the replies before this one were billed
                 raise ResearchError(e.kind, e.message, cost + e.cost_usd) from e
             cost += self._cost(msg.usage)
@@ -180,7 +192,7 @@ class ClaudeSearchProvider:
             messages = [*messages, {"role": "assistant", "content": msg.content}]
         return blocks, cost
 
-    def _create(self, messages: list[dict], lang: str):
+    def _create(self, messages: list[dict], lang: str, highlights: bool):
         import anthropic
         # "direct": without it, 20260209 searches from code execution (dynamic filtering)
         # and the answer has no citations (live 2026-10-15: one text block, citations None)
@@ -191,7 +203,7 @@ class ClaudeSearchProvider:
         try:
             return self._sdk.beta.messages.create(
                 model=self._config.model, max_tokens=self._config.max_tokens,
-                system=self._system[lang] + FORMAT[lang], messages=messages, tools=[tool],
+                system=self._system_text(lang, highlights), messages=messages, tools=[tool],
                 betas=[FALLBACK_BETA], fallbacks="default")
         except (anthropic.AuthenticationError, anthropic.PermissionDeniedError) as e:
             raise ResearchError("auth", e.message) from e
@@ -204,6 +216,10 @@ class ClaudeSearchProvider:
                                 f"{e.status_code} {e.message}") from e
         except anthropic.APIConnectionError as e:     # includes timeouts
             raise ResearchError("connection", str(e)) from e
+
+    def _system_text(self, lang: str, highlights: bool) -> str:
+        extra = " " + self._highlights[lang] if highlights and self._highlights else ""
+        return self._system[lang] + extra + FORMAT[lang]
 
     def _cost(self, usage) -> float:
         c = self._config

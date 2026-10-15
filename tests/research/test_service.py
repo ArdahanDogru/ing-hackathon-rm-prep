@@ -1,4 +1,5 @@
 import dataclasses
+import hashlib
 import json
 import math
 import shutil
@@ -8,7 +9,9 @@ from pathlib import Path
 import pytest
 
 from rmprep.contracts import ProductOption
+from rmprep.research.claude_search import NEWS_CHECK
 from rmprep.research.config import DEFAULT_PATH, load_config
+from rmprep.research.types import Finding, ProductResearch, QuestionAnswer, Source
 from rmprep.research.service import (LIMIT_ERROR, QuestionRefused, ResearchService,
                                      research_from_root, research_products, researchable)
 from tests.research.conftest import NOW, RECOMMENDED, FakeProvider, ready_result
@@ -49,7 +52,7 @@ def test_cache_file_names_and_cache_hit(tmp_path):
     s = service(tmp_path, FakeProvider())
     s.start(ready_result())
     s.wait()
-    assert (tmp_path / "products" / "fund_BBF-TR-20261014.json").is_file()   # no ':' in a Windows file name
+    assert (tmp_path / "products" / "fund_BBF-TR-20261014-v2.json").is_file()   # no ':' in a Windows file name
     again = FakeProvider()
     s2 = service(tmp_path, again)
     s2.start(ready_result())
@@ -113,7 +116,7 @@ def test_failed_product_is_not_retried_by_status_only_by_start(tmp_path):
     assert s.status(r, "TR")["products"][0]["error"] == "exa: credit"
     assert s.status(r, "TR")["state"] == "ready"           # polling ends; no new call
     assert len(p.calls) == 1
-    assert not (tmp_path / "products" / "fund_BBF-TR-20261014.json").exists()
+    assert not (tmp_path / "products" / "fund_BBF-TR-20261014-v2.json").exists()
     p.fail = None
     s.start(r)                                              # a new run view retries
     s.wait()
@@ -134,7 +137,7 @@ def test_ask_caches_and_lists_questions(tmp_path):
     s = service(tmp_path, p)
     r = ready_result()
     a = s.ask(r, "  Nurol Portföy son haberler ", "TR")
-    assert a.question == "Nurol Portföy son haberler" and a.summary == "Yanıt."
+    assert a.question == "Nurol Portföy son haberler" and a.summary == "" and a.version == 2
     assert p.calls == [("question", "Nurol Portföy son haberler", "TR", RECOMMENDED)]
     assert s.ask(r, "Nurol Portföy son haberler", "TR") == a
     assert len(p.calls) == 1
@@ -166,6 +169,7 @@ def test_research_from_root_reads_keys(tmp_path):
     assert off.status(ready_result(), "TR") == {"state": "off", "reason": "no key in .env: EXA_API_KEY"}
     on = research_from_root(tmp_path, env={"EXA_API_KEY": "k"})
     assert on.enabled and [p.name for p in on._providers] == ["exa"]
+    assert on._providers[0]._news_prompt == on._config.news_prompt
 
 
 def test_a_failed_cache_write_never_blocks_a_product(tmp_path):
@@ -188,7 +192,7 @@ def test_a_failed_cache_write_never_blocks_a_question(tmp_path):
     p = FakeProvider()
     s = service(tmp_path, p)
     a = s.ask(ready_result(), "PPN nedir?", "TR")
-    assert a.error == "" and a.summary == "Yanıt."
+    assert a.error == "" and [f.text for f in a.findings] == ["Bulgu."]
     assert len(p.calls) == 1
 
 
@@ -232,7 +236,7 @@ def test_a_failed_ledger_write_keeps_the_result_and_still_counts(tmp_path, monke
     s.wait()
     first, second = s.status(r, "TR")["products"]
     assert first["error"] == "" and len(first["findings"]) == 1      # the paid result is not lost
-    assert (tmp_path / "products" / "fund_BBF-TR-20261014.json").is_file()   # and it is cached
+    assert (tmp_path / "products" / "fund_BBF-TR-20261014-v2.json").is_file()   # and it is cached
     assert second["error"] == LIMIT_ERROR                              # the in-memory total counts
     assert len(p.calls) == 1
     assert s.spent_today() == pytest.approx(0.01)
@@ -280,3 +284,109 @@ def test_a_failed_call_without_cost_writes_no_row(tmp_path):
     s.start(ready_result(("fund:BBF",)))
     s.wait()
     assert not (tmp_path / "costs.jsonl").exists()
+
+
+# --- v2: the service shapes every result and caches it under a v2 name ---
+
+SRC = Source("https://exa.example/x", "x")
+SIX = ("Fon kısa vadeli devlet tahvillerine yatırım yapar.", "Portföyde ağırlıklı olarak bono bulunur.",
+       "Yönetici şirket yeni bir fon ailesi kurmuştur.", "Fon günlük işlem gören bir araçtır.",
+       "Varlıkların büyük kısmı mevduatta tutulur.", "Faiz oranı düşerse fon değer kazanabilir.")
+
+
+class LongProvider(FakeProvider):
+    def research_product(self, option, lang):
+        self.calls.append(("product", option.option_id, lang))
+        self._maybe_fail()
+        fs = tuple(Finding(t, "strateji", (SRC,), "high") for t in SIX)
+        return ProductResearch(option.option_id, option.label, "Şirket A.Ş.", "Çok uzun bir özet. " * 30,
+                               fs, lang, self.name, NOW, self.cost,
+                               checks=(NEWS_CHECK,) if self.name == "claude" else ())   # as the real fallback does
+
+    def answer_question(self, question, products, lang):
+        self.calls.append(("question", question, lang, ()))
+        fs = tuple(Finding(t, "soru", (SRC,)) for t in SIX)
+        return QuestionAnswer(question, "Uzun yanıt.", fs, lang, self.name, NOW, self.cost)
+
+
+def test_a_product_is_shaped_before_it_is_cached(tmp_path):
+    s = service(tmp_path, LongProvider())
+    r = ready_result(("fund:BBF",))
+    s.start(r)
+    s.wait()
+    [x] = s.status(r, "TR")["products"]
+    assert len(x["findings"]) == 4 and x["summary"] == "" and x["version"] == 2 and x["news_days"] == 90
+    cached = json.loads((tmp_path / "products" / "fund_BBF-TR-20261014-v2.json").read_text(encoding="utf-8"))
+    assert len(cached["findings"]) == 4 and cached["summary"] == "" and cached["version"] == 2
+    assert not (tmp_path / "products" / "fund_BBF-TR-20261014.json").exists()
+
+
+def test_a_shaped_claude_product_has_no_news_section_an_exa_product_has_90_days(tmp_path):
+    s = service(tmp_path, LongProvider("claude"))
+    r = ready_result(("fund:BBF",))
+    s.start(r)
+    s.wait()
+    assert s.status(r, "TR")["products"][0]["news_days"] == 0
+    s2 = service(tmp_path / "b", LongProvider("exa"))
+    s2.start(r)
+    s2.wait()
+    assert s2.status(r, "TR")["products"][0]["news_days"] == 90
+
+
+def test_a_v1_cache_file_is_not_read(tmp_path):
+    products = tmp_path / "products"
+    products.mkdir()
+    v1 = ProductResearch("fund:BBF", "BBF", "Eski A.Ş.", "Eski uzun özet.",
+                         (Finding("Eski bulgu.", "urun", (SRC,)),), "TR", "exa", NOW, 0.01)
+    (products / "fund_BBF-TR-20261014.json").write_text(json.dumps(v1.to_dict()), encoding="utf-8")
+    p = FakeProvider()
+    s = service(tmp_path, p)
+    r = ready_result(("fund:BBF",))
+    s.start(r)
+    s.wait()
+    assert len(p.calls) == 1
+    [x] = s.status(r, "TR")["products"]
+    assert x["company"] == "Şirket A.Ş." and x["version"] == 2
+
+
+def test_an_error_product_carries_the_news_days(tmp_path):
+    s = service(tmp_path, FakeProvider(fail="credit"))
+    r = ready_result(("fund:BBF",))
+    s.start(r)
+    s.wait()
+    [x] = s.status(r, "TR")["products"]
+    assert x["error"] == "exa: credit" and x["news_days"] == 90
+    s2 = service(tmp_path / "b", FakeProvider(fail=KeyError("bulgular")))
+    s2.start(r)
+    s2.wait()
+    assert s2.status(r, "TR")["products"][0]["news_days"] == 90
+
+
+def test_a_job_that_raised_is_an_error_product_with_the_news_days(tmp_path):
+    s = service(tmp_path, FakeProvider())
+    s._product = lambda *a: (_ for _ in ()).throw(RuntimeError("boom"))
+    r = ready_result(("fund:BBF",))
+    s.start(r)
+    s.wait()
+    [x] = s.status(r, "TR")["products"]
+    assert x["error"].startswith("RuntimeError") and x["news_days"] == 90
+
+
+def test_an_answer_is_shaped_and_cached_under_a_v2_name(tmp_path):
+    s = service(tmp_path, LongProvider())
+    r = ready_result()
+    a = s.ask(r, "Nurol Portföy son haberler", "TR")
+    assert len(a.findings) == 4 and a.summary == "" and a.version == 2
+    digest = hashlib.sha1("Nurol Portföy son haberler".encode("utf-8")).hexdigest()[:12]
+    assert (tmp_path / "questions" / f"{r.run_id}-TR-v2-{digest}.json").is_file()
+    assert s.ask(r, "Nurol Portföy son haberler", "TR") == a
+
+
+def test_questions_lists_only_v2_files(tmp_path):
+    s = service(tmp_path, FakeProvider())
+    r = ready_result()
+    s.ask(r, "Nurol Portföy son haberler", "TR")
+    old = QuestionAnswer("Eski soru", "Eski uzun yanıt.", (), "TR", "exa", NOW)
+    (tmp_path / "questions" / f"{r.run_id}-TR-0123456789ab.json").write_text(
+        json.dumps(old.to_dict()), encoding="utf-8")
+    assert [q.question for q in s.questions(r.run_id, "TR")] == ["Nurol Portföy son haberler"]

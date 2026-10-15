@@ -308,15 +308,15 @@ const TR = {
   researchOff: "Web araştırması kapalı: {reason}",
   researchFailed: "Araştırma yapılamadı: {error}",
   researchLimit: "Günlük araştırma limiti doldu.",
-  researchProduct: "Ürün",
-  researchCompany: "Şirket",
   researchAsk: "Ürünler veya şirketler hakkında soru sorun",
   researchAskButton: "Sor",
   researchAsking: "Aranıyor…",
   researchNoFindings: "Kaynaklı bulgu bulunamadı.",
-  researchConfHigh: "güven: yüksek",
-  researchConfMedium: "güven: orta",
-  researchConfLow: "güven: düşük",
+  researchNews: "Son haberler",
+  researchNoNews: "Son {n} günde haber bulunamadı.",
+  researchHighlights: "Öne çıkanlar",
+  researchSources: "Kaynaklar ({n})",
+  researchLowConfidence: "güven düşük",
 } as const;
 
 export type LabelKey = keyof typeof TR;
@@ -626,15 +626,15 @@ const EN: Record<LabelKey, string> = {
   researchOff: "Web research is off: {reason}",
   researchFailed: "The research failed: {error}",
   researchLimit: "The daily research limit is reached.",
-  researchProduct: "Product",
-  researchCompany: "Company",
   researchAsk: "Ask about the products or companies",
   researchAskButton: "Ask",
   researchAsking: "Searching…",
   researchNoFindings: "No sourced findings.",
-  researchConfHigh: "confidence: high",
-  researchConfMedium: "confidence: medium",
-  researchConfLow: "confidence: low",
+  researchNews: "Latest news",
+  researchNoNews: "No news in the last {n} days.",
+  researchHighlights: "Highlights",
+  researchSources: "Sources ({n})",
+  researchLowConfidence: "low confidence",
 };
 
 export const labels: Record<Lang, Record<LabelKey, string>> = { TR, EN };

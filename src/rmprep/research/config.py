@@ -25,8 +25,20 @@ class ExaConfig:
     question_type: str
     exclude_domains: tuple[str, ...]
     query: Mapping[str, str]          # option kind -> template with {label} and {code}
+    news_query: str                   # template with {name} and {code}
+    news_type: str
     base_url: str = "https://api.exa.ai"
     timeout_s: float = 60.0
+
+
+@dataclass(frozen=True)
+class ShapeConfig:
+    news_days: int
+    news_max: int
+    highlights_max: int
+    bullet_max_words: int
+    repeat_jaccard: float             # in (0, 1]
+    known_terms: tuple[str, ...]      # a highlight with one of these is dropped (the RM has the fact)
 
 
 @dataclass(frozen=True)
@@ -60,6 +72,9 @@ class ResearchConfig:
     client_words: tuple[str, ...]
     system_prompt: Mapping[str, str]   # per language
     cache_dir: str
+    shape: ShapeConfig
+    highlights_prompt: Mapping[str, str]   # per language
+    news_prompt: Mapping[str, str]         # per language; added to the system prompt of the news call
 
 
 def _get(raw: Mapping, path: str):
@@ -112,7 +127,9 @@ def parse_config(raw: Mapping) -> ResearchConfig:
         product_type=_str(raw, "exa.product_type"),
         question_type=_str(raw, "exa.question_type"),
         exclude_domains=_str_list(raw, "exa.exclude_domains"),
-        query={k: _str(raw, f"exa.query.{k}") for k in QUERY_KINDS})
+        query={k: _str(raw, f"exa.query.{k}") for k in QUERY_KINDS},
+        news_query=_str(raw, "exa.news_query"),
+        news_type=_str(raw, "exa.news_type"))
     claude = None
     if "claude" in providers:
         claude = ClaudeSearchConfig(
@@ -124,13 +141,26 @@ def parse_config(raw: Mapping) -> ResearchConfig:
             price_per_search=_num(raw, "claude.price_per_search"),
             price_input_per_mtok_over_100k=_opt_num(raw, "claude.price_input_per_mtok_over_100k"),
             price_output_per_mtok_over_100k=_opt_num(raw, "claude.price_output_per_mtok_over_100k"))
+    jaccard = _num(raw, "shape.repeat_jaccard")
+    if jaccard > 1:
+        raise ConfigError(f"shape.repeat_jaccard: must be in (0, 1], got {jaccard!r}")
+    shape = ShapeConfig(
+        news_days=_num(raw, "shape.news_days", int),
+        news_max=_num(raw, "shape.news_max", int),
+        highlights_max=_num(raw, "shape.highlights_max", int),
+        bullet_max_words=_num(raw, "shape.bullet_max_words", int),
+        repeat_jaccard=jaccard,
+        known_terms=_str_list(raw, "shape.known_terms"))
     return ResearchConfig(
         providers=providers, exa=exa, claude=claude,
         max_cost_usd_per_day=_num(raw, "max_cost_usd_per_day"),
         question_max_chars=_num(raw, "question_max_chars", int),
         client_words=_str_list(raw, "client_words"),
         system_prompt={lang: _str(raw, f"system_prompt.{lang}") for lang in LANGS},
-        cache_dir=_str(raw, "cache_dir"))
+        cache_dir=_str(raw, "cache_dir"),
+        shape=shape,
+        highlights_prompt={lang: _str(raw, f"highlights_prompt.{lang}") for lang in LANGS},
+        news_prompt={lang: _str(raw, f"news_prompt.{lang}") for lang in LANGS})
 
 
 def load_config(path: Path | str = DEFAULT_PATH) -> ResearchConfig:

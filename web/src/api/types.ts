@@ -375,9 +375,10 @@ export interface ResearchSource {
 
 export interface ResearchFinding {
   text: string;
-  topic: "urun" | "sirket" | "soru";
+  topic: string; // "strateji" | "yonetici_sirket" | "dikkat" | "is" | "finansal" | "sermaye" | "haber" | "soru" ...
   confidence: "low" | "medium" | "high";
   sources: ResearchSource[];
+  date: string; // YYYY-MM-DD for news, "" otherwise
 }
 
 export interface ProductResearch {
@@ -385,13 +386,16 @@ export interface ProductResearch {
   label: string;
   company: string;
   summary: string;
-  findings: ResearchFinding[];
+  findings: ResearchFinding[]; // the highlights
+  news: ResearchFinding[]; // newest first
+  news_days: number;
   lang: Lang;
   provider: string;
   created_at: string;
   cost_usd: number;
   checks: string[];
   error: string; // "daily limit" | "exa: credit; claude: auth" | ""
+  version: number;
 }
 
 export interface QuestionAnswer {
@@ -404,6 +408,7 @@ export interface QuestionAnswer {
   cost_usd: number;
   checks: string[];
   error: string;
+  version: number;
 }
 
 export type ResearchView =

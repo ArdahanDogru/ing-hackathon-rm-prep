@@ -3,17 +3,12 @@
 // never changes the scores, the recommendation or the meeting text.
 import { useContext, useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../api/client";
-import type { Lang, ProductResearch, QuestionAnswer, ResearchFinding, ResearchView, RunView } from "../api/types";
-import { fill, LangContext, useT, type LabelKey } from "../i18n";
+import type { Lang, ProductResearch, QuestionAnswer, ResearchFinding, ResearchSource, ResearchView, RunView } from "../api/types";
+import { fill, LangContext, useT } from "../i18n";
 
 const POLL_MS = 3000;
 const POLL_MAX = 40; // 2 minutes; 3 products take about 10 s
 const LIMIT_ERROR = "daily limit"; // rmprep.research.service.LIMIT_ERROR
-const CONFIDENCE: Record<ResearchFinding["confidence"], LabelKey> = {
-  high: "researchConfHigh",
-  medium: "researchConfMedium",
-  low: "researchConfLow",
-};
 
 /** The research of a ready run: asked at once, then every 3 s while it runs (at most 40 calls).
  * An error, or a server without research, gives "off" with no reason (the panel stays hidden). */
@@ -62,28 +57,70 @@ function host(url: string): string {
   }
 }
 
-function FindingList({ findings }: { findings: ResearchFinding[] }) {
+/** "2026-10-10" -> "10.10.2026"; anything else stays as it is. */
+function dmy(date: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : date;
+}
+
+/** The distinct source URLs of the groups, numbered 1..n in order of appearance (news first, then highlights). */
+function sourceIndex(groups: ResearchFinding[][]): Map<string, number> {
+  const index = new Map<string, number>();
+  for (const group of groups) {
+    for (const f of group) {
+      for (const s of f.sources) if (!index.has(s.url)) index.set(s.url, index.size + 1);
+    }
+  }
+  return index;
+}
+
+function distinctSources(groups: ResearchFinding[][]): ResearchSource[] {
+  const seen = new Map<string, ResearchSource>();
+  for (const group of groups) {
+    for (const f of group) {
+      for (const s of f.sources) if (!seen.has(s.url)) seen.set(s.url, s);
+    }
+  }
+  return [...seen.values()];
+}
+
+function Bullets({ items, index, dated = false }: { items: ResearchFinding[]; index: Map<string, number>; dated?: boolean }) {
   const t = useT();
   return (
-    <ul className="text-sm">
-      {findings.map((f) => (
-        <li key={f.text} className="mb-2">
-          <span>{f.text}</span>
-          <span className="ml-2 text-xs text-muted">
-            {f.sources.map((s, i) => (
-              <span key={s.url}>
-                {i > 0 && " · "}
-                <a href={s.url} target="_blank" rel="noreferrer" title={s.title} className="text-[#355FA1] underline">
-                  {host(s.url)}
-                </a>
-                {s.published && ` (${s.published})`}
-              </span>
-            ))}
-            {` · ${t(CONFIDENCE[f.confidence])}`}
-          </span>
-        </li>
-      ))}
+    <ul className="list-disc pl-5 text-sm">
+      {items.map((f) => {
+        const numbers = [...new Set(f.sources.map((s) => index.get(s.url)).filter((n): n is number => n !== undefined))];
+        return (
+          <li key={`${f.date}|${f.text}`} className="mb-1">
+            {dated && f.date ? `${dmy(f.date)} · ` : ""}
+            {f.text}
+            {numbers.length > 0 && <span className="text-xs text-muted">{` [${numbers.join(", ")}]`}</span>}
+            {f.confidence === "low" && <span className="text-xs text-muted">{` · ${t("researchLowConfidence")}`}</span>}
+          </li>
+        );
+      })}
     </ul>
+  );
+}
+
+function SourceList({ sources }: { sources: ResearchSource[] }) {
+  const t = useT();
+  if (sources.length === 0) return null;
+  return (
+    <details className="mt-2 text-xs">
+      <summary className="cursor-pointer text-muted">{fill(t("researchSources"), { n: sources.length })}</summary>
+      <ol className="list-decimal pl-5">
+        {sources.map((s) => (
+          <li key={s.url}>
+            <a href={s.url} target="_blank" rel="noreferrer" title={s.title} className="text-[#355FA1] underline">
+              {host(s.url)}
+            </a>
+            {s.title && <span className="text-muted">{` · ${s.title}`}</span>}
+            {s.published && <span className="text-muted">{` · ${dmy(s.published)}`}</span>}
+          </li>
+        ))}
+      </ol>
+    </details>
   );
 }
 
@@ -92,49 +129,61 @@ function ErrorLine({ error }: { error: string }) {
   return <p className="mt-2 text-sm text-[#B54708]">{error === LIMIT_ERROR ? t("researchLimit") : fill(t("researchFailed"), { error })}</p>;
 }
 
-function ProductCard({ p }: { p: ProductResearch }) {
+const HEADING = "mt-2 text-xs font-bold uppercase tracking-[0.06em] text-muted";
+
+function ProductBlock({ p }: { p: ProductResearch }) {
   const t = useT();
-  const product = p.findings.filter((f) => f.topic !== "sirket");
-  const company = p.findings.filter((f) => f.topic === "sirket");
+  // No news section without a news search (news_days 0: the Claude fallback), and no crash on a payload without news.
+  const showNews = (p.news_days ?? 0) > 0;
+  const news = showNews ? (p.news ?? []) : [];
+  const findings = p.findings ?? [];
+  const groups = [news, findings];
+  const index = sourceIndex(groups);
   return (
     <article data-testid="research-product" className="rounded-xl bg-[#F7F9FC] px-4 py-3">
-      <h3 className="font-semibold">{p.label}</h3>
-      {p.company && <p className="text-sm text-muted">{`${t("researchCompany")}: ${p.company}`}</p>}
+      <h3 className="font-semibold">
+        {p.label}
+        {p.company && <span className="ml-2 text-sm font-normal text-muted">{p.company}</span>}
+      </h3>
       {p.error ? (
         <ErrorLine error={p.error} />
       ) : (
         <>
-          {p.summary && <p className="mt-2 text-sm">{p.summary}</p>}
-          {p.findings.length === 0 && <p className="mt-2 text-sm text-muted">{t("researchNoFindings")}</p>}
-          {product.length > 0 && (
+          {showNews && (
             <>
-              <h4 className="mt-2 text-xs font-bold uppercase tracking-[0.06em] text-muted">{t("researchProduct")}</h4>
-              <FindingList findings={product} />
+              <h4 className={HEADING}>{t("researchNews")}</h4>
+              {news.length > 0 ? (
+                <Bullets items={news} index={index} dated />
+              ) : (
+                <p className="text-sm text-muted">{fill(t("researchNoNews"), { n: p.news_days })}</p>
+              )}
             </>
           )}
-          {company.length > 0 && (
-            <>
-              <h4 className="mt-2 text-xs font-bold uppercase tracking-[0.06em] text-muted">{t("researchCompany")}</h4>
-              <FindingList findings={company} />
-            </>
-          )}
+          <h4 className={HEADING}>{t("researchHighlights")}</h4>
+          {findings.length > 0 ? <Bullets items={findings} index={index} /> : <p className="text-sm text-muted">{t("researchNoFindings")}</p>}
+          <SourceList sources={distinctSources(groups)} />
         </>
       )}
     </article>
   );
 }
 
-function AnswerCard({ a }: { a: QuestionAnswer }) {
+function AnswerBlock({ a }: { a: QuestionAnswer }) {
   const t = useT();
+  const groups = [a.findings];
   return (
     <article data-testid="research-answer" className="rounded-xl bg-[#F7F9FC] px-4 py-3">
       <h3 className="font-semibold">{a.question}</h3>
       {a.error ? (
         <ErrorLine error={a.error} />
+      ) : a.findings.length === 0 ? (
+        <p className="mt-2 text-sm text-muted">{t("researchNoFindings")}</p>
       ) : (
         <>
-          {a.summary && <p className="mt-1 text-sm">{a.summary}</p>}
-          {a.findings.length === 0 ? <p className="mt-2 text-sm text-muted">{t("researchNoFindings")}</p> : <FindingList findings={a.findings} />}
+          <div className="mt-1">
+            <Bullets items={a.findings} index={sourceIndex(groups)} />
+          </div>
+          <SourceList sources={distinctSources(groups)} />
         </>
       )}
     </article>
@@ -192,9 +241,9 @@ export function ResearchPanel({ view }: { view: RunView }) {
         </p>
       )}
       {research.state === "ready" && (
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-3">
           {research.products.map((p) => (
-            <ProductCard key={p.option_id} p={p} />
+            <ProductBlock key={p.option_id} p={p} />
           ))}
         </div>
       )}
@@ -225,7 +274,7 @@ export function ResearchPanel({ view }: { view: RunView }) {
       {answers.length > 0 && (
         <div className="mt-3 grid gap-3">
           {answers.map((a) => (
-            <AnswerCard key={a.question} a={a} />
+            <AnswerBlock key={a.question} a={a} />
           ))}
         </div>
       )}
