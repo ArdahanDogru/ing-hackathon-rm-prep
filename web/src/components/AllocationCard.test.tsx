@@ -23,8 +23,8 @@ test("the switch has Dağılım; one row per class; the choice is remembered", a
   expect(screen.getAllByTestId("alloc-row")).toHaveLength(v.allocation.length);
 });
 
-test("a row: label, band bar on 0-100 with the range; dengeli has no bar", async () => {
-  const v = sample("run_p01_ready");
+test("without a current split (W13 view): label, band bar on 0-100 with the range; dengeli has no bar", async () => {
+  const v = withoutHoldings(sample("run_p01_ready"));
   renderDashboard(v);
   await openAllocation();
   const rows = screen.getAllByTestId("alloc-row");
@@ -42,8 +42,8 @@ test("a row: label, band bar on 0-100 with the range; dengeli has no bar", async
   });
 });
 
-test("an inferred band has an asterisk with the tooltip", async () => {
-  const v = sample("run_p01_ready");
+test("without a current split: an inferred band has an asterisk with the tooltip", async () => {
+  const v = withoutHoldings(sample("run_p01_ready"));
   v.allocation[0] = { ...v.allocation[0], inferred: true, source: "çıkarım" };
   renderDashboard(v);
   await openAllocation();
@@ -117,7 +117,7 @@ test("no allocation: no Dağılım button, a remembered choice falls back to the
 });
 
 test("EN labels", async () => {
-  renderDashboard(sample("run_p01_ready"), () => {}, "EN");
+  renderDashboard(withoutHoldings(sample("run_p01_ready")), () => {}, "EN");
   await userEvent.click(screen.getByRole("button", { name: "Allocation" }));
   expect(screen.getByTestId("alloc-footer")).toHaveTextContent("Indicative model allocation");
 });
