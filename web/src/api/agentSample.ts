@@ -72,7 +72,9 @@ function nodes(run: RunLike, finished: number, fallback: boolean): AgentNode[] {
               : done
                 ? ["3 farklı seçenek, hepsi adaylar içinde.", "Her gerekçe kaynak gösteriyor."]
                 : []
-            : [],
+            : id === "karar" && fallback && done
+              ? ["Motor önerisi kullanıldı."]
+              : [],
       children,
     };
   });
@@ -101,7 +103,7 @@ export function agentDecision(run: RunLike, state: AgentState, step = 2): AgentD
   if (state === "fallback")
     return {
       ...base,
-      nodes: nodes(run, 4, true),
+      nodes: nodes(run, 5, true), // all finished; Kontrol failed
       cost_usd: 0.09,
       fallback_reason: "Kontrol iki kez geçmedi (bir gerekçedeki sayı kaynakla uyuşmuyor).",
     };
