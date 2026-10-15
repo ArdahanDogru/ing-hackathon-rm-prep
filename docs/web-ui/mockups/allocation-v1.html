@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Mevcut ve hedef dağılım — 3 varyant (P01, 2026-10-15)</title>
+<style>
+  :root { --brand:#FF6200; --ink:#1D2939; --muted:#667085; --line:#EAECF0; --bg:#F7F7F5;
+          --navy:#1F3A68; --est:#98A2B3; --act:#1F3A68; --over:#B42318; --under:#027A48; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:28px; background:var(--bg); font-family:Inter,system-ui,Segoe UI,sans-serif; color:var(--ink); }
+  h1 { font-size:20px; margin:0 0 4px; } .lead { color:var(--muted); margin:0 0 22px; font-size:14px; }
+  .variant { margin-bottom:34px; }
+  .vlabel { font-weight:800; font-size:15px; margin:0 0 8px; }
+  .vlabel span { color:var(--muted); font-weight:500; }
+  .card { background:#fff; border-radius:16px; box-shadow:0 1px 3px rgba(16,24,40,.08); padding:20px 22px; width:880px; }
+  .title { font-weight:700; font-size:16px; margin:0 0 10px; }
+  .summary { background:#F2F4F7; border-radius:10px; padding:10px 12px; font-size:14px; line-height:1.45; margin-bottom:10px; }
+  .banner { border:1px solid var(--line); border-radius:10px; padding:8px 12px; font-size:13px; color:#475467; margin-bottom:12px; }
+  .row { display:grid; grid-template-columns:150px 300px 150px 1fr; gap:14px; align-items:center;
+         padding:12px 0; border-top:1px solid var(--line); }
+  .cls { font-weight:700; font-size:15px; display:flex; align-items:center; gap:6px; }
+  .src { grid-column:1 / span 4; font-size:12px; color:var(--muted); margin-top:-6px; }
+  .track { position:relative; height:22px; background:#F2F4F7; border-radius:6px; }
+  .range { position:absolute; top:10px; height:2px; background:#344054; }
+  .mark { position:absolute; top:2px; width:4px; height:18px; border-radius:2px; transform:translateX(-2px); }
+  .mark.act { background:var(--act); } .mark.est { background:var(--est); }
+  .scale { display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-top:2px; }
+  .val { font-size:14px; } .val b { font-size:16px; }
+  .badge { display:inline-block; font-size:11px; font-weight:700; border-radius:999px; padding:2px 8px; margin-top:3px; }
+  .b-act { background:#E0EAFF; color:var(--navy); } .b-est { background:#F2F4F7; color:#475467; }
+  .gap { font-size:12px; font-weight:700; margin-top:3px; }
+  .gap.over { color:var(--over); } .gap.under { color:var(--under); } .gap.in { color:var(--muted); font-weight:500; }
+  .best .t { font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  .best .n { font-weight:700; font-size:14px; } .best .s { font-size:12px; color:#027A48; }
+  .best .no { font-size:13px; color:var(--muted); }
+  .legend { display:flex; gap:18px; font-size:12px; color:var(--muted); margin-top:12px; border-top:1px solid var(--line); padding-top:10px; }
+  .legend i { display:inline-block; vertical-align:middle; margin-right:5px; }
+  .foot { font-size:12px; color:var(--muted); margin-top:6px; }
+  .btns { display:flex; gap:8px; margin-top:12px; }
+  .btn { border:1px solid #D0D5DD; background:#fff; border-radius:10px; padding:7px 14px; font-weight:700; font-size:13px; }
+  .btn.primary { background:var(--navy); color:#fff; border-color:var(--navy); }
+  /* pop-up note: native <details>, opens on click */
+  details.pop { position:relative; display:inline-block; }
+  details.pop > summary { list-style:none; cursor:pointer; }
+  details.pop > summary::-webkit-details-marker { display:none; }
+  .i { display:inline-flex; width:18px; height:18px; border-radius:50%; border:1.5px solid #98A2B3; color:#475467;
+       font-size:11px; font-weight:800; align-items:center; justify-content:center; }
+  .note { position:absolute; z-index:5; left:0; top:24px; width:330px; background:#fff; border:1px solid var(--line);
+          border-radius:12px; box-shadow:0 8px 24px rgba(16,24,40,.14); padding:12px 14px; font-size:13px; line-height:1.45; font-weight:400; }
+  .note h4 { margin:0 0 6px; font-size:13px; }
+  .band { position:relative; height:16px; background:#F2F4F7; border-radius:5px; margin:8px 0 2px; }
+  .band .area { position:absolute; top:0; bottom:0; background:#C7D7FE; border-radius:5px; }
+  .band .mark { top:-1px; height:18px; }
+  .note small { color:var(--muted); }
+  .pill { display:inline-block; border:1px solid #D0D5DD; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+  .stack { display:flex; height:28px; border-radius:8px; overflow:hidden; margin:8px 0 4px; }
+  .stack div { display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; }
+  .stacklbl { display:flex; gap:14px; font-size:12px; color:#475467; flex-wrap:wrap; }
+  .stacklbl i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:middle; }
+  table.tgt { border-collapse:collapse; width:100%; font-size:13px; margin-top:6px; }
+  table.tgt td, table.tgt th { padding:5px 6px; border-top:1px solid var(--line); text-align:left; }
+  .open { display:block; }
+</style>
+</head>
+<body>
+<h1>Mevcut ve hedef dağılım — 3 varyant (P01 · Emekli girişimci · Muhafazakâr)</h1>
+<p class="lead">Ortak: hedef bant çubuktan çıktı, açılır notta. Mevcut işaretler yerinde. Özet cümlesi, sınıf başına kaynak satırı, açıklama (lejant) ve "Bu sınıfta en iyi seçenek" başlığı her varyantta var. Notlar tıklanınca açılır (bu dosyada ilk not açık gösteriliyor).</p>
+
+<!-- ============================ VARIANT A ============================ -->
+<div class="variant">
+  <p class="vlabel">A · Her sınıfın yanında ⓘ — tıklayınca o sınıfın hedef bandı <span>(en az değişiklik)</span></p>
+  <div class="card">
+    <p class="title">Mevcut ve hedef dağılım</p>
+    <div class="summary">Tahmine göre müşterinin parası çoğunlukla <b>nakit benzeri</b> (%75; müşteri dosyasından). Muhafazakâr hedefte bu oran %10–20. Bu yüzden <b>borçlanma</b> fonları öne çıkıyor.</div>
+    <div class="banner">Nakit benzeri payı müşteri dosyasından; diğer sınıflar tahmini senaryodur ve sıralamayı etkilemez.</div>
+
+    <div class="row">
+      <div class="cls">Nakit benzeri
+        <details class="pop" open><summary><span class="i">i</span></summary>
+          <div class="note"><h4>Hedef bant · Muhafazakâr: %10–20</h4>
+            <div class="band"><div class="area" style="left:10%;width:10%"></div><div class="mark act" style="left:75%"></div></div>
+            <small>0 · · · · · 50 · · · · · 100 %</small>
+            <p style="margin:8px 0 0">Mevcut %75, hedefin <b>55 puan üstünde</b>.<br><small>Kaynak: Ata Yatırım, "Risk Profillerine Göre Örnek Portföy Yapıları", 28.04.2026. Gösterge niteliğinde stratejik bant; ING'nin model portföyü değildir.</small></p>
+          </div></details></div>
+      <div><div class="track"><div class="range" style="left:60%;width:30%"></div><div class="mark act" style="left:75%"></div></div><div class="scale"><span>0</span><span>50</span><span>100 %</span></div></div>
+      <div class="val">Mevcut <b>%75</b> <span style="color:var(--muted)">(60–90)</span><br><span class="badge b-act">müşteri dosyası</span><div class="gap over">hedefin 55 puan üstünde</div></div>
+      <div class="best"><div class="t">Bu sınıfta en iyi seçenek</div><div class="n">Nurol Portföy Para Piyasası (TL)</div><div class="s">reel +%7,4 · risk 1/7</div></div>
+      <div class="src">Kaynak: müşteri dosyası, "Varlığı TL mevduat ağırlıklı" → %60–90</div>
+    </div>
+
+    <div class="row">
+      <div class="cls">Borçlanma <span class="i">i</span></div>
+      <div><div class="track"><div class="range" style="left:3.1%;width:10%"></div><div class="mark est" style="left:8.1%"></div></div><div class="scale"><span>0</span><span>50</span><span>100 %</span></div></div>
+      <div class="val">Mevcut <b>%8</b> <span style="color:var(--muted)">(3–13)</span><br><span class="badge b-est">tahmini senaryo</span><div class="gap under">hedefin 52 puan altında</div></div>
+      <div class="best"><div class="t">Bu sınıfta en iyi seçenek</div><div class="n">Osmanlı Portföy Özel Sektör Borçlanma</div><div class="s">reel +%7,8 · risk 1/7</div></div>
+      <div class="src">Kaynak: Emekli profili (varsayım; ulusal ortalamadan, hisse daha az) · kalan pay bu orana göre dağıtıldı</div>
+    </div>
+
+    <div class="row">
+      <div class="cls">Hisse <span class="i">i</span></div>
+      <div><div class="track"><div class="range" style="left:0%;width:8.7%"></div><div class="mark est" style="left:3.7%"></div></div><div class="scale"><span>0</span><span>50</span><span>100 %</span></div></div>
+      <div class="val">Mevcut <b>%4</b> <span style="color:var(--muted)">(0–9)</span><br><span class="badge b-est">tahmini senaryo</span><div class="gap under">hedefin 6 puan altında</div></div>
+      <div class="best"><div class="t">Bu sınıfta en iyi seçenek</div><div class="no">Risk tavanı nedeniyle uygun fon yok.</div></div>
+      <div class="src">Kaynak: Emekli profili (varsayım)</div>
+    </div>
+
+    <div class="row">
+      <div class="cls">Altın / döviz <span class="i">i</span></div>
+      <div><div class="track"><div class="range" style="left:4.5%;width:10%"></div><div class="mark est" style="left:9.5%"></div></div><div class="scale"><span>0</span><span>50</span><span>100 %</span></div></div>
+      <div class="val">Mevcut <b>%10</b> <span style="color:var(--muted)">(5–15)</span><br><span class="badge b-est">tahmini senaryo</span><div class="gap in">hedef bandın içinde</div></div>
+      <div class="best"><div class="t">Bu sınıfta en iyi seçenek</div><div class="n">Kuveyt Türk Altın Katılım</div><div class="s" style="color:#B42318">son 1 yıl reel −%12,9: önerilmiyor</div></div>
+      <div class="src">Kaynak: Emekli profili (varsayım)</div>
+    </div>
+
+    <div class="legend"><span><i style="width:4px;height:14px;background:var(--act)"></i>mevcut pay (RM veya müşteri dosyası)</span><span><i style="width:4px;height:14px;background:var(--est)"></i>mevcut pay (tahmin)</span><span><i style="width:18px;height:2px;background:#344054"></i>tahminin aralığı</span><span><span class="i">i</span> hedef bant</span></div>
+    <div class="btns"><span class="btn primary">Tahmini onayla</span><span class="btn">Düzenle</span></div>
+  </div>
+</div>
+
+<!-- ============================ VARIANT B ============================ -->
+<div class="variant">
+  <p class="vlabel">B · Üstte mevcut portföy tek çubukta; hedef tek bir "Hedef dağılım" notunda <span>(tahmin en görünür)</span></p>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <p class="title" style="margin:0">Mevcut ve hedef dağılım</p>
+      <details class="pop" open><summary><span class="pill">ⓘ Hedef dağılım (Muhafazakâr)</span></summary>
+        <div class="note" style="left:auto;right:0;width:380px"><h4>Hedef dağılım · Muhafazakâr</h4>
+          <table class="tgt"><tr><th>Sınıf</th><th>Hedef</th><th>Mevcut</th><th>Fark</th></tr>
+            <tr><td>Nakit benzeri</td><td>%10–20</td><td>%75</td><td style="color:var(--over)">55 puan üstünde</td></tr>
+            <tr><td>Borçlanma</td><td>%60–70</td><td>%8 (tahmin)</td><td style="color:var(--under)">52 puan altında</td></tr>
+            <tr><td>Hisse</td><td>%10–20</td><td>%4 (tahmin)</td><td style="color:var(--under)">6 puan altında</td></tr>
+            <tr><td>Altın / döviz</td><td>%5–10</td><td>%10 (tahmin)</td><td>bandın içinde</td></tr>
+            <tr><td>Dengeli</td><td>—</td><td>%4 (tahmin)</td><td>hedef yok</td></tr></table>
+          <small>Kaynak: Ata Yatırım örnek portföyleri, 28.04.2026. Gösterge niteliğinde; ING'nin model portföyü değildir.</small></div></details>
+    </div>
+    <div class="summary" style="margin-top:10px">Tahmine göre müşterinin parası çoğunlukla <b>nakit benzeri</b> (%75; müşteri dosyasından). Muhafazakâr hedefte bu oran %10–20. Bu yüzden <b>borçlanma</b> fonları öne çıkıyor.</div>
+    <div class="stack"><div style="width:75%;background:#1F3A68">Nakit %75</div><div style="width:8.1%;background:#6172F3">8</div><div style="width:3.7%;background:#12B76A"></div><div style="width:9.5%;background:#F79009">10</div><div style="width:3.7%;background:#98A2B3"></div></div>
+    <div class="stacklbl"><span><i style="background:#1F3A68"></i>Nakit benzeri %75 · müşteri dosyası</span><span><i style="background:#6172F3"></i>Borçlanma %8 · tahmin</span><span><i style="background:#12B76A"></i>Hisse %4 · tahmin</span><span><i style="background:#F79009"></i>Altın/döviz %10 · tahmin</span><span><i style="background:#98A2B3"></i>Dengeli %4 · tahmin</span></div>
+
+    <div class="row" style="margin-top:10px">
+      <div class="cls">Nakit benzeri</div>
+      <div><div class="track"><div class="range" style="left:60%;width:30%"></div><div class="mark act" style="left:75%"></div></div><div class="scale"><span>0</span><span>50</span><span>100 %</span></div></div>
+      <div class="val">Mevcut <b>%75</b><br><span class="badge b-act">müşteri dosyası</span><div class="gap over">hedefin 55 puan üstünde</div></div>
+      <div class="best"><div class="t">Bu sınıfta en iyi seçenek</div><div class="n">Nurol Portföy Para Piyasası (TL)</div></div>
+      <div class="src">Kaynak: müşteri dosyası, "Varlığı TL mevduat ağırlıklı" → %60–90</div>
+    </div>
+    <div class="row">
+      <div class="cls">Borçlanma</div>
+      <div><div class="track"><div class="range" style="left:3.1%;width:10%"></div><div class="mark est" style="left:8.1%"></div></div><div class="scale"><span>0</span><span>50</span><span>100 %</span></div></div>
+      <div class="val">Mevcut <b>%8</b><br><span class="badge b-est">tahmini senaryo</span><div class="gap under">hedefin 52 puan altında</div></div>
+      <div class="best"><div class="t">Bu sınıfta en iyi seçenek</div><div class="n">Osmanlı Portföy Özel Sektör Borçlanma</div></div>
+      <div class="src">Kaynak: Emekli profili (varsayım)</div>
+    </div>
+    <p class="foot">… Hisse, Altın / döviz, Dengeli aynı biçimde.</p>
+    <div class="legend"><span><i style="width:4px;height:14px;background:var(--act)"></i>mevcut pay (RM veya müşteri dosyası)</span><span><i style="width:4px;height:14px;background:var(--est)"></i>mevcut pay (tahmin)</span><span><i style="width:18px;height:2px;background:#344054"></i>tahminin aralığı</span></div>
+  </div>
+</div>
+
+<!-- ============================ VARIANT C ============================ -->
+<div class="variant">
+  <p class="vlabel">C · Fark rozeti tıklanınca not açılır <span>(hedef yalnızca farkı merak edince)</span></p>
+  <div class="card">
+    <p class="title">Mevcut ve hedef dağılım</p>
+    <div class="summary">Tahmine göre müşterinin parası çoğunlukla <b>nakit benzeri</b> (%75; müşteri dosyasından). Muhafazakâr hedefte bu oran %10–20. Bu yüzden <b>borçlanma</b> fonları öne çıkıyor.</div>
+    <div class="row">
+      <div class="cls">Nakit benzeri</div>
+      <div><div class="track"><div class="range" style="left:60%;width:30%"></div><div class="mark act" style="left:75%"></div></div><div class="scale"><span>0</span><span>50</span><span>100 %</span></div></div>
+      <div class="val">Mevcut <b>%75</b><br><span class="badge b-act">müşteri dosyası</span><br>
+        <details class="pop" open><summary><span class="gap over" style="text-decoration:underline dotted;cursor:pointer">hedefin 55 puan üstünde ▾</span></summary>
+          <div class="note" style="width:300px"><h4>Muhafazakâr hedef: %10–20</h4>
+            <div class="band"><div class="area" style="left:10%;width:10%"></div><div class="mark act" style="left:75%"></div></div>
+            <small>Kaynak: Ata Yatırım örnek portföyleri, 28.04.2026 (gösterge).</small></div></details></div>
+      <div class="best"><div class="t">Bu sınıfta en iyi seçenek</div><div class="n">Nurol Portföy Para Piyasası (TL)</div></div>
+      <div class="src">Kaynak: müşteri dosyası, "Varlığı TL mevduat ağırlıklı" → %60–90</div>
+    </div>
+    <div class="row">
+      <div class="cls">Borçlanma</div>
+      <div><div class="track"><div class="range" style="left:3.1%;width:10%"></div><div class="mark est" style="left:8.1%"></div></div><div class="scale"><span>0</span><span>50</span><span>100 %</span></div></div>
+      <div class="val">Mevcut <b>%8</b><br><span class="badge b-est">tahmini senaryo</span><div class="gap under" style="text-decoration:underline dotted">hedefin 52 puan altında ▾</div></div>
+      <div class="best"><div class="t">Bu sınıfta en iyi seçenek</div><div class="n">Osmanlı Portföy Özel Sektör Borçlanma</div></div>
+      <div class="src">Kaynak: Emekli profili (varsayım)</div>
+    </div>
+    <p class="foot">… Hisse, Altın / döviz, Dengeli aynı biçimde.</p>
+    <div class="legend"><span><i style="width:4px;height:14px;background:var(--act)"></i>mevcut pay (RM veya müşteri dosyası)</span><span><i style="width:4px;height:14px;background:var(--est)"></i>mevcut pay (tahmin)</span><span><i style="width:18px;height:2px;background:#344054"></i>tahminin aralığı</span><span>▾ hedefi göster</span></div>
+  </div>
+</div>
+</body>
+</html>
