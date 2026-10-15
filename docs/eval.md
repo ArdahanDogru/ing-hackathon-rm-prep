@@ -165,3 +165,17 @@ Config: `config/eval.yaml` (lead-owned). Scenario files:
 - A/B judge (Haiku, blind, order seeded by the run id, cached in
   `data/eval/judge-ab/`): agent, engine or equal; a top 3 that did not change is not
   sent. Report section "Agent (E11)".
+
+## E12: RM marks on research findings (2026-10-15, ing-eval; eval@567309e)
+
+- Scenario key `agent_marks` ({product: engine1|engine2|engine3, finding: index or
+  "news:<i>", mark: ok|wrong}), resolved to finding ids on the research of the run
+  (`RecordingResearch.marks()`; only the scenario marks, so the eval stays
+  deterministic). Scenario `agent-marks`: P01, ✗ on highlight 0 of the engine's #2,
+  ✓ on highlight 0 of the engine's #1.
+- Check `agent_marks` (rule checks): the ✗ finding is not in the stored pack; the ✓
+  finding has `dogrulama` "RM doğruladı"; a reason that cites it has "(web, RM
+  doğruladı)"; `marks_hash` equals the hash of the marks.
+- Live run 2026-10-15 (`data/eval/20261015-235705-20261015-marks`, $0.14): all
+  rule checks 100 %; ✗ OSD `Fa4f2a072` removed, ✓ PPN `Fdb2a3e1e` confirmed (not
+  cited); agent top 3 PPN, OSD, ZBJ (engine PPN, OSD, AIS).
