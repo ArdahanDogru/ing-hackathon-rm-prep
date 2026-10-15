@@ -18,10 +18,17 @@ class QuestionRequest(BaseModel):
     lang: str = "TR"
 
 
+class MarkRequest(BaseModel):
+    finding_id: str
+    option_id: str
+    mark: str | None = None         # "ok" | "wrong" | null (removes the mark)
+    run_id: str = ""
+
+
 def research_router(service: ResearchService, get_run: Callable[[str], DecisionResult],
                     log: Callable[..., None] | None = None) -> APIRouter:
     """get_run: the app's run registry (404 for an unknown run). log: the RM action log
-    (L1): every research question, also a refused one."""
+    (L1): every research question, also a refused one, and every RM mark."""
     router = APIRouter()
 
     def _lang(lang: str) -> str:
@@ -52,5 +59,20 @@ def research_router(service: ResearchService, get_run: Callable[[str], DecisionR
                 details={"question": req.question, "refused": False,
                          "findings": len(getattr(answer, "findings", ()) or ())})
         return answer.to_dict()
+
+    @router.post("/api/research/marks")
+    def set_mark(req: MarkRequest):
+        try:
+            service.set_mark(req.finding_id, req.mark, req.run_id, req.option_id)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        if log is not None:
+            try:
+                run = get_run(req.run_id)
+            except HTTPException:       # an unknown run still logs, with its run_id
+                run = None
+            log("research_marked", run=run, run_id=req.run_id,
+                details={"finding_id": req.finding_id, "option_id": req.option_id, "mark": req.mark})
+        return {"finding_id": req.finding_id, "mark": req.mark}
 
     return router
