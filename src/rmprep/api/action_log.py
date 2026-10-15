@@ -21,10 +21,15 @@ from rmprep.contracts import TR_TZ, DecisionResult
 
 class ActionLog:
     def __init__(self, folder: Path | str, *,
-                 now: Callable[[], datetime] = lambda: datetime.now(TR_TZ)) -> None:
+                 now: Callable[[], datetime] = lambda: datetime.now(TR_TZ),
+                 versions: Mapping[str, str] | None = None) -> None:
+        """versions (L1b): the prompt versions of the app (narrator_prompt, agent_prompt,
+        research); every record adds decision_config = the run's config hash."""
         self._folder = Path(folder)
         self._now = now
         self._lock = threading.Lock()
+        self._versions = {k: str((versions or {}).get(k, "")) for k in
+                          ("narrator_prompt", "agent_prompt", "research")}
 
     def path_for(self, day: date) -> Path:
         return self._folder / f"{day.isoformat()}.jsonl"
@@ -43,6 +48,8 @@ class ActionLog:
             rec["snapshot_id"] = run.snapshot_id if run is not None else ""
             if lang:
                 rec["lang"] = lang
+            rec["versions"] = {"decision_config": run.config_hash if run is not None else "",
+                               **self._versions}                       # L1b
             rec["details"] = dict(details or {})
             line = json.dumps(rec, ensure_ascii=False, default=str) + "\n"
             with self._lock:

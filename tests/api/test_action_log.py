@@ -46,7 +46,8 @@ def test_run_opened_and_the_record_shape(backend, tmp_path, persona):
     c, log = _setup(backend, tmp_path)
     v = c.post("/api/runs", json={"persona": persona}).json()
     [r] = _records(log)
-    assert list(r) == ["ts", "action", "run_id", "persona_id", "snapshot_id", "details"]
+    assert list(r) == ["ts", "action", "run_id", "persona_id", "snapshot_id", "versions", "details"]
+    assert r["versions"]["decision_config"] == v["result"]["config_hash"]   # L1b
     assert r["action"] == "run_opened" and r["run_id"] == v["result"]["run_id"]
     assert r["ts"] == T.isoformat() and r["persona_id"] == persona["persona_id"]
     assert r["details"] == {"test_run": False, "persona_changes": [], "excluded_sources": [],
@@ -71,7 +72,7 @@ def test_answer_and_holdings_carry_the_new_run(backend, tmp_path):
     recs = _records(log)
     h = recs[-2]
     assert h["action"] == "holdings_set" and h["run_id"] == rid and h["new_run_id"] == new["result"]["run_id"]
-    assert h["details"] == {"shares": {k: float(x) for k, x in SHARES.items()}, "origin": "rm"}
+    assert h["details"]["shares"] == {k: float(x) for k, x in SHARES.items()} and h["details"]["origin"] == "rm"
     assert recs[-1]["action"] == "holdings_reset" and recs[-1]["new_run_id"] == back["result"]["run_id"]
     # a refused split (422) changes nothing and is not logged
     n = len(recs)
@@ -229,3 +230,69 @@ def test_agent_started_is_logged(backend, tmp_path):
     c.post(f"/api/runs/{rid}/agent", json={"n": 10})
     r = _records(log)[-1]
     assert r["action"] == "agent_started" and r["details"] == {"n": 10, "marks_ok": 0, "marks_wrong": 0}
+
+
+# --- L1b (spec 2026-10-16-feedback-report-design section 2) ----------------------------
+
+def test_versions_in_every_record(backend, tmp_path, persona):
+    log = ActionLog(tmp_path / "rm-actions", now=lambda: T,
+                    versions={"narrator_prompt": "n10", "agent_prompt": "a3", "research": "2"})
+    c = TestClient(create_app(backend, action_log=log))
+    v = c.post("/api/runs", json={"persona": persona}).json()
+    [r] = _records(log)
+    assert r["versions"] == {"decision_config": v["result"]["config_hash"], "narrator_prompt": "n10",
+                             "agent_prompt": "a3", "research": "2"}
+    log.append("notes_saved", run_id="Rx")                    # no run: decision_config ""
+    assert _records(log)[-1]["versions"]["decision_config"] == ""
+
+
+def test_holdings_set_carries_the_estimate_before(backend, tmp_path):
+    c, log = _setup(backend, tmp_path)
+    v = _ready(c)
+    rid = v["result"]["run_id"]
+    c.post(f"/api/runs/{rid}/holdings", json={"shares": SHARES, "origin": "rm"})
+    r = _records(log)[-1]
+    est = r["details"]["estimate"]
+    rows = {a["asset_class"]: a for a in v["result"]["allocation"] if a.get("current") is not None}
+    assert set(est) == set(rows)
+    for cls, a in rows.items():
+        assert est[cls] == {"current": a["current"], "source": a["current_source"], "ref": a["current_ref"]}
+
+
+class MarkResearch(FakeResearch):
+    """status with one highlight and one news item per recommended product; marks recorded."""
+
+    def __init__(self, result_options):
+        self.kinds = result_options
+        self.marks_set = []
+
+    def status(self, result, lang):
+        prods = []
+        ids = [o.option.option_id for o in result.options if o.option.kind != "deposit"][:3]
+        for i in ids:
+            prods.append({"option_id": i, "findings": [{"id": "F0000000a", "topic": "strateji", "text": "x"}],
+                          "news": [{"id": "F0000000b", "topic": "haber", "text": "y"}]})
+        return {"state": "ready", "products": prods, "questions": []}
+
+    def set_mark(self, finding_id, mark, run_id, option_id):
+        self.marks_set.append((finding_id, mark))
+
+    def marks(self, day=None):
+        return {}
+
+
+def test_research_marked_carries_section_topic_and_option_class(backend, tmp_path):
+    c0 = TestClient(create_app(backend))
+    v = _ready(c0)
+    from rmprep.contracts import DecisionResult
+    r = DecisionResult.from_dict(v["result"])
+    first = next(o.option.option_id for o in r.options if o.option.kind != "deposit")
+    opt = next(o.option for o in r.options if o.option.option_id == first)
+    research = MarkResearch(None)
+    c, log = _setup(backend, tmp_path, research=research)
+    rid = c.post("/api/runs", json={"persona": v["result"]["persona"]}).json()["result"]["run_id"]
+    for fid, section, topic in (("F0000000a", "highlight", "strateji"), ("F0000000b", "news", "haber")):
+        c.post("/api/research/marks", json={"finding_id": fid, "option_id": first, "mark": "wrong", "run_id": rid})
+        d = _records(log)[-1]["details"]
+        assert (d["section"], d["topic"], d["option_kind"], d["asset_class"]) == (section, topic, opt.kind,
+                                                                                 opt.asset_class or "")

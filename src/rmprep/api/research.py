@@ -68,6 +68,29 @@ def research_router(service: ResearchService, get_run: Callable[[str], DecisionR
                          "findings": len(getattr(answer, "findings", ()) or ())})
         return answer.to_dict()
 
+    def _mark_context(run: DecisionResult | None, option_id: str, finding_id: str) -> dict:
+        """L1b: section (news | highlight), topic, option kind and asset class of a marked
+        finding, from the run's options and its research status ("" when unknown)."""
+        out = {"section": "", "topic": "", "option_kind": "", "asset_class": ""}
+        if run is None:
+            return out
+        opt = next((o.option for o in (*run.options, *run.rejected) if o.option.option_id == option_id), None)
+        if opt is not None:
+            out["option_kind"], out["asset_class"] = opt.kind, opt.asset_class or ""
+        try:
+            status = service.status(run, "TR")
+        except Exception:                # the log never breaks the mark
+            return out
+        for p in status.get("products", ()):
+            if p.get("option_id") != option_id:
+                continue
+            for section, key in (("highlight", "findings"), ("news", "news")):
+                f = next((f for f in p.get(key, ()) if f.get("id") == finding_id), None)
+                if f is not None:
+                    out["section"], out["topic"] = section, f.get("topic", "")
+                    return out
+        return out
+
     @router.post("/api/research/marks")
     def set_mark(req: MarkRequest):
         try:
@@ -80,7 +103,8 @@ def research_router(service: ResearchService, get_run: Callable[[str], DecisionR
             except HTTPException:       # an unknown run still logs, with its run_id
                 run = None
             log("research_marked", run=run, run_id=req.run_id,
-                details={"finding_id": req.finding_id, "option_id": req.option_id, "mark": req.mark})
+                details={"finding_id": req.finding_id, "option_id": req.option_id, "mark": req.mark,
+                         **_mark_context(run, req.option_id, req.finding_id)})
         return {"finding_id": req.finding_id, "mark": req.mark}
 
     return router

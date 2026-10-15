@@ -163,14 +163,17 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     @app.post("/api/runs/{run_id}/holdings")
     def holdings(run_id: str, req: schemas.HoldingsRequest):
         """v1.10 (W18): a new run with the RM's split; a bad split -> 422 (ValueError)."""
-        _run(run_id)
+        before = _run(run_id)
         new = backend.set_holdings(run_id, req.shares, req.origin)
         view = _view(new)
         if req.shares is None:
             _log("holdings_reset", run=new, run_id=run_id, new_run_id=new.run_id)
         else:
             _log("holdings_set", run=new, run_id=run_id, new_run_id=new.run_id,
-                 details={"shares": dict(new.holdings_input.shares), "origin": req.origin})
+                 details={"shares": dict(new.holdings_input.shares), "origin": req.origin,
+                          "estimate": {b.asset_class: {"current": b.current, "source": b.current_source,
+                                                       "ref": b.current_ref}
+                                       for b in before.allocation if b.current is not None}})   # L1b
         return view
 
     @app.post("/api/runs/{run_id}/approval")

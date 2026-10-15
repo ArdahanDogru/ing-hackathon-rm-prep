@@ -37,7 +37,7 @@ def build_app(root: Path, personas_dir: Path | None = None):
         agent = agent_from_root(root, research)
     # L1: every decision and edit of the RM (spec 2026-10-15-rm-action-log-design)
     from rmprep.api.action_log import ActionLog
-    action_log = ActionLog(Path(root) / "data" / "logs" / "rm-actions")
+    action_log = ActionLog(Path(root) / "data" / "logs" / "rm-actions", versions=_prompt_versions(root))
     return create_app(backend, views=views, static_dir=dist,
                       ingest=IngestControl(Paths(Path(root).resolve())), research=research,
                       agent=agent, action_log=action_log)
@@ -49,3 +49,21 @@ def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None
     app = build_app(root, personas_dir)
     print(f"rmprep: http://127.0.0.1:{port}", file=sys.stderr)
     uvicorn.run(app, host="127.0.0.1", port=port)       # local only, no login
+
+
+def _prompt_versions(root) -> dict:
+    """L1b: the prompt versions of the app for the action log ("" when a config is missing)."""
+    import yaml
+    out = {}
+    for key, name in (("narrator_prompt", "narrator.yaml"), ("agent_prompt", "agent.yaml")):
+        try:
+            raw = yaml.safe_load((Path(root) / "config" / name).read_text(encoding="utf-8"))
+            out[key] = str(raw.get("prompt_version", ""))
+        except (OSError, AttributeError, yaml.YAMLError):
+            out[key] = ""
+    try:
+        from rmprep.research.types import SHAPE_VERSION
+        out["research"] = str(SHAPE_VERSION)
+    except ImportError:
+        out["research"] = ""
+    return out

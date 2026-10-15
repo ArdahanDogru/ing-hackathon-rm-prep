@@ -143,7 +143,8 @@ def test_a_mark_is_logged_with_the_run_also_for_a_removal_and_an_unknown_run(tmp
     assert client.post("/api/research/marks", json={**base, "mark": "ok", "run_id": "Rnope"}).status_code == 200
     marked = [c for c in log.calls if c[0] == "research_marked"]
     assert [kw["details"]["mark"] for _, kw in marked] == ["wrong", None, "ok"]
-    assert all(kw["details"] == {**base, "mark": kw["details"]["mark"]} for _, kw in marked)
+    assert all({**base, "mark": kw["details"]["mark"]}.items() <= kw["details"].items() for _, kw in marked)
+    assert all({"section", "topic", "option_kind", "asset_class"} <= set(kw["details"]) for _, kw in marked)  # L1b
     assert [kw["run_id"] for _, kw in marked] == [run_id, run_id, "Rnope"]
     assert marked[0][1]["run"].run_id == run_id and marked[1][1]["run"].run_id == run_id
     assert marked[2][1]["run"] is None
