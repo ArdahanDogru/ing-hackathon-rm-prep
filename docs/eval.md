@@ -179,3 +179,27 @@ Config: `config/eval.yaml` (lead-owned). Scenario files:
 - Live run 2026-10-15 (`data/eval/20261015-235705-20261015-marks`, $0.14): all
   rule checks 100 %; ✗ OSD `Fa4f2a072` removed, ✓ PPN `Fdb2a3e1e` confirmed (not
   cited); agent top 3 PPN, OSD, ZBJ (engine PPN, OSD, AIS).
+
+## F1: the manual feedback report (2026-10-16, ing-eval; eval@286b272)
+
+Spec `docs/superpowers/specs/2026-10-16-feedback-report-design.md`. The manual feedback
+report `rmprep feedback [--since] [--until]` (`src/rmprep/eval/feedback.py`) reads the
+RM action log `data/logs/rm-actions/*.jsonl` and writes `data/feedback/<time>/report.md`
+and `report.json`. No LLM, no network; the same log gives the same report. Five fixed
+rules in `config/feedback.yaml`: R1 ✗ share of the research marks per asset class ×
+section; R2 and R3 deletion and edit share of a meeting-text section on the approved
+runs (R3 with examples); R4 acceptance of the engine's and the agent's top 3 in the
+RM's choice; R5 error of the D27 estimate per source and class. Below `min_n` a group
+gives "Yeterli veri yok (n/min_n)". Each group lists its evidence as `file:line`, at most
+`evidence_max`, then "+ k more". A rule is computed per version of the parts it depends
+on (R1 research, R2/R3 narrator_prompt, R4 agent_prompt + decision_config, R5
+decision_config), side by side. A record without a field that its measure needs
+(written before L1b) is skipped and counted as "eksik alan". The report ends with the
+research questions of the period. Nothing changes automatically; the automatic loop
+(variants, replay, schedule) is future work.
+
+Decisions of ing-eval (accepted by the lead 2026-10-16): R1 uses the last mark of each
+finding in the period (a null mark removes it); R2/R3 count the last approval of each
+run and only edits of those runs; R4's n = approvals with an agent top 3 and a
+non-empty choice (both shares on the same approvals; `engine_share_all` in the JSON);
+R5 groups by source + profile row + class; broken JSON lines in `meta.broken_lines`.

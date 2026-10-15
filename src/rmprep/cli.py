@@ -169,6 +169,15 @@ def _eval(paths: Paths, args: argparse.Namespace) -> int:
     return 0
 
 
+def _feedback(paths: Paths, args: argparse.Namespace) -> int:
+    """F1: the manual feedback report over the RM action log (no LLM, no cost)."""
+    from rmprep.eval.feedback import run_feedback
+    res = run_feedback(paths.root, args.since, args.until)
+    print(res.markdown)
+    print(f"report: {res.out_dir}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -205,6 +214,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="no narrator LLM and no judge: template texts, no cost")
     p_eval.add_argument("--agent", action="store_true",
                         help="also run the agentic top-3 decision (E11): about $2")
+    p_fb = sub.add_parser("feedback", help="manual feedback report over the RM action log (F1)")
+    p_fb.add_argument("--since", help="first day YYYY-MM-DD (default: all)")
+    p_fb.add_argument("--until", help="last day YYYY-MM-DD (default: all)")
     p_serve = sub.add_parser("serve", help="start the web app and its API on 127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8600)
     p_serve.add_argument("--personas", type=Path,
@@ -234,6 +246,8 @@ def main(argv: list[str] | None = None) -> int:
             return _decide(paths, args)
         elif args.command == "eval":
             return _eval(paths, args)
+        elif args.command == "feedback":
+            return _feedback(paths, args)
         elif args.command == "serve":
             from rmprep.api import serve as web
             web.serve(paths.root, args.port, personas_dir=args.personas)

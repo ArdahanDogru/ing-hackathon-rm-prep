@@ -1,0 +1,65 @@
+# Manual feedback report (F1; spec docs/superpowers/specs/2026-10-16-feedback-report-design.md).
+# Lead-owned. Fixed rules over the RM action log: a recommendation names its measure,
+# numbers, rule and evidence; nothing changes automatically. The test copy is
+# tests/eval/fixtures/feedback/feedback.yaml.
+version: 1
+evidence_max: 10
+labels:
+  # meeting-text sections (R2, R3)
+  ozet: "Özet"
+  piyasa_notu: "Piyasa notu"
+  teklif_metni: "Teklif metni"
+  dikkat: "Dikkat"
+  alternatifler: "Alternatifler"
+  sorular: "Sorular"
+  varsayimlar: "Varsayımlar"
+  talking_points: "Konuşma noktaları"
+  oneriler: "Öneriler"
+  # asset classes (R1, R5)
+  nakit_benzeri: "Nakit benzeri"
+  borclanma: "Borçlanma"
+  hisse: "Hisse"
+  altin_doviz: "Altın / döviz"
+  dengeli: "Dengeli"
+  # research sections (R1)
+  news: "haber maddeleri"
+  highlight: "öne çıkan bilgiler"
+  # estimate sources (R5)
+  profile: "Meslek satırı"
+  national: "Ulusal ortalama"
+  persona_text: "Müşteri dosyası"
+rules:
+  R1:                 # ✗ share of the research marks, per asset class x section
+    min_n: 10
+    threshold: 0.30
+    text:
+      TR: "{asset_class}: {section} {share} oranında ({wrong}/{n}) ✗ işaretlendi → {action}"
+      EN: "{asset_class}: {share} of the {section} ({wrong}/{n}) were marked ✗ → {action}"
+    actions:
+      news: {TR: "haber istemi yalnızca fona veya şirkete özgü olayları sorsun.", EN: "ask the news prompt for fund or company events only."}
+      highlight: {TR: "öne çıkanlar istemini bu konu için daraltın.", EN: "narrow the highlights prompt for this topic."}
+  R2:                 # deletion share of a meeting-text section on the approved runs
+    min_n: 5
+    threshold: 0.50
+    text:
+      TR: "'{section}' {n} onaylı metnin {deleted} tanesinde silindi ({share}) → bölüm varsayılan olarak kapalı olsun."
+      EN: "'{section}' was deleted in {deleted} of {n} approved texts ({share}) → close the section by default."
+  R3:                 # edit share of a section, with examples (before -> after)
+    min_n: 5
+    threshold: 0.50
+    examples: 3
+    text:
+      TR: "'{section}' {n} metnin {edited} tanesinde değiştirildi ({share}) → örnek düzenlemelere göre metin istemini gözden geçirin."
+      EN: "'{section}' was edited in {edited} of {n} texts ({share}) → review the text prompt with the examples."
+  R4:                 # acceptance of the engine's and the agent's top 3 in the RM's choice
+    min_n: 5
+    threshold: 0.10
+    text:
+      TR: "Ajan önerileri RM seçiminde {agent_share}, motor önerileri {engine_share} kabul gördü ({n} onay) → ajan istemini gözden geçirin."
+      EN: "The agent's top 3 got {agent_share} of the RM's choices, the engine's {engine_share} ({n} approvals) → review the agent prompt."
+  R5:                 # error of the D27 estimate against the RM's split, per source and class
+    min_n: 3
+    threshold: 15
+    text:
+      TR: "{source}: {asset_class} tahmini RM değerlerinden ortalama {error} puan sapıyor ({n} bölünme) → meslek tablosunu güncelleyin."
+      EN: "{source}: the {asset_class} estimate is {error} points off the RM's values on average ({n} splits) → update the job table."
