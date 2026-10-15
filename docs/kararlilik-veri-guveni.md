@@ -1,6 +1,6 @@
 # Kararlılık and Veri güveni: how the fund card's chips are measured
 
-The fund card ("Neden bu öneri?", docs/web-ui.md W15) shows two chips, e.g.
+The fund card ("Neden bu öneri?", docs/web-ui.md W16) shows two chips, e.g.
 
 > Kararlılık %100 · kararlı  
 > Veri güveni %90 · yüksek
@@ -20,7 +20,8 @@ sensitive the result is to them:
 1. It computes the ranking again **30 times**. Each run changes one number by
    ×0.8 or ×1.2 (`stability.step: 0.2`): one of the 7 raw criterion weights
    (then normalized again) or one of the 8 penalty maxima. 15 numbers × 2
-   directions = 30 runs.
+   directions = 30 runs. When the criterion "Portföy açığı" (D27) has a weight for
+   the client (P01 and P03 today), it is varied too: 16 numbers, 32 runs.
 2. Each run applies the same recommendation rule as the real result
    (`recommend.py`: the class rule when it applies, else the plain order).
 3. **For a recommended option:** Kararlılık = the share of the runs in which it
