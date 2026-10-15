@@ -111,7 +111,14 @@ export function Dashboard({
         </p>
       )}
 
-      {ready && <PipelinePanel view={view} onOpen={setOpenId} onDetails={(tab) => setDetails((d) => ({ tab, n: (d?.n ?? 0) + 1 }))} />}
+      {ready && (
+        <PipelinePanel
+          view={view}
+          onOpen={setOpenId}
+          onDetails={(tab) => setDetails((d) => ({ tab, n: (d?.n ?? 0) + 1 }))}
+          agent={agent}
+        />
+      )}
 
       {ready && <AgentPanel decision={agent} />}
 

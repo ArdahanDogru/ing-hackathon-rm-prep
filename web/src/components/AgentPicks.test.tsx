@@ -161,7 +161,7 @@ test("the meeting chips stay when the RM changed them before the agent was done"
   const first = v.options[v.top[0]].label;
   await userEvent.click(screen.getByRole("button", { name: `${first} kaldır` }));
   answer(d);
-  expect(await screen.findByText("Ajan önerisi")).toBeInTheDocument();
+  expect(await within(await screen.findByTestId("agent-picks")).findByText("Ajan önerisi")).toBeInTheDocument();
   expect(screen.getAllByTestId("chip").map((c) => c.querySelector("[title]")!.getAttribute("title"))).toEqual(
     v.top.slice(1).map((id) => v.options[id].label),
   );
