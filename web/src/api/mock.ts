@@ -32,11 +32,11 @@ const MOCK_RESEARCH = {
     {
       option_id: "fund:PPN", label: "NUROL PORTFÖY PARA PİYASASI (TL) FONU", company: "Nurol Portföy Yönetimi A.Ş.",
       summary: "",
-      news: [{ ...MOCK_FINDING, text: "Nurol Portföy yeni bir fon başlattı.", topic: "haber", date: "2026-10-12" }],
+      news: [{ ...MOCK_FINDING, id: "Fa0000003", text: "Nurol Portföy yeni bir fon başlattı.", topic: "haber", date: "2026-10-12" }],
       news_days: 90,
       findings: [
-        MOCK_FINDING,
-        { ...MOCK_FINDING, text: "Getiri faiz oranlarına duyarlıdır.", topic: "dikkat", confidence: "medium" },
+        { ...MOCK_FINDING, id: "Fa0000001" },
+        { ...MOCK_FINDING, id: "Fa0000002", text: "Getiri faiz oranlarına duyarlıdır.", topic: "dikkat", confidence: "medium" },
         // the finding that the mock agent cites (W20)
         { ...MOCK_FINDING, id: SAMPLE_FINDING, text: "Yönetim ücreti benzer fonlardan düşük.", topic: "is", confidence: "medium" },
       ],
