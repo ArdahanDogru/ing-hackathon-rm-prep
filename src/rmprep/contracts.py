@@ -242,6 +242,8 @@ class SourceStatus:
 # spec docs/superpowers/specs/2026-10-14-portfolio-projection-design.md).
 # v1.11 (2026-10-15): the agent decision (AgentNode, AgentReason, AgentPick,
 # AgentDecision; spec docs/superpowers/specs/2026-10-15-agent-decision-design.md).
+# v1.12 (2026-10-15): AgentDecision.n_candidates and marks_hash (the agent runs on
+# the RM's request with N; spec docs/superpowers/specs/2026-10-15-rm-run-agent-design.md).
 # Design: docs/decision.md and docs/ui.md. Changes only through ing-lead.
 # =============================================================================
 
@@ -825,6 +827,8 @@ class AgentDecision:
     cost_usd: float
     created_at: datetime
     fallback_reason: str = ""                    # fallback: why the engine's top 3 is used; off: why no agent
+    n_candidates: int = 0                        # v1.12: the N the RM chose (0 = before v1.12)
+    marks_hash: str = ""                         # v1.12: hash of the RM's marks on the candidates' findings
 
     def __post_init__(self) -> None:
         if self.state not in AGENT_STATES:
