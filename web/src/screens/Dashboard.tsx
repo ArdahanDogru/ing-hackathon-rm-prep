@@ -1,8 +1,10 @@
 // Dashboard "B4" (docs/web-ui.md "Redesign v2"; mockup redesign-v4.html tab 3):
 // lifecycle tabs, brief card, agenda | Öneriler, Detaylar, approval bar.
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { Persona, RunView } from "../api/types";
+import { AgentPanel, useAgent } from "../components/AgentPanel";
+import { AgentPicks, agentTop } from "../components/AgentPicks";
 import { Agenda } from "../components/Agenda";
 import { ApprovalBar } from "../components/ApprovalBar";
 import { BriefCard } from "../components/BriefCard";
@@ -68,8 +70,19 @@ export function Dashboard({
   const ready = r.state === "ready";
   const openConfirms = view.to_confirm.filter((_, i) => !confirmed[i]).length;
 
+  // W20: the agent's top 3 replaces the engine's when it is done; the meeting chips follow it
+  // until the RM changes them
+  const agent = useAgent(runId);
+  const picks = agentTop(view, agent);
+  const touched = useRef(false);
+  const [allocationRequest, setAllocationRequest] = useState(0);
+  useEffect(() => {
+    if (picks && pending && !touched.current) setSelected(picks);
+  }, [picks?.join("|")]);
+
   const toggle = (id: string) => {
     if (!pending) return;
+    touched.current = true;
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   };
 
@@ -100,6 +113,8 @@ export function Dashboard({
 
       {ready && <PipelinePanel view={view} onOpen={setOpenId} onDetails={(tab) => setDetails((d) => ({ tab, n: (d?.n ?? 0) + 1 }))} />}
 
+      {ready && <AgentPanel decision={agent} />}
+
       <div className="mb-6 grid items-start gap-6 lg:grid-cols-[1fr_2fr]">
         <Agenda
           points={view.talking_points}
@@ -113,7 +128,23 @@ export function Dashboard({
         />
         {ready ? (
           view.top.length > 0 ? (
-            <OptionsCompare view={view} onOpen={setOpenId} onEvidence={setEvidenceId} onView={onView} />
+            <div className="min-w-0">
+              <AgentPicks
+                view={view}
+                decision={agent}
+                onOpen={setOpenId}
+                onEvidence={setEvidenceId}
+                onAllocation={() => setAllocationRequest((n) => n + 1)}
+              />
+              <OptionsCompare
+                view={view}
+                onOpen={setOpenId}
+                onEvidence={setEvidenceId}
+                onView={onView}
+                top={picks}
+                allocationRequest={allocationRequest}
+              />
+            </div>
           ) : (
             <p className="rounded-2xl bg-white p-5 text-sm text-muted shadow-sm">{t("noOptions")}</p>
           )

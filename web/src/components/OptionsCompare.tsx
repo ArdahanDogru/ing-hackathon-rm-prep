@@ -1,6 +1,6 @@
 // "Öneriler · mevduatla karşılaştırma" with the view switch Tablo | Kartlar | Dağılım
 // (default Kartlar; the choice is remembered).
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RunView } from "../api/types";
 import { useT } from "../i18n";
 import { AllocationCard } from "./AllocationCard";
@@ -24,12 +24,18 @@ export function OptionsCompare({
   onOpen,
   onEvidence,
   onView,
+  top,
+  allocationRequest,
 }: {
   view: RunView;
   onOpen: (id: string) => void;
   onEvidence: (id: string) => void;
   /** the new run after the RM changed the current split (W18) */
   onView?: (v: RunView) => void;
+  /** W20: the agent's top 3 instead of the engine's */
+  top?: string[] | null;
+  /** W20: a new value opens the Dağılım view (a portfoy:<class> chip of the agent) */
+  allocationRequest?: number;
 }) {
   const t = useT();
   const [saved, setMode] = useState<View>(savedView);
@@ -43,7 +49,10 @@ export function OptionsCompare({
       // storage blocked: the choice holds for this page only
     }
   };
-  const options = view.top.map((id) => view.options[id]).filter(Boolean);
+  useEffect(() => {
+    if (allocationRequest) setMode("allocation");
+  }, [allocationRequest]);
+  const options = (top ?? view.top).map((id) => view.options[id]).filter(Boolean);
   const props = { options, baseline: view.baseline, onOpen, onEvidence };
 
   return (

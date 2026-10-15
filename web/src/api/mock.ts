@@ -2,6 +2,8 @@
 // (../tests/contracts/fixtures/api/). Pure: the Vite
 // middleware in vite.config.ts gives it a loader by sample name.
 
+import { agentDecision, SAMPLE_FINDING } from "./agentSample";
+
 export type Loader = (name: string) => unknown | undefined;
 export type MockAnswer = { status: number; body: unknown; type?: string };
 
@@ -32,12 +34,38 @@ const MOCK_RESEARCH = {
       summary: "",
       news: [{ ...MOCK_FINDING, text: "Nurol Portföy yeni bir fon başlattı.", topic: "haber", date: "2026-10-12" }],
       news_days: 90,
-      findings: [MOCK_FINDING, { ...MOCK_FINDING, text: "Getiri faiz oranlarına duyarlıdır.", topic: "dikkat", confidence: "medium" }],
+      findings: [
+        MOCK_FINDING,
+        { ...MOCK_FINDING, text: "Getiri faiz oranlarına duyarlıdır.", topic: "dikkat", confidence: "medium" },
+        // the finding that the mock agent cites (W20)
+        { ...MOCK_FINDING, id: SAMPLE_FINDING, text: "Yönetim ücreti benzer fonlardan düşük.", topic: "is", confidence: "medium" },
+      ],
       lang: "TR", provider: "exa", created_at: "2026-10-14T10:00:00+03:00", cost_usd: 0.025, checks: [], error: "", version: 2,
     },
   ],
   questions: [],
 };
+
+// Agent (W20): running for AGENT_RUN_MS after the first ask of a run, then done; P02 falls back.
+const AGENT_RUN_MS = 15_000;
+const agentStarted = new Map<string, number>();
+
+/** Forget the start times of the mock agent (tests). */
+export function resetAgentMock(): void {
+  agentStarted.clear();
+}
+
+function agentAnswer(load: Loader, runId: string): MockAnswer {
+  const name = RUN_SAMPLES.find((n) => (load(n) as { result?: { run_id?: string } } | undefined)?.result?.run_id === runId);
+  if (!name) return notFound(`unknown run ${runId}`);
+  const run = load(name) as Parameters<typeof agentDecision>[0];
+  if (name === "run_p02_ready") return { status: 200, body: agentDecision(run, "fallback") };
+  const start = agentStarted.get(runId) ?? Date.now();
+  agentStarted.set(runId, start);
+  const elapsed = Date.now() - start;
+  if (elapsed >= AGENT_RUN_MS) return { status: 200, body: agentDecision(run, "done") };
+  return { status: 202, body: agentDecision(run, "running", Math.min(4, Math.floor((elapsed / AGENT_RUN_MS) * 5))) };
+}
 
 export function resolveMock(method: string, url: string, body: unknown, load: Loader): MockAnswer {
   const [path, query = ""] = url.split("?");
@@ -80,6 +108,7 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
     if (method === "POST" && c === "approval") return sample(load, "run_p01_approved");
     if (method === "PUT" && c === "notes") return sample(load, "run_p01_approved");
     if (method === "GET" && c === "research" && !d) return { status: 200, body: MOCK_RESEARCH };
+    if (method === "GET" && c === "agent" && !d) return agentAnswer(load, b ?? "");
     if (method === "POST" && c === "research" && d === "questions") {
       const question = String(req.question ?? "");
       if (/müşteri|client/i.test(question)) {

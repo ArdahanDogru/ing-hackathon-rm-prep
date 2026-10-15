@@ -1,4 +1,31 @@
-import { resolveMock } from "./mock";
+import { resetAgentMock, resolveMock } from "./mock";
+
+test("agent (W20): running for 15 s after the first ask (202), then done; P02 falls back; unknown run 404", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-10-15T10:00:00+03:00"));
+  resetAgentMock();
+  const run = (id: string) => ({
+    result: {
+      run_id: id,
+      recommended: ["fund:A", "fund:B", "fund:C"],
+      options: ["deposit:x", "fund:A", "fund:B", "fund:C", "fund:D", "fund:E"].map((option_id) => ({ option: { option_id, kind: "fund" } })),
+    },
+    options: {},
+  });
+  const runs: Record<string, unknown> = { run_p01_ready: run("R01"), run_p02_ready: run("R02") };
+  const loadRuns = (name: string) => runs[name];
+  const first = resolveMock("GET", "/api/runs/R01/agent", undefined, loadRuns);
+  expect(first.status).toBe(202);
+  expect(first.body).toMatchObject({ run_id: "R01", state: "running" });
+  vi.advanceTimersByTime(16_000);
+  const done = resolveMock("GET", "/api/runs/R01/agent", undefined, loadRuns);
+  expect(done.status).toBe(200);
+  expect((done.body as { state: string; picks: unknown[] }).state).toBe("done");
+  expect((done.body as { picks: unknown[] }).picks).toHaveLength(3);
+  expect(resolveMock("GET", "/api/runs/R02/agent", undefined, loadRuns).body).toMatchObject({ state: "fallback" });
+  expect(resolveMock("GET", "/api/runs/RX/agent", undefined, loadRuns).status).toBe(404);
+  vi.useRealTimers();
+});
 
 const files: Record<string, unknown> = {
   personas: [{ persona_id: "P01" }],
@@ -70,7 +97,7 @@ test("research mock: ready view and a refused question", () => {
   expect(product).toMatchObject({ version: 2, news_days: 90, summary: "" });
   expect(product.news).toHaveLength(1);
   expect(product.news[0].date).toBe("2026-10-12");
-  expect(product.findings).toHaveLength(2);
+  expect(product.findings).toHaveLength(3); // the third is the finding that the mock agent cites (W20)
   expect(resolveMock("POST", "/api/runs/R1/research/questions", { question: "Müşterim için?", lang: "TR" }, load).status).toBe(422);
   const ok = resolveMock("POST", "/api/runs/R1/research/questions", { question: "PPN nedir?", lang: "TR" }, load);
   expect((ok.body as { question: string }).question).toBe("PPN nedir?");
