@@ -26,9 +26,12 @@ class MarkRequest(BaseModel):
 
 
 def research_router(service: ResearchService, get_run: Callable[[str], DecisionResult],
-                    log: Callable[..., None] | None = None) -> APIRouter:
+                    log: Callable[..., None] | None = None,
+                    shown: Callable[[DecisionResult], list[str]] | None = None) -> APIRouter:
     """get_run: the app's run registry (404 for an unknown run). log: the RM action log
-    (L1): every research question, also a refused one, and every RM mark."""
+    (L1): every research question, also a refused one, and every RM mark. shown (v1.12):
+    the product ids the panel shows for a run (the engine's top 3, after an agent run
+    its N candidates); None = all products of the status."""
     router = APIRouter()
 
     def _lang(lang: str) -> str:
@@ -38,9 +41,14 @@ def research_router(service: ResearchService, get_run: Callable[[str], DecisionR
 
     @router.get("/api/runs/{run_id}/research")
     def research(run_id: str, lang: str = "TR"):
-        status = service.status(get_run(run_id), _lang(lang))
+        result = get_run(run_id)
+        status = service.status(result, _lang(lang))
         if status["state"] == "running":
             return JSONResponse(status_code=202, content=status)
+        if shown is not None and "products" in status:
+            keep = shown(result)
+            by_id = {p["option_id"]: p for p in status["products"]}
+            status = {**status, "products": [by_id[i] for i in keep if i in by_id]}
         return status
 
     @router.post("/api/runs/{run_id}/research/questions")

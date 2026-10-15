@@ -311,6 +311,16 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         return AgentDecision(result.run_id, "off", (), (), "", tuple(result.recommended), (), "", "",
                              0.0, datetime.now(TR_TZ), fallback_reason=reason).to_dict()
 
+    def _research_shown(result: DecisionResult) -> list[str]:
+        """v1.12: the products of the research panel: the engine's top 3, and after an agent
+        run the run's N candidates (the engine's top 3 first, as the agent saw them)."""
+        top = list(result.recommended)
+        d = agent.status(result.run_id) if _agent_on() else None
+        if d is None or d.state not in ("done", "fallback") or not d.n_candidates:
+            return top
+        from rmprep.agent.pack import candidates
+        return [s.option.option_id for s in candidates(result, d.n_candidates)]
+
     def _brief_top3(result: DecisionResult) -> dict:
         """W20c: {"top3": the agent's picks} when the agent is done and changed the top 3
         (and the backend can write a brief for them), else {} (the engine's brief)."""
@@ -396,7 +406,7 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     if research is not None:      # before the web app's catch-all route
         from rmprep.api.research import research_router
-        app.include_router(research_router(research, _run, log=_log))
+        app.include_router(research_router(research, _run, log=_log, shown=_research_shown))
 
     if static_dir is not None:
         static = Path(static_dir)

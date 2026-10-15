@@ -166,3 +166,39 @@ def test_the_brief_follows_the_agent_top3_when_it_changed(backend):
                                         "claude-sonnet-5-5", "a2", 0.03, T)
         c.get(f"/api/runs/{rid}/brief")
         assert calls[-1] is None                                      # same picks: the engine's brief
+
+
+class ResearchAll:
+    """Research status with every scored product (as R4 gives: today's research of any run)."""
+    enabled = True
+
+    def __init__(self, ids):
+        self.ids = ids
+
+    def start(self, result, lang="TR"):
+        pass
+
+    def status(self, result, lang):
+        return {"state": "ready", "questions": [],
+                "products": [{"option_id": i, "findings": [], "news": []} for i in self.ids]}
+
+
+def test_research_panel_shows_the_top3_then_the_agent_candidates(backend):
+    """v1.12 live check 2026-10-15: the panel listed 25 products (today's research of other
+    runs). Before an agent run: the engine's top 3; after: the run's N candidates."""
+    from rmprep.agent.pack import candidates
+    from rmprep.contracts import DecisionResult
+    agent = FakeAgent()
+    probe = TestClient(create_app(backend))
+    v = _ready(probe, backend)
+    r = DecisionResult.from_dict(v["result"])
+    ids = [o.option.option_id for o in r.options if o.option.kind != "deposit"]
+    c = TestClient(create_app(backend, agent=agent, research=ResearchAll(ids)))
+    rid = c.post("/api/runs", json={"persona": v["result"]["persona"]}).json()["result"]["run_id"]
+    shown = [p["option_id"] for p in c.get(f"/api/runs/{rid}/research").json()["products"]]
+    assert shown == [i for i in ids if i in r.recommended] or set(shown) == set(r.recommended)
+    picks = tuple(AgentPick(i, (AgentReason("Neden.", ("puan:return",)),)) for i in ids[:3])
+    agent.done[rid] = AgentDecision(rid, "done", picks, (), "", tuple(r.recommended), (),
+                                    "claude-sonnet-5-5", "a3", 0.0, T, n_candidates=4)
+    shown = [p["option_id"] for p in c.get(f"/api/runs/{rid}/research").json()["products"]]
+    assert set(shown) == {s.option.option_id for s in candidates(r, 4)}
