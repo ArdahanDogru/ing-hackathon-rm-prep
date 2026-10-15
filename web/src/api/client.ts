@@ -1,6 +1,7 @@
 // Typed client of the JSON API (docs/web-ui.md section 6). Prefix /api; the
 // Vite proxy (dev), the mock middleware (dev:mock) or `rmprep serve` answers.
 import type {
+  AgentDecision,
   EvidenceItem,
   GlossaryTerm,
   HoldingsOrigin,
@@ -68,6 +69,15 @@ async function research(runId: string, lang: Lang): Promise<ResearchView> {
   return (await res.json()) as ResearchView;
 }
 
+/** GET /runs/{id}/agent (W20): the decision (202 while it runs, with the nodes; 200 when done,
+ * fallback or off); null for a run or a server without an agent (404). */
+async function agentStatus(runId: string): Promise<AgentDecision | null> {
+  const res = await fetch(`${BASE}/runs/${enc(runId)}/agent`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw await apiError(res);
+  return (await res.json()) as AgentDecision;
+}
+
 export const api = {
   personas: () => request<Persona[]>("GET", "/personas"),
   snapshots: () => request<string[]>("GET", "/snapshots"),
@@ -90,6 +100,7 @@ export const api = {
     request<NarrativeView>("PUT", `/runs/${enc(runId)}/narrative/${lang}/blocks/${enc(blockId)}`, { text }),
   brief,
   research,
+  agentStatus,
   /** POST a question to the web research; 422 = refused (the reason is the detail). */
   askResearch: (runId: string, question: string, lang: Lang) =>
     request<QuestionAnswer>("POST", `/runs/${enc(runId)}/research/questions`, { question, lang }),

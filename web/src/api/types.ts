@@ -379,6 +379,7 @@ export interface ResearchFinding {
   confidence: "low" | "medium" | "high";
   sources: ResearchSource[];
   date: string; // YYYY-MM-DD for news, "" otherwise
+  id?: string; // R3: "F" + sha1(option_id | date | text)[:8]; the agent cites it
 }
 
 export interface ProductResearch {
@@ -415,3 +416,49 @@ export type ResearchView =
   | { state: "running" }
   | { state: "off"; reason: string }
   | { state: "ready"; products: ProductResearch[]; questions: QuestionAnswer[] };
+
+// Agent decision (contract v1.11; spec docs/superpowers/specs/2026-10-15-agent-decision-design.md).
+export type AgentState = "running" | "done" | "fallback" | "off";
+export type AgentNodeState = "waiting" | "running" | "done" | "failed";
+
+/** One step of the agent's process view: adaylar, arastirma, analiz, kontrol, karar (with sub-nodes). */
+export interface AgentNode {
+  id: string;
+  label: string;
+  state: AgentNodeState;
+  started_at: string | null;
+  finished_at: string | null;
+  cost_usd: number;
+  notes: string[]; // the `amac` texts and the check results; no raw model thinking
+  children: AgentNode[];
+}
+
+export interface AgentReason {
+  text: string;
+  /** E + 8 hex (evidence), F + 8 hex (web finding), puan:<criterion>, portfoy:<class> */
+  cites: string[];
+  labels: string[]; // added by code: "(tahmini dağılıma göre)", "(web, doğrulanmamış)"
+}
+
+export interface AgentPick {
+  option_id: string;
+  reasons: AgentReason[];
+  uses_estimate: boolean;
+  uses_web: boolean;
+}
+
+/** GET /runs/{id}/agent: 202 while running (state running, with the nodes), 200 when done, fallback or off. */
+export interface AgentDecision {
+  run_id: string;
+  state: AgentState;
+  picks: AgentPick[];
+  dropped: AgentPick[]; // engine top-3 options the agent dropped, with why
+  summary: string;
+  engine_top3: string[];
+  nodes: AgentNode[];
+  model: string;
+  prompt_version: string;
+  cost_usd: number;
+  created_at: string;
+  fallback_reason: string;
+}
