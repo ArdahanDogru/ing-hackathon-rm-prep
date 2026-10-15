@@ -26,7 +26,9 @@ DEPOSIT_KINDS = ("deposit",)
 SOURCE_WORDS = {"persona_text": "musteri_dosyasi", "profile": "meslek_tablosu_varsayim",
                 "national": "ulusal_ortalama", "rm": "rm", "rm_confirmed": "rm_onayli"}
 NOT_ESTIMATED = ("rm", "rm_confirmed")          # typed or accepted by the RM
-WEB_LABEL = "doğrulanmamış"
+WEB_LABEL = "doğrulanmamış"                    # A2: no RM mark (not reviewed yet)
+CONFIRMED = "RM doğruladı"                     # A2: the RM marked it ✓ ("ok")
+MARKS = ("ok", "wrong")                        # R4: finding id -> mark; "wrong" = ✗
 NO_RESEARCH = "araştırma yok"
 PERSONA_FIELDS = ("profil", "yas", "risk_profili", "durum", "yatirim_amaci", "yatirim_ufku",
                   "likidite_ihtiyaci", "gelir_nakit_akisi_ihtiyaci", "anapara_koruma_tercihi",
@@ -64,22 +66,43 @@ def _domain(url: str) -> str:
     return urlparse(url).netloc or url
 
 
-def finding_item(option_id: str, f) -> dict:
-    return {"id": finding_id(option_id, f), "metin": f.text, "konu": f.topic, "tarih": f.date,
+def finding_item(option_id: str, f, marks: Mapping[str, str] | None = None) -> dict:
+    """One bullet for the agent; `dogrulama` says whether the RM confirmed it (A2)."""
+    fid = finding_id(option_id, f)
+    return {"id": fid, "metin": f.text, "konu": f.topic, "tarih": f.date,
             "kaynak": ", ".join(dict.fromkeys(_domain(s.url) for s in f.sources)),
-            "etiket": WEB_LABEL}
+            "dogrulama": CONFIRMED if (marks or {}).get(fid) == "ok" else WEB_LABEL}
 
 
-def research_block(option_id: str, research) -> dict:
+def finding_items(option_id: str, findings, marks: Mapping[str, str] | None = None) -> list[dict]:
+    """The bullets without the ones the RM marked ✗ ("wrong"): they never reach the agent."""
+    marks = marks or {}
+    return [finding_item(option_id, f, marks) for f in findings
+            if marks.get(finding_id(option_id, f)) != "wrong"]
+
+
+def research_block(option_id: str, research, marks: Mapping[str, str] | None = None) -> dict:
     """The checked bullets of one product (highlights and news), or `yok` with why.
-    The provider summary and the pages stay out."""
+    The provider summary and the pages stay out; ✗ bullets are removed (A2)."""
     if research is None:
         return {"durum": "yok", "neden": NO_RESEARCH, "bulgular": [], "haberler": []}
     if research.error:
         return {"durum": "yok", "neden": research.error, "bulgular": [], "haberler": []}
     return {"durum": "var", "neden": "",
-            "bulgular": [finding_item(option_id, f) for f in research.findings],
-            "haberler": [finding_item(option_id, f) for f in research.news]}
+            "bulgular": finding_items(option_id, research.findings, marks),
+            "haberler": finding_items(option_id, research.news, marks)}
+
+
+def marks_hash(research: Mapping[str, Any], marks: Mapping[str, str]) -> str:
+    """A2: the hash of the RM's marks on the findings of `research` (option id ->
+    ProductResearch; the candidates'), "" without such marks. Part of the decision
+    cache key: other marks -> another decision."""
+    ids = {finding_id(oid, f) for oid, r in research.items()
+           if r is not None and not r.error for f in (*r.findings, *r.news)}
+    rows = sorted(f"{fid}={marks[fid]}" for fid in ids if marks.get(fid) in MARKS)
+    if not rows:
+        return ""
+    return hashlib.sha1("\n".join(rows).encode("utf-8"), usedforsecurity=False).hexdigest()[:12]
 
 
 def _fact(value: float | None, eid: str, digits: int = 2) -> dict | None:
@@ -168,9 +191,10 @@ def _rules(result: DecisionResult, config: DecisionConfig) -> dict:
 
 
 def build_pack(result: DecisionResult, evidence: EvidenceSet, decision_config: DecisionConfig,
-               research: Mapping[str, Any], lang: str, n: int = 10) -> dict:
+               research: Mapping[str, Any], lang: str, n: int = 10,
+               marks: Mapping[str, str] | None = None) -> dict:
     """The data pack. `research`: option id -> ProductResearch (a missing or failed
-    one is marked `yok`)."""
+    one is marked `yok`); `marks`: the RM's marks, finding id -> ok | wrong (A2)."""
     idx = EvidenceIndex(evidence)
     cands = candidates(result, n)
     p = result.persona
@@ -183,7 +207,8 @@ def build_pack(result: DecisionResult, evidence: EvidenceSet, decision_config: D
         "adaylar": [_candidate(o, i, result, idx, evidence, decision_config, lang)
                     for i, o in enumerate(cands, 1)],
         "arastirma": {o.option.option_id: research_block(o.option.option_id,
-                                                         research.get(o.option.option_id))
+                                                         research.get(o.option.option_id),
+                                                         marks)
                       for o in cands},
         "kurallar": _rules(result, decision_config),
     }

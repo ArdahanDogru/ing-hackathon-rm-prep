@@ -46,7 +46,7 @@ def test_pack_has_estimate_flags_and_no_raw_pages(ready_p01, ev, dcfg):
     assert res["durum"] == "var"
     item = res["bulgular"][0]
     assert re.fullmatch(r"F[0-9a-f]{8}", item["id"])
-    assert item["kaynak"] == "www.tefas.gov.tr" and item["etiket"] == "doğrulanmamış"
+    assert item["kaynak"] == "www.tefas.gov.tr" and item["dogrulama"] == "doğrulanmamış" and "etiket" not in item
     assert res["haberler"][0]["tarih"] == "2026-09-30"
 
 

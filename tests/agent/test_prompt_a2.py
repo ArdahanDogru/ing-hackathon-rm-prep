@@ -20,10 +20,10 @@ def _raw() -> dict:
 
 def test_config_accepts_the_known_versions_only():
     assert set(PROMPT_VERSIONS) == set(PROMPTS)
-    for v in ("a1", "a2"):
+    for v in ("a1", "a2", "a3"):
         assert parse_agent_config(_raw() | {"prompt_version": v}).prompt_version == v
     with pytest.raises(ConfigError, match="prompt_version"):
-        parse_agent_config(_raw() | {"prompt_version": "a3"})
+        parse_agent_config(_raw() | {"prompt_version": "a9"})
 
 
 def test_a2_states_the_number_form():
@@ -69,11 +69,14 @@ def test_checks_accept_the_english_form(ready_p01, pack01, dcfg, phrases):
     assert check_decision(raw, pack01, dcfg, phrases, "EN")[3] == []
 
 
-def test_service_sends_the_a2_prompt(svc_factory, cfg, ready_p01, ev):
-    assert cfg.prompt_version == "a2"
+def test_service_sends_the_a2_prompt(cfg, dcfg, phrases, ready_p01, ev, tmp_path):
+    from rmprep.agent.service import AgentService
+    from tests.agent.conftest import CREATED, FakeClock, FakeResearch
+
     picks = valid_picks(ready_p01)
     client = ScriptedClient(turn(call("karar_ver", **karar(ready_p01, picks))))
-    svc = svc_factory(client)
+    svc = AgentService(dataclasses.replace(cfg, prompt_version="a2"), client, FakeResearch(),
+                       dcfg, phrases, tmp_path / "a2", now=lambda: CREATED, clock=FakeClock())
     svc.start(ready_p01, ev)
     svc.wait()
     assert svc.status(ready_p01.run_id).prompt_version == "a2"

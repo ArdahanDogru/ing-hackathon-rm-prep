@@ -13,13 +13,17 @@ import yaml
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "agent.yaml"
 LANGS = ("TR", "EN")
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
-PROMPT_VERSIONS = ("a1", "a2")                # the known prompts (service.PROMPTS)
+PROMPT_VERSIONS = ("a1", "a2", "a3")          # the known prompts (service.PROMPTS)
 TOOL_NAMES = ("karsilastir", "arastir")
+MAX_CANDIDATES_LIMIT = 50                      # A2: the largest N the config may allow
+DEFAULT_MAX_CANDIDATES = 20                    # A2: when the key is missing (an A1 config)
+DEFAULT_WEB_CONFIRMED = {"TR": "(web, RM doğruladı)", "EN": "(web, confirmed by the RM)"}
 WORD_KEYS = ("reason", "summary", "amac")
-LABEL_KEYS = ("estimate", "web")
+LABEL_KEYS = ("estimate", "web", "web_confirmed")   # A2: web_confirmed
 KEYS = ("version", "model", "effort", "max_tokens", "price_input_per_mtok",
         "price_output_per_mtok", "api_key_env", "workspace_id_env", "prompt_version",
-        "candidates", "max_tool_calls", "timeout_s", "max_cost_usd_per_day", "cache_dir",
+        "candidates", "max_candidates", "max_tool_calls", "timeout_s",
+        "max_cost_usd_per_day", "cache_dir",
         "words", "labels", "fallback_texts")
 
 
@@ -37,7 +41,8 @@ class AgentConfig:
     api_key_env: str
     workspace_id_env: str
     prompt_version: str
-    candidates: int
+    candidates: int                            # the default N
+    max_candidates: int                        # A2: the largest N the RM may choose
     max_tool_calls: Mapping[str, int]          # karsilastir, arastir
     timeout_s: float
     max_cost_usd_per_day: float
@@ -79,8 +84,20 @@ def _per_lang(d: Any, path: str) -> dict[str, str]:
     return {lang: _str(d[lang], f"{path}.{lang}") for lang in LANGS}
 
 
+def _with_defaults(raw: Any) -> Any:
+    """A2 keys that a config of A1 does not have: max_candidates and
+    labels.web_confirmed get their defaults (an unknown key is still an error)."""
+    if not isinstance(raw, Mapping):
+        return raw
+    out = dict(raw)
+    out.setdefault("max_candidates", DEFAULT_MAX_CANDIDATES)
+    if isinstance(out.get("labels"), Mapping) and "web_confirmed" not in out["labels"]:
+        out["labels"] = {**out["labels"], "web_confirmed": dict(DEFAULT_WEB_CONFIRMED)}
+    return out
+
+
 def parse_agent_config(raw: Mapping[str, Any]) -> AgentConfig:
-    raw = _exact(raw, "agent.yaml", KEYS)
+    raw = _exact(_with_defaults(raw), "agent.yaml", KEYS)
     if raw["version"] != 1:
         raise ConfigError(f"version: 1, got {raw['version']!r}")
     if raw["effort"] not in EFFORTS:
@@ -93,6 +110,10 @@ def parse_agent_config(raw: Mapping[str, Any]) -> AgentConfig:
     fallback = _per_lang(raw["fallback_texts"], "fallback_texts")
     if any("{reason}" not in t for t in fallback.values()):
         raise ConfigError("fallback_texts: every text needs the field {reason}")
+    candidates = _int(raw["candidates"], "candidates", 3)
+    max_candidates = _int(raw["max_candidates"], "max_candidates", candidates)
+    if max_candidates > MAX_CANDIDATES_LIMIT:
+        raise ConfigError(f"max_candidates: at most {MAX_CANDIDATES_LIMIT}, got {max_candidates}")
     return AgentConfig(
         model=_str(raw["model"], "model"),
         effort=raw["effort"],
@@ -102,7 +123,8 @@ def parse_agent_config(raw: Mapping[str, Any]) -> AgentConfig:
         api_key_env=_str(raw["api_key_env"], "api_key_env"),
         workspace_id_env=_str(raw["workspace_id_env"], "workspace_id_env"),
         prompt_version=raw["prompt_version"],
-        candidates=_int(raw["candidates"], "candidates", 3),
+        candidates=candidates,
+        max_candidates=max_candidates,
         max_tool_calls={k: _int(tools[k], f"max_tool_calls.{k}", 0) for k in TOOL_NAMES},
         timeout_s=_num(raw["timeout_s"], "timeout_s"),
         max_cost_usd_per_day=_num(raw["max_cost_usd_per_day"], "max_cost_usd_per_day"),
