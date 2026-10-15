@@ -93,3 +93,20 @@ def test_finding_id_is_stable_and_uses_the_research_id_when_present():
         text = "x"
         date = ""
     assert finding_id("fund:A", WithId()) == "F0123abcd"
+
+
+def test_the_engine_top3_is_always_among_the_candidates(ready_p03):
+    """Eval 20261015-agent (lead, 2026-10-15): for P03 the class rule (D19) took IDY and
+    OKT from below place 10, so the agent could not keep them and the A/B judge saw
+    "n/a" for them. The candidates are the engine's top 3 first, then the display order."""
+    far = [o for o in ready_p03.options if o.option.kind != "deposit"][12:14]
+    first = [o for o in ready_p03.options if o.option.kind != "deposit"][0]
+    rec = (first.option.option_id, *(o.option.option_id for o in far))
+    r = dataclasses.replace(ready_p03, recommended=rec)
+    got = [s.option.option_id for s in candidates(r, 10)]
+    assert len(got) == 10 and len(set(got)) == 10
+    assert set(rec) <= set(got)
+    rest = [i for i in got if i not in rec]
+    display = [o.option.option_id for o in r.options if o.option.kind != "deposit" and o.option.option_id not in rec]
+    assert rest == display[:7]                         # the rest keeps the display order
+    assert got[:3] == list(rec) or [i for i in got if i in rec] == list(rec)

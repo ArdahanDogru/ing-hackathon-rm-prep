@@ -79,3 +79,12 @@ v1.11 (`AgentNode`, `AgentReason`, `AgentPick`, `AgentDecision`) is on main.
 - Live smoke (P01, snapshot 20261014-233110-1565, a small fake research): done,
   picks PPN, OSD, GO6 (engine PPN, OSD, AIS); $0.078, 20 s, 2 model calls (the
   first `karar_ver` failed the phrase check "garanti", the retry passed).
+
+## Candidate set fixed (lead, 2026-10-15, found by eval 20261015-agent)
+
+For P03 the D19 class rule took the engine's picks IDY and OKT from below place
+10, so they were not among the agent's 10 candidates: the agent could not keep
+them (2 changes were forced), and the A/B judge saw "n/a" for them (3 of the 5
+"agent" grades were not fair). Now `candidates()` puts the engine's top 3 first and
+fills up to 10 from the display order. The three P03 scenarios were run again
+with this rule.

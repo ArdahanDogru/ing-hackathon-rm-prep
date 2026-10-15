@@ -35,9 +35,14 @@ FEES = (("giris", "fund_entry_fee"), ("cikis", "fund_exit_fee"))
 
 
 def candidates(result: DecisionResult, n: int) -> list[ScoredOption]:
-    """The first n scored options without the deposit baseline, in the engine's
-    display order (the group caps of D10/D19 already apply)."""
-    return [o for o in result.options if o.option.kind not in DEPOSIT_KINDS][:n]
+    """n scored options without the deposit baseline: the engine's top 3 first (the
+    D19 class rule can take them from below place n; eval 20261015-agent), then the
+    others in the engine's display order (the group caps of D10/D19 already apply)."""
+    ranked = [o for o in result.options if o.option.kind not in DEPOSIT_KINDS]
+    by_id = {o.option.option_id: o for o in ranked}
+    top = [by_id[i] for i in result.recommended if i in by_id][:n]
+    rest = [o for o in ranked if o.option.option_id not in set(result.recommended)]
+    return top + rest[:max(0, n - len(top))]
 
 
 def part_cite(key: str) -> str:

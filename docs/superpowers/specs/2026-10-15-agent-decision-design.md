@@ -60,8 +60,9 @@ Run ready (engine top 3 visible at once)
 - Node notes come from the required field `amac` of each tool call ("why this
   step", at most 20 words) and from the check results; the raw model thinking is
   never shown.
-- The candidates: the first 10 options of `DecisionResult.options` without the
-  deposit baseline, in the engine's display order (so the group caps of D10/D19
+- The candidates: the engine's top 3 first (fixed 2026-10-15: the D19 class rule
+  can take them from below place 10), then the options of `DecisionResult.options`
+  without the deposit baseline, in the engine's display order, up to 10 (so the group caps of D10/D19
   already apply). Fewer than 10 scored options: all of them.
 - A new run (RM split, an answer, an excluded source) starts the agent again for
   that run; the old run keeps its decision.
