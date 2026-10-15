@@ -18,6 +18,16 @@ def test_the_repo_config_loads():
     assert set(c.system_prompt) == {"TR", "EN"}
 
 
+def test_the_v2_keys_load():
+    c = load_config()
+    assert (c.shape.news_days, c.shape.news_max, c.shape.highlights_max) == (90, 3, 4)
+    assert (c.shape.bullet_max_words, c.shape.repeat_jaccard) == (20, 0.6)
+    assert "saklayıcı" in c.shape.known_terms
+    assert set(c.highlights_prompt) == {"TR", "EN"}
+    assert c.exa.news_query.format(name="Ak Portföy", code="AIS") == "Ak Portföy AIS haber"
+    assert c.exa.news_type == "auto"
+
+
 def _broken(path: str, value):
     raw = copy.deepcopy(RAW)
     node = raw
@@ -39,6 +49,12 @@ def _broken(path: str, value):
     ("system_prompt.EN", None, "system_prompt.EN"),
     ("exa.query.etf", None, "exa.query.etf"),
     ("claude.max_uses", "three", "claude.max_uses"),
+    ("shape.repeat_jaccard", 0, "shape.repeat_jaccard"),
+    ("shape.repeat_jaccard", 1.5, "shape.repeat_jaccard"),
+    ("shape.news_days", 0, "shape.news_days"),
+    ("shape.known_terms", "x", "shape.known_terms"),
+    ("highlights_prompt.EN", None, "highlights_prompt.EN"),
+    ("exa.news_query", None, "exa.news_query"),
 ])
 def test_bad_values_name_their_path(path, value, starts):
     with pytest.raises(ConfigError) as e:
