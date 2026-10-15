@@ -26,3 +26,11 @@ scenarios:
     persona: P03
     narrate: false
     agent_watch: ["stock:KTLEV"]
+  - id: agent-marks
+    group: agent
+    description: "E12: the RM marks ✗ the first highlight of the engine's #2 and ✓ the first highlight of the engine's #1"
+    persona: P01
+    narrate: false
+    agent_marks:
+      - {product: engine2, finding: 0, mark: wrong}
+      - {product: engine1, finding: 0, mark: ok}

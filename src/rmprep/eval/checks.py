@@ -5,7 +5,7 @@ gives pass | fail | n/a with details; n/a when it does not apply to the run
 Per run: rule5, risk_ceiling, not_buyable (D12), explicit_constraints (D13),
 no_invented_data, missing_data_shown, bad_data_handled, questions,
 narrator_valid, forbidden_phrases, traceability, diverse_recommendations,
-allocation_projection; with the agent (E11) agent_decision. Per scenario:
+allocation_projection; with the agent agent_decision (E11) and agent_marks (E12). Per scenario:
 consistency, sensitivity (the `expect` of the scenario)."""
 
 from __future__ import annotations
@@ -611,6 +611,28 @@ def check_agent_decision(c: Context) -> CheckResult:
     return CheckResult.of("agent_decision", agent_problems(a, c.run.result, c.decision_config))
 
 
+def check_agent_marks(c: Context) -> CheckResult:
+    """E12: for a scenario with RM marks (agent_marks): each mark is resolved to a
+    finding of the run; a ✗ finding is not in the pack; a ✓ finding is in it as "RM
+    doğruladı" and every reason that cites it has the label web_confirmed; the
+    decision carries the marks_hash of these marks. n/a without marks or without a
+    done or fallback decision (agent_decision reports those)."""
+    from rmprep.eval.agent_eval import mark_results
+
+    if not c.scenario.agent_marks:
+        return CheckResult.of("agent_marks", [], na="no marks in the scenario")
+    a = c.run.agent
+    d = None if a is None else a.decision
+    if d is None or d.state not in ("done", "fallback"):
+        return CheckResult.of("agent_marks", [], na="no finished agent decision")
+    problems = [p for r in mark_results(a) for p in r["problems"]]
+    if not d.marks_hash:
+        problems.append("the decision has no marks_hash")
+    elif a.marks_hash and d.marks_hash != a.marks_hash:
+        problems.append(f"marks_hash {d.marks_hash}, the marks give {a.marks_hash}")
+    return CheckResult.of("agent_marks", problems)
+
+
 RUN_CHECKS: tuple[Callable[[Context], CheckResult], ...] = (
     check_rule5, check_risk_ceiling, check_not_buyable, check_explicit_constraints,
     check_no_invented_data, check_missing_data_shown, check_bad_data_handled, check_questions,
@@ -812,7 +834,7 @@ def run_checks(runs: list[ScenarioRun], decision_config: Mapping[str, Any],
     """All checks of all scenarios; narrator_config (NarratorConfig) enables the
     metric validator_phrase_findings; agent adds the check agent_decision (E11)."""
     by_id = {sr.scenario.id: sr for sr in runs}
-    run_checks_ = RUN_CHECKS + ((check_agent_decision,) if agent else ())
+    run_checks_ = RUN_CHECKS + ((check_agent_decision, check_agent_marks) if agent else ())
     out = []
     for sr in runs:
         compare = by_id.get(sr.scenario.compare_to) if sr.scenario.compare_to else None

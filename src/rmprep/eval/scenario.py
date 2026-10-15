@@ -32,6 +32,9 @@ scenarios:
       - {option: "@engine1", date: "2026-10-13", text: "{name}: ...", url: "https://..."}
                                       # @engineN: the engine's Nth recommendation; {name}: its label
     agent_watch: ["stock:KTLEV"]      # E11: options the agent section of the report follows
+    agent_marks:                      # E12: the RM's marks on research findings (R4, A2)
+      - {product: engine2, finding: 0, mark: wrong}   # finding: index of a highlight,
+      - {product: engine1, finding: "news:0", mark: ok}   # or "news:<i>"; ok = ✓, wrong = ✗
 ```
 
 The agent scenarios (E11) are in scenarios/agent/ and run only with the agent
@@ -88,6 +91,32 @@ class AgentNews:
     url: str = "https://www.dunya.com/finans/haberler"
 
 
+MARK_GROUPS = ("findings", "news")
+MARK_VALUES = ("ok", "wrong")
+_PRODUCT = re.compile(r"^engine([1-3])$")
+_NEWS_ITEM = re.compile(r"^news:([0-9]+)$")
+
+
+@dataclass(frozen=True)
+class AgentMark:
+    """E12: an RM mark on one research finding of the engine's Nth recommendation,
+    resolved to the finding id after the research of the run (deterministic)."""
+
+    product: str                    # engine1 | engine2 | engine3
+    group: str                      # findings (highlights) | news
+    index: int                      # the place in that list, from 0
+    mark: str                       # ok (✓) | wrong (✗)
+
+    @property
+    def place(self) -> int:
+        return int(self.product.removeprefix("engine"))
+
+    @property
+    def finding(self) -> str:
+        """The finding as the scenario names it: "0" or "news:0"."""
+        return str(self.index) if self.group == "findings" else f"news:{self.index}"
+
+
 @dataclass(frozen=True)
 class Scenario:
     id: str
@@ -113,6 +142,7 @@ class Scenario:
     holdings_origin: str = "rm"
     agent_news: tuple[AgentNews, ...] = ()
     agent_watch: tuple[str, ...] = ()
+    agent_marks: tuple[AgentMark, ...] = ()
 
 
 _FIELDS = {f.name for f in dataclasses.fields(Scenario)}
@@ -275,7 +305,37 @@ def parse_scenario(raw) -> Scenario:
         kw["agent_news"] = tuple(_news(x, i) for i, x in enumerate(raw["agent_news"]))
     if "agent_watch" in raw:
         kw["agent_watch"] = _strs(raw["agent_watch"], "agent_watch")
+    if "agent_marks" in raw:
+        if not isinstance(raw["agent_marks"], list):
+            raise ValueError("agent_marks: must be a list")
+        kw["agent_marks"] = tuple(_mark(x, i) for i, x in enumerate(raw["agent_marks"]))
     return Scenario(**kw)
+
+
+def _mark(raw, i: int) -> AgentMark:
+    what = f"agent_marks[{i}]"
+    if not isinstance(raw, Mapping):
+        raise ValueError(f"{what}: must be a mapping")
+    unknown = sorted(set(raw) - {"product", "finding", "mark"})
+    if unknown:
+        raise ValueError(f"{what}: unknown keys {unknown}")
+    missing = sorted({"product", "finding", "mark"} - set(raw))
+    if missing:
+        raise ValueError(f"{what}: missing keys {missing}")
+    product = raw["product"]
+    if not isinstance(product, str) or not _PRODUCT.match(product):
+        raise ValueError(f"{what}.product: engine1-3, got {product!r}")
+    finding = raw["finding"]
+    if isinstance(finding, int) and not isinstance(finding, bool) and finding >= 0:
+        group, index = "findings", finding
+    elif isinstance(finding, str) and _NEWS_ITEM.match(finding):
+        group, index = "news", int(_NEWS_ITEM.match(finding).group(1))
+    else:
+        raise ValueError(f"{what}.finding: an index >= 0 of a highlight or \"news:<i>\", "
+                         f"got {finding!r}")
+    if raw["mark"] not in MARK_VALUES:
+        raise ValueError(f"{what}.mark: ok or wrong, got {raw['mark']!r}")
+    return AgentMark(product, group, index, raw["mark"])
 
 
 def load_scenario_file(path: Path | str) -> list[Scenario]:

@@ -11,7 +11,7 @@ from rmprep.contracts import TR_TZ, DecisionState
 from rmprep.eval.agent_eval import RecordingResearch, agent_metrics, eval_agent, top3
 from rmprep.eval.config import load_config
 from rmprep.eval.scenario import (
-    AgentNews, Scenario, ScenarioError, agent_scenario_files, load_scenario_file,
+    AgentMark, AgentNews, Scenario, ScenarioError, agent_scenario_files, load_scenario_file,
     load_scenarios, packaged_scenario_files, parse_scenario,
 )
 from rmprep.eval.suite import run_suite
@@ -47,8 +47,12 @@ def test_agent_scenarios_are_not_in_the_default_files():
     defaults = load_scenarios(packaged_scenario_files())
     assert not any(s.group == "agent" for s in defaults)
     agent = load_scenarios(agent_scenario_files())
-    assert [s.id for s in agent] == ["agent-negative-news", "agent-rm-split", "agent-crash"]
-    news, split, crash = agent
+    assert [s.id for s in agent] == ["agent-negative-news", "agent-rm-split", "agent-crash",
+                                     "agent-marks"]
+    news, split, crash, marks = agent
+    assert marks.persona == "P01" and not marks.narrate
+    assert marks.agent_marks == (AgentMark("engine2", "findings", 0, "wrong"),
+                                 AgentMark("engine1", "findings", 0, "ok"))
     assert news.agent_news[0].option == "@engine1" and not news.narrate
     assert split.persona == "P03" and split.holdings == {k: float(v) for k, v in SPLIT.items()}
     assert split.holdings_origin == "rm"
@@ -65,6 +69,12 @@ def test_agent_scenarios_are_not_in_the_default_files():
     ({"agent_news": [{"option": "@engine1", "text": "x", "date": "2026-10-13",
                       "url": "http://a"}]}, "https"),
     ({"agent_news": [{"option": "fund:A", "text": "x"}]}, "date"),
+    ({"agent_marks": [{"product": "engine4", "finding": 0, "mark": "ok"}]}, "engine1-3"),
+    ({"agent_marks": [{"product": "engine1", "finding": -1, "mark": "ok"}]}, "finding"),
+    ({"agent_marks": [{"product": "engine1", "finding": "news:x", "mark": "ok"}]}, "finding"),
+    ({"agent_marks": [{"product": "engine1", "finding": 0, "mark": "maybe"}]}, "ok or wrong"),
+    ({"agent_marks": [{"product": "engine1", "finding": 0}]}, "mark"),
+    ({"agent_marks": {"product": "engine1"}}, "list"),
 ])
 def test_bad_agent_fields_are_refused(raw, msg):
     with pytest.raises(ValueError, match=msg):
@@ -338,3 +348,86 @@ def test_run_suite_with_the_agent_adds_the_agent_files(root, monkeypatch, tmp_pa
               judge=None, agent=True, agent_client=PackClient(), research=AgentFakeResearch(),
               ab_judge=None, now=lambda: NOW, write=False)
     assert seen[0] == packaged_scenario_files() + agent_scenario_files()
+
+
+# --- E12: the RM's marks on research findings ------------------------------------------
+
+MARKS = (AgentMark("engine2", "findings", 0, "wrong"), AgentMark("engine1", "findings", 0, "ok"))
+
+
+def test_parse_agent_marks():
+    s = parse_scenario({"id": "m", "group": "agent", "persona": "P01", "agent_marks": [
+        {"product": "engine2", "finding": 0, "mark": "wrong"},
+        {"product": "engine1", "finding": "news:1", "mark": "ok"}]})
+    assert s.agent_marks == (AgentMark("engine2", "findings", 0, "wrong"),
+                             AgentMark("engine1", "news", 1, "ok"))
+
+
+class _Product:
+    def __init__(self, oid):
+        self.option_id, self.label = oid, oid
+
+
+class _Marked:
+    """A research with two highlights and one news item per product, and marks of its own
+    (the RM's real marks: the eval must not use them)."""
+
+    def research_many(self, options, lang):
+        from rmprep.research.types import Finding, ProductResearch, Source
+
+        src = (Source("https://x.com/a"),)
+        return [ProductResearch(o.option_id, o.label, "", "", (
+            Finding(f"{o.option_id} bir.", "urun", src), Finding(f"{o.option_id} iki.", "urun", src)),
+            lang, "exa", NOW, news=(Finding(f"{o.option_id} haber.", "haber", src, "medium",
+                                            "2026-10-12"),)) for o in options]
+
+    def marks(self):
+        return {"Fdeadbeef": "wrong"}
+
+
+def test_recording_research_resolves_the_marks_on_the_run():
+    rec = RecordingResearch(_Marked(), now=lambda: NOW,
+                            marks=(AgentMark("engine2", "findings", 1, "wrong"),
+                                   AgentMark("engine1", "news", 0, "ok"),
+                                   AgentMark("engine3", "findings", 5, "ok")),
+                            recommended=("fund:A", "fund:B", "fund:C"))
+    assert rec.marks() == {}                    # before the research: nothing to resolve
+    out = {r.option_id: r for r in rec.research_many([_Product(i) for i in
+                                                      ("fund:A", "fund:B", "fund:C")], "TR")}
+    assert rec.marks() == {out["fund:B"].findings[1].id: "wrong", out["fund:A"].news[0].id: "ok"}
+    rows = rec.resolved_marks()
+    assert [r["finding_id"] for r in rows] == [out["fund:B"].findings[1].id,
+                                              out["fund:A"].news[0].id, None]
+    assert rows[1] == {"product": "engine1", "option_id": "fund:A", "finding": "news:0",
+                       "finding_id": out["fund:A"].news[0].id, "text": "fund:A haber.",
+                       "mark": "ok", "error": None}
+    assert rows[2]["error"] == "fund:C has no findings item 5"
+
+
+def test_without_scenario_marks_the_inner_marks_are_not_used():
+    rec = RecordingResearch(_Marked(), now=lambda: NOW)
+    rec.research_many([_Product("fund:A")], "TR")
+    assert rec.marks() == {}
+
+
+def test_the_marks_reach_the_agent_and_the_decision(root):
+    s = Scenario(id="agent-marks", group="agent", persona="P01", narrate=False,
+                 agent_marks=MARKS)
+    client = PackClient("keep", web=True)
+    runs, _ = run_with_agent(root, [s], client, repeat=False)
+    run = runs[0].runs[0]
+    one, two = run.result.recommended[:2]
+    sent = client.packs[0]["arastirma"]
+    assert sent[two]["bulgular"] == []                          # ✗ removed
+    assert sent[one]["bulgular"][0]["dogrulama"] == "RM doğruladı"
+    a = run.agent
+    wrong, ok = a.marks
+    assert wrong["option_id"] == two and ok["option_id"] == one and ok["finding_id"]
+    assert a.decision.state == "done" and a.decision.marks_hash
+    assert a.marks_hash == a.decision.marks_hash
+    assert "(web, RM doğruladı)" in a.decision.picks[0].reasons[1].labels
+    assert a.pack["arastirma"] == sent
+    from rmprep.eval.agent_eval import mark_results
+
+    results = mark_results(a)
+    assert [r["ok"] for r in results] == [True, True] and results[1]["cited"] is True
