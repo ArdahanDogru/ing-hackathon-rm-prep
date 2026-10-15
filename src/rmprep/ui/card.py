@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import dataclasses
 import html
+import math
 from dataclasses import dataclass, field
 
 from rmprep.contracts import (
@@ -54,9 +55,9 @@ def _sections(r: DecisionResult, ev: EvidenceSet, lang: str) -> list[_Section]:
         if oid not in r.rm_selected:
             continue
         head = [o.option.label, views.kind_label(o, lang)] + (["FX"] if o.option.fx else [])
-        sub = [f"{t('score', lang)} {o.score:.2f} · {t('confidence', lang)} {o.confidence:.2f} · "
-               f"{t('stability', lang)} {o.stability:.2f}"]
-        sub += [f"{b['part']} ({b['value']:+.3f}): {b['reason']}" for b in views.main_parts(o, lang)]
+        sub = [f"{t('score', lang)} {points(o.score)} · {t('confidence', lang)} %{round(o.confidence * 100)} · "
+               f"{t('stability', lang)} %{round(o.stability * 100)}"]
+        sub += [f"{b['part']} ({points(b['value'], signed=True)}): {b['reason']}" for b in views.main_parts(o, lang)]
         sub += [f"⚠ {w.code}: {w.message}" for w in warned.get(oid, [])]
         if r.rm_option_notes.get(oid):
             sub.append(f"{t('card_rm_note', lang)}: {r.rm_option_notes[oid]}")
@@ -115,6 +116,17 @@ def _terms(body: str, glossary_terms: tuple[glossary.Term, ...],
            lang: str) -> list[glossary.Found]:
     """The glossary terms of the card text (docs/ui.md U11), first appearance first."""
     return glossary.find_terms(body, glossary_terms, lang)
+
+
+def points(x: float, signed: bool = False) -> str:
+    """A score or a score part x100 without decimals (the user, 2026-10-15): 0.854 -> "85",
+    +0.2449 -> "+24", -0.105 -> "−11" (Turkish minus); half away from zero; 0 has no sign."""
+    n = int(math.floor(abs(x) * 100 + 0.5))
+    if n == 0:
+        return "0"
+    if x < 0:
+        return f"−{n}"
+    return f"+{n}" if signed else str(n)
 
 
 def _agent_lines(r: DecisionResult, agent: AgentDecision | None, lang: str) -> list[str]:

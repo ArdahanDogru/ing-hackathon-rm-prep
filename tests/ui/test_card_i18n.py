@@ -31,9 +31,12 @@ def test_markdown_card_holds_selected_options_notes_and_citations(fake):
     selected = [o for o in r.options if o.option.option_id in r.rm_selected]
     others = [o for o in r.options if o.option.option_id not in r.rm_selected]
     for o in selected:
-        assert o.option.label in md and f"{o.score:.2f}" in md and f"{o.confidence:.2f}" in md
+        # 2026-10-15 (the user): scores x100 ("85"), parts signed ("+24"), confidence as %
+        assert o.option.label in md and f"skor {card.points(o.score)}" in md
+        assert f"%{round(o.confidence * 100)}" in md
         for part in views.main_parts(o):
             assert o.reasons[part["key"]] in md
+            assert f"({card.points(part['value'], signed=True)})" in md
     for o in others:
         assert o.option.label not in md
     fx_warning = next(w for w in r.warnings if w.code == "fx_exposure")
@@ -176,3 +179,9 @@ def test_every_label_key_used_in_the_code_exists():
     assert {"f_" + f.name for f in dataclasses.fields(Persona)} <= set(LABELS)
     assert {"rm_approved", "rm_rejected"} <= set(LABELS)
     assert {"need_selection", "need_note"} <= set(LABELS)     # t(err) in the RM bar
+
+
+@pytest.mark.parametrize("x, signed, out", [(0.854, False, "85"), (0.855, False, "86"), (0.2449, True, "+24"),
+                                            (-0.105, True, "−11"), (0.0, True, "0"), (-0.004, True, "0")])
+def test_points(x, signed, out):
+    assert card.points(x, signed=signed) == out
