@@ -684,6 +684,70 @@ every later new process about 12 s for the whole `build_evidence` (bulletin
 rows about 4 s, the share calculation about 3 s, the other sources the rest).
 Bump `PARSE_VERSION` when `read_bulletin` or `_Day` changes.
 
+I14 (approved by the user 2026-10-16): source `ing_web`, ING's own public rate
+page `https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari`.
+It replaces the hand-copied `ing_turuncu_hesap.csv` and `ing_e_vadeli.csv`;
+those files stay in `data/inbox/manual` as the fallback.
+
+- Checked by the lead on 2026-10-16. robots.txt allows the page; it disallows
+  `/documents/*`, `/objects/*`, most of `/assets/*`, the search pages and some
+  form paths (config rejects disallowed paths, as for tefas_web). The terms
+  (`/tr/ing/kullanim-sartlari`) say all rights reserved, for information only,
+  not binding; no rule on automated access (as the `manual` tos_note).
+- The rates are not in the page HTML. The page is one ASP.NET WebForms form
+  (`method=post`, action = the same URL, hidden `__VIEWSTATE` (encrypted),
+  `__VIEWSTATEGENERATOR`, `__VIEWSTATEENCRYPTED`; no `__EVENTVALIDATION`).
+  Three requests per product, one cookie client, at least `delay_seconds` (2)
+  between requests:
+  1. GET the page; read the hidden `__*` inputs.
+  2. POST them + `__EVENTTARGET=5575$DdlCurrencyType`, `__EVENTARGUMENT=`,
+     `5575$DdlCurrencyType=0` (TL), `5575$DdlProductList=-1`. The response lists
+     the products (`E_ORANGE_ACCOUNT_GROUP` Turuncu Hesap,
+     `E_TIME_DEPOSIT_ACCOUNT` e-Vadeli Mevduat, `ORANGE_ACCOUNT_KID_GROUP`,
+     `E_ORANGE_ACCOUNT_ACCUMULATING_GROUP`) and has new hidden inputs.
+  3. POST the new hidden inputs + `__EVENTTARGET=5575$BtnSend`, currency 0,
+     `5575$DdlProductList=<product>`. The response has one `<table>`.
+  A POST of step 3 straight after step 1 returns no table (checked). The form
+  field names, the currency value and the product values are config, not code.
+- Products in config: `E_TIME_DEPOSIT_ACCOUNT` and `E_ORANGE_ACCOUNT_GROUP`
+  (6 requests per ingest). The payload is the step-3 HTML of each product
+  (`<product>.html`, SHA-256 in the manifest); steps 1–2 are not stored. Replay
+  parses only the payloads.
+- Parse (pure, from the payload):
+  - e-Vadeli: header row = the amount columns (`4.999,99-99.999` …
+    `30.000.000 üzeri`); each body row = a term (`1-6 gün` … `366-370 gün`);
+    a cell repeats the column label, then `%15,00`. Row entity
+    `ING e-Vadeli Mevduat, <term>, <column> TL`, e.g.
+    `ING e-Vadeli Mevduat, 32-45 gün, 99.999,99-250.000 TL` (the manual names).
+  - Turuncu: columns balance, Faiz İşletilmeyecek Tutar (TL), Hoş Geldin Faizi,
+    Standart Faiz; 14 rows. Two rows per balance:
+    `ING Turuncu Hesap standart, <balance> TL` and
+    `ING Turuncu Hesap hoş geldin, <balance> TL`; the balance label of the first
+    row `9.999,99 'e kadar` becomes `0-9.999,99` (the manual name). The amount
+    without interest goes into the note ("Faiz işletilmeyecek tutar 15.000 TL").
+  - quantity `deposit_rate`, unit pct, value from `%34,50` (Turkish number);
+    `as_of` from the text "<d> <Turkish month> <yyyy> itibariyle geçerli" after
+    the table; `source_url` = the page URL; note says gross/net not stated.
+  - The page or the table changed → the source fails (`on_failure: previous`):
+    no table, no as_of text, a header that does not match the config, fewer
+    rows or columns than `min_rows` / `min_columns` of the product, a cell that
+    is not a percent. Never partial rows.
+- Which row the engine uses: the decision index takes the latest `as_of` per
+  (quantity, entity), so the web rows win over the older manual rows. On the
+  same `as_of`, different values give the cross-source `conflict` flag (check 4),
+  since both sources use the same entity names. If the web source fails, the
+  previous web snapshot rows come with `fallback_snapshot`; if none exists, the
+  manual rows are used. Staleness: the existing `deposit_rate` `max_age_days`
+  (14).
+- First fetch (2026-10-16, "16 Ekim 2026 itibariyle geçerli"): e-Vadeli 11
+  terms × 8 columns; Turuncu 14 balances. The e-Vadeli rates changed after the
+  manual file of 10.10 (the engine's cell 32-45 gün / 99.999,99-250.000 TL:
+  35,00 → 34,50 %; 7-15 gün: 33,00 → 32,00 %). Turuncu is unchanged.
+- Tests (offline): the saved step-3 pages of 2026-10-16 as fixtures; the parse
+  of both products (count, names, values, as_of, notes); the form flow with a
+  mocked transport (the 3 requests, their fields, the delay, the cookie); each
+  failure case above; replay identical; the precedence over the manual rows.
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes
