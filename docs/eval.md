@@ -141,3 +141,27 @@ Config: `config/eval.yaml` (lead-owned). Scenario files:
   clear for the RM 52 %, balanced 62 % (14.10 morning, prompt n9: 50 / 57 / 62 %).
 - Top 3: P01 PPN, OSD, AIS; P02 EIL, KDE, NJR; P03 ASELS (share), IDY, OKT; P04 RPP,
   OKT, TCF; P05 EIL, GBL, KSK.
+
+## E11: eval of the agentic top-3 decision (2026-10-15, ing-eval; eval@073ac4b)
+
+- `rmprep eval --agent` turns it on (about $2; without the flag the eval is
+  unchanged: no files, no check, no calls). With `--no-llm` too, the agent part
+  runs without model calls.
+- Check `agent_decision` (rule checks): `rmprep.agent.checks.check_decision` on the
+  stored picks against a pack the eval builds again, plus `engine_top3` and the
+  estimate / web labels and flags; n/a without a decision or with the agent off; a
+  fallback passes and its reason is counted; a decision still running at the
+  deadline fails.
+- `agent_eval.py`: one AgentService per scenario run with its own cache
+  (`data/eval/agent/<scenario>/`); the eval's limit of $5 applies (the agent's daily
+  limit is off); `RecordingResearch` adds injected news and records the research;
+  the pack is stored next to the decision. Scenarios
+  `src/rmprep/eval/scenarios/agent/agent.yaml`: agent-negative-news (P01, a negative
+  event for the engine's #1), agent-rm-split (P03, RM split 80/5/10/5/0),
+  agent-crash (P03, watch stock:KTLEV); keys `holdings`, `holdings_origin`,
+  `agent_news`, `agent_watch`.
+- Repeatability: a second decision in a fresh cache dir; the share of identical
+  top 3 (report only); the cache gives the same decision again.
+- A/B judge (Haiku, blind, order seeded by the run id, cached in
+  `data/eval/judge-ab/`): agent, engine or equal; a top 3 that did not change is not
+  sent. Report section "Agent (E11)".

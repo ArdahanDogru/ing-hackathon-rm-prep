@@ -158,6 +158,10 @@ def _eval(paths: Paths, args: argparse.Namespace) -> int:
     kw = {"suite": args.suite, "only": args.only or None, "snapshot": args.snapshot}
     if args.no_llm:                       # template texts, no grades, no cost
         kw.update(narrator=None, judge=None)
+    if args.agent:                        # E11: the agentic top 3 (docs/agent.md; costs about $2)
+        kw["agent"] = True
+        if args.no_llm:                   # no model: the agent part is checked without calls
+            kw.update(agent_client=None, ab_judge=None)
     result = run_suite(paths.root, **kw)
     if result.report_dir is not None:
         print((result.report_dir / "report.md").read_text(encoding="utf-8"))
@@ -199,6 +203,8 @@ def main(argv: list[str] | None = None) -> int:
     p_eval.add_argument("--snapshot", help="snapshot id (default: the frozen eval snapshot)")
     p_eval.add_argument("--no-llm", action="store_true",
                         help="no narrator LLM and no judge: template texts, no cost")
+    p_eval.add_argument("--agent", action="store_true",
+                        help="also run the agentic top-3 decision (E11): about $2")
     p_serve = sub.add_parser("serve", help="start the web app and its API on 127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8600)
     p_serve.add_argument("--personas", type=Path,
