@@ -268,7 +268,9 @@ def research_from_root(root: Path | str, env: Mapping[str, str] | None = None) -
             key = env.get(config.exa.api_key_env, "").strip()
             if key:
                 from rmprep.research.exa import ExaProvider
-                providers.append(ExaProvider(config.exa, config.system_prompt, key))
+                providers.append(ExaProvider(config.exa, config.system_prompt, key,
+                                             highlights_prompt=config.highlights_prompt,
+                                             news_days=config.shape.news_days))
         elif name == "claude" and config.claude is not None:
             from rmprep.research.claude_search import ClaudeSearchProvider
             p = ClaudeSearchProvider.from_env(config.claude, config.system_prompt,
