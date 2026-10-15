@@ -11,6 +11,8 @@ meeting text of each language.
 - Evidence edits (bad data) give the evidence a snapshot id of its own
   (`<snapshot>~<scenario id>`), so their runs never share a run_id (or a cached
   meeting text) with a run on the clean snapshot.
+- A scenario `holdings` (E11) is the RM's current split (D27): a new run after
+  the answers (RealBackend.set_holdings), as the API makes it.
 - The eval has its own cost limit per suite run (config/eval.yaml); over it, no
   new meeting text is asked for. The cost of a text is the growth of the
   narrator's cost ledger (a cached text costs nothing).
@@ -24,7 +26,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from rmprep.backend import RealBackend
 from rmprep.contracts import (
@@ -86,6 +88,7 @@ class RunRecord:
     seconds_narrate: dict[str, float] = field(default_factory=dict)
     narrator_cost_usd: float = 0.0
     errors: list[str] = field(default_factory=list)
+    agent: Any = None                       # E11: agent_eval.AgentRecord (with the agent only)
 
 
 @dataclass
@@ -166,6 +169,8 @@ class Runner:
         errors: list[str] = []
         t = time.perf_counter()
         result = self._answered(b, b.decide(persona, snapshot, s.exclude_sources), s, errors)
+        if s.holdings is not None:
+            result = b.set_holdings(result.run_id, s.holdings, s.holdings_origin)
         t_decide = time.perf_counter() - t
 
         rec = RunRecord(repeat=k, backend=b, persona=persona, evidence=ev, result=result,

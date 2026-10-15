@@ -124,3 +124,93 @@ class FakeNarrator:
                            "llm", "fake-model", "fake", (), T0, cost_usd=self.cost)
         self.cache[key] = d
         return d
+
+
+# --- E11: the agent (fake model, fake research) -------------------------------------
+
+AGENT_MODEL = "claude-sonnet-5-5"
+
+
+def agent_root(root: Path) -> Path:
+    """The tmp root with config/agent.yaml copied (the agent's prices and texts)."""
+    (root / "config" / "agent.yaml").write_bytes((PROJECT / "config" / "agent.yaml").read_bytes())
+    return root
+
+
+def pack_of(messages: list[dict]) -> dict:
+    text = messages[0]["content"][0]["text"]
+    return json.loads(text.removeprefix("<veri>\n").removesuffix("\n</veri>"))
+
+
+class PackClient:
+    """A fake agent model: reads the data pack and calls karar_ver at once.
+    mode "keep": the engine's top 3; mode "swap": the engine's #1 is replaced by the
+    best other candidate of the same kind and asset class (so the caps still hold).
+    `web`: the first pick also cites its first research finding. Each step costs
+    1000 input and 200 output tokens."""
+
+    def __init__(self, mode: str = "keep", *, web: bool = False, block=None):
+        self.mode = mode
+        self.web = web
+        self.block = block              # a threading.Event: step waits for it
+        self.calls = 0
+        self.packs: list[dict] = []
+
+    @staticmethod
+    def _reason(cand: dict) -> dict:
+        return {"metin": "Puanı adaylar arasında güçlü.",
+                "kaynaklar": [cand["puan_parcalari"][0]["id"]]}
+
+    def step(self, system, messages, tools):
+        from rmprep.agent.client import AgentTurn, ToolCall
+
+        if self.block is not None:
+            self.block.wait(10)
+        self.calls += 1
+        pack = pack_of(messages)
+        self.packs.append(pack)
+        cands = {c["option_id"]: c for c in pack["adaylar"]}
+        top = list(pack["motor_ilk3"])
+        picks, dropped = list(top), []
+        if self.mode == "swap":
+            first = cands[top[0]]
+            alt = next((c for c in pack["adaylar"] if c["option_id"] not in top
+                        and c["tur"] == first["tur"]
+                        and c["varlik_sinifi"] == first["varlik_sinifi"]), None)
+            if alt is not None:
+                picks = [alt["option_id"], *top[1:]]
+                dropped = [top[0]]
+        secimler = []
+        for i, oid in enumerate(picks):
+            reasons = [self._reason(cands[oid])]
+            found = pack["arastirma"].get(oid, {}).get("bulgular", [])
+            if self.web and i == 0 and found:
+                reasons.append({"metin": "Web bulgusu ürünü destekliyor.",
+                                "kaynaklar": [found[0]["id"]]})
+            secimler.append({"option_id": oid, "gerekceler": reasons})
+        inp = {"secimler": secimler,
+               "cikanlar": [{"option_id": o, "gerekce": self._reason(cands[o])} for o in dropped],
+               "ozet": "Müşterinin profiline en uygun üç ürün seçildi.", "amac": "Son karar."}
+        call = ToolCall(f"toolu_{self.calls:04d}", "karar_ver", inp)
+        return AgentTurn((call,), 1000, 200, "tool_use", AGENT_MODEL)
+
+
+class AgentFakeResearch:
+    """research_many: one highlight per product (no number, no date); ask_product: one
+    finding. Records the calls."""
+
+    def __init__(self):
+        self.many_calls: list[list[str]] = []
+
+    def research_many(self, options, lang):
+        from rmprep.research.types import Finding, ProductResearch, Source
+
+        self.many_calls.append([o.option_id for o in options])
+        return [ProductResearch(
+            o.option_id, o.label, "Örnek Portföy", "", (Finding(
+                f"{o.label} kısa vadeli araçlara yatırım yapar.", "urun",
+                (Source("https://www.tefas.gov.tr/fon", "Fon"),)),), lang, "exa", T0)
+            for o in options]
+
+    def ask_product(self, option, question, lang, persona=None):
+        return "not used"

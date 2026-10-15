@@ -17,7 +17,7 @@ SCORE = {"yes": 1.0, "partly": 0.5, "no": 0.0}     # judge choice -> score
 
 RULE_CHECKS = ("rule5", "risk_ceiling", "not_buyable", "explicit_constraints",
                "no_invented_data", "missing_data_shown", "bad_data_handled", "questions",
-               "consistency", "traceability", "scenario_runs")
+               "consistency", "traceability", "scenario_runs", "agent_decision")
 
 
 def _rate(c: dict[str, int]) -> float | None:
