@@ -8,6 +8,7 @@ result it returned, because the protocol has no "get run".
 from __future__ import annotations
 
 import dataclasses
+import inspect
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
@@ -240,8 +241,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     @app.get("/api/runs/{run_id}/brief")
     def brief(run_id: str, lang: str = "TR"):
-        _run(run_id)
-        b = backend.brief(run_id, _lang(lang))
+        result = _run(run_id)
+        b = backend.brief(run_id, _lang(lang), **_brief_top3(result))
         if b is None:
             return JSONResponse(status_code=202, content={"status": "running"})
         return b.to_dict()
@@ -257,6 +258,17 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     def _agent_off(result: DecisionResult, reason: str) -> dict:
         return AgentDecision(result.run_id, "off", (), (), "", tuple(result.recommended), (), "", "",
                              0.0, datetime.now(TR_TZ), fallback_reason=reason).to_dict()
+
+    def _brief_top3(result: DecisionResult) -> dict:
+        """W20c: {"top3": the agent's picks} when the agent is done and changed the top 3
+        (and the backend can write a brief for them), else {} (the engine's brief)."""
+        if not _agent_on() or "top3" not in inspect.signature(backend.brief).parameters:
+            return {}
+        d = agent.status(result.run_id)
+        if d is None or d.state != "done":
+            return {}
+        picks = tuple(p.option_id for p in d.picks)
+        return {"top3": picks} if set(picks) != set(result.recommended) else {}
 
     @app.get("/api/runs/{run_id}/agent")
     def agent_decision(run_id: str):

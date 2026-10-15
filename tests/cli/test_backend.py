@@ -283,3 +283,29 @@ def test_set_holdings_keeps_the_answers(backend):
     answered = backend.answer_question(r.run_id, q.question_id, q.choices[0])
     split = backend.set_holdings(answered.run_id, _SPLIT, "rm")
     assert next(x for x in split.questions if x.question_id == q.question_id).answer == q.choices[0]
+
+
+# --- the brief from the agent's top 3 (W20c, 2026-10-15) --------------------------------
+
+def test_brief_for_another_top3_uses_those_picks(backend):
+    seen = []
+
+    class Stub:
+        def brief(self, result, ev, lang):
+            from rmprep.brief import template_brief
+            seen.append(tuple(result.recommended))
+            return template_brief(result, lang, T0)
+
+    backend._narrator = lambda: Stub()
+    r = _ready(backend)
+    ids = [o.option.option_id for o in r.options if o.option.kind != "deposit"]
+    other = (ids[1], ids[0], ids[3]) if len(ids) > 3 else tuple(reversed(ids[:3]))
+    backend.wait_for_background()
+    first = backend.brief(r.run_id, "TR")
+    backend.wait_for_background()
+    b = backend.brief(r.run_id, "TR", top3=other)
+    backend.wait_for_background()
+    b = backend.brief(r.run_id, "TR", top3=other)
+    assert b is not None and b is not first
+    assert other in seen and tuple(r.recommended) in seen
+    assert backend.brief(r.run_id, "TR", top3=other) is b          # kept, no second job

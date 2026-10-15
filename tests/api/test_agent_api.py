@@ -94,3 +94,35 @@ def test_a_disabled_agent_is_off_with_its_reason(backend):
     r = c.get(f"/api/runs/{v['result']['run_id']}/agent")
     assert r.status_code == 200 and r.json()["state"] == "off" and "ANTHROPIC" in r.json()["fallback_reason"]
     assert agent.started == []
+
+
+def test_the_brief_follows_the_agent_top3_when_it_changed(backend):
+    """W20c: GET /brief passes the agent's picks to the backend when they differ."""
+    calls = []
+    orig = backend.brief
+
+    def brief(run_id, lang="TR", top3=None):
+        calls.append(top3)
+        return orig(run_id, lang)
+
+    backend.brief = brief
+    agent = FakeAgent()
+    c = _client(backend, agent)
+    v = _ready(c, backend)
+    rid = v["result"]["run_id"]
+    from rmprep.contracts import DecisionResult
+    r = DecisionResult.from_dict(v["result"])
+    c.get(f"/api/runs/{rid}/brief")
+    assert calls[-1] is None                                          # agent still running
+    ids = [o.option.option_id for o in r.options if o.option.kind != "deposit"]
+    picks = tuple(AgentPick(i, (AgentReason("Neden.", ("puan:return",)),)) for i in (ids[3], ids[0], ids[1]))
+    agent.done[rid] = AgentDecision(rid, "done", picks, (), "Özet.", tuple(r.recommended), (),
+                                    "claude-sonnet-5-5", "a2", 0.03, T)
+    c.get(f"/api/runs/{rid}/brief")
+    assert calls[-1] == (ids[3], ids[0], ids[1])
+    if len(r.recommended) == 3:                    # the fixture run may have a shorter top 3
+        same = tuple(AgentPick(i, (AgentReason("Neden.", ("puan:return",)),)) for i in r.recommended)
+        agent.done[rid] = AgentDecision(rid, "done", same, (), "Özet.", tuple(r.recommended), (),
+                                        "claude-sonnet-5-5", "a2", 0.03, T)
+        c.get(f"/api/runs/{rid}/brief")
+        assert calls[-1] is None                                      # same picks: the engine's brief

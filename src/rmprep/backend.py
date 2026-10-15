@@ -256,24 +256,30 @@ class RealBackend:
 
     # --- dashboard brief (contract v1.4) -------------------------------------------
 
-    def brief(self, run_id: str, lang: str = "TR") -> NarrativeBrief | None:
+    def brief(self, run_id: str, lang: str = "TR",
+              top3: tuple[str, ...] | None = None) -> NarrativeBrief | None:
+        """top3 (W20c, 2026-10-15): write the brief for these picks instead of the
+        engine's top 3 (the agent's decision); each top 3 has its own job."""
         result, _ = self._runs[run_id]
         if result.state != DecisionState.READY:
             raise ValueError("a brief needs a ready run")
         if lang not in NARRATIVE_LANGS:
             raise ValueError(f"lang must be one of {NARRATIVE_LANGS}, got {lang!r}")
-        job = self._start_brief(run_id, lang)
+        job = self._start_brief(run_id, lang, tuple(top3 or ()))
         return job.result() if job.done() else None
 
-    def _start_brief(self, run_id: str, lang: str) -> Future:
+    def _start_brief(self, run_id: str, lang: str, top3: tuple[str, ...] = ()) -> Future:
         with self._lock:
-            job = self._briefs.get((run_id, lang))
+            key = (run_id, lang) if not top3 else (run_id, lang, top3)
+            job = self._briefs.get(key)
             if job is None:
-                job = self._briefs[(run_id, lang)] = self._pool.submit(self._brief_now, run_id, lang)
+                job = self._briefs[key] = self._pool.submit(self._brief_now, run_id, lang, top3)
             return job
 
-    def _brief_now(self, run_id: str, lang: str) -> NarrativeBrief:
+    def _brief_now(self, run_id: str, lang: str, top3: tuple[str, ...] = ()) -> NarrativeBrief:
         result, inputs = self._runs[run_id]
+        if top3:
+            result = dataclasses.replace(result, recommended=top3)
         try:
             narrator = self._narrator()
             if not hasattr(narrator, "brief"):  # before narrator N10
