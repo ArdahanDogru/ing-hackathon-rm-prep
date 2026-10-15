@@ -5,7 +5,8 @@
 import { useContext, useState } from "react";
 import { api } from "../api/client";
 import type { AgentDecision, AgentPick, ResearchFinding, ResearchView, RunView } from "../api/types";
-import { fill, LangContext, useT, type LabelKey } from "../i18n";
+import { fill, LangContext, useT } from "../i18n";
+import { useLabelOf } from "./WhyPanel";
 
 /** The ids of the agent's picks that have an option view (the cards and the meeting chips use them). */
 export function agentTop(view: RunView, d: AgentDecision | null): string[] | null {
@@ -41,6 +42,7 @@ export function AgentPicks({
 }) {
   const t = useT();
   const lang = useContext(LangContext);
+  const labelOf = useLabelOf();
   const [engineOpen, setEngineOpen] = useState(false);
   const [finding, setFinding] = useState<string | null>(null);
   const [research, setResearch] = useState<ResearchView | null>(null);
@@ -60,10 +62,14 @@ export function AgentPicks({
 
   const chip = (cite: string, pick: AgentPick) => {
     if (cite.startsWith("puan:")) {
+      // the agent pack writes the score part "penalty:<rule>" as "puan:penalty_<rule>"
       const key = cite.slice(5);
+      const part = key.startsWith("penalty_")
+        ? { key: `penalty:${key.slice("penalty_".length)}`, penalty: true }
+        : { key, penalty: false };
       return (
         <button key={cite} type="button" className={chipClass} title={cite} onClick={() => onOpen(pick.option_id)}>
-          {t(`crit_${key}` as LabelKey) ?? key}
+          {labelOf(part)}
         </button>
       );
     }

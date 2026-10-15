@@ -1,5 +1,5 @@
 // Brief card (B4 item 3): who the client is, the brief, the data line, readiness n / 3.
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { Lang, NarrativeBrief, Persona, RunView } from "../api/types";
 import { LangContext, useT } from "../i18n";
@@ -9,11 +9,15 @@ const POLL_MAX = 10;
 
 /** The LLM brief of a ready run, or null: asked at once, then every 2 s while it runs,
  * at most 10 calls. A template brief, an error or 10 "running" answers give null (the
- * plain sentence stays). */
-export function useLlmBrief(runId: string, lang: Lang, enabled: boolean): NarrativeBrief | null {
+ * plain sentence stays). A new `refresh` asks again (W20c: the agent changed the top 3);
+ * the brief on screen stays until the new one is there. */
+export function useLlmBrief(runId: string, lang: Lang, enabled: boolean, refresh = 0): NarrativeBrief | null {
   const [brief, setBrief] = useState<NarrativeBrief | null>(null);
+  const shown = useRef("");
   useEffect(() => {
-    setBrief(null);
+    const key = `${runId}|${lang}|${enabled}`;
+    if (shown.current !== key) setBrief(null); // another run or language: not the old text
+    shown.current = key;
     if (!enabled) return;
     let done = false;
     let calls = 0;
@@ -36,7 +40,7 @@ export function useLlmBrief(runId: string, lang: Lang, enabled: boolean): Narrat
     const timer = setInterval(ask, POLL_MS);
     ask();
     return stop;
-  }, [runId, lang, enabled]);
+  }, [runId, lang, enabled, refresh]);
   return brief;
 }
 
@@ -57,18 +61,21 @@ export function BriefCard({
   confirmOpen,
   onEdit,
   onEvidence,
+  refresh = 0,
 }: {
   view: RunView;
   confirmOpen: number;
   onEdit?: () => void;
   onEvidence?: (id: string) => void;
+  /** a new value asks for the brief again (W20c) */
+  refresh?: number;
 }) {
   const t = useT();
   const lang = useContext(LangContext);
   const [showSources, setShowSources] = useState(false);
   const r = view.result;
   const p = r.persona;
-  const llm = useLlmBrief(r.run_id, lang, r.state === "ready");
+  const llm = useLlmBrief(r.run_id, lang, r.state === "ready", refresh);
   const cite = llm?.cite ?? [];
   const low = (x: string) => x.toLocaleLowerCase("tr");
   const ready = r.state === "ready";
