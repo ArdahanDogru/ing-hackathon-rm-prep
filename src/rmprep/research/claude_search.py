@@ -30,9 +30,9 @@ BOUNDARY = re.compile(rf"({SENTENCE_END})\s+|\n")     # a unit ends at a newline
 BLOCK_END = re.compile(rf"{SENTENCE_END}\s*$")
 PRODUCT_PROMPT = {
     "TR": ("Şu yatırım ürününü ve onu yöneten veya ihraç eden şirketi web'de araştır: {label} ({code}). "
-           "En fazla 4 kısa madde yaz, her biri en fazla 20 kelime ve bir kaynağa dayansın: ürünün neye "
-           "yatırım yaptığı ve olağan dışı bir gelişme varsa o. Sonra 'ŞİRKET: <şirket adı>' satırını ve "
-           "şirket hakkında tek bir kısa madde yaz."),
+           "En fazla 4 kısa madde yaz, her biri en fazla 20 kelime ve bir kaynağa dayansın: "
+           "ürünün neye yatırım yaptığı ve olağan dışı bir gelişme varsa o. Sonra 'ŞİRKET: <şirket adı>' "
+           "satırını ve şirket hakkında tek bir kısa madde yaz."),
     "EN": ("Research this investment product and the company that manages or issues it on the web: "
            "{label} ({code}). Write at most 4 short bullets, each at most 20 words and based on one "
            "source: what the product invests in, and any unusual development. Then write the line "

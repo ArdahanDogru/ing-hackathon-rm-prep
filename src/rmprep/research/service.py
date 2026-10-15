@@ -6,7 +6,8 @@ only auth, credit, server and connection errors fall back to the next one.
 Research is per product, not per client: the cache key is (option id, language,
 Turkish date, shape version). Every provider result is shaped (shape.py) before it
 is cached, so the cache holds what the panel shows; v1 files are never read. A
-failed product is not cached; `start` (a new run view) tries it again, `status` (polling) never does, so a lasting error ends the polling."""
+failed product is not cached; `start` (a new run view) tries it again, `status` (polling) never does,
+so a lasting error ends the polling."""
 
 from __future__ import annotations
 
