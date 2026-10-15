@@ -45,7 +45,7 @@ covers API-only actions (research questions, card downloads).
 | `decision_approved` / `decision_rejected` | `POST /api/runs/{id}/approval` | `engine_top3`, `agent_top3`, `agent_state`, `selected`, `note` |
 | `notes_saved` | `PUT /api/runs/{id}/notes` | `note`, `option_notes` |
 | `text_block_edited` / `text_block_deleted` / `text_block_restored` | `PUT /api/runs/{id}/narrative/{lang}/blocks/{block}` | `block_id`, `before`, `after`, `findings` |
-| `card_downloaded` | `GET /api/runs/{id}/card.md` (and the print view's data call) | `format`, `has_text` |
+| `card_downloaded` | `GET /api/runs/{id}/card.md` | `format` (md), `has_text` |
 | `research_question` | `POST /api/runs/{id}/research/questions` | `question`, `refused`, `findings` (count) |
 
 - `card_downloaded` is the one logged `GET`: it is a deliberate RM action (a file
@@ -57,6 +57,10 @@ covers API-only actions (research questions, card downloads).
 - A refused action (4xx) is logged only for `card_downloaded` and
   `research_question` (the refusal is part of the signal); other 4xx calls change
   nothing and are not logged.
+
+- The PDF is the browser's print of the print page: the server cannot tell it
+  from a page view, so it is not logged without a web change (the user,
+  2026-10-15: no frontend change in L1).
 
 ## 6. Safety
 
