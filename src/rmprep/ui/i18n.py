@@ -152,6 +152,16 @@ LABELS: dict[str, dict[str, str]] = {
     "terms": {"TR": "Terimler", "EN": "Terms"},
     # meeting text (narrator, contract v1.2)
     "nar_title": {"TR": "Görüşme metni", "EN": "Meeting text"},
+    # agent decision (contract v1.11, docs/agent.md)
+    "ag_title": {"TR": "Ajan kararı", "EN": "Agent decision"},
+    "ag_engine": {"TR": "Motor önerisi: {labels}", "EN": "Engine recommendation: {labels}"},
+    "ag_agent": {"TR": "Ajan önerisi:", "EN": "Agent recommendation:"},
+    "ag_rm": {"TR": "RM seçimi: {labels}", "EN": "RM choice: {labels}"},
+    "ag_fallback": {"TR": "Motor önerisi kullanıldı: {reason}",
+                    "EN": "The engine's recommendation was used: {reason}"},
+    "ag_dropped": {"TR": "Çıkarılan: {label}: {why}", "EN": "Dropped: {label}: {why}"},
+    "ag_meta": {"TR": "Model {model} · istem {prompt} · maliyet ${cost:.3f}",
+                "EN": "Model {model} · prompt {prompt} · cost ${cost:.3f}"},
     "nar_wait": {"TR": "Görüşme metni hazırlanıyor…", "EN": "Preparing the meeting text…"},
     "nar_error": {"TR": "Görüşme metni hazırlanamadı: {error}",
                   "EN": "The meeting text could not be prepared: {error}"},

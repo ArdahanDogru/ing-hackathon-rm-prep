@@ -30,8 +30,14 @@ def build_app(root: Path, personas_dir: Path | None = None):
         dist = None
     # web research (docs/research.md); a root without its config has no research routes
     research = research_from_root(root) if (Path(root) / "config" / "research.yaml").is_file() else None
+    # agentic top 3 (docs/agent.md); a root without its config has no agent (the route answers "off")
+    agent = None
+    if (Path(root) / "config" / "agent.yaml").is_file():
+        from rmprep.agent.service import agent_from_root
+        agent = agent_from_root(root, research)
     return create_app(backend, views=views, static_dir=dist,
-                      ingest=IngestControl(Paths(Path(root).resolve())), research=research)
+                      ingest=IngestControl(Paths(Path(root).resolve())), research=research,
+                      agent=agent)
 
 
 def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None) -> None:

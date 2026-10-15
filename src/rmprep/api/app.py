@@ -11,6 +11,7 @@ import dataclasses
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -24,6 +25,8 @@ from rmprep.api import schemas
 from rmprep.contracts import (
     BLOCKING_CHECK_KINDS,
     NARRATIVE_LANGS,
+    TR_TZ,
+    AgentDecision,
     Backend,
     DecisionResult,
     DecisionState,
@@ -48,11 +51,12 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
                glossary_path: Path | str = GLOSSARY,
                static_dir: Path | None = None,
                ingest: IngestControl | None = None,
-               research=None) -> FastAPI:
+               research=None, agent=None) -> FastAPI:
     """static_dir: the built web app (web/dist); its index.html answers every
     non-API path, so the client-side routes (/meeting/..., /print/...) work.
     ingest: the data age and refresh (W14); None = /api/ingest answers 404.
-    research: a rmprep.research.service.ResearchService (docs/research.md); None = no research routes."""
+    research: a rmprep.research.service.ResearchService (docs/research.md); None = no research routes.
+    agent: a rmprep.agent.service.AgentService (docs/agent.md); None = the agent route answers "off"."""
     app = FastAPI(title="rmprep", docs_url="/api/docs", openapi_url="/api/openapi.json")
     runs: dict[str, DecisionResult] = {}
     texts: dict[tuple[str, str], NarrativeDraft] = {}   # (run_id, lang) -> last draft / approved text
@@ -74,6 +78,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         runs[result.run_id] = result
         if research is not None and result.state == DecisionState.READY:
             research.start(result, "TR")      # web research of the top 3 (docs/research.md)
+        if _agent_on() and result.state == DecisionState.READY:
+            _start_agent(result)              # the agentic top 3 (docs/agent.md), in the background
         changes = _changes(result.persona)
         out = {"result": result.to_dict(), "test_run": bool(changes), "persona_changes": changes}
         if views is not None:
@@ -205,7 +211,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         ev = backend.evidence(result.snapshot_id, result.excluded_sources)
         md = card.render_markdown(result, ev, lang, narrative=_approved_text(run_id, lang),
                                   glossary_terms=terms,
-                                  current_text=_current_text(run_id, lang, strict))
+                                  current_text=_current_text(run_id, lang, strict),
+                                  agent=agent.status(run_id) if _agent_on() else None)
         backend.save_card(run_id, md)
         return md
 
@@ -238,6 +245,39 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         if b is None:
             return JSONResponse(status_code=202, content={"status": "running"})
         return b.to_dict()
+
+    # --- agentic top 3 (v1.11, docs/agent.md) -------------------------------------
+
+    def _agent_on() -> bool:
+        return agent is not None and getattr(agent, "enabled", True)
+
+    def _start_agent(result: DecisionResult) -> None:
+        agent.start(result, backend.evidence(result.snapshot_id, result.excluded_sources), "TR")
+
+    def _agent_off(result: DecisionResult, reason: str) -> dict:
+        return AgentDecision(result.run_id, "off", (), (), "", tuple(result.recommended), (), "", "",
+                             0.0, datetime.now(TR_TZ), fallback_reason=reason).to_dict()
+
+    @app.get("/api/runs/{run_id}/agent")
+    def agent_decision(run_id: str):
+        """202 with the nodes while the agent runs; 200 when it is done, fell back or is off."""
+        result = _run(run_id)
+        if agent is None:
+            return _agent_off(result, "the agent is not configured (config/agent.yaml)")
+        if not _agent_on():
+            return _agent_off(result, getattr(agent, "off_reason", "") or "the agent is off")
+        if result.state != DecisionState.READY:
+            return _agent_off(result, "the run is not ready: an RM question is open")
+        d = agent.status(run_id)
+        if d is None:                      # e.g. a run made before the server started the agent
+            _start_agent(result)
+            d = agent.status(run_id)
+        if d is None or d.state == "running":
+            body = d.to_dict() if d is not None else _agent_off(result, "starting")
+            if d is None:
+                body["state"] = "running"
+            return JSONResponse(status_code=202, content=body)
+        return d.to_dict()
 
     @app.get("/api/runs/{run_id}/card.md")
     def card_md(run_id: str, lang: str = "TR"):

@@ -11,6 +11,7 @@ import html
 from dataclasses import dataclass, field
 
 from rmprep.contracts import (
+    AgentDecision,
     DecisionResult,
     EvidenceSet,
     NarrativeDraft,
@@ -116,13 +117,40 @@ def _terms(body: str, glossary_terms: tuple[glossary.Term, ...],
     return glossary.find_terms(body, glossary_terms, lang)
 
 
+def _agent_lines(r: DecisionResult, agent: AgentDecision | None, lang: str) -> list[str]:
+    """v1.11: the section "Ajan kararı" (Markdown lines; empty without a done or fallback decision)."""
+    if agent is None or agent.state not in ("done", "fallback") or agent.run_id != r.run_id:
+        return []
+    names = {o.option.option_id: o.option.label for o in r.options}
+    label = lambda oid: names.get(oid, oid)                       # noqa: E731
+    reason = lambda x: " ".join([x.text, *x.labels])              # noqa: E731
+    out = ["", f"## {t('ag_title', lang)}", "",
+           f"- {t('ag_engine', lang, labels=', '.join(label(i) for i in agent.engine_top3))}"]
+    if agent.state == "fallback":
+        out.append(f"- {t('ag_fallback', lang, reason=agent.fallback_reason)}")
+    else:
+        out.append(f"- {t('ag_agent', lang)}")
+        for n, p in enumerate(agent.picks, start=1):
+            out.append(f"  - {n}. **{label(p.option_id)}**")
+            out += [f"    - {reason(x)}" for x in p.reasons]
+        out += [f"- {t('ag_dropped', lang, label=label(p.option_id), why=' '.join(reason(x) for x in p.reasons))}"
+                for p in agent.dropped]
+        if agent.summary:
+            out.append(f"- {agent.summary}")
+    if r.rm_selected:
+        out.append(f"- {t('ag_rm', lang, labels=', '.join(label(i) for i in r.rm_selected))}")
+    out.append(f"- {t('ag_meta', lang, model=agent.model, prompt=agent.prompt_version, cost=agent.cost_usd)}")
+    return out
+
+
 def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
                     narrative: NarrativeDraft | None = None,
                     glossary_terms: tuple[glossary.Term, ...] = (),
-                    current_text: str | None = None) -> str:
+                    current_text: str | None = None,
+                    agent: AgentDecision | None = None) -> str:
     """current_text (W19, 2026-10-15): the meeting text as it is now, with the RM's
-    edits, used when there is no approved text."""
-    body = _markdown_body(r, evidence, lang, narrative, current_text)
+    edits, used when there is no approved text. agent (v1.11): the agent decision."""
+    body = _markdown_body(r, evidence, lang, narrative, current_text, agent)
     found = _terms(body, glossary_terms, lang)
     if not found:
         return body
@@ -132,7 +160,8 @@ def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
 
 
 def _markdown_body(r: DecisionResult, evidence: EvidenceSet, lang: str,
-                   narrative: NarrativeDraft | None, current_text: str | None = None) -> str:
+                   narrative: NarrativeDraft | None, current_text: str | None = None,
+                   agent: AgentDecision | None = None) -> str:
     lines = [f"# {_title(r, lang)}", "", _meta(r, lang)]
     lines += _approvals(r, narrative, lang)
     for s in _sections(r, evidence, lang):
@@ -140,6 +169,7 @@ def _markdown_body(r: DecisionResult, evidence: EvidenceSet, lang: str,
         for it in s.items:
             lines.append(f"- **{it.text}**" if it.strong else f"- {it.text}")
             lines += [f"  - {x}" for x in it.sub]
+    lines += _agent_lines(r, agent, lang)
     text = _narrative_text(r, narrative, lang) or current_text
     if text is not None:
         lines += ["", f"## {t('nar_title', lang)}", "", _demoted(text.strip())]
@@ -156,7 +186,8 @@ border-bottom:1px solid #d6d5d0}.meta{color:#5c5b56}li{margin:.15rem 0}
 def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
                 narrative: NarrativeDraft | None = None,
                 glossary_terms: tuple[glossary.Term, ...] = (),
-                current_text: str | None = None) -> str:
+                current_text: str | None = None,
+                agent: AgentDecision | None = None) -> str:
     e = html.escape
     parts = ["<!DOCTYPE html>", f'<html lang="{lang.lower()}"><head><meta charset="utf-8">',
              f"<title>{e(_title(r, lang))}</title><style>{_CSS}</style></head><body>",
@@ -168,10 +199,15 @@ def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
             sub = "".join(f"<li>{e(x)}</li>" for x in it.sub)
             parts.append(f"<li>{text}{f'<ul>{sub}</ul>' if sub else ''}</li>")
         parts.append("</ul>")
+    ag = _agent_lines(r, agent, lang)
+    if ag:          # the same lines as the Markdown card, as a plain list
+        parts.append(f"<h2>{e(t('ag_title', lang))}</h2><ul>")
+        parts += [f"<li>{e(x.strip().lstrip('- ').replace('**', ''))}</li>" for x in ag[3:]]
+        parts.append("</ul>")
     text = _narrative_text(r, narrative, lang) or current_text
     if text is not None:   # the RM's Markdown as written (no converter: no new dependency)
         parts.append(f'<h2>{e(t("nar_title", lang))}</h2><pre class="narrative">{e(text)}</pre>')
-    found = _terms(_markdown_body(r, evidence, lang, narrative, current_text), glossary_terms, lang)
+    found = _terms(_markdown_body(r, evidence, lang, narrative, current_text, agent), glossary_terms, lang)
     if found:      # the same terms as the Markdown card
         items = "".join(f"<li><strong>{e(f.form)}</strong>: {e(f.explanation)}</li>"
                         for f in found)
