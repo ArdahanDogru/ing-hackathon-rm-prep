@@ -7,10 +7,16 @@ Research is per product, not per client: the cache key is (option id, language,
 Turkish date, shape version). Every provider result is shaped (shape.py) before it
 is cached, so the cache holds what the panel shows; v1 files are never read. A
 failed product is not cached; `start` (a new run view) tries it again, `status` (polling) never does,
-so a lasting error ends the polling."""
+so a lasting error ends the polling.
+
+Parallel work: the pool has `max_workers` threads, 5 by default. Exa answers 429 (rate_limit,
+which does not fall back) to many parallel calls, so 10 products take about two rounds of
+5 (20-25 s) and the daily limit can be overshot by at most about 5 products.
+`research_many` and `ask_product` are the calls of the decision agent (ResearchLike)."""
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import math
@@ -22,7 +28,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Protocol, TypeVar
 
-from rmprep.contracts import TR_TZ, DecisionResult, DecisionState, ProductOption
+from rmprep.contracts import TR_TZ, DecisionResult, DecisionState, Persona, ProductOption
 from rmprep.research.checks import check_question
 from rmprep.research.config import ResearchConfig, load_config
 from rmprep.research.shape import shape_answer, shape_product
@@ -62,7 +68,7 @@ class ResearchService:
     def __init__(self, config: ResearchConfig, providers: Sequence[SearchProvider],
                  cache_root: Path | str, *,
                  now: Callable[[], datetime] = lambda: datetime.now(TR_TZ),
-                 off_reason: str = "", max_workers: int = 3) -> None:
+                 off_reason: str = "", max_workers: int = 5) -> None:
         self._config = config
         self._providers = tuple(providers)
         self._root = Path(cache_root)
@@ -108,14 +114,49 @@ class ResearchService:
         jobs = []
         with self._lock:
             for opt in research_products(result):
-                key = (opt.option_id, lang, day)
-                job = self._jobs.get(key)
-                failed = job is not None and job.done() and (
-                    job.exception() is not None or bool(job.result().error))
-                if job is None or (retry and failed):
-                    job = self._jobs[key] = self._pool.submit(self._product, opt, lang, day)
-                jobs.append((job, opt))
+                jobs.append((self._job(opt, lang, day, retry=retry), opt))
         return jobs
+
+    def _job(self, opt: ProductOption, lang: str, day: date, *, retry: bool) -> Future:
+        """The job of (option, language, day): the running or done one, or a new one (also
+        when `retry` and the old one failed). The caller holds self._lock."""
+        key = (opt.option_id, lang, day)
+        job = self._jobs.get(key)
+        failed = job is not None and job.done() and (
+            job.exception() is not None or bool(job.result().error))
+        if job is None or (retry and failed):
+            job = self._jobs[key] = self._pool.submit(self._product, opt, lang, day)
+        return job
+
+    def research_many(self, options: Sequence[ProductOption], lang: str) -> list[ProductResearch]:
+        """Researches the options in parallel and waits for all. One item per distinct
+        option id, in input order (a repeat is researched once, at its first place). Same
+        jobs, cache, ledger and fallback as `start`; a failed job is tried again. Never
+        raises: ING's own products, a missing provider and failures give an item with `error`."""
+        distinct: dict[str, ProductOption] = {}
+        for opt in options:
+            distinct.setdefault(opt.option_id, opt)
+        day = self._now().date()
+        jobs: dict[str, Future] = {}
+        if self._providers:
+            with self._lock:
+                for oid, opt in distinct.items():
+                    if researchable(opt):
+                        jobs[oid] = self._job(opt, lang, day, retry=True)
+        wait(list(jobs.values()))
+        out = []
+        for oid, opt in distinct.items():
+            if not self._providers:
+                out.append(self._stub(opt, lang, self._off_reason))
+            elif oid not in jobs:
+                out.append(self._stub(opt, lang, f"not researched: {opt.kind}"))
+            else:
+                out.append(self._job_result(jobs[oid], opt, lang))
+        return out
+
+    def _stub(self, opt: ProductOption, lang: str, error: str) -> ProductResearch:
+        return ProductResearch(opt.option_id, opt.label, "", "", (), lang, "", self._now(),
+                               error=error, news_days=self._config.shape.news_days)
 
     def _product(self, opt: ProductOption, lang: str, day: date) -> ProductResearch:
         name = f"{opt.option_id.replace(':', '_')}-{lang}-{day:%Y%m%d}-v{SHAPE_VERSION}.json"
@@ -128,8 +169,7 @@ class ResearchService:
         except Exception as e:          # a provider bug must not break the panel
             out = f"{type(e).__name__}: {e}"
         if isinstance(out, str):
-            return ProductResearch(opt.option_id, opt.label, "", "", (), lang, "", self._now(),
-                                   error=out, news_days=self._config.shape.news_days)
+            return self._stub(opt, lang, out)
         out = shape_product(out, self._config.shape, day)
         _try_write(path, out)
         return out
@@ -159,6 +199,39 @@ class ResearchService:
         if isinstance(out, str):
             return QuestionAnswer(q, "", (), lang, "", self._now(), error=out)
         out = shape_answer(out, self._config.shape)
+        _try_write(path, out)
+        return out
+
+    def ask_product(self, option: ProductOption, question: str, lang: str,
+                    persona: Persona | None = None) -> QuestionAnswer | str:
+        """The answer to a question about one product, or the reason (a str) why there is
+        none: a refused question, research off, an ING product, or a failed call (such
+        answers are not cached). Cached per option, language, question and Turkish day in
+        product_questions/. The check runs without a persona (empty, length and client
+        words only); the agent may pass `persona` (result.persona) for the full check."""
+        reason = check_question(question, persona, lang, self._config.client_words,
+                                self._config.question_max_chars)
+        if reason:
+            return reason
+        if not self._providers:
+            return self._off_reason
+        if not researchable(option):
+            return f"not researched: {option.kind}"
+        q = question.strip()
+        digest = hashlib.sha1(q.encode("utf-8")).hexdigest()[:12]
+        name = (f"{option.option_id.replace(':', '_')}-{lang}-{self._now().date():%Y%m%d}"
+                f"-v{SHAPE_VERSION}-{digest}.json")
+        path = self._root / "product_questions" / name
+        cached = _read(path, QuestionAnswer)
+        if cached is not None:
+            return cached
+        try:
+            out = self._call(lambda p: p.answer_question(q, [option], lang), "question", path.stem)
+        except Exception as e:
+            out = f"{type(e).__name__}: {e}"
+        if isinstance(out, str):
+            return out
+        out = dataclasses.replace(shape_answer(out, self._config.shape), option_id=option.option_id)
         _try_write(path, out)
         return out
 
@@ -216,9 +289,7 @@ class ResearchService:
         exc = job.exception()
         if exc is None:
             return job.result()
-        return ProductResearch(opt.option_id, opt.label, "", "", (), lang, "", self._now(),
-                               error=f"{type(exc).__name__}: {exc}",
-                               news_days=self._config.shape.news_days)
+        return self._stub(opt, lang, f"{type(exc).__name__}: {exc}")
 
     def _record(self, provider: str, kind: str, ref: str, cost: float) -> None:
         """Adds a paid call to the in-memory total, then to the ledger file. A file error

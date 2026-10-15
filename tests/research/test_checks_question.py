@@ -52,3 +52,14 @@ def test_a_decomposed_word_is_refused_as_the_composed_one():
     assert check_question(nfd.replace("mu\u0308", "mü"), P01, "TR", WORDS, 300) == REASONS["TR"]["client"]
     # the client words themselves may be decomposed too
     assert check_question("müşterim için PPN", P01, "TR", ("mu\u0308s\u0327teri",), 300) == REASONS["TR"]["client"]
+
+
+def test_without_a_persona_only_empty_length_and_client_words_apply():
+    none = lambda q: check_question(q, None, "TR", WORDS, 300)
+    assert none("   ") == REASONS["TR"]["empty"]
+    assert none("x" * 301) == "Soru 300 karakterden uzun."
+    assert none("Müşterim için PPN uygun mu?") == REASONS["TR"]["client"]
+    assert none("my client", ) == REASONS["TR"]["client"]
+    assert none(f"{P01.yas} yaşında biri için PPN uygun mu?") is None                  # no age check
+    assert none("TL mevduat ağırlıklı portföyler için para piyasası fonu") is None      # no 3-word check
+    assert check_question("my client", None, "EN", WORDS, 300) == REASONS["EN"]["client"]
