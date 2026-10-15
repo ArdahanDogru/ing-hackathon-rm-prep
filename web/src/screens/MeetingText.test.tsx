@@ -275,19 +275,44 @@ test("a server error stays in the editor", async () => {
   expect(screen.getByRole("textbox", { name: /Görüşmenin amacı/ })).toBeInTheDocument();
 });
 
-test("a blocking finding disables Metni onayla with the reason", async () => {
-  mockNarrative(withChecks(withEdit(sample("narrative_p01_tr"), "ozet", "Bu fon kesin getiri sağlar."), "ozet", ["phrase: 'kesin getiri' kullanılmamalı"]));
+// --- W19: no text approval; the card carries the safety check ------------------------------
+
+test("no Metni onayla; the Kart box is first in the right column", async () => {
+  mockNarrative(sample("narrative_p01_tr"));
   renderMeeting(sample("run_p01_approved"));
-  expect(await screen.findByRole("button", { name: "Metni onayla" })).toBeDisabled();
-  expect(screen.getByText(/'kesin getiri' kullanılmamalı/)).toBeInTheDocument();
-  expect(screen.getByTestId("approve-reason")).toBeInTheDocument();
+  const box = await screen.findByTestId("card-box");
+  expect(screen.queryByRole("button", { name: "Metni onayla" })).toBeNull();
+  expect(screen.queryByTestId("approve-reason")).toBeNull();
+  expect(box.parentElement!.tagName).toBe("ASIDE");
+  expect(box.parentElement!.firstElementChild).toBe(box);
 });
 
-test("a number finding only warns", async () => {
-  mockNarrative(withChecks(withEdit(sample("narrative_p01_tr"), "ozet", "Faiz %99,9."), "ozet", ["number: 99,9 olgularda yok"]));
+test("a blocking finding disables both card links with the reason", async () => {
+  mockNarrative(withChecks(withEdit(sample("narrative_p01_tr"), "ozet", "Bu fon kesin getiri sağlar."), "ozet", ["phrase: 'kesin getiri' kullanılmamalı"]));
   renderMeeting(sample("run_p01_approved"));
-  expect(await screen.findByRole("button", { name: "Metni onayla" })).toBeEnabled();
-  expect(screen.getByText(/99,9 olgularda yok/)).toBeInTheDocument();
+  expect(await screen.findByText(/'kesin getiri' kullanılmamalı/)).toBeInTheDocument();
+  for (const name of [/PDF olarak indir/, /Markdown olarak indir/]) {
+    const link = screen.getByRole("link", { name });
+    expect(link).toHaveAttribute("aria-disabled", "true");
+    expect(link).not.toHaveAttribute("href");
+  }
+  expect(screen.getByTestId("card-blocked")).toHaveTextContent("Kural bulgusu açık: kartı indirmeden önce düzeltin.");
+});
+
+test("a number finding only warns: the card links stay open", async () => {
+  mockNarrative(withChecks(withEdit(sample("narrative_p01_tr"), "ozet", "Faiz %99,9."), "ozet", ["number: 99,9 olgularda yok"]));
+  const v = sample("run_p01_approved");
+  renderMeeting(v);
+  expect(await screen.findByText(/99,9 olgularda yok/)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /PDF olarak indir/ })).toHaveAttribute("href", `/print/${v.result.run_id}`);
+  expect(screen.getByRole("link", { name: /Markdown olarak indir/ })).not.toHaveAttribute("aria-disabled");
+  expect(screen.queryByTestId("card-blocked")).toBeNull();
+});
+
+test("W19 EN: the reason under the disabled card links", async () => {
+  mockNarrative(withChecks(withEdit(sample("narrative_p01_en"), "ozet", "Guaranteed return."), "ozet", ["phrase: 'guaranteed' must not be used"]));
+  renderWith(<MeetingText view={sample("run_p01_approved")} />, { lang: "EN" });
+  expect(await screen.findByTestId("card-blocked")).toHaveTextContent("A rule finding is open: fix it before you download the card.");
 });
 
 test("Orijinale dön sends null", async () => {
@@ -309,21 +334,6 @@ test("an edited block has no source marks of the replaced sentences", async () =
   expect(within(block).queryAllByTestId("src-mark")).toHaveLength(0);
   const marks = screen.getAllByTestId("src-mark");
   expect(Math.max(...marks.map((m) => Number(m.textContent)))).toBe(screen.getAllByTestId("source-item").length);
-});
-
-test("Metni onayla sends the composed Markdown; the approved text shows its edits and no pencils", async () => {
-  const d = withEdit(sample("narrative_p01_tr"), "ozet", "Yeni amaç.");
-  mockNarrative(d);
-  const approve = vi
-    .spyOn(api, "approveNarrative")
-    .mockImplementation(async (_id, _lang, text) => ({ ...d, status: "approved", rm_text: text, markdown: text }));
-  renderMeeting(sample("run_p01_approved"));
-  await userEvent.click(await screen.findByRole("button", { name: "Metni onayla" }));
-  expect(approve.mock.calls[0][2]).toBe(d.markdown);
-  expect(await screen.findByTestId("doc-status")).toHaveTextContent("Onaylandı");
-  expect(screen.getByTestId("document")).toHaveTextContent("Yeni amaç.");
-  expect(screen.queryAllByRole("button", { name: /düzenle/i })).toHaveLength(0);
-  expect(screen.queryByRole("button", { name: "Metni onayla" })).toBeNull();
 });
 
 test("no whole-text Düzenle any more", async () => {
@@ -379,15 +389,6 @@ test("an approved text shows Onaylandı with its time", async () => {
   mockNarrative({ ...d, status: "approved", rm_text: d.markdown, approved_at: "2026-10-12T21:05:00+03:00" });
   renderMeeting(sample("run_p01_approved"));
   expect(await screen.findByTestId("doc-status")).toHaveTextContent("Onaylandı: 12.10.2026 21:05");
-});
-
-test("Metni onayla shows the approval time from the answer", async () => {
-  const d = sample("narrative_p01_tr");
-  mockNarrative(d);
-  vi.spyOn(api, "approveNarrative").mockResolvedValue({ ...d, status: "approved", rm_text: d.markdown, approved_at: "2026-10-12T21:06:00+03:00" });
-  renderMeeting(sample("run_p01_approved"));
-  await userEvent.click(await screen.findByRole("button", { name: "Metni onayla" }));
-  expect(await screen.findByTestId("doc-status")).toHaveTextContent("Onaylandı: 12.10.2026 21:06");
 });
 
 // --- W15 part 2: deleting -------------------------------------------------------------
