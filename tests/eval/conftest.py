@@ -138,8 +138,15 @@ def agent_root(root: Path) -> Path:
 
 
 def pack_of(messages: list[dict]) -> dict:
-    text = messages[0]["content"][0]["text"]
-    return json.loads(text.removeprefix("<veri>\n").removesuffix("\n</veri>"))
+    """The data pack of the first user message (A1: one <veri> block; A2: block 1
+    <veri> with the stable data, block 2 <arastirma> with the research and marks)."""
+    blocks = messages[0]["content"]
+    pack = json.loads(blocks[0]["text"].removeprefix("<veri>\n").removesuffix("\n</veri>"))
+    if "arastirma" not in pack:
+        text = blocks[1]["text"]
+        start = text.index("<arastirma>\n") + len("<arastirma>\n")
+        pack["arastirma"] = json.loads(text[start:text.index("\n</arastirma>")])
+    return pack
 
 
 class PackClient:
