@@ -1,0 +1,23 @@
+# Agentic top-3 decision (docs/agent.md; spec 2026-10-15-agent-decision-design)
+# Lead-owned (merged A1 2026-10-15); the test copy is tests/agent/fixtures/agent.yaml.
+version: 1
+model: claude-sonnet-5-5
+effort: medium
+max_tokens: 4000
+price_input_per_mtok: 2.0        # USD per 1M tokens, Sonnet 5.5 (as config/narrator.yaml)
+price_output_per_mtok: 10.0
+api_key_env: ANTHROPIC_API_KEY
+workspace_id_env: ANTHROPIC_WORKSPACE_ID
+prompt_version: "a1"
+candidates: 10
+max_tool_calls: {karsilastir: 4, arastir: 2}
+timeout_s: 90
+max_cost_usd_per_day: 3.0
+cache_dir: data/agent
+words: {reason: 30, summary: 40, amac: 20}
+labels:
+  estimate: {TR: "(tahmini dağılıma göre)", EN: "(based on the estimated split)"}
+  web: {TR: "(web, doğrulanmamış)", EN: "(web, not verified)"}
+fallback_texts:
+  TR: "Motor önerisi kullanıldı: {reason}"
+  EN: "The engine's recommendation was used: {reason}"
