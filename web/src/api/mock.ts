@@ -16,20 +16,24 @@ function sample(load: Loader, name: string, fallback?: string): MockAnswer {
 }
 
 // Web research (docs/research.md): a small fixed sample for dev:mock.
+const MOCK_SOURCE = { url: "https://www.nurolportfoy.com.tr/", title: "Nurol Portföy", published: "2026-10-12" };
 const MOCK_FINDING = {
-  text: "Fonun yönetim ücreti yıllık %0,7'dir.",
-  topic: "urun",
+  text: "Fon, kısa vadeli para piyasası araçlarına yatırım yapar.",
+  topic: "strateji",
   confidence: "high",
-  sources: [{ url: "https://www.nurolportfoy.com.tr/", title: "Nurol Portföy", published: "2026-10-12" }],
+  sources: [MOCK_SOURCE],
+  date: "",
 };
 const MOCK_RESEARCH = {
   state: "ready",
   products: [
     {
       option_id: "fund:PPN", label: "NUROL PORTFÖY PARA PİYASASI (TL) FONU", company: "Nurol Portföy Yönetimi A.Ş.",
-      summary: "PPN, kısa vadeli para piyasası araçlarına yatırım yapan bir fondur.",
-      findings: [MOCK_FINDING, { ...MOCK_FINDING, text: "Şirket Nurol Yatırım Bankası iştirakidir.", topic: "sirket", confidence: "medium" }],
-      lang: "TR", provider: "exa", created_at: "2026-10-14T10:00:00+03:00", cost_usd: 0.012, checks: [], error: "",
+      summary: "",
+      news: [{ ...MOCK_FINDING, text: "Nurol Portföy yeni bir fon başlattı.", topic: "haber", date: "2026-10-12" }],
+      news_days: 90,
+      findings: [MOCK_FINDING, { ...MOCK_FINDING, text: "Getiri faiz oranlarına duyarlıdır.", topic: "dikkat", confidence: "medium" }],
+      lang: "TR", provider: "exa", created_at: "2026-10-14T10:00:00+03:00", cost_usd: 0.025, checks: [], error: "", version: 2,
     },
   ],
   questions: [],
@@ -83,7 +87,7 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
       }
       return {
         status: 200,
-        body: { question, summary: "Örnek yanıt (mock).", findings: [{ ...MOCK_FINDING, topic: "soru" }], lang: "TR", provider: "exa", created_at: "2026-10-14T10:00:00+03:00", cost_usd: 0.007, checks: [], error: "" },
+        body: { question, summary: "", findings: [{ ...MOCK_FINDING, text: "Örnek madde (mock).", topic: "soru" }], lang: "TR", provider: "exa", created_at: "2026-10-14T10:00:00+03:00", cost_usd: 0.007, checks: [], error: "", version: 2 },
       };
     }
     if (method === "GET" && c === "narrative" && !d) {

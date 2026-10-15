@@ -66,7 +66,13 @@ test("research mock: ready view and a refused question", () => {
   const view = resolveMock("GET", "/api/runs/R1/research?lang=TR", undefined, load);
   expect(view.status).toBe(200);
   expect((view.body as { state: string }).state).toBe("ready");
+  const product = (view.body as { products: { version: number; news: { date: string }[]; news_days: number; findings: unknown[]; summary: string }[] }).products[0];
+  expect(product).toMatchObject({ version: 2, news_days: 90, summary: "" });
+  expect(product.news).toHaveLength(1);
+  expect(product.news[0].date).toBe("2026-10-12");
+  expect(product.findings).toHaveLength(2);
   expect(resolveMock("POST", "/api/runs/R1/research/questions", { question: "Müşterim için?", lang: "TR" }, load).status).toBe(422);
   const ok = resolveMock("POST", "/api/runs/R1/research/questions", { question: "PPN nedir?", lang: "TR" }, load);
   expect((ok.body as { question: string }).question).toBe("PPN nedir?");
+  expect((ok.body as { version: number }).version).toBe(2);
 });
