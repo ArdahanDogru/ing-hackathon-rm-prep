@@ -15,6 +15,7 @@ sessions are `claude -p`, where teams cannot form. The user starts only
 | `ing-eval` | `C:/Users/yardang/dev/ing-wt/eval` | `eval` | `src/rmprep/eval/`, `tests/eval/` |
 | `ing-web` | `C:/Users/yardang/dev/ing-wt/web` | `web` | `web/` only (React app, docs/web-ui.md; added 2026-10-11) |
 | `ing-lead-2` | `C:/Users/yardang/dev/ing-wt/research` | `research` | `src/rmprep/research/`, `tests/research/`, `src/rmprep/api/research.py`, `config/research.yaml`, `docs/research.md`, `web/src/components/ResearchPanel.tsx` (web research; started by the user 2026-10-14; merges go through ing-lead) |
+| `ing-agent` | `C:/Users/yardang/dev/ing-wt/agent` | `agent` | `src/rmprep/agent/`, `tests/agent/` (agentic top-3 decision, docs/agent.md; added 2026-10-15) |
 
 Design per module: ingest = `docs/ingest.md`, decision = `docs/decision.md`,
 ui = `docs/ui.md`, narrator = `docs/narrator.md`, eval = `docs/eval.md`,

@@ -14,7 +14,7 @@ def test_the_repo_config_loads():
     assert c.exa.exclude_domains == ("kap.org.tr",)
     assert c.exa.query["fund"].format(label="X", code="PPN") == "X (PPN) fonu ve yöneten portföy yönetim şirketi"
     assert c.claude is not None and c.claude.max_uses == 3
-    assert c.max_cost_usd_per_day == 2.0
+    assert c.max_cost_usd_per_day == 5.0      # the user, 2026-10-15 (agent: 10 candidates per run)
     assert set(c.system_prompt) == {"TR", "EN"}
 
 

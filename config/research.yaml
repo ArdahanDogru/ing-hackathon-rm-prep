@@ -3,7 +3,7 @@
 version: 1
 providers: [exa, claude]          # the fallback order (spec section 8)
 cache_dir: data/research
-max_cost_usd_per_day: 2.0         # both providers together (the user, 2026-10-14)
+max_cost_usd_per_day: 5.0         # both providers together (the user: $2 on 2026-10-14, $5 on 2026-10-15 for the agent: 10 candidates per run)
 question_max_chars: 300
 # A question with a word that starts with one of these is refused (müşteri -> müşterim, müşterinin).
 client_words: [müşteri, client, customer]

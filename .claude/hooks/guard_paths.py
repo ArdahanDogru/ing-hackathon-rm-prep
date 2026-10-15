@@ -22,7 +22,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-MODULES = ("ingest", "decision", "ui", "narrator", "eval", "web")
+MODULES = ("ingest", "decision", "ui", "narrator", "eval", "web", "agent")
 # folders a worker may edit; default (src/rmprep/<m>/, tests/<m>/)
 ALLOWED = {"web": ("web/",)}
 EDIT_TOOLS = {"Edit": "file_path", "Write": "file_path", "MultiEdit": "file_path",
