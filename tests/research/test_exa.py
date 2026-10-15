@@ -356,3 +356,28 @@ def test_a_malformed_url_in_the_results_is_ignored():
     r = provider(two_calls(body, NEWS_BODY)).research_product(PPN, "TR")
     assert [f.text for f in r.findings] == ["Fon, kısa vadeli TL para piyasası araçlarına yatırım yapar.",
                                             "Şirket Nurol Yatırım Bankası iştirakidir."]
+
+
+def _news_with_dates(*dates):
+    urls = [f"https://www.example-haber.com/n{i}" for i in range(len(dates))]
+    return {"costDollars": {"total": 0.007},
+            "results": [{"url": u, "title": "x", "publishedDate": d} for u, d in zip(urls, dates)],
+            "output": {"content": {"haberler": [{"metin": "Bir haber."}]},
+                       "grounding": [cite("haberler[0].metin", *urls)]}}
+
+
+def test_a_malformed_source_date_never_wins_over_a_valid_one():
+    items, _ = parse_news(_news_with_dates("unknown-date", "2026-10-01T08:00:00.000Z"), ())
+    assert items[0].date == "2026-10-01"
+    items, _ = parse_news(_news_with_dates("unknown-date", "2026-13-45", "20261001"), ())
+    assert items[0].date == ""
+
+
+@pytest.mark.parametrize("content,grounding", [({"haberler": 5}, []), ({"haberler": [{"metin": "x"}]}, 5),
+                                               ({"haberler": [{"metin": ["x"]}]}, [5])])
+def test_a_malformed_news_reply_keeps_the_highlights(content, grounding):
+    news = {"costDollars": {"total": 0.007}, "results": [], "output": {"content": content, "grounding": grounding}}
+    r = provider(two_calls(PRODUCT_BODY, news)).research_product(PPN, "TR")
+    assert len(r.findings) == 2 and r.news == ()
+    assert r.cost_usd == pytest.approx(0.019)
+    assert "news: request" in r.checks

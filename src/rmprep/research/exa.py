@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import httpx
 
@@ -110,9 +110,20 @@ def _topic_for(kind: str, item: Mapping) -> str | None:
     return None
 
 
+def _iso_date(text: str) -> bool:
+    """Exactly YYYY-MM-DD and a real day."""
+    if len(text) != 10:
+        return False
+    try:
+        date.fromisoformat(text)
+    except ValueError:
+        return False
+    return True
+
+
 def _newest(sources: Iterable[Source]) -> str:
-    """The newest publication date (YYYY-MM-DD) of the sources; "" when none has one."""
-    return max((s.published for s in sources if s.published), default="")
+    """The newest valid publication date (YYYY-MM-DD) of the sources; "" when none has one."""
+    return max((s.published for s in sources if _iso_date(s.published)), default="")
 
 
 def _findings(content: Mapping, key: str, grounding: list, results: Mapping[str, Source],
@@ -251,6 +262,8 @@ class ExaProvider:
             items, dropped = parse_news(body, self._config.exclude_domains)
         except ResearchError as e:
             return [], [f"news: {e.kind}"], e.cost_usd
+        except (TypeError, ValueError, AttributeError):    # a 200 reply of a wrong shape (billed)
+            return [], ["news: request"], _cost(body)
         return items, _drop_checks(dropped, what="news items"), _cost(body)
 
     def answer_question(self, question: str, products: Sequence[ProductOption],
