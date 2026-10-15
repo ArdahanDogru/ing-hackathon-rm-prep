@@ -348,7 +348,9 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
                                                      "not configured"))
         if result.state != DecisionState.READY:
             raise ValueError("the run is not ready: an RM question is open")
-        _start_agent(result, req.n)        # ValueError for n out of range -> 422
+        if hasattr(agent, "check_n"):
+            agent.check_n(req.n)           # ValueError for n out of range -> 422, before any work
+        _start_agent(result, req.n)
         marks = dict(research.marks()) if research is not None and hasattr(research, "marks") else {}
         _log("agent_started", run=result, details={
             "n": req.n if req.n is not None else getattr(getattr(agent, "config", None), "candidates", None),
