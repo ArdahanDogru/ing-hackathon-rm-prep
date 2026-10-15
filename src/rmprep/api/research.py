@@ -21,8 +21,8 @@ class QuestionRequest(BaseModel):
 class MarkRequest(BaseModel):
     finding_id: str
     option_id: str
-    mark: str | None = None         # "ok" | "wrong" | null (removes the mark)
-    run_id: str = ""
+    mark: str | None                # "ok" | "wrong" | null (removes); required: a missing key is 422
+    run_id: str
 
 
 def research_router(service: ResearchService, get_run: Callable[[str], DecisionResult],

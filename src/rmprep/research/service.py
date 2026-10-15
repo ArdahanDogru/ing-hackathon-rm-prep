@@ -124,9 +124,9 @@ class ResearchService:
                    if researchable(s.option) and s.option.option_id not in top]
         with self._lock:
             jobs = {o.option_id: self._jobs.get((o.option_id, lang, day)) for o in options}
-        suffix = f"-{lang}-{day:%Y%m%d}-v{SHAPE_VERSION}.json"
         cached: set[str] = set()
         if any(j is None for j in jobs.values()):   # one folder scan, not a file check per option
+            suffix = _product_file_name("", lang, day)      # "-<lang>-<day>-v<n>.json"
             cached = {p.name for p in (self._root / "products").glob(f"*{suffix}")}
         out = []
         for opt in options:
@@ -135,7 +135,7 @@ class ResearchService:
                 if job.done():
                     out.append(_marked(self._job_result(job, opt, lang), marks))
                 continue
-            name = f"{opt.option_id.replace(':', '_')}{suffix}"
+            name = _product_file_name(opt.option_id, lang, day)
             if name in cached:
                 found = _read(self._root / "products" / name, ProductResearch)
                 if found is not None:
@@ -158,7 +158,8 @@ class ResearchService:
     def marks(self, day: date | None = None) -> Mapping[str, str]:
         """Finding id -> "ok" | "wrong" for the Turkish day (default: today). A mark belongs
         to a finding and a day, so every run that shows the finding that day shows it."""
-        raw = self._load_marks(day or self._now().date())
+        with self._marks_lock:      # on Windows os.replace fails while a reader has the file open
+            raw = self._load_marks(day or self._now().date())
         return {fid: row["mark"] for fid, row in raw.items()
                 if isinstance(row, dict) and row.get("mark") in MARKS}
 
@@ -247,7 +248,7 @@ class ResearchService:
                                error=error, news_days=self._config.shape.news_days)
 
     def _product(self, opt: ProductOption, lang: str, day: date) -> ProductResearch:
-        name = f"{opt.option_id.replace(':', '_')}-{lang}-{day:%Y%m%d}-v{SHAPE_VERSION}.json"
+        name = _product_file_name(opt.option_id, lang, day)
         path = self._root / "products" / name
         try:
             cached = _read(path, ProductResearch)
@@ -394,6 +395,11 @@ class ResearchService:
                     f.write(json.dumps(row, ensure_ascii=False) + "\n")
             except OSError:
                 pass
+
+
+def _product_file_name(option_id: str, lang: str, day: date) -> str:
+    """The cache file of the research of one product, language and Turkish day."""
+    return f"{option_id.replace(':', '_')}-{lang}-{day:%Y%m%d}-v{SHAPE_VERSION}.json"
 
 
 def _marked(research: ProductResearch, marks: Mapping[str, str]) -> dict:

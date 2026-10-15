@@ -153,3 +153,20 @@ def test_the_marks_route_is_absent_without_research(tmp_path):
     client = TestClient(create_app(FakeBackend(FIX)))
     assert client.post("/api/research/marks", json={
         "finding_id": "Fabcdef01", "option_id": "fund:BBF", "mark": "ok", "run_id": "R1"}).status_code in (404, 405)
+
+
+def test_a_body_without_mark_or_run_id_is_422_and_changes_nothing(tmp_path):
+    log = RecordingLog()
+    client, service = make(tmp_path, FakeProvider(), action_log=log)
+    run_id = new_run(client)
+    service.wait()
+    option_id, finding = first_finding(client, run_id)
+    base = {"finding_id": finding["id"], "option_id": option_id, "run_id": run_id}
+    assert client.post("/api/research/marks", json={**base, "mark": "ok"}).status_code == 200
+    log.calls.clear()
+    assert client.post("/api/research/marks", json=base).status_code == 422          # no "mark" key
+    no_run = {k: v for k, v in base.items() if k != "run_id"}
+    assert client.post("/api/research/marks", json={**no_run, "mark": None}).status_code == 422
+    assert service.marks() == {finding["id"]: "ok"} and log.calls == []
+    assert client.post("/api/research/marks", json={**base, "mark": None}).status_code == 200
+    assert service.marks() == {}
