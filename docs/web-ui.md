@@ -592,6 +592,34 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### Product codes everywhere a product is a title (W28, 2026-10-17)
+
+Asked by the user 2026-10-17: "the abbreviations/codes of the funds, stocks and
+products … should be included everywhere where the product is given as a title
+or a sub-title".
+
+- The code: for an option of kind `fund`, `etf` or `stock`, the part of the
+  option id after ":" (`fund:PPN` → PPN; the TEFAS code or the BIST ticker).
+  ING deposit options (`deposit`, `time_deposit`) have no code: nothing is shown.
+  One helper in each layer: web `productCode(optionId)`, Python
+  `rmprep.api.names.product_code(option_id)`.
+- Form: in a title or a heading, a small code badge before the name (monospace,
+  bold, muted border, e.g. `PPN` Para Piyasası (TL)); in running text, chips and
+  short lists: "PPN · Nurol · Para Piyasası (TL)". The code is never translated.
+- Where (web, ing-web; every place that shows a product name as a title or a
+  sub-title): the top-3 cards and the agent's picks, the fund card and the drawer
+  title (the code moves from the sub-title into the title badge), the options
+  table and compare headers, the categories, the Dağılım rows, the agenda, the
+  "Görüşmede konuşulacak" chips of the approval bar, the detail notes, the
+  research panel product headers, the agent panel (candidates and dropped
+  options), the meeting-text screen lists, the print card. Not inside the
+  narrator's prose (an LLM text; a later prompt change if wanted).
+- Card (lead, `rmprep.ui.card`): every product heading and list item with
+  "PPN · <name>".
+- Tests: web (the badge in each place above for a fund, an ETF and a stock; no
+  badge for the two ING deposits; the chip text); Python (the helper, the card
+  lines).
+
 ### Fund documents: links to the manager's own site (W26, 2026-10-16)
 
 Approved by the user 2026-10-16 (step 1 of the KAP to-do). The data: ingest I16
