@@ -88,3 +88,25 @@ them (2 changes were forced), and the A/B judge saw "n/a" for them (3 of the 5
 "agent" grades were not fair). Now `candidates()` puts the engine's top 3 first and
 fills up to 10 from the display order. The three P03 scenarios were run again
 with this rule.
+
+## A new run follows the agent (lead, 2026-10-17, bug found by the user)
+
+Bug: the RM started the agent (P01, run `Rfe4ff6578a`, N 10, done 19:04 on
+2026-10-16), then confirmed a new split (19:08). The split makes a new run
+(`R8a90f0ad0c`); the agent decision and the research of the N candidates belong
+to a run id, so the new run showed "not started" and only the new top 3 in the
+research panel: "the agent researches were deleted". It did not come back on a
+second try because the same split gives the same run id, and the RM had started
+the agent on that run by hand in between (19:10). Evidence: the RM action log and
+`data/agent/<run>.json`.
+
+Rule (the user, 2026-10-15: a new split recomputes the ranking "and of course the
+agent recommendation as well"): when `POST /holdings` or `POST /answers` makes a
+new ready run and the old run has an agent decision (running, done or fallback),
+the API starts the agent on the new run with the same N (`_follow_agent`) and logs
+`agent_started` with `{n, auto: true, from_run}`. Not when the agent is off, the
+new run is not ready, or the new run already has a decision (e.g. back to an
+earlier split, or the reset of the split). The web needs no change: a new run id
+polls the status at once, and the research panel asks again after the run. Cost:
+one agent run per new split after an agent run (the content cache makes a repeat
+free). Tests: `tests/api/test_agent_follow.py`.

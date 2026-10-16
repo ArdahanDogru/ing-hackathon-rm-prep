@@ -163,6 +163,7 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     def answer(run_id: str, req: schemas.AnswerRequest):
         _run(run_id)
         new = backend.answer_question(run_id, req.question_id, req.answer)
+        _follow_agent(run_id, new)
         view = _view(new)
         _log("question_answered", run=new, run_id=run_id, new_run_id=new.run_id,
              details={"question_id": req.question_id, "answer": req.answer})
@@ -173,6 +174,7 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         """v1.10 (W18): a new run with the RM's split; a bad split -> 422 (ValueError)."""
         before = _run(run_id)
         new = backend.set_holdings(run_id, req.shares, req.origin)
+        _follow_agent(run_id, new)
         view = _view(new)
         if req.shares is None:
             _log("holdings_reset", run=new, run_id=run_id, new_run_id=new.run_id)
@@ -317,6 +319,20 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     def _start_agent(result: DecisionResult, n: int | None = None) -> None:
         agent.start(result, backend.evidence(result.snapshot_id, result.excluded_sources), "TR", n=n)
+
+    def _follow_agent(old_id: str, new: DecisionResult) -> None:
+        """Bug 2026-10-17: a confirmed split or an answer makes a new run; when the RM
+        had started the agent on the old run, start it on the new run with the same N
+        (the user, 2026-10-15: the split recomputes "the agent recommendation as well").
+        Nothing when the agent is off, the new run is not ready or already has a result."""
+        if not _agent_on() or new.run_id == old_id or new.state != DecisionState.READY:
+            return
+        old = agent.status(old_id)
+        if old is None or old.state == "off" or agent.status(new.run_id) is not None:
+            return
+        n = old.n_candidates or None
+        _start_agent(new, n)
+        _log("agent_started", run=new, details={"n": n, "auto": True, "from_run": old_id})
 
     def _agent_off(result: DecisionResult, reason: str) -> dict:
         return AgentDecision(result.run_id, "off", (), (), "", tuple(result.recommended), (), "", "",

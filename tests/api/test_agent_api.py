@@ -32,7 +32,8 @@ class FakeAgent:
             return self.done[run_id]
         if run_id in self.started:
             return AgentDecision(run_id, "running", (), (), "", (), (AgentNode("adaylar", "Adaylar", "running", T),),
-                                 "claude-sonnet-5-5", "a1", 0.0, T)
+                                 "claude-sonnet-5-5", "a1", 0.0, T,
+                                 n_candidates=getattr(self, "n", None) or 0)   # as the service: N while running
         return None
 
 
