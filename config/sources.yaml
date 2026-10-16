@@ -457,6 +457,76 @@ sources:
         "Fon Alımına Kapalı, Fon Bozumuna Açık": 0     # seen 2026-10-14 (4 funds): sell only
         "Platformda İşlem Görmüyor": 0     # I10: ETFs trade on the exchange; D26 ignores fund_buyable for etf
 
+  # I14 (2026-10-16): ING's own rate page; replaces the hand-copied ING CSVs of
+  # data/inbox/manual (they stay as the fallback; the later as_of wins).
+  ing_web:
+    adapter: ing_web
+    enabled: true
+    on_failure: previous
+    source_url: https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari
+    tos_note: >-
+      ING's own public deposit rate page. robots.txt (checked 2026-10-16)
+      allows the page; it disallows /documents/*, /objects/*, most of
+      /assets/*, the search pages and some form paths (config rejects
+      disallowed URLs). The terms (/tr/ing/kullanim-sartlari) say all rights
+      reserved, for information only, not binding; no rule on automated
+      access. Per ingest: 3 requests per product (GET, then 2 form
+      postbacks), 4 products, at least delay_seconds between two requests.
+    url: https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari
+    user_agent: rmprep-hackathon-prototype/0.1 (ING hackathon; 12 requests per day)
+    timeout_seconds: 30
+    delay_seconds: 2
+    quantity: deposit_rate
+    form:                         # ASP.NET form fields (checked 2026-10-16)
+      currency_field: "5575$DdlCurrencyType"   # also the target of the currency postback
+      product_field: "5575$DdlProductList"
+      send_target: "5575$BtnSend"
+      currency: "0"               # TL
+      no_product: "-1"            # "Seçin" (no product), sent with the currency postback
+    products:
+      - value: E_TIME_DEPOSIT_ACCOUNT          # e-Vadeli Mevduat
+        layout: grid                            # rows = terms, columns = amounts
+        entity: "ING e-Vadeli Mevduat, {row}, {column} TL"
+        min_rows: 11
+        min_columns: 8
+      - value: E_ORANGE_ACCOUNT_GROUP          # Turuncu Hesap
+        layout: balance                         # a row per balance, an entity per rate
+        entity: "ING Turuncu Hesap {rate}, {balance}"
+        balance_header: "Turuncu Hesap Bakiyesi (TL)"
+        no_interest_column: "Faiz İşletilmeyecek Tutar (TL)"
+        rates:                                  # rate column -> word in the entity
+          Standart Faiz: standart
+          Hoş Geldin Faizi: hoş geldin
+        balance_labels:                         # page label -> name text (default: label + " TL")
+          "9.999,99 'e kadar": "0-9.999,99 TL"
+          "35.000.000 üzeri": "35.000.000 TL üzeri"
+        min_rows: 14
+        min_columns: 3                          # value columns, without the balance column
+      - value: ORANGE_ACCOUNT_KID_GROUP        # Turuncu Çocuk Hesabı (rows only, I14b)
+        layout: balance
+        entity: "ING Turuncu Çocuk Hesabı {rate}, {balance}"
+        balance_header: "Turuncu Çocuk Hesabı Bakiyesi (TL)"
+        no_interest_column: "Faiz İşletilmeyecek Tutar (TL)"
+        rates:
+          Standart Faiz: standart
+          Hoş Geldin Faizi: hoş geldin
+        balance_labels:
+          "9.999,99 'e kadar": "0-9.999,99 TL"
+          "35.000.000 üzeri": "35.000.000 TL üzeri"
+        min_rows: 14
+        min_columns: 3
+      - value: E_ORANGE_ACCOUNT_ACCUMULATING_GROUP   # e-Turuncu Biriktiren (rows only, I14b)
+        layout: balance                         # no no_interest_column: the table has none
+        entity: "ING e-Turuncu Biriktiren {rate}, {balance}"
+        balance_header: "e-Turuncu Biriktiren Bakiyesi (TL)"
+        rates:
+          Standart Faiz: standart
+        balance_labels:
+          "10.000 'e kadar": "0-10.000 TL"
+          "10.000 üzeri": "10.000 TL üzeri"
+        min_rows: 2
+        min_columns: 1
+
   manual:
     adapter: manual
     enabled: true

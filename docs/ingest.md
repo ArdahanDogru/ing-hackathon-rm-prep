@@ -747,6 +747,45 @@ those files stay in `data/inbox/manual` as the fallback.
   of both products (count, names, values, as_of, notes); the form flow with a
   mocked transport (the 3 requests, their fields, the delay, the cookie); each
   failure case above; replay identical; the precedence over the manual rows.
+- Built (ingest@9927ad4, merged 2026-10-16; 53 + 4 tests). Changes to the
+  design above:
+  1. Config shape: per product `layout: grid | balance` and an `entity`
+     template (`{row}`, `{column}` for grid; `{rate}`, `{balance}` for
+     balance; any other field is a config error). Balance products also have
+     `balance_header`, `no_interest_column`, `rates` (column → word in the
+     name, also the row order) and `balance_labels` (page label → name text
+     with "TL"; default label + " TL"). The map holds `9.999,99 'e kadar` →
+     `0-9.999,99 TL` and `35.000.000 üzeri` → `35.000.000 TL üzeri` (the
+     manual name). `min_columns` counts the value columns without the label
+     column. `quantity` is config. Unknown keys, a duplicate product and a
+     disallowed URL are config errors.
+  2. Notes: grid "<d Ekim yyyy> itibariyle geçerli; ing.com.tr rate form,
+     product <value>; gross/net not stated"; balance "<rate column>; Faiz
+     işletilmeyecek tutar <n> TL; <same text>". `raw_ref` =
+     `<snapshot>/payloads/ing_web/<product>.html#<product>;row=<row>;column=<column>`.
+  3. More failure cases (the source fails, nothing is stored): the product is
+     not in the step-2 product list; a body cell whose label is not its
+     column; a row with another number of cells; more than one table; an HTTP
+     status other than 200. Redirects are not followed (as TEFAS).
+  4. The robots rules of 2026-10-16 are in code (`config.ing_robots_disallows`),
+     checked at config load and before each request.
+  5. A tie on the same `as_of`: both rows get `conflict`, and `EvidenceIndex`
+     then takes the source that sorts last by name ("manual" > "ing_web"), so
+     the manual row is used. Accepted: the manual ING files are older, and the
+     conflict flag shows the tie.
+  6. The manifest request has no form state; steps 1–2 are not stored.
+     Fixtures: the 4 saved pages (gzip) and the list of the 116 manual names
+     (the web parse gives the same 116 names).
+- I14b (the user, 2026-10-16; ingest@badfdc9): all four products of the form.
+  `ORANGE_ACCOUNT_KID_GROUP` (Turuncu Çocuk Hesabı: the Turuncu table, 14
+  balances) and `E_ORANGE_ACCOUNT_ACCUMULATING_GROUP` (e-Turuncu Biriktiren: 2
+  balances, only "Standart Faiz") are rows only; the engine does not use them
+  now. `no_interest_column` is optional for `layout: balance` (absent = the
+  table has no such column, and the note has no amount part; a page that has
+  the column then fails the header check). 12 requests per ingest; 146 rows
+  (e-Vadeli 88, Turuncu Hesap 28, Turuncu Çocuk 28, Biriktiren 2). The
+  pipeline tests' `config_raw` drops `ing_web` (as `tefas_byf`), so they keep
+  their source list; `ing_web` has its own tests.
 
 ## Noted for later (decided 2026-10-09, not to be done now)
 
