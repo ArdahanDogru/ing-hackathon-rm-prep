@@ -231,7 +231,7 @@ test("pencil edits one block; others keep their layout", async () => {
   const edit = vi.spyOn(api, "editBlock").mockResolvedValue(withEdit(sample("narrative_p01_tr"), "ozet", "Yeni amaç."));
   renderMeeting(sample("run_p01_approved"));
   await userEvent.click(await screen.findByRole("button", { name: /Görüşmenin amacı.*düzenle/i }));
-  expect(screen.getByRole("textbox", { name: /Görüşmenin amacı/ })).toHaveValue(section("ozet")!.sentences.map((x) => x.text).join(" "));
+  expect(screen.getByRole("textbox", { name: /Görüşmenin amacı/ })).toHaveValue(section("ozet")!.sentences.map((x) => x.text).join("\n"));
   await userEvent.clear(screen.getByRole("textbox", { name: /Görüşmenin amacı/ }));
   await userEvent.type(screen.getByRole("textbox", { name: /Görüşmenin amacı/ }), "Yeni amaç.");
   await userEvent.click(screen.getByRole("button", { name: "Kaydet" }));
@@ -353,12 +353,13 @@ test("after a reload, an approved text with a whole-text edit (before W11) shows
 
 // --- right column -----------------------------------------------------------------
 
-test("glossary terms and the card downloads", async () => {
+test("the card downloads; no Terimler box (W29: the RM knows the terms)", async () => {
   const n = narrative();
   mockNarrative(n);
   const v = sample("run_p01_approved");
   renderMeeting(v);
-  for (const term of sample("glossary")) expect(await screen.findByText(term.form)).toBeInTheDocument();
+  await screen.findByTestId("card-box");
+  for (const term of sample("glossary")) expect(screen.queryByText(term.form)).toBeNull();
   expect(screen.getByRole("link", { name: /Markdown olarak indir/ })).toHaveAttribute("href", api.cardUrl(v.result.run_id));
   expect(screen.getByRole("link", { name: /PDF olarak indir/ })).toHaveAttribute("href", `/print/${v.result.run_id}`);
   // a template draft has no model: the footer says "şablon metin" instead
@@ -457,6 +458,18 @@ test("the approved text leaves deleted blocks and empty sections out", async () 
   expect(doc).not.toHaveTextContent(section("ozet")!.sentences[0].text);
   expect(doc).not.toHaveTextContent(section("dikkat")!.sentences[0].text);
   v.result.rm_selected.forEach((id) => expect(doc.querySelector(`[data-block="oneriler:${id}"]`)).toBeNull());
+});
+
+test("a block of several sentences is bullets, an edit one bullet per line", async () => {
+  const n = withEdit(narrative(), "dikkat", "Birinci nokta.\nİkinci nokta.");
+  mockNarrative(n);
+  renderMeeting(sample("run_p01_approved"));
+  const doc = await screen.findByTestId("presentation");
+  const aim = section("ozet")!.sentences;
+  const box = doc.querySelector('[data-block="ozet"]') as HTMLElement;
+  expect(within(box).queryAllByRole("listitem")).toHaveLength(aim.length > 1 ? aim.length : 0);
+  const risks = doc.querySelector('[data-block="dikkat"]') as HTMLElement;
+  expect(within(risks).getAllByRole("listitem").map((x) => x.textContent)).toEqual(["Birinci nokta.", "İkinci nokta."]);
 });
 
 test("the page always ends with the disclaimer", async () => {

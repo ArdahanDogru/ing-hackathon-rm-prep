@@ -653,6 +653,21 @@ W28 replaces the switch, Düzenle and `MeetingText initialMode` of W27:
   hides the RM's parts, the print is the client view; the W9–W19 tests on the
   one page) and `ClientPresentation.test.tsx`.
 
+### Short points, no Terimler (W29, 2026-10-17)
+
+The user, 2026-10-17: the RM knows the terms, and long texts read better as
+bullets or shorter versions than as paragraphs.
+
+- **No Terimler box** on the meeting-text page (and no glossary call there).
+  `TermsBox` and the glossary API stay for the other screens.
+- **Bullets:** every narrator block (the script, the fund texts, the aim, the
+  market note, the risks, the questions, the RM boxes) shows one bullet per
+  sentence; a block of one sentence is one line. The editor opens one sentence
+  per line and an edit shows one bullet per line (the join is "\n" for every
+  block; before, only the list blocks).
+- Not in this step: shorter sentences from the narrator (a prompt change,
+  docs/narrator.md).
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

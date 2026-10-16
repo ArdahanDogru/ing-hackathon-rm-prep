@@ -5,7 +5,7 @@ import { useCallback, useContext, useEffect, useRef, useState, type ReactNode } 
 import { flushSync } from "react-dom";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import type { GlossaryTerm, NarrativeView, OptionKind, OptionView, RunView, SectionKey } from "../api/types";
+import type { NarrativeView, OptionKind, OptionView, RunView, SectionKey } from "../api/types";
 import { BlockEditor } from "../components/BlockEditor";
 import { ClientPresentation, RmNote, type BlockOpts } from "../components/ClientPresentation";
 import { snapshotDate } from "../components/BriefCard";
@@ -17,15 +17,12 @@ import { sourceName } from "../components/KindBadge";
 import { LifecycleTabs } from "../components/LifecycleTabs";
 import { NotesBox, type SaveState } from "../components/NotesBox";
 import { SourceList, type Source } from "../components/SourceList";
-import { TermsBox } from "../components/TermsBox";
 import { fmtDateTime } from "../format";
 import { LangContext, useT } from "../i18n";
 import { Markdown } from "../markdown";
 
 const SAVE_DELAY_MS = 800;
 const HIGHLIGHT_MS = 2000;
-/** Blocks shown as lists: an edit is one item per line. */
-const LIST_BLOCKS = new Set(["dikkat", "alternatifler", "sorular", "varsayimlar"]);
 
 /** A sentence of the document that may cite evidence (narrator sentence or decision talking point). */
 interface Cited {
@@ -38,24 +35,21 @@ interface Cited {
 /** "Nurol Para Piyasası (TL)": the issuer's first word and the short name. */
 const docName = (o: OptionView) => [o.issuer.split(" ")[0], o.short_label].filter(Boolean).join(" ");
 
-/** An edited block as plain text: list blocks one item per line, else paragraphs. */
-function EditedText({ text, list }: { text: string; list: boolean }) {
-  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-  return list ? (
-    <ul className="max-w-[68ch] list-disc space-y-1.5 pl-6">
-      {lines.map((l, i) => (
-        <li key={i}>{l}</li>
+/** Short points, not paragraphs (W29): several items as bullets, one item as a line. */
+function Bullets({ items }: { items: ReactNode[] }) {
+  if (items.length === 1) return <p className="m-0 max-w-[68ch]">{items[0]}</p>;
+  return (
+    <ul className="m-0 max-w-[68ch] list-disc space-y-1 pl-5">
+      {items.map((x, i) => (
+        <li key={i}>{x}</li>
       ))}
     </ul>
-  ) : (
-    <div className="max-w-[68ch]">
-      {lines.map((l, i) => (
-        <p key={i} className={i ? "mt-2" : ""}>
-          {l}
-        </p>
-      ))}
-    </div>
   );
+}
+
+/** An edited block as plain text: one point per line. */
+function EditedText({ text }: { text: string }) {
+  return <Bullets items={text.split("\n").map((l) => l.trim()).filter(Boolean)} />;
 }
 
 export function MeetingText({ view }: { view: RunView }) {
@@ -66,7 +60,6 @@ export function MeetingText({ view }: { view: RunView }) {
 
   const [draft, setDraft] = useState<NarrativeView | null>(null);
   const [loadError, setLoadError] = useState<Error | null>(null);
-  const [terms, setTerms] = useState<GlossaryTerm[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<number | null>(null);
@@ -87,11 +80,7 @@ export function MeetingText({ view }: { view: RunView }) {
     setLoadError(null);
     setOpenBlock(null);
     api.narrative(runId, lang).then(
-      (d) => {
-        if (!live) return;
-        setDraft(d);
-        api.glossary(lang, runId).then((x) => live && setTerms(x), () => live && setTerms([]));
-      },
+      (d) => live && setDraft(d),
       (e: Error) => live && setLoadError(e),
     );
     return () => {
@@ -219,7 +208,6 @@ export function MeetingText({ view }: { view: RunView }) {
 
   /** One editable block: its content (or the edit), a pencil, "düzenlendi" + "Orijinale dön", findings. */
   const block = (id: string, title: string, original: Cited[], content: ReactNode, prefix?: ReactNode, opts: BlockOpts = {}) => {
-    const list = LIST_BLOCKS.has(id);
     // the client view shows no marks: no edit controls, badges, findings or deleted lines
     const marks = !preview;
     const controls = editable && marks;
@@ -243,7 +231,7 @@ export function MeetingText({ view }: { view: RunView }) {
       return (
         <BlockEditor
           label={title}
-          initial={edited ?? original.map((c) => c.text).join(list ? "\n" : " ")}
+          initial={edited ?? original.map((c) => c.text).join("\n")}
           error={blockError}
           busy={blockBusy}
           onSave={(text) => sendBlock(id, text.trim() ? text : "")}
@@ -258,7 +246,7 @@ export function MeetingText({ view }: { view: RunView }) {
         {edited !== undefined ? (
           <>
             {prefix}
-            <EditedText text={edited} list={list} />
+            <EditedText text={edited} />
           </>
         ) : (
           content
@@ -313,23 +301,7 @@ export function MeetingText({ view }: { view: RunView }) {
       : sentences(id as SectionKey);
     if (!own.length && !(id in edits)) return null;
     const text = (c: Cited) => (preview ? c.text : withMark(c));
-    const content = LIST_BLOCKS.has(id) ? (
-      <ul className="list-disc space-y-1.5 pl-6">
-        {own.map((c, i) => (
-          <li key={i}>{text(c)}</li>
-        ))}
-      </ul>
-    ) : (
-      <p className="m-0">
-        {own.map((c, i) => (
-          <span key={i}>
-            {i > 0 && " "}
-            {text(c)}
-          </span>
-        ))}
-      </p>
-    );
-    return block(id, title, own, content, undefined, opts);
+    return block(id, title, own, <Bullets items={own.map(text)} />, undefined, opts);
   };
 
   /** "Bölümü sil" next to the heading of a section with several blocks, while one is left. */
@@ -357,20 +329,7 @@ export function MeetingText({ view }: { view: RunView }) {
     ? [draft.source === "template" ? t("templateText") : draft.model, draft.checks.length ? `${draft.checks.length} ${t("checkFindings")}` : t("checkPassed")]
     : [];
   const box = "mb-4 rounded-2xl bg-white px-5 py-[18px] shadow-sm";
-  const listOf = (cs: Cited[]) => (
-    <ul className="max-w-[68ch] list-disc space-y-1.5 pl-6">
-      {cs.map((c, i) => (
-        <li key={i}>{withMark(c)}</li>
-      ))}
-    </ul>
-  );
-  const prose = (cs: Cited[]) =>
-    cs.map((c, i) => (
-      <span key={i}>
-        {i > 0 && " "}
-        {withMark(c)}
-      </span>
-    ));
+  const listOf = (cs: Cited[]) => <Bullets items={cs.map(withMark)} />;
 
   /** The RM's help: one yellow box per part, filled only when it has something (or a deleted line). */
   const has = (key: SectionKey) => (sentences(key).length > 0 || key in edits) && !hidden([key]);
@@ -383,12 +342,12 @@ export function MeetingText({ view }: { view: RunView }) {
           <div className="flex flex-col gap-3">
             {!hidden(["ozet"]) && (
               <RmNote title={t("meetingAim")}>
-                {block("ozet", t("meetingAim"), sentences("ozet"), <p className="max-w-[68ch]">{prose(sentences("ozet"))}</p>)}
+                {block("ozet", t("meetingAim"), sentences("ozet"), listOf(sentences("ozet")))}
               </RmNote>
             )}
             {sentences("piyasa_notu").length > 0 && !hidden(["piyasa_notu"]) && (
               <RmNote title={t("marketNote")}>
-                {block("piyasa_notu", t("marketNote"), sentences("piyasa_notu"), <p className="max-w-[68ch]">{prose(sentences("piyasa_notu"))}</p>)}
+                {block("piyasa_notu", t("marketNote"), sentences("piyasa_notu"), listOf(sentences("piyasa_notu")))}
               </RmNote>
             )}
           </div>
@@ -551,7 +510,6 @@ export function MeetingText({ view }: { view: RunView }) {
                 </ul>
               </section>
               {!markdown && <SourceList sources={sources} onEvidence={setEvidenceId} highlight={highlight} />}
-              <TermsBox terms={terms} />
             </aside>
           )}
         </div>
