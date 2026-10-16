@@ -81,14 +81,14 @@ def test_no_spec_no_context():
 @pytest.mark.parametrize("bad", [
     {"version": 1},
     {"version": 1, "options": {"x": {"own": {}, "banks": [], "note": {}}}},
-    {"version": 1, "options": {"x": {
+    {"version": 1, "options": {"x": {"title": {"TR": "t", "EN": "t"},
         "own": {"label": {"TR": "a", "EN": "a"}, "quantity": "q", "entity": "no comma"},
         "banks": [{"label": {"TR": "b", "EN": "b"}, "quantity": "q", "entity": "B, c"}],
         "note": {"TR": "", "EN": ""}}}},
-    {"version": 1, "options": {"x": {
+    {"version": 1, "options": {"x": {"title": {"TR": "t", "EN": "t"},
         "own": {"label": {"TR": "a", "EN": "a"}, "quantity": "q", "entity": "A, c"},
         "banks": [], "note": {"TR": "", "EN": ""}}}},
-    {"version": 1, "options": {"x": {
+    {"version": 1, "options": {"x": {"title": {"TR": "t", "EN": "t"},
         "own": {"label": {"TR": "a", "EN": "a"}, "quantity": "q", "entity": "A, c", "extra": 1},
         "banks": [{"label": {"TR": "b", "EN": "b"}, "quantity": "q", "entity": "B, c"}],
         "note": {"TR": "", "EN": ""}}}},
@@ -124,3 +124,34 @@ def test_option_view_has_the_context_only_on_the_configured_option(backend, pers
             assert rows[1]["evidence_id"] in {d.id for d in backend.evidence(r.snapshot_id).datapoints}
         else:
             assert o["bank_context"] is None
+
+
+def test_strict_config_needs_the_title():
+    raw = yaml.safe_load((ROOT / "config" / "bank_context.yaml").read_text(encoding="utf-8"))
+    del raw["options"]["time_deposit:ing_e_vadeli"]["title"]
+    with pytest.raises(ValueError):
+        check_bank_context(raw)
+
+
+def test_run_level_list_for_the_market_note(backend, persona):
+    """W25b: the same rows once per run (the market note), also when the option is
+    not shown; an empty list without the config."""
+    r = backend.decide(Persona.from_dict(persona), backend.list_snapshots()[0])
+    orig = backend.evidence
+
+    def evidence(snapshot_id, exclude_sources=frozenset()):
+        ev = orig(snapshot_id, exclude_sources)
+        return dataclasses.replace(ev, datapoints=ev.datapoints + (dp(OWN, 34.5, "ing_web"),
+                                                                   dp(ZIR, 31.0, "ziraat_web")))
+
+    backend.evidence = evidence
+    assert ViewBuilder(backend, load_config())(r)["bank_context"] == []
+    v = ViewBuilder(backend, load_config(), bank_context=real_config())(r)
+    assert "time_deposit:ing_e_vadeli" not in v["options"]
+    [line] = v["bank_context"]
+    assert line["option_id"] == "time_deposit:ing_e_vadeli"
+    assert line["title"].startswith("Vadeli mevduat") and line["note"].startswith("Bağlam")
+    assert [x["value"] for x in line["rows"]] == [34.5, None, 31.0]
+    assert line["rows"][2]["diff_pp"] == -3.5
+    en = ViewBuilder(backend, load_config(), lang="EN", bank_context=real_config())(r)
+    assert en["bank_context"][0]["title"].startswith("Time deposit")

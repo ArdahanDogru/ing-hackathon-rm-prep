@@ -7,6 +7,8 @@
 version: 1
 options:
   "time_deposit:ing_e_vadeli":
+    # W25b: the title of the line in the market note ("Piyasa notu"), always on screen 1
+    title: {TR: "Vadeli mevduat, ~32 gün, 100–250 bin TL", EN: "Time deposit, ~32 days, TRY 100–250k"}
     own:
       label: {TR: "ING e-Vadeli", EN: "ING e-Vadeli"}
       quantity: deposit_rate

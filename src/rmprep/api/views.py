@@ -122,7 +122,8 @@ def check_bank_context(raw: Mapping) -> dict:
 
     keys(raw, "", ("version", "options"))
     for oid, o in raw["options"].items():
-        keys(o, oid, ("own", "banks", "note"))
+        keys(o, oid, ("title", "own", "banks", "note"))
+        keys(o["title"], f"{oid}.title", ("TR", "EN"))
         cell(o["own"], f"{oid}.own")
         if not o["banks"]:
             raise ValueError(f"bank_context {oid}.banks: at least one bank")
@@ -351,5 +352,9 @@ class ViewBuilder:
             "effective_weights": dict(r.effective_weights),                  # v1.10
             "allocation_notes": list(r.allocation_notes),
             "market_note": self._market_note(ev),                          # W15
+            # W25b: the same rates once per run, for the market note (always on screen)
+            "bank_context": [{"option_id": oid, "title": spec["title"][self._lang],
+                              **bank_context(spec, idx, self._lang)}
+                             for oid, spec in self._bank_context.items()],
             "priority_criteria": self._priority_criteria(r),                 # W16 (PR #1)
         }

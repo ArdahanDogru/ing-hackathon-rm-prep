@@ -1088,6 +1088,10 @@ API by the lead):
   config hash once; nothing else).
 - The rates of other banks (ingest I15) are **not** in the score: they are
   context for the RM on the screen only (web-ui.md W25, `config/bank_context.yaml`).
+- "Teyit edin" (D16): the item "Yatırım tutarını sorun: {tier} dilimi
+  varsayıldı." is removed (the user, 2026-10-16): `to_confirm.deposit_tier` is
+  out of the config. The deposit tier stays an assumption (`texts.assumptions`,
+  the "Varsayımlar" list). The config hash changes once; no score changes.
 
 ## Later / optional
 

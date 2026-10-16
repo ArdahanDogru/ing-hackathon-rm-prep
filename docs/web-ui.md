@@ -541,6 +541,18 @@ for RM, not in score"). Data: ingest I14 (`ing_web`) and I15 (`isbank_web`,
   stale, strict config, only the configured option, the ranking unchanged).
   Web: the block with the three rows, a missing row, the stale style, the
   signed difference format, no block when `bank_context` is null, TR and EN.
+- **W25b (the user, 2026-10-16): also in the market note.** On the real data
+  of 2026-10-16 the e-Vadeli option is not shown for any persona (rank 73–382:
+  not in the top 3, the categories or the Dağılım view), so the drawer block is
+  never seen. The RunView now has `bank_context`: a list (empty without the
+  config) of `{option_id, title, rows, note}`, one entry per configured option,
+  with the same rows as the option field; config `title` TR/EN (e.g. "Vadeli
+  mevduat, ~32 gün, 100–250 bin TL"). Web: one line in the "Piyasa notu" panel
+  (screen 1, always on screen): the title, then each row "label %rate" with its
+  K mark and date ("veri yok" when missing; the own row bold; the bank rows
+  with the signed points difference in a neutral color), and the note text
+  small under the line ("bağlam, puana dahil değil" is in the note). The
+  drawer block stays.
 
 ### Fund documents: links to the manager's own site (W26, 2026-10-16)
 

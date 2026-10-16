@@ -379,7 +379,8 @@ talking_points:
 
 # D16 (web UI, "Teyit edin"): assumption key -> command for the RM; only {tier}
 to_confirm:
-  deposit_tier: "Yatırım tutarını sorun: {tier} dilimi varsayıldı."
+  # deposit_tier removed (the user, 2026-10-16): the tier stays an assumption
+  # (texts.assumptions), but no "Yatırım tutarını sorun" item in "Teyit edin"
   stale_tax_input: "Güncel stopaj oranını ve TÜFE'yi teyit edin."   # D22: a warning code
 
 # --- Texts (Turkish; {name} fields are filled by the engine) -----------------------------

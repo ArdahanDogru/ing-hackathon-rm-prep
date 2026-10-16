@@ -42163,6 +42163,45 @@
    "evidence_id": "E48b4dba0"
   }
  ],
+ "bank_context": [
+  {
+   "option_id": "time_deposit:ing_e_vadeli",
+   "title": "Vadeli mevduat, ~32 gün, 100–250 bin TL",
+   "rows": [
+    {
+     "label": "ING e-Vadeli",
+     "cell": "32-45 gün / 99.999,99-250.000 TL",
+     "own": true,
+     "value": 34.5,
+     "as_of": "2026-10-16",
+     "evidence_id": "Ef018fa9e",
+     "stale": false,
+     "diff_pp": null
+    },
+    {
+     "label": "İş Bankası (kampanya)",
+     "cell": "32 - 35 Gün / 100.001 - 250.000 TL",
+     "own": false,
+     "value": 37.0,
+     "as_of": "2026-10-16",
+     "evidence_id": "Ed9620177",
+     "stale": false,
+     "diff_pp": 2.5
+    },
+    {
+     "label": "Ziraat (internet)",
+     "cell": "32 - 45 gün / 100.000 - 499.999,99 TL",
+     "own": false,
+     "value": null,
+     "as_of": "",
+     "evidence_id": "",
+     "stale": false,
+     "diff_pp": null
+    }
+   ],
+   "note": "Bağlam: puana dahil değil. Oranlar bankaların kendi sayfalarından; brüt/net belirtilmemiş. İş Bankası oranı kampanya koşullarına bağlıdır."
+  }
+ ],
  "priority_criteria": {
   "liquidity": [
    "erişilebilir likidite"
