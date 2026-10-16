@@ -582,7 +582,7 @@ too).
     veriler ve RM eylem günlüğü kalır." with "Sıfırla" and "Vazgeç" (EN text
     in the same sense).
   - On "Sıfırla": `POST /api/reset`; then remove the browser keys of the RM
-    state (`localStorage` `rmprep.agenda.*`, `sessionStorage` `rmprep.inputs.*`;
+    state (`localStorage` `rmprep.agenda.*` and `rmprep.confirm.*` (the "Teyit edin" checks), `sessionStorage` `rmprep.inputs.*`;
     keep `rmprep.lang` and the view mode), close any drawer or note, go to "/",
     and load the run of the selected client again (as on the first visit). A
     short success line: "Sıfırlandı. Eski kayıtlar: <archive>".
