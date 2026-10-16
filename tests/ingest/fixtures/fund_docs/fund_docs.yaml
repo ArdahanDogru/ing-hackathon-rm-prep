@@ -1,0 +1,188 @@
+# I16: links to the official fund documents (izahname, YBF) on the fund
+# managers' own sites. Links only: no PDF is fetched. Checked 2026-10-16 (lead
+# check table CHECK_2026-10-16.md and the discovery GETs of ing-ingest).
+#
+# Placeholders in URLs and regexes: {code} (the TEFAS code, e.g. PPN),
+# {code_lower} (ppn), {code_tr_lower} (Turkish lower case: PIL -> pıl).
+# A doc rule matches a link when every regex it gives matches: label = the
+# link text, before = the text just before the link, path = the URL path;
+# exclude (on all three) drops a link. dates: regexes with groups d, m, y on
+# the label and the path; the newest dated link of a kind wins, else the first.
+version: 1
+user_agent: rmprep-hackathon-prototype/0.1 (ING hackathon; on demand, one fund page per fund per day)
+timeout_seconds: 20
+delay_seconds: 2            # between two requests to one host
+max_requests: 3             # per call (list pages, redirects and the fund page)
+
+managers:
+  - key: nurol
+    label: Nurol Portföy
+    issuers: [Nurol Portföy]
+    site: https://www.nurolportfoy.com.tr
+    doc_hosts: [cdn.nurolportfoy.com.tr]     # the documents are on the cdn host
+    verdict: ok
+    robots_disallow: [/api/, /admin/, /private/, /cdn-cgi/, /yatirimci-rehberi/url]
+    fund_page:
+      lookups:                # tried in order; both pages are cached per day
+        - url: https://www.nurolportfoy.com.tr/
+          href: '^/yatirim-fonlari/[a-z0-9-]+$'
+          text: '^{code}(?![A-Z0-9])'        # the home cards start with the code
+        - url: https://www.nurolportfoy.com.tr/yatirim-fonlari
+          raw: '\\"path\\":\\"(?P<url>yatirim-fonlari/[a-z0-9-]+)\\"[^{}]{0,800}?\\"metaTitle\\":\\"[^"\\]*\| {code}\\"'
+    docs:
+      - kind: izahname
+        path: '^/Documents/\d+-{code_lower}-.*izah'
+        exclude: 'bilgi-formu|ic-tuzu|tuzug'
+      - kind: ybf
+        path: '^/Documents/\d+-{code_lower}-.*yatirimci-bilgi-formu'
+    dates: ['(?P<d>\d{2})-(?P<m>\d{2})-(?P<y>\d{4})']
+
+  - key: osmanli
+    label: Osmanlı Portföy
+    issuers: [Osmanlı Portföy]
+    site: https://www.osmanliportfoy.com.tr
+    verdict: ok
+    robots_disallow: ['*allroutes=*']
+    fund_page:
+      pages: [https://www.osmanliportfoy.com.tr/surekli-bilgilendirme-formu]   # one page, all funds
+    docs:
+      - kind: izahname
+        label: '^{code}\b.*[İi]zahname'
+        exclude: 'Tadil|Değişiklik|Duyuru'
+      - kind: ybf
+        label: '^{code}\b.*(Yatırımcı Bilgi Formu|YBF)'
+    # The page lists the current document first; older versions have a date in
+    # the label, the current one has none: take the first, keep its date if any.
+    pick: first
+    dates: ['(?P<d>\d{2})\.(?P<m>\d{2})\.(?P<y>\d{4})']
+
+  - key: astra
+    label: Astra Portföy
+    issuers: [Astra Portföy]
+    site: https://astraportfoy.com.tr
+    verdict: ok
+    robots_disallow: [/404.php]
+    fund_page:
+      template: https://astraportfoy.com.tr/astra-portfoy-fon-{code_lower}
+    docs:
+      - kind: izahname
+        path: '/uploads/fund-reports/{code_lower}/Izahname-{code}_'
+      - kind: ybf
+        path: '/uploads/fund-reports/{code_lower}/Yatirimci-bilgi-formu-{code}_'
+    dates: ['(?P<d>\d{2})\.(?P<m>\d{2})\.(?P<y>\d{4})']
+
+  - key: oyak
+    label: Oyak Portföy
+    issuers: [Oyak Portföy]
+    site: https://www.oyakportfoy.com.tr
+    verdict: ok
+    robots_disallow: []      # robots.txt is a 404 page
+    fund_page:
+      pages:                 # one list page per kind, all funds; cached per day
+        - https://www.oyakportfoy.com.tr/fon-bilgilendirme-dokumanlari-fon-izahnameleri
+        - https://www.oyakportfoy.com.tr/fon-bilgilendirme-dokumanlari-yatirimci-bilgi-formu
+    docs:
+      - kind: izahname
+        page: 0
+        label: '\({code}\)$'
+      - kind: ybf
+        page: 1
+        label: '\({code}\)$'
+    dates: ['-(?P<m>\d{2})-(?P<d>\d{2})-(?P<y>\d{4})-\d{1,2}-\d{1,2}-\d{1,2}-\.pdf$']   # month first
+
+  - key: ak
+    label: Ak Portföy
+    issuers: [Ak Portföy]
+    site: https://www.akportfoy.com.tr
+    verdict: ok
+    robots_disallow: []      # robots.txt is a 404 page
+    fund_page:
+      template: https://www.akportfoy.com.tr/tr/fon/{code}   # 302 to the page with the name
+    docs:
+      - kind: izahname
+        label: '^İzahname$'
+      - kind: ybf
+        label: '^Yatırımcı Bilgi Formu$'
+    dates: []
+
+  - key: kuveyt
+    label: Kuveyt Türk Portföy
+    issuers: [Kuveyt Türk Portföy]
+    site: https://www.kuveytturkportfoy.com.tr
+    verdict: ok
+    robots_disallow: [/umbraco/, /404/]
+    fund_page:
+      lookups:
+        - url: https://www.kuveytturkportfoy.com.tr/yatirim-evreni/yatirim-fonlari/
+          href: '/yatirim-evreni/yatirim-fonlari/[a-z0-9-]+/{code_lower}/$'
+    docs:
+      - kind: izahname
+        label: '^İzahname\b'
+      - kind: ybf
+        label: '^Yatırımcı Bilgi Formu\b'
+    dates: ['(?P<d>\d{2})(?P<m>\d{2})(?P<y>\d{4})\.pdf$']
+
+  - key: teb
+    label: TEB Portföy
+    issuers: [TEB Portföy]
+    site: https://www.tebportfoy.com.tr
+    verdict: link_only        # the terms forbid copying: only the URL and the label
+    robots_disallow: []
+    fund_page:
+      lookups:
+        - url: https://www.tebportfoy.com.tr/yatirim-fonlari
+          text: '^{code} - '
+    docs:
+      - kind: izahname
+        before: 'Güncel İzahname$'
+      - kind: ybf
+        before: 'Yatırımcı Bilgi Formu$'
+    dates: []                # the date is only in the file's Content-Disposition
+
+  - key: rota
+    label: Rota Portföy
+    issuers: [Rota Portföy]
+    site: https://www.rotaportfoy.com.tr
+    verdict: link_only
+    robots_disallow: []
+    fund_page:
+      lookups:
+        - url: https://www.rotaportfoy.com.tr/fon-dunyasi/
+          href: '^/fon-dunyasi/[a-z0-9-]+/{code_tr_lower}/$'
+    docs:
+      - kind: izahname
+        path: '^/media/[a-z0-9]+/[^/]*izahname[^/]*\.pdf$'
+      - kind: ybf
+        path: '^/media/[a-z0-9]+/[^/]*_ybf[^/]*\.pdf$'
+    dates: ['(?P<d>\d{2})(?P<m>\d{2})(?P<y>\d{4})\.pdf$']
+
+  - key: garanti
+    label: Garanti BBVA Portföy
+    issuers: [Garanti Portföy]
+    site: https://www.garantibbvaportfoy.com.tr
+    verdict: link_only
+    robots_disallow: []      # robots.txt is broken ("Value cannot be null")
+    fund_page:
+      lookups:
+        - url: https://www.garantibbvaportfoy.com.tr/
+          text: '^{code} '                   # the menu: <span class="d-none">CODE</span> name
+    docs:
+      - kind: izahname
+        path: '^/assets/{code_lower}_izahname_'
+      - kind: ybf
+        path: '^/assets/{code_lower}_yat_bilgi_'
+    dates: ['(?P<y>\d{4})(?P<m>\d{2})(?P<d>\d{2})\.pdf$']
+
+not_covered:
+  - issuers: [İş Portföy]
+    reason:
+      tr: "İş Portföy: robots.txt belge yolunu (/medium/) engelliyor; belgeler KAP'ta."
+      en: "İş Portföy: robots.txt blocks the document path (/medium/); the documents are on KAP."
+  - issuers: [Azimut Portföy, Azimut PYŞ]
+    reason:
+      tr: "Azimut Portföy: belge bağlantıları KAP'a gidiyor; KAP otomatik erişimi engelliyor."
+      en: "Azimut Portföy: the document links go to KAP, which blocks automated access."
+  - issuers: [Yapı Kredi Portföy]
+    reason:
+      tr: "Yapı Kredi Portföy: belge listesi bir betikle yükleniyor; sayfada bağlantı yok."
+      en: "Yapı Kredi Portföy: a script loads the document list; the page has no links."
