@@ -24,7 +24,7 @@ dev = ["pytest>=8.0"]
 kap = ["docling"]
 ui = ["streamlit"]
 narrator = ["anthropic>=1.0"]
-web = ["fastapi>=0.110", "uvicorn>=0.29"]
+web = ["fastapi>=0.110", "uvicorn>=0.29", "truststore>=0.9"]   # truststore: W26 fund document links (I16)
 
 [tool.setuptools.packages.find]
 where = ["src"]

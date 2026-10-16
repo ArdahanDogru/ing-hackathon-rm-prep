@@ -954,9 +954,13 @@ the meeting text or the card; the RM sees the links in the fund drawer
      `link_only` pages are never stored.
   6. `not_found` has two reasons: the code is not on the manager's list (then
      `page_url` = the list page), or the fund page has no matching link.
-  Open points: Astra's server does not send its intermediate TLS certificate,
-  so httpx with certifi fails ("unable to get local issuer certificate"): live,
-  Astra gives `failed` (the check is not turned off). Coverage of the list
+  Astra's server does not send its intermediate TLS certificate, so httpx with
+  certifi fails ("unable to get local issuer certificate"). Fixed 2026-10-16
+  (the user): the API's fund-docs client uses the OS trust store
+  (`truststore.SSLContext`, still verified; extra `web`), which completes the
+  chain; only this client, the other sources keep certifi. Live check of 22
+  funds of the engine's top 10: both links 14 (with EIB), YBF only 3 (BTL, PLR,
+  TE4), not_found 1 (EKF), not_covered 3 (TI4, YBS, KSK). Coverage of the list
   pages (saved pages): Nurol 14 / 33 funds, Kuveyt 28 / 62, TEB 42 / 68,
   Garanti 70 / 133, Rota 6 / 57; the others give `not_found` with the list
   page. Nurol YBF (306 / 307), TEB and the Kuveyt YBF have no date.

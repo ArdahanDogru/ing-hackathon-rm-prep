@@ -49,7 +49,13 @@ def build_app(root: Path, personas_dir: Path | None = None):
 
         from rmprep.ingest import fund_docs
         fd_cfg = fund_docs.load_config(Path(root) / "config" / "fund_docs.yaml")
-        fd_client = httpx.Client(timeout=fd_cfg.timeout_seconds)
+        # the OS trust store (still verified): some manager sites (Astra) do not send
+        # their intermediate certificate; Windows completes the chain, certifi cannot
+        import ssl
+
+        import truststore
+        fd_client = httpx.Client(timeout=fd_cfg.timeout_seconds,
+                                 verify=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT))
         fd_cache = Path(root) / "data" / "cache" / "fund_docs"
 
         def fund_docs_fn(code: str, issuer: str):
