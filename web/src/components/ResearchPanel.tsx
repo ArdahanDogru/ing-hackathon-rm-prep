@@ -15,8 +15,15 @@ const LIMIT_ERROR = "daily limit"; // rmprep.research.service.LIMIT_ERROR
 
 /** The research of a ready run: asked at once, then every 3 s while it runs (at most 40 calls).
  * An error, or a server without research, gives "off" with no reason (the panel stays hidden).
- * A new `refresh` asks again (W24: after an agent run); the view on screen stays meanwhile. */
-export function useResearch(runId: string, lang: Lang, enabled: boolean, refresh: number | string = 0): ResearchView | null {
+ * A new `refresh` asks again (W24: after an agent run); the view on screen stays meanwhile.
+ * With `poll` (W29: the agent runs) a ready research is asked again every 3 s too. */
+export function useResearch(
+  runId: string,
+  lang: Lang,
+  enabled: boolean,
+  refresh: number | string = 0,
+  poll = false,
+): ResearchView | null {
   const [view, setView] = useState<ResearchView | null>(null);
   const shown = useRef("");
   useEffect(() => {
@@ -42,7 +49,7 @@ export function useResearch(runId: string, lang: Lang, enabled: boolean, refresh
           if (done) return;
           if (v.state === "running" && refresh) return; // a refresh keeps the view on screen while it runs
           setView(v);
-          if (v.state !== "running") stop();
+          if (v.state !== "running" && !poll) stop();
         },
         () => {
           if (!done) setView({ state: "off", reason: "" });
@@ -53,7 +60,7 @@ export function useResearch(runId: string, lang: Lang, enabled: boolean, refresh
     const timer = setInterval(ask, POLL_MS);
     ask();
     return stop;
-  }, [runId, lang, enabled, refresh]);
+  }, [runId, lang, enabled, refresh, poll]);
   return view;
 }
 
@@ -245,11 +252,20 @@ function AnswerBlock({ a }: { a: QuestionAnswer }) {
   );
 }
 
-export function ResearchPanel({ view, refresh = 0 }: { view: RunView; refresh?: number | string }) {
+export function ResearchPanel({
+  view,
+  refresh = 0,
+  agentRunning = false,
+}: {
+  view: RunView;
+  refresh?: number | string;
+  /** W29: the agent of this run runs: keep asking, so the earlier list goes when the new one comes */
+  agentRunning?: boolean;
+}) {
   const t = useT();
   const lang = useContext(LangContext);
   const runId = view.result.run_id;
-  const research = useResearch(runId, lang, view.result.state === "ready", refresh);
+  const research = useResearch(runId, lang, view.result.state === "ready", refresh, agentRunning);
   const [asked, setAsked] = useState<QuestionAnswer[]>([]);
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
@@ -313,6 +329,16 @@ export function ResearchPanel({ view, refresh = 0 }: { view: RunView; refresh?: 
               .map((p) => (
                 <ProductBlock key={p.option_id} p={p} runId={runId} />
               ))}
+          </div>
+        </div>
+      )}
+      {research.state === "ready" && research.previous && research.previous.products.length > 0 && (
+        <div data-testid="research-previous" className="mt-4 opacity-70">
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-muted">{t("researchPrevious")}</h3>
+          <div className="grid gap-3">
+            {research.previous.products.map((p) => (
+              <ProductBlock key={p.option_id} p={p} runId={runId} />
+            ))}
           </div>
         </div>
       )}

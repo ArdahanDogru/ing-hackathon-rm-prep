@@ -95,7 +95,7 @@ function researchAnswer(load: Loader, runId: string): MockAnswer {
   const started = agentStarted.get(runId);
   if (found && started && Date.now() - started.at >= AGENT_RUN_MS && found.name !== "run_p02_ready") {
     const other = agentDecision(found.run, "done").picks.find((p) => !found.run.result.recommended.includes(p.option_id));
-    if (other)
+    if (other?.option_id) // a run with fewer than 3 engine picks has no such candidate
       products.push({
         ...MOCK_RESEARCH.products[0],
         option_id: other.option_id,
@@ -105,11 +105,29 @@ function researchAnswer(load: Loader, runId: string): MockAnswer {
         findings: [{ ...MOCK_FINDING, id: "Fb0c0de01", text: "Fon büyük ölçüde özel sektör tahvili tutar." }],
       });
   }
-  const marked = products.map((p) => {
+  const mark = (p: typeof products[number]) => {
     const q = p as { findings?: MockFinding[]; news?: MockFinding[] };
     return { ...p, findings: (q.findings ?? []).map(withMarks), news: (q.news ?? []).map(withMarks) };
-  });
-  return { status: 200, body: { ...MOCK_RESEARCH, products: marked } };
+  };
+  // W29: while the run's agent runs, an earlier run's candidate that is not in this list
+  // (the mock has no "followed" runs: any running agent shows it)
+  const running = !!started && Date.now() - started.at < AGENT_RUN_MS;
+  const previous = running
+    ? {
+        run_id: "R-earlier",
+        products: [
+          mark({
+            ...MOCK_RESEARCH.products[0],
+            option_id: "fund:GO6",
+            label: "ONE PORTFÖY PARA PİYASASI (TL) FONU",
+            company: "One Portföy Yönetimi A.Ş.",
+            news: [],
+            findings: [{ ...MOCK_FINDING, id: "Fb0c0de02", text: "Fon kısa vadeli mevduat ve repo tutar." }],
+          }),
+        ],
+      }
+    : undefined;
+  return { status: 200, body: { ...MOCK_RESEARCH, products: products.map(mark), ...(previous ? { previous } : {}) } };
 }
 
 // Fund documents (W26): Nurol funds ok (two links), AIS not_found, IST failed, the rest

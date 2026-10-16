@@ -195,7 +195,7 @@ export function Dashboard({
           onClose={() => setNote(null)}
         />
       )}
-      {ready && <ResearchPanel view={view} refresh={researchRefresh} />}
+      {ready && <ResearchPanel view={view} refresh={researchRefresh} agentRunning={agent?.state === "running"} />}
 
       {ready && <ApprovalBar view={view} selected={selected} openConfirms={openConfirms} onRemove={toggle} onView={onView} />}
 

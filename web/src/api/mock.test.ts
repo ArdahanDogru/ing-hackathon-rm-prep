@@ -165,3 +165,20 @@ test("reset (W27): 409 while a mock agent runs; then ok, and the agent and the m
   expect(resolveMock("GET", "/api/runs/R01/agent", undefined, loadRun).body).toMatchObject({ state: "off", fallback_reason: "henüz çalıştırılmadı" });
   vi.useRealTimers();
 });
+
+test("research previous (W29): while the run's mock agent runs, then gone when it is done", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-10-17T11:00:00+03:00"));
+  resetAgentMock();
+  const run = { result: { run_id: "R01", recommended: ["fund:PPN"], options: [{ option: { option_id: "fund:PPN", kind: "fund" } }] }, options: {} };
+  const loadRun = (name: string) => (name === "run_p01_ready" ? run : undefined);
+  const read = () => resolveMock("GET", "/api/runs/R01/research", undefined, loadRun).body as { previous?: { run_id: string; products: { option_id: string }[] } };
+  expect(read().previous).toBeUndefined();
+  resolveMock("POST", "/api/runs/R01/agent", { n: 5 }, loadRun);
+  const during = read().previous;
+  expect(during?.products.length).toBeGreaterThan(0);
+  expect(during?.products.some((p) => p.option_id === "fund:PPN")).toBe(false);
+  vi.advanceTimersByTime(16_000);
+  expect(read().previous).toBeUndefined();
+  vi.useRealTimers();
+});
