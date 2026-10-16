@@ -85,6 +85,21 @@ def test_not_configured_is_not_covered(backend, persona):
     assert got["status"] == "not_covered" and got["docs"] == [] and "config/fund_docs.yaml" in got["reason"]
 
 
+def test_the_reason_text_by_language(backend, persona):
+    """I16 gives the reason as {"tr", "en"}; None becomes ""."""
+    reason = {"tr": "İş Portföy: robots.txt belge yolunu engelliyor.", "en": "İş Portföy: robots.txt blocks it."}
+    c = _client(backend, lambda code, issuer: Docs(code, "", "İş Portföy", "", "not_covered", (), "", "",
+                                                   None, reason))
+    rid, fund, _ = _run_and_fund(c, persona)
+    url = f"/api/runs/{rid}/options/{fund['option_id']}/documents"
+    assert c.get(url).json()["reason"] == reason["tr"]
+    assert c.get(url + "?lang=EN").json()["reason"] == reason["en"]
+    c = _client(backend, lambda code, issuer: Docs(code, "", "", "", "not_covered", (), "", "", None, None))
+    rid, fund, _ = _run_and_fund(c, persona)
+    got = c.get(f"/api/runs/{rid}/options/{fund['option_id']}/documents").json()
+    assert got["reason"] == "" and got["checked_at"] is None
+
+
 def test_an_error_is_failed_not_500(backend, persona):
     def boom(code, issuer):
         raise RuntimeError("site down")

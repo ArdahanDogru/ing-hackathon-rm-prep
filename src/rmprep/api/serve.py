@@ -41,12 +41,26 @@ def build_app(root: Path, personas_dir: Path | None = None):
     if (Path(root) / "config" / "agent.yaml").is_file():
         from rmprep.agent.service import agent_from_root
         agent = agent_from_root(root, research)
+    # W26 / I16: links to the official fund documents, on demand (a root without the
+    # config: the route answers not_covered)
+    fund_docs_fn = None
+    if (Path(root) / "config" / "fund_docs.yaml").is_file():
+        import httpx
+
+        from rmprep.ingest import fund_docs
+        fd_cfg = fund_docs.load_config(Path(root) / "config" / "fund_docs.yaml")
+        fd_client = httpx.Client(timeout=fd_cfg.timeout_seconds)
+        fd_cache = Path(root) / "data" / "cache" / "fund_docs"
+
+        def fund_docs_fn(code: str, issuer: str):
+            return fund_docs.find_documents(code, issuer, fd_cfg, client=fd_client,
+                                            cache_dir=fd_cache)
     # L1: every decision and edit of the RM (spec 2026-10-15-rm-action-log-design)
     from rmprep.api.action_log import ActionLog
     action_log = ActionLog(Path(root) / "data" / "logs" / "rm-actions", versions=_prompt_versions(root))
     return create_app(backend, views=views, static_dir=dist,
                       ingest=IngestControl(Paths(Path(root).resolve())), research=research,
-                      agent=agent, action_log=action_log)
+                      agent=agent, action_log=action_log, fund_docs=fund_docs_fn)
 
 
 def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None) -> None:

@@ -342,9 +342,10 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         return {"top3": picks} if set(picks) != set(result.recommended) else {}
 
     @app.get("/api/runs/{run_id}/options/{option_id}/documents")
-    def option_documents(run_id: str, option_id: str):
+    def option_documents(run_id: str, option_id: str, lang: str = "TR"):
         """W26: links to the official izahname and YBF on the fund manager's own
-        site (on demand, links only; I16). A site problem is status "failed", not a 500."""
+        site (on demand, links only; I16). A site problem is status "failed", not a 500.
+        I16 gives the reason as {"tr", "en"}; lang chooses the text."""
         result = _run(run_id)
         opt = next((o.option for o in (*result.options, *result.rejected)
                     if o.option.option_id == option_id), None)
@@ -358,7 +359,12 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
             found = _to_json(fund_docs(option_id.split(":", 1)[-1], short_name(opt.label)[0]))
         except Exception as e:          # find_documents never raises; this is a safety net
             return {**_NO_DOCS, "status": "failed", "reason": f"{type(e).__name__}: {e}"}
-        return {k: found.get(k, v) for k, v in _NO_DOCS.items()}
+        out = {k: found.get(k, v) for k, v in _NO_DOCS.items()}
+        reason = out["reason"]
+        if isinstance(reason, dict):
+            out["reason"] = reason.get(lang.lower()) or reason.get("tr") or ""
+        out["reason"] = out["reason"] or ""
+        return out
 
     @app.get("/api/runs/{run_id}/agent")
     def agent_decision(run_id: str):

@@ -930,6 +930,36 @@ the meeting text or the card; the RM sees the links in the fund drawer
   (the URLs of the check table), the date rules, `not_found`, `not_covered`,
   `failed` (HTTP 404/403, robots), the host rule, the cache (today, other day,
   failed not cached), at most `max_requests`, the delay per host.
+- Built (ingest@5aaf61d, merged 2026-10-16; 60 tests). `config/fund_docs.yaml` =
+  the test copy. API: `fund_docs.load_config(path)`, `find_documents(...)`;
+  `FundDocs.reason` is `{"tr", "en"}` or None (the API route chooses by `lang`).
+  Changes and details:
+  1. The way to the fund page: `template` (Ak, Astra) | `lookups` = list pages
+     tried in order, an `<a>` by `href` and/or `text` regex, or a `raw` regex
+     with a group `url` on the page source (Nurol, Kuveyt, TEB, Rota, Garanti)
+     | `pages` = fixed pages that list all funds (Osmanlı 1, Oyak 2, with
+     `page:` per kind). Placeholders `{code}`, `{code_lower}`, `{code_tr_lower}`
+     (Rota: PIL → pıl).
+  2. Link rules per kind: regexes on `label`, `before` (the text just before
+     the link; TEB), `path`, and `exclude`. Links on a robots-disallowed path
+     are ignored (the Nurol "İndir" proxy under `/api/`); only the site host
+     and `doc_hosts`.
+  3. `pick: newest | first` (default newest). Osmanlı uses `first`: its current
+     documents have no date, older versions have one.
+  4. Requests: only the site host; a URL ending in `.pdf` is refused before a
+     request; a non-HTML answer fails; same-host redirects are followed and
+     counted; no redirect to another host.
+  5. Cache: `data/cache/fund_docs/<CODE>-<day>.json` (ok, not_found); for `ok`
+     managers also the list pages (`pages/<key>-<hash>-<day>.json`);
+     `link_only` pages are never stored.
+  6. `not_found` has two reasons: the code is not on the manager's list (then
+     `page_url` = the list page), or the fund page has no matching link.
+  Open points: Astra's server does not send its intermediate TLS certificate,
+  so httpx with certifi fails ("unable to get local issuer certificate"): live,
+  Astra gives `failed` (the check is not turned off). Coverage of the list
+  pages (saved pages): Nurol 14 / 33 funds, Kuveyt 28 / 62, TEB 42 / 68,
+  Garanti 70 / 133, Rota 6 / 57; the others give `not_found` with the list
+  page. Nurol YBF (306 / 307), TEB and the Kuveyt YBF have no date.
 
 ## Noted for later (decided 2026-10-09, not to be done now)
 
