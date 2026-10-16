@@ -189,9 +189,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     @app.post("/api/runs/{run_id}/approval")
     def approval(run_id: str, req: schemas.ApprovalRequest):
-        if _changes(_run(run_id).persona):      # every backend, not only RealBackend
-            raise ValueError("a test run (edited persona) cannot be approved or rejected")
         before = _run(run_id)
+        changes = _changes(before.persona)       # W30: an edited profile can be approved
         decided = backend.approve(run_id, RmStatus(req.status), req.note, tuple(req.selected))
         view = _view(decided)
         for lang in NARRATIVE_LANGS:              # the texts of an earlier decision no longer apply
@@ -202,7 +201,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
                  "engine_top3": list(before.recommended),
                  "agent_top3": [p.option_id for p in d.picks] if d is not None else [],
                  "agent_state": d.state if d is not None else "none",
-                 "selected": list(req.selected), "note": req.note})
+                 "selected": list(req.selected), "note": req.note,
+                 "test_run": bool(changes), "persona_changes": changes})   # W30
         return view
 
     @app.put("/api/runs/{run_id}/notes")
@@ -268,7 +268,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         md = card.render_markdown(result, ev, lang, narrative=_approved_text(run_id, lang),
                                   glossary_terms=terms,
                                   current_text=_current_text(run_id, lang, strict),
-                                  agent=agent.status(run_id) if _agent_on() else None)
+                                  agent=agent.status(run_id) if _agent_on() else None,
+                                  persona_changes=_changes(result.persona))   # W30
         backend.save_card(run_id, md)
         return md
 

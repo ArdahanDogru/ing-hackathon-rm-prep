@@ -389,3 +389,22 @@ def test_the_committed_fixture_log_is_deterministic(root):
     assert meta["files"] == ["2026-10-15.jsonl", "2026-10-16.jsonl"] and meta["records"] == 9
     [g] = groups(a, "R2", section="piyasa_notu")
     assert g["evidence"] == ["2026-10-15.jsonl:4", "2026-10-16.jsonl:3"]
+
+
+def test_w30_approvals_of_an_edited_profile_are_left_out(root):
+    """W30: an approval with details.test_run is not counted in R2-R4; the report
+    gives their number."""
+    log = Log(root)
+    for k in range(5):
+        log.approve(f"R{k}")
+        log.block(f"R{k}", "piyasa_notu", "")
+    log.add("decision_approved", {"engine_top3": ["fund:A"], "agent_top3": [], "agent_state": "none",
+                                  "selected": ["fund:A"], "note": "", "test_run": True,
+                                  "persona_changes": [{"field": "yas", "original": 62, "edited": 63}]},
+            run="RT")
+    log.block("RT", "piyasa_notu", "")
+    res = run(root)
+    [pn] = groups(res, "R2", section="piyasa_notu")
+    assert (pn["n"], pn["deleted"]) == (5, 5)
+    assert rule(res, "R2")["test_runs_skipped"] == 1 and rule(res, "R4")["test_runs_skipped"] == 1
+    assert "Düzenlenmiş profil onayları (dışarıda): 1" in res.markdown

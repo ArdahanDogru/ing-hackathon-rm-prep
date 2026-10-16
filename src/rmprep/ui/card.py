@@ -9,6 +9,7 @@ from __future__ import annotations
 import dataclasses
 import html
 import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
 from rmprep.contracts import (
@@ -37,11 +38,16 @@ class _Section:
     items: list[_Item] = field(default_factory=list)
 
 
-def _sections(r: DecisionResult, ev: EvidenceSet, lang: str) -> list[_Section]:
+def _sections(r: DecisionResult, ev: EvidenceSet, lang: str,
+              persona_changes: Sequence[Mapping] = ()) -> list[_Section]:
     if r.rm_status != RmStatus.APPROVED:
         raise ValueError("only an approved run has a card")
     p = r.persona
     client = _Section(t("card_client", lang))
+    if persona_changes:              # W30: an approved edited profile says so first
+        client.items.append(_Item(f"{t('card_edited', lang)}: " + "; ".join(
+            f"{t('f_' + c['field'], lang)}: {_value(c['original'])} → {_value(c['edited'])}"
+            for c in persona_changes), strong=True))
     for f in dataclasses.fields(p):
         v = getattr(p, f.name)
         if f.name in views.LIST_FIELDS:
@@ -77,6 +83,11 @@ def _sections(r: DecisionResult, ev: EvidenceSet, lang: str) -> list[_Section]:
     if r.rm_note:
         out.append(_Section(t("card_rm_note", lang), [_Item(r.rm_note)]))
     return out
+
+
+def _value(v) -> str:
+    """W30: a persona value in the changes line (a list joined)."""
+    return ", ".join(v) if isinstance(v, (list, tuple)) else str(v)
 
 
 def _title(r: DecisionResult, lang: str) -> str:
@@ -160,10 +171,12 @@ def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
                     narrative: NarrativeDraft | None = None,
                     glossary_terms: tuple[glossary.Term, ...] = (),
                     current_text: str | None = None,
-                    agent: AgentDecision | None = None) -> str:
+                    agent: AgentDecision | None = None,
+                    persona_changes: Sequence[Mapping] = ()) -> str:
     """current_text (W19, 2026-10-15): the meeting text as it is now, with the RM's
-    edits, used when there is no approved text. agent (v1.11): the agent decision."""
-    body = _markdown_body(r, evidence, lang, narrative, current_text, agent)
+    edits, used when there is no approved text. agent (v1.11): the agent decision.
+    persona_changes (W30): the fields of an edited profile ({field, original, edited})."""
+    body = _markdown_body(r, evidence, lang, narrative, current_text, agent, persona_changes)
     found = _terms(body, glossary_terms, lang)
     if not found:
         return body
@@ -174,10 +187,11 @@ def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
 
 def _markdown_body(r: DecisionResult, evidence: EvidenceSet, lang: str,
                    narrative: NarrativeDraft | None, current_text: str | None = None,
-                   agent: AgentDecision | None = None) -> str:
+                   agent: AgentDecision | None = None,
+                   persona_changes: Sequence[Mapping] = ()) -> str:
     lines = [f"# {_title(r, lang)}", "", _meta(r, lang)]
     lines += _approvals(r, narrative, lang)
-    for s in _sections(r, evidence, lang):
+    for s in _sections(r, evidence, lang, persona_changes):
         lines += ["", f"## {s.heading}", ""]
         for it in s.items:
             lines.append(f"- **{it.text}**" if it.strong else f"- {it.text}")
@@ -200,12 +214,13 @@ def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
                 narrative: NarrativeDraft | None = None,
                 glossary_terms: tuple[glossary.Term, ...] = (),
                 current_text: str | None = None,
-                agent: AgentDecision | None = None) -> str:
+                agent: AgentDecision | None = None,
+                persona_changes: Sequence[Mapping] = ()) -> str:
     e = html.escape
     parts = ["<!DOCTYPE html>", f'<html lang="{lang.lower()}"><head><meta charset="utf-8">',
              f"<title>{e(_title(r, lang))}</title><style>{_CSS}</style></head><body>",
              f"<h1>{e(_title(r, lang))}</h1>", f'<p class="meta">{e(_meta(r, lang))}</p>']
-    for s in _sections(r, evidence, lang):
+    for s in _sections(r, evidence, lang, persona_changes):
         parts.append(f"<h2>{e(s.heading)}</h2><ul>")
         for it in s.items:
             text = f"<strong>{e(it.text)}</strong>" if it.strong else e(it.text)

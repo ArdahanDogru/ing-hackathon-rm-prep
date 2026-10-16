@@ -279,16 +279,19 @@ class _Report:
         self.cfg = cfg
         self.records = records
         self.missing: dict[str, list[Record]] = defaultdict(list)
+        self.test_runs: dict[str, Record] = {}       # W30: approvals of an edited profile
 
     def of(self, *actions: str) -> list[Record]:
         return [r for r in self.records if r.action in actions]
 
     def approvals(self) -> dict[str, Record]:
-        """The last decision_approved record of each run."""
+        """The last decision_approved record of each run. W30: an approval of an edited
+        profile (details.test_run) is left out and kept in self.test_runs."""
         out: dict[str, Record] = {}
         for r in self.of("decision_approved"):
             out[str(r.data.get("run_id", ""))] = r
-        return out
+        self.test_runs = {k: r for k, r in out.items() if r.details.get("test_run") is True}
+        return {k: r for k, r in out.items() if k not in self.test_runs}
 
     # R1
     def r1(self) -> list[_Group]:
@@ -473,6 +476,8 @@ def measure(records: list[Record], cfg: FeedbackConfig) -> tuple[dict, dict]:
             "missing_evidence": [r.at for r in missing][:cfg.evidence_max],
             "groups": groups,
         }
+        if rid in ("R2", "R3", "R4"):              # W30: approvals of an edited profile
+            rules[rid]["test_runs_skipped"] = len(rep.test_runs)
     questions: dict[str, dict[str, Any]] = {}
     for r in rep.of("research_question"):
         q = " ".join(str(r.details.get("question", "")).split())
@@ -542,6 +547,8 @@ def to_markdown(m: dict) -> str:
         if r["missing_fields"]:
             L.append(f"- Eksik alan: {r['missing_fields']} kayıt (L1b öncesi; bu ölçüde "
                      f"atlandı): {', '.join(r['missing_evidence'])}")
+        if r.get("test_runs_skipped"):
+            L.append(f"- Düzenlenmiş profil onayları (dışarıda): {r['test_runs_skipped']}")
         L.append("")
         groups = r["groups"]
         if not groups:

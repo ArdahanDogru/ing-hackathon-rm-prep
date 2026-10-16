@@ -117,6 +117,7 @@ LABELS: dict[str, dict[str, str]] = {
     "card_meta": {"TR": "Çalıştırma {run_id} · veri {snapshot} · {created}",
                   "EN": "Run {run_id} · data {snapshot} · {created}"},
     "card_client": {"TR": "Müşteri", "EN": "Client"},
+    "card_edited": {"TR": "Düzenlenmiş profil ile hazırlandı", "EN": "Prepared with an edited profile"},  # W30
     "card_options": {"TR": "Görüşmede konuşulacak seçenekler", "EN": "Options to discuss"},
     "card_general_warnings": {"TR": "Genel uyarılar", "EN": "General warnings"},
     "card_sources": {"TR": "Kaynaklar", "EN": "Sources"},

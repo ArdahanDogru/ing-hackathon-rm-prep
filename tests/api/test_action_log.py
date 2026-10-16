@@ -105,7 +105,8 @@ def test_decision_approved_and_rejected(backend, tmp_path):
     r = _records(log)[-1]
     assert r["action"] == "decision_approved"
     assert r["details"] == {"engine_top3": v["result"]["recommended"], "agent_top3": [],
-                            "agent_state": "none", "selected": [first], "note": "tamam"}
+                            "agent_state": "none", "selected": [first], "note": "tamam",
+                            "test_run": False, "persona_changes": []}            # W30
     c.post(f"/api/runs/{rid}/approval", json={"status": "rejected", "note": "uygun değil", "selected": []})
     assert _records(log)[-1]["action"] == "decision_rejected"
 

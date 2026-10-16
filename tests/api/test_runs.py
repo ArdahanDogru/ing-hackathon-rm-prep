@@ -30,16 +30,22 @@ def test_bad_persona_422(client, persona):
     assert client.post("/api/runs", json={"persona": bad}).status_code == 422
 
 
-def test_test_run_cannot_be_approved(client, persona):
+def test_an_edited_profile_can_be_approved(client, persona):
+    """W30 (the user, 2026-10-17, option A): an edited profile (a test run) can be
+    approved; the card says so with the changes (before: 422)."""
     edited = dict(persona, yas=persona["yas"] + 1)
     view = client.post("/api/runs", json={"persona": edited}).json()
     assert view["test_run"] is True
     assert view["persona_changes"] == [
         {"field": "yas", "original": persona["yas"], "edited": persona["yas"] + 1}]
+    rid = view["result"]["run_id"]
     first = view["result"]["options"][0]["option"]["option_id"]
-    r = client.post(f"/api/runs/{view['result']['run_id']}/approval",
+    r = client.post(f"/api/runs/{rid}/approval",
                     json={"status": "approved", "note": "", "selected": [first]})
-    assert r.status_code == 422 and r.json()["detail"]
+    assert r.status_code == 200 and r.json()["result"]["rm_status"] == "approved"
+    assert r.json()["test_run"] is True
+    md = client.get(f"/api/runs/{rid}/card.md").text
+    assert f"Düzenlenmiş profil ile hazırlandı: Yaş: {persona['yas']} → {persona['yas'] + 1}" in md
 
 
 def test_approve_then_notes(client, persona):
