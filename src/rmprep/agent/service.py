@@ -382,6 +382,22 @@ class AgentService:
                 self._live[run_id] = cached
             return cached
 
+    def running(self) -> bool:
+        """W27: true while an agent job runs (the reset waits for it)."""
+        with self._lock:
+            return any(not j.done() for j in self._jobs.values())
+
+    def reset_state(self, archive: Path) -> int:
+        """W27 reset: forgets the latest decision of every run and moves the
+        <run>.json files to `archive`; the content cache <run>.n<N>.<marks>.json
+        stays, so the same start again costs nothing. Returns the files moved."""
+        from rmprep.api.reset import move_files
+        with self._lock:
+            self._live.clear()
+            self._jobs = {k: j for k, j in self._jobs.items() if not j.done()}
+            return move_files(self.cache_root, archive,
+                              lambda p: p.suffix == ".json" and p.name.count(".") == 1)
+
     def wait(self) -> None:
         """Waits for the running jobs (tests, the eval)."""
         with self._lock:

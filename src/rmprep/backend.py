@@ -289,6 +289,24 @@ class RealBackend:
         except Exception as e:                  # never fails to the screen: the plain sentence
             return template_brief(result, lang, self._now(), (f"brief: {type(e).__name__}: {e}",))
 
+    def reset_state(self, archive: Path) -> dict[str, int]:
+        """W27 reset: moves the RM records (runs, approved texts, text edits, cards)
+        to `archive` and clears their memory. The LLM caches (briefs, drafts) stay."""
+        from rmprep.api.reset import move_files
+        data = self._paths.root / "data"
+        with self._lock:
+            out = {
+                "runs": move_files(data / "runs", archive / "runs",
+                                   lambda p: p.suffix == ".json"),
+                "texts": move_files(data / "narratives", archive / "narratives",
+                                    lambda p: p.name.endswith(("-approved.json", "-edits.json"))),
+                "cards": move_files(data / "cards", archive / "cards", lambda p: True),
+            }
+            self._runs.clear()
+            self._narratives.clear()
+            self._edits.clear()
+        return out
+
     def _saved_run(self, run_id: str) -> DecisionResult | None:
         path = self._paths.root / "data" / "runs" / f"{run_id}.json"
         try:

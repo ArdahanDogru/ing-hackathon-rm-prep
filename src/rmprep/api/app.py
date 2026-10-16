@@ -59,7 +59,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
                static_dir: Path | None = None,
                ingest: IngestControl | None = None,
                research=None, agent=None, action_log=None,
-               fund_docs: Callable[[str, str], object] | None = None) -> FastAPI:
+               fund_docs: Callable[[str, str], object] | None = None,
+               reset: Callable[[], dict] | None = None) -> FastAPI:
     """static_dir: the built web app (web/dist); its index.html answers every
     non-API path, so the client-side routes (/meeting/..., /print/...) work.
     ingest: the data age and refresh (W14); None = /api/ingest answers 404.
@@ -67,7 +68,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     agent: a rmprep.agent.service.AgentService (docs/agent.md); None = the agent route answers "off".
     action_log: a rmprep.api.action_log.ActionLog (L1); None = no RM action log.
     fund_docs: (fund code, issuer) -> a FundDocs of rmprep.ingest.fund_docs (W26, I16);
-    None = the documents route answers not_covered."""
+    None = the documents route answers not_covered.
+    reset: rmprep.api.reset.make_reset(...) (W27); None = POST /api/reset answers 404."""
     app = FastAPI(title="rmprep", docs_url="/api/docs", openapi_url="/api/openapi.json")
     runs: dict[str, DecisionResult] = {}
     texts: dict[tuple[str, str], NarrativeDraft] = {}   # (run_id, lang) -> last draft / approved text
@@ -340,6 +342,22 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
             return {}
         picks = tuple(p.option_id for p in d.picks)
         return {"top3": picks} if set(picks) != set(result.recommended) else {}
+
+    @app.post("/api/reset")
+    def reset_all():
+        """W27 "Sıfırla": every client back to the first state; the RM records move
+        to data/reset-archive/<time>/ (rmprep.api.reset). 409 while the agent runs."""
+        from rmprep.api.reset import ResetBusy
+        if reset is None:
+            raise HTTPException(404, "no reset in this server")
+        try:
+            out = reset()
+        except ResetBusy as e:
+            raise HTTPException(409, str(e)) from None
+        runs.clear()
+        texts.clear()
+        _log("reset", details=out)
+        return out
 
     @app.get("/api/runs/{run_id}/options/{option_id}/documents")
     def option_documents(run_id: str, option_id: str, lang: str = "TR"):

@@ -163,6 +163,13 @@ class ResearchService:
         return {fid: row["mark"] for fid, row in raw.items()
                 if isinstance(row, dict) and row.get("mark") in MARKS}
 
+    def archive_marks(self, archive: Path) -> int:
+        """W27 reset: moves every marks file to `archive` (the research results stay);
+        returns the files moved."""
+        from rmprep.api.reset import move_files
+        with self._marks_lock:
+            return move_files(self._root / "marks", archive, lambda p: p.suffix == ".json")
+
     def set_mark(self, finding_id: str, mark: str | None, run_id: str, option_id: str) -> None:
         """Sets, replaces (mark "ok" | "wrong") or removes (mark None) the mark of a finding
         for today. The finding id is not checked against the findings: a mark of an unknown

@@ -11,6 +11,7 @@ DEFAULT_PORT = 8600
 
 def build_app(root: Path, personas_dir: Path | None = None):
     from rmprep.api.app import create_app
+    from rmprep.api.reset import make_reset
     from rmprep.api.ingest_job import IngestControl
     from rmprep.api.views import ViewBuilder
     from rmprep.backend import RealBackend
@@ -66,7 +67,8 @@ def build_app(root: Path, personas_dir: Path | None = None):
     action_log = ActionLog(Path(root) / "data" / "logs" / "rm-actions", versions=_prompt_versions(root))
     return create_app(backend, views=views, static_dir=dist,
                       ingest=IngestControl(Paths(Path(root).resolve())), research=research,
-                      agent=agent, action_log=action_log, fund_docs=fund_docs_fn)
+                      agent=agent, action_log=action_log, fund_docs=fund_docs_fn,
+                      reset=make_reset(root, backend, agent, research))   # W27
 
 
 def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None) -> None:
