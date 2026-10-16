@@ -527,6 +527,64 @@ sources:
         min_rows: 2
         min_columns: 1
 
+  # I15 (2026-10-16): TL deposit rates of other banks, from their own pages
+  # (adapter bank_table; one GET per bank). Rows only: the engine does not use them.
+  isbank_web:
+    adapter: bank_table
+    enabled: true
+    on_failure: previous
+    source_url: https://www.isbank.com.tr/kampanyali-mevduat-oranlari
+    tos_note: >-
+      İş Bankası's own public campaign deposit rate page. robots.txt (checked
+      2026-10-16) allows the page for "*"; it disallows
+      /fiyatoran/FiyatTabloGoster.asp*, the search paths and some system paths
+      (config rejects disallowed URLs). The legal notice (/yasal-uyari) says
+      information only, not binding; no rule on reuse or automated access.
+      One GET per ingest. Rows only (I15): not used by the engine now.
+    url: https://www.isbank.com.tr/kampanyali-mevduat-oranlari
+    user_agent: rmprep-hackathon-prototype/0.1 (ING hackathon; one request per day)
+    timeout_seconds: 30
+    quantity: deposit_rate
+    tables:
+      - header: ["VADE", "5.000 - 100.000 TL", "100.001 - 250.000 TL", "250.001 - 500.000 TL",
+                 "500.001 - 1.000.000 TL", "1.000.001 - 10.000.000 TL", "10.000.001 TL Üzeri"]
+        entity: "İş Bankası kampanyalı vadeli TL, {row}, {column}"
+        decimal: ","              # "%37,95", also "%31"
+        min_rows: 9
+        note: "campaign rates (İşCep, İnternet Şube, Bankamatik); conditions apply"
+
+  ziraat_web:
+    adapter: bank_table
+    enabled: true
+    on_failure: previous
+    source_url: https://www.ziraatbank.com.tr/tr/fiyatlar-ve-oranlar
+    tos_note: >-
+      Ziraat Bankası's own public prices and rates page. robots.txt (checked
+      2026-10-16) allows the page for "*"; it disallows /_layouts/, some
+      system paths and some news paths (config rejects disallowed URLs). The
+      legal notice (/tr/yasal-uyari) says information only; the rates in use
+      can differ the same day. One GET per ingest; only the two TL deposit
+      tables are read (not gold, FX, bonds, repo or fund prices). Rows only
+      (I15): not used by the engine now.
+    url: https://www.ziraatbank.com.tr/tr/fiyatlar-ve-oranlar
+    user_agent: rmprep-hackathon-prototype/0.1 (ING hackathon; one request per day)
+    timeout_seconds: 30
+    quantity: deposit_rate
+    tables:
+      - header: ["Vade Grupları", "0,00 - 999,99 TL", "1.000 TL ve Üzeri"]     # branch (rdBranchVadeliTL)
+        entity: "Ziraat Bankası vadeli TL (şube), {row}, {column}"
+        decimal: "."              # "%28.00"
+        min_rows: 9
+        # not terms: demand deposit, and special accounts with their own
+        # conditions (state-supported savings, dowry, housing)
+        skip_rows: [Vadesiz, Birikimli Mevduat Hesabı, Çeyiz Hesabı, Konut Hesabı]
+      - header: ["Vade Grupları", "1.000,00 - 4.999,99 TL", "5.000 - 99.999,99 TL",
+                 "100.000 - 499.999,99 TL", "500.000,00 TL ve üzeri"]          # internet branch (rdIntBranchVadeliTL)
+        entity: "Ziraat Bankası vadeli TL (internet), {row}, {column}"
+        decimal: "."
+        min_rows: 14
+        skip_rows: [Vadesiz, Birikimli Mevduat Hesabı, Çeyiz Hesabı, Konut Hesabı]
+
   manual:
     adapter: manual
     enabled: true

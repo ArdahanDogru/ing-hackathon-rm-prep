@@ -840,6 +840,32 @@ next to the e-Vadeli option is possible).
   and values of each table (İş 9 × 6 = 54; Ziraat branch and internet with
   their skipped rows); the whitespace and decimal cases; each failure case;
   replay identical; the pipeline tests keep their source list (as `ing_web`).
+- Built (ingest@904648c, merged 2026-10-16; 49 + 2 tests). Rows from the saved
+  pages: `isbank_web` 54 (9 × 6; e.g. 32 - 35 Gün / 10.000.001 TL Üzeri =
+  37,95); `ziraat_web` 74 = branch 18 (9 × 2) + internet branch 56 (14 × 4).
+  Details and changes:
+  1. `skip_rows` of Ziraat (worker's decision, accepted): `Vadesiz` (demand
+     deposit, 0 %) and the special accounts `Birikimli Mevduat Hesabı`,
+     `Çeyiz Hesabı`, `Konut Hesabı` (state-supported, own conditions; their
+     30 % would look like the best Ziraat term rate). Kept: the "1 Yıl Vadeli
+     1/3/6 Ayda Bir Faiz Ödemeli" rows, and the branch column `0,00 - 999,99 TL`
+     (0,00 % on every term; real values).
+  2. Robots: `config.BANK_ROBOTS_DISALLOW` has the `*` Disallow lines of
+     www.isbank.com.tr and www.ziraatbank.com.tr (2026-10-16) with a small
+     matcher (prefix, `*`, `$`). A `bank_table` source on another host is a
+     config error, so a new bank needs its rules in code.
+  3. Config per table: `header` (list: the row-label cell + at least one
+     column; two tables with the same header in one source = config error),
+     `entity` (`{row}`, `{column}` exactly), `decimal`, `min_rows` (after
+     `skip_rows`), optional `skip_rows` and `note`; unknown keys are errors.
+  4. Percent: all whitespace removed, then `%<digits>[<decimal><digits>]`, no
+     thousands separator; the other decimal mark fails the source. The İş cell
+     `%<span>3<span>7,95</span></span>` reads as `%37,95`.
+  5. Notes: "<table note>; the page shows no date; as_of = the fetch date;
+     gross/net not stated". `raw_ref` =
+     `<snapshot>/payloads/<source>/page.html#tables[<i>];row=<row>;column=<column>`
+     (the table index, since both Ziraat tables start with "Vade Grupları").
+     `as_of` = the Turkish date of `fetched_at`, also for fallback rows.
 
 ## Noted for later (decided 2026-10-09, not to be done now)
 
