@@ -153,7 +153,7 @@ export function App() {
         <Route
           path="*"
           element={
-            <div className="min-h-screen bg-surface font-sans text-ink">
+            <div className="min-h-screen bg-surface font-sans text-ink print:bg-white">
               <TopBar
                 personas={personas}
                 personaId={personaId}
@@ -171,7 +171,7 @@ export function App() {
                 lang={lang}
                 onLang={setLang}
               />
-              <main className="mx-auto max-w-[1400px] p-6">
+              <main className="mx-auto max-w-[1400px] p-6 print:p-0">
                 <Routes>
                   <Route
                     path="/"

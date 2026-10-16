@@ -578,6 +578,50 @@ the narrator, the meeting text or the card.
   attributes, the date and no-date labels, the retry, TR and EN; the samples
   of `web/src/test` or the mock).
 
+### Client presentation: "Müşteri sunumu" (W27, 2026-10-16)
+
+Approved by the user 2026-10-16 (canvas "Müşteri Sunumu Mockup"). The meeting
+text read as generic and one-dimensional and was written to the RM, not to the
+client. The "Görüşme metni" tab now opens on **Müşteri sunumu**, a page the RM
+shows or prints for the client; the document of W9–W19 stays one click away as
+**RM hazırlık notu** (`MeetingText initialMode`, default `presentation`).
+Web only: no API, contract or narrator change.
+
+- **Code, locked:** every number and chart comes from the RunView, never from
+  the narrator: the client's goal (`persona.yatirim_amaci`) as the title; three
+  key figures (best real 1-year return of the selected options with the
+  `deposit_real` talking point figure, their access labels, the highest risk
+  level and `risk_ceiling`); **01** real-return bars of the deposit market
+  average (the `deposit_real` figure, not an ING rate: narrator rule 8) and each
+  selected option, with an approximate real gain in TL for an example amount
+  the RM types (default 1.000.000; display only, not saved, "örnek"); **03**
+  access timeline (`access.days` or `lock_days` on a scale of at least 32 days);
+  **04** the SPK scale 1–7 with the options' levels and the ceiling.
+- **Narrator blocks, editable as in the note:** `teklif_metni` under the title,
+  `oneriler:<id>` in each fund card, `dikkat` next to the risk scale,
+  `sorular` as **05** "Sonraki adım". Plain text, no source numbers (the RM note
+  keeps them). The same block edit, check and restore; a deleted block is gone
+  from the page. `dikkat` can be edited but not deleted.
+- **Fund roles:** each fund card is headed by one of its `need_tags` (the
+  client's priorities): the first tag no earlier fund has, else its first tag,
+  else its category label.
+- **Düzenle** (only for an editable draft) shows the ✎ and Sil controls, the
+  edit marks and findings, an edit hint, and the RM's comments: **Notlarım**
+  (`rm_note`) above the page and a yellow comment per fund (`rm_option_notes`),
+  saved as before. Comments are never in the page or its print. Without
+  Düzenle the RM sees exactly the client page.
+- **Yazdır / PDF:** `window.print()`; the top bar, tabs, toolbar, controls and
+  comments are `print:hidden`. Disabled while a rule finding is open (as the
+  card links, W19).
+- **Not in this step:** a client-visible RM note block and comments on a
+  section rather than a fund (both need a contract change: `rm_option_notes`
+  holds selected options only); narrator prompt changes for client-facing
+  speech in `oneriler` and `sorular` (they are still written as RM notes).
+- Tests: `ClientPresentation.test.tsx` (default view and switch, figures and
+  bars from the sample, the TL amounts, distinct roles, the risk scale, no
+  controls before Düzenle, the comment saved as an option note, the block edit,
+  dikkat not deletable, a deleted block, the print disabled by a finding, EN).
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

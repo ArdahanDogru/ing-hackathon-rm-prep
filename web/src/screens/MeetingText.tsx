@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { GlossaryTerm, NarrativeView, OptionKind, OptionView, RunView, SectionKey } from "../api/types";
 import { BlockEditor } from "../components/BlockEditor";
+import { ClientPresentation, type BlockOpts } from "../components/ClientPresentation";
 import { snapshotDate } from "../components/BriefCard";
 import { DocumentSection, SourceMark } from "../components/DocumentSection";
 import { ErrorBox } from "../components/ErrorBox";
@@ -84,7 +85,10 @@ function Collapsibles({ items }: { items: { key: SectionKey; label: string; coun
   );
 }
 
-export function MeetingText({ view }: { view: RunView }) {
+/** W27: "Müşteri sunumu" (the page for the client) or "RM hazırlık notu" (the document below). */
+export type MeetingMode = "presentation" | "note";
+
+export function MeetingText({ view, initialMode = "presentation" }: { view: RunView; initialMode?: MeetingMode }) {
   const t = useT();
   const lang = useContext(LangContext);
   const r = view.result;
@@ -104,6 +108,8 @@ export function MeetingText({ view }: { view: RunView }) {
   const [openBlock, setOpenBlock] = useState<string | null>(null);
   const [blockError, setBlockError] = useState<string | null>(null);
   const [blockBusy, setBlockBusy] = useState(false);
+  const [mode, setMode] = useState<MeetingMode>(initialMode);
+  const [editing, setEditing] = useState(false);
 
   const load = useCallback(() => {
     let live = true;
@@ -243,11 +249,14 @@ export function MeetingText({ view }: { view: RunView }) {
   );
 
   /** One editable block: its content (or the edit), a pencil, "düzenlendi" + "Orijinale dön", findings. */
-  const block = (id: string, title: string, original: Cited[], content: ReactNode, prefix?: ReactNode) => {
+  const block = (id: string, title: string, original: Cited[], content: ReactNode, prefix?: ReactNode, opts: BlockOpts = {}) => {
     const list = LIST_BLOCKS.has(id);
+    // the presentation shows its marks only while the RM edits (W27)
+    const marks = opts.controls ?? true;
+    const controls = editable && marks;
     const edited = edits[id];
     if (gone(id))
-      return approved ? null : (
+      return approved || !marks ? null : (
         <div data-testid="deleted-block" data-block={id} className="my-1 border-t border-dashed border-gray-300 pt-1 text-[13px] text-muted">
           {`${t("blockDeleted")} · `}
           <button
@@ -276,7 +285,7 @@ export function MeetingText({ view }: { view: RunView }) {
         />
       );
     return (
-      <div data-block={id} className={`group relative ${editable ? "pr-20" : ""}`}>
+      <div data-block={id} className={`group relative ${controls ? "pr-20" : ""}`}>
         {edited !== undefined ? (
           <>
             {prefix}
@@ -285,8 +294,8 @@ export function MeetingText({ view }: { view: RunView }) {
         ) : (
           content
         )}
-        {editable && (
-          <span className="absolute right-0 top-0 flex items-center text-muted opacity-60 focus-within:opacity-100 group-hover:opacity-100">
+        {controls && (
+          <span className="absolute right-0 top-0 flex items-center text-muted opacity-60 focus-within:opacity-100 group-hover:opacity-100 print:hidden">
             <button
               type="button"
               aria-label={`${title} ${t("editBlock")}`}
@@ -299,31 +308,51 @@ export function MeetingText({ view }: { view: RunView }) {
             >
               ✎
             </button>
-            <button
-              type="button"
-              aria-label={`${title}: ${t("deleteBlock")}`}
-              title={`${title}: ${t("deleteBlock")}`}
-              disabled={blockBusy}
-              className="rounded-lg px-2 py-0.5 text-[13px] hover:bg-gray-100 hover:text-[#B42318]"
-              onClick={() => sendBlock(id, "")}
-            >
-              {t("deleteBlock")}
-            </button>
+            {!opts.noDelete && (
+              <button
+                type="button"
+                aria-label={`${title}: ${t("deleteBlock")}`}
+                title={`${title}: ${t("deleteBlock")}`}
+                disabled={blockBusy}
+                className="rounded-lg px-2 py-0.5 text-[13px] hover:bg-gray-100 hover:text-[#B42318]"
+                onClick={() => sendBlock(id, "")}
+              >
+                {t("deleteBlock")}
+              </button>
+            )}
           </span>
         )}
-        {edited !== undefined && (
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-[13px]">
+        {edited !== undefined && marks && (
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-[13px] print:hidden">
             <span className="rounded-full bg-[#EEF2F9] px-2 py-0.5 font-semibold text-cobalt">{t("blockEdited")}</span>
-            {editable && (
+            {controls && (
               <button type="button" className="text-[#355FA1] underline" disabled={blockBusy} onClick={() => sendBlock(id, null)}>
                 {t("restoreBlock")}
               </button>
             )}
           </div>
         )}
-        <FindingList findings={checks[id] ?? []} />
+        {marks && <FindingList findings={checks[id] ?? []} />}
       </div>
     );
+  };
+
+  /** W27: a block of the client page: its sentences as plain text (no source numbers). */
+  const presBlock = (id: string, title: string, opts: BlockOpts = {}) => {
+    const own = id.startsWith("oneriler:")
+      ? (perOption.find((o) => `oneriler:${o.id}` === id)?.sentences ?? [])
+      : sentences(id as SectionKey);
+    if (!own.length && !(id in edits)) return null;
+    const content = LIST_BLOCKS.has(id) ? (
+      <ul className="list-disc space-y-1.5 pl-6">
+        {own.map((c, i) => (
+          <li key={i}>{c.text}</li>
+        ))}
+      </ul>
+    ) : (
+      <p className="m-0">{own.map((c) => c.text).join(" ")}</p>
+    );
+    return block(id, title, own, content, undefined, { controls: editing, ...opts });
   };
 
   /** "Bölümü sil" next to the heading of a section with several blocks, while one is left. */
@@ -368,7 +397,53 @@ export function MeetingText({ view }: { view: RunView }) {
 
   return (
     <div className="pb-10">
-      <LifecycleTabs runId={runId} approved={r.rm_status === "approved"} active="text" />
+      <div className="print:hidden">
+        <LifecycleTabs runId={runId} approved={r.rm_status === "approved"} active="text" />
+      </div>
+
+      <div data-testid="meeting-toolbar" className="mx-auto mb-4 flex max-w-[960px] flex-wrap items-center justify-between gap-3 print:hidden">
+        <div role="group" aria-label={t("meetingText")} className="flex rounded-full bg-white p-1 shadow-sm">
+          {(
+            [
+              ["presentation", t("presTab")],
+              ["note", t("prepTab")],
+            ] as const
+          ).map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={mode === m}
+              className={`min-h-[40px] rounded-full px-4 text-[15px] ${mode === m ? "bg-ink font-semibold text-white" : "text-muted hover:text-ink"}`}
+              onClick={() => setMode(m)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {mode === "presentation" && draft && (
+          <div className="flex flex-wrap gap-2">
+            {editable && (
+              <button
+                type="button"
+                aria-pressed={editing}
+                className={`min-h-[40px] rounded-lg px-4 text-[15px] ${editing ? "bg-[#FFF1B8] font-semibold text-[#3D2F00]" : "border border-gray-300 bg-white"}`}
+                onClick={() => setEditing(!editing)}
+              >
+                {`✎ ${editing ? t("presEditing") : t("presEdit")}`}
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={blocking}
+              title={blocking ? t("cardBlocked") : undefined}
+              className="min-h-[40px] rounded-lg bg-ink px-4 text-[15px] font-semibold text-white disabled:opacity-50"
+              onClick={() => window.print()}
+            >
+              {`⤓ ${t("presPrint")}`}
+            </button>
+          </div>
+        )}
+      </div>
 
       {actionError && (
         <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-white p-3 text-sm">
@@ -385,6 +460,18 @@ export function MeetingText({ view }: { view: RunView }) {
         <ErrorBox error={loadError} onRetry={load} />
       ) : !draft ? (
         <p className="animate-pulse rounded-2xl bg-white p-6 text-base text-muted shadow-sm">{t("textPreparing")}</p>
+      ) : mode === "presentation" ? (
+        <ClientPresentation
+          view={view}
+          draft={draft}
+          editing={editing && editable}
+          block={presBlock}
+          note={note}
+          onNote={editNote}
+          optionNotes={optionNotes}
+          onOptionNote={editOptionNote}
+          saveState={saveState}
+        />
       ) : (
         <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
           <article data-testid="document" className="rounded-2xl bg-white px-10 py-[34px] text-[17px] leading-[1.7] shadow-sm">

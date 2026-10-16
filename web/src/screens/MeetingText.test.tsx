@@ -37,7 +37,7 @@ function mockNarrative(n: NarrativeView) {
   return vi.spyOn(api, "narrative").mockResolvedValue(n);
 }
 function renderMeeting(view: RunView) {
-  return renderWith(<MeetingText view={view} />);
+  return renderWith(<MeetingText view={view} initialMode="note" />);
 }
 
 beforeEach(() => {
@@ -311,7 +311,7 @@ test("a number finding only warns: the card links stay open", async () => {
 
 test("W19 EN: the reason under the disabled card links", async () => {
   mockNarrative(withChecks(withEdit(sample("narrative_p01_en"), "ozet", "Guaranteed return."), "ozet", ["phrase: 'guaranteed' must not be used"]));
-  renderWith(<MeetingText view={sample("run_p01_approved")} />, { lang: "EN" });
+  renderWith(<MeetingText view={sample("run_p01_approved")} initialMode="note" />, { lang: "EN" });
   expect(await screen.findByTestId("card-blocked")).toHaveTextContent("A rule finding is open: fix it before you download the card.");
 });
 
@@ -378,7 +378,7 @@ test("a source item opens the evidence of one of its ids", async () => {
 
 test("EN asks for the EN text", async () => {
   const get = mockNarrative(sample("narrative_p01_en"));
-  renderWith(<MeetingText view={sample("run_p01_approved")} />, { lang: "EN" });
+  renderWith(<MeetingText view={sample("run_p01_approved")} initialMode="note" />, { lang: "EN" });
   await screen.findByTestId("document");
   expect(get.mock.calls[0][1]).toBe("EN");
   expect(screen.getAllByTestId("doc-heading")[0]).toHaveTextContent("Aim of the meeting");
