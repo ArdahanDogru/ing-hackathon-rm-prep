@@ -554,6 +554,44 @@ for RM, not in score"). Data: ingest I14 (`ing_web`) and I15 (`isbank_web`,
   small under the line ("bağlam, puana dahil değil" is in the note). The
   drawer block stays.
 
+### Reset: every client back to the first state (W27, 2026-10-17)
+
+Approved by the user 2026-10-17 ("everything become how it was in the first
+place"; scope: all clients; the user's approved P01 record goes to the archive
+too).
+
+- API (lead, `rmprep.api.reset`): `POST /api/reset` → `{archive, moved: {runs,
+  texts, cards, agent, research_marks}}`; 409 "Ajan çalışıyor; bitince
+  sıfırlayın." while an agent job runs; 404 when the server has no reset.
+  - **Moved, not deleted**, to `data/reset-archive/<YYYYMMDD-HHMMSS>/`:
+    `data/runs/*.json` (approvals, rejections, notes), the approved texts and
+    the text edits (`data/narratives/*-approved.json`, `*-edits.json`),
+    `data/cards/*`, the agent's latest decision per run (`data/agent/<run>.json`)
+    and the research marks (`data/research/marks/*.json`).
+  - Memory cleared: the runs and texts of the API, the backend runs (also the
+    holdings runs), approved texts and edits, the agent's live decisions.
+  - **Stays:** the data (snapshots, bank rates, document links), the LLM caches
+    (briefs, text drafts, research results, the agent's content cache
+    `<run>.n<N>.<marks>.json`: the same start again costs nothing), the RM
+    action log (one `reset` record with the counts), the browser settings
+    (language, view mode).
+- Web (ing-web): a "Sıfırla" / "Reset" button in the top bar (next to "Veri").
+  - A click opens a confirmation dialog: "Tüm müşteriler ilk hâline döner:
+    onaylar ve notlar, portföy dağılımları, ajan sonuçları, araştırma
+    işaretleri, metin düzenlemeleri ve kartlar. Eski kayıtlar arşive taşınır;
+    veriler ve RM eylem günlüğü kalır." with "Sıfırla" and "Vazgeç" (EN text
+    in the same sense).
+  - On "Sıfırla": `POST /api/reset`; then remove the browser keys of the RM
+    state (`localStorage` `rmprep.agenda.*`, `sessionStorage` `rmprep.inputs.*`;
+    keep `rmprep.lang` and the view mode), close any drawer or note, go to "/",
+    and load the run of the selected client again (as on the first visit). A
+    short success line: "Sıfırlandı. Eski kayıtlar: <archive>".
+  - 409: show the server text and keep the state. Other errors: the error box.
+- Tests: API (the files moved and the ones that stay, memory cleared, the agent
+  content cache kept, 409 while running, the `reset` log record, 404 without
+  reset); web (the dialog, the cancel, the request, the storage keys removed and
+  kept, the reload of the run, the 409 text, TR and EN).
+
 ### Fund documents: links to the manager's own site (W26, 2026-10-16)
 
 Approved by the user 2026-10-16 (step 1 of the KAP to-do). The data: ingest I16
