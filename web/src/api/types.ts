@@ -304,6 +304,25 @@ export interface BankContext {
   note: string;
 }
 
+/** W26: one official document on the manager's own site. */
+export interface FundDocument {
+  kind: "izahname" | "ybf";
+  label: string;
+  url: string;
+  date: string | null; // "YYYY-MM-DD"
+}
+
+/** GET /runs/{id}/options/{option_id}/documents (W26; ingest I16). */
+export interface FundDocuments {
+  status: "ok" | "not_found" | "not_covered" | "failed";
+  manager_label: string;
+  verdict: string;
+  docs: FundDocument[];
+  page_url: string;
+  checked_at: string; // ISO time
+  reason: string;
+}
+
 export interface Category {
   key: string;
   label: string;

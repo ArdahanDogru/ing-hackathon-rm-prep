@@ -11,6 +11,7 @@ import { BriefCard } from "../components/BriefCard";
 import { DetailNote, type NoteKind } from "../components/DetailNotes";
 import { EvidencePopup } from "../components/EvidencePopup";
 import { FundCard, FundDrawer } from "../components/FundCard";
+import { FundDocuments } from "../components/FundDocuments";
 import { LifecycleTabs } from "../components/LifecycleTabs";
 import { MarketNote } from "../components/MarketNote";
 import { OptionsCompare } from "../components/OptionsCompare";
@@ -217,6 +218,7 @@ export function Dashboard({
             onToggle={() => toggle(opened.option_id)}
             onEvidence={setEvidenceId}
             explanation={explain(view, opened.option_id)}
+            documents={<FundDocuments runId={runId} option={opened} />}
           />
         </FundDrawer>
       )}

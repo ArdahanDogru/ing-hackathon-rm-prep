@@ -123,3 +123,27 @@ test("research mock: ready view and a refused question", () => {
   expect((ok.body as { question: string }).question).toBe("PPN nedir?");
   expect((ok.body as { version: number }).version).toBe(2);
 });
+
+test("fund documents (W26): ok for a Nurol fund, not_found, failed, not_covered with the issuer's reason", () => {
+  const run = {
+    result: { run_id: "R01", recommended: [], options: [] },
+    options: {
+      "fund:PPN": { issuer: "Nurol Portföy", kind: "fund" },
+      "fund:AIS": { issuer: "Ak Portföy", kind: "fund" },
+      "fund:IST": { issuer: "İstanbul Portföy", kind: "fund" },
+      "fund:ISX": { issuer: "İş Portföy", kind: "fund" },
+      "fund:ZBJ": { issuer: "Ziraat Portföy", kind: "fund" },
+      "time_deposit:x": { issuer: "", kind: "time_deposit" },
+    },
+  };
+  const loadRun = (name: string) => (name === "run_p01_ready" ? run : undefined);
+  const get = (id: string) => resolveMock("GET", `/api/runs/R01/options/${encodeURIComponent(id)}/documents`, undefined, loadRun);
+  const ok = get("fund:PPN").body as { status: string; docs: { kind: string }[] };
+  expect(ok.status).toBe("ok");
+  expect(ok.docs.map((d) => d.kind)).toEqual(["izahname", "ybf"]);
+  expect(get("fund:AIS").body).toMatchObject({ status: "not_found" });
+  expect(get("fund:IST").body).toMatchObject({ status: "failed" });
+  expect(get("fund:ISX").body).toMatchObject({ status: "not_covered", reason: "İş Portföy: robots.txt belge yolunu engelliyor; belgeler KAP'ta." });
+  expect(get("fund:ZBJ").body).toMatchObject({ status: "not_covered" });
+  expect(get("time_deposit:x").status).toBe(422);
+});
