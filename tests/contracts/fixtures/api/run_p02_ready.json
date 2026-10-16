@@ -37981,60 +37981,70 @@
    "count": 355,
    "options": [
     {
+     "option_id": "fund:AAV",
      "label": "ATA PORTFÖY İKİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ACC",
      "label": "İSTANBUL PORTFÖY DÖRDÜNCÜ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AED",
      "label": "ATA PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AES",
      "label": "AK PORTFÖY PETROL YABANCI BYF FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AEV",
      "label": "ALLBATROSS PORTFÖY SANAYİ ŞİRKETLERİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AFA",
      "label": "AK PORTFÖY AMERİKA YABANCI HİSSE SENEDİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AFO",
      "label": "AK PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AFT",
      "label": "AK PORTFÖY YENİ TEKNOLOJİLER YABANCI HİSSE SENEDİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AFV",
      "label": "AK PORTFÖY AVRUPA YABANCI HİSSE SENEDİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AHI",
      "label": "ATLAS PORTFÖY BİRİNCİ HİSSE SENEDİ FONU(HİSSE SENEDİ YOĞUN)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38042,54 +38052,63 @@
      ]
     },
     {
+     "option_id": "fund:AK3",
      "label": "AK PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AKU",
      "label": "AK PORTFÖY BIST 30 ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ALC",
      "label": "AK PORTFÖY KAR PAYI ÖDEYEN ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AOY",
      "label": "AK PORTFÖY ALTERNATİF ENERJİ YABANCI HİSSE SENEDİ FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:APJ",
      "label": "AK PORTFÖY BIST ŞİRKETLERİ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ARE",
      "label": "İSTANBUL PORTFÖY YABANCI HİSSE SENEDİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ASJ",
      "label": "AKTİF PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ATJ",
      "label": "AZİMUT PORTFÖY İKİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:AU1",
      "label": "A1 CAPİTAL PORTFÖY ALTIN FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38097,12 +38116,14 @@
      ]
     },
     {
+     "option_id": "fund:AYA",
      "label": "ATA PORTFÖY KAR PAYI ÖDEYEN HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:BAI",
      "label": "BV PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -38110,18 +38131,21 @@
      ]
     },
     {
+     "option_id": "fund:BBP",
      "label": "ALLBATROSS PORTFÖY BİRİNCİ BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:BCK",
      "label": "DENİZ PORTFÖY BLOCKCHAİN VE FINTECH TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:BCO",
      "label": "BULLS PORTFÖY ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38129,6 +38153,7 @@
      ]
     },
     {
+     "option_id": "fund:BDS",
      "label": "PARDUS PORTFÖY BIST 30 DIŞI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38136,12 +38161,14 @@
      ]
     },
     {
+     "option_id": "fund:BDY",
      "label": "AK PORTFÖY BIST 100 DIŞI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:BFS",
      "label": "BULLS PORTFÖY EMTİA FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38149,12 +38176,14 @@
      ]
     },
     {
+     "option_id": "fund:BFT",
      "label": "AZİMUT PORTFÖY BANKA VE FİNANS SEKTÖRÜ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:BGR",
      "label": "AK PORTFÖY BIST GYO ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -38162,6 +38191,7 @@
      ]
     },
     {
+     "option_id": "fund:BHA",
      "label": "BULLS PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38169,18 +38199,21 @@
      ]
     },
     {
+     "option_id": "fund:BID",
      "label": "QNB PORTFÖY BIST 100 DIŞI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:BIG",
      "label": "YAPI KREDİ PORTFÖY ÜÇÜNCÜ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:BIH",
      "label": "PARDUS PORTFÖY BİRİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38188,12 +38221,14 @@
      ]
     },
     {
+     "option_id": "fund:BIO",
      "label": "İŞ PORTFÖY SÜRDÜRÜLEBİLİRLİK HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:BLT",
      "label": "BULLS PORTFÖY ALTIN FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38201,12 +38236,14 @@
      ]
     },
     {
+     "option_id": "fund:BTK",
      "label": "BV PORTFÖY TEKNOLOJİ KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:BTZ",
      "label": "ATLAS PORTFÖY BIST 30 DIŞI ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38214,36 +38251,42 @@
      ]
     },
     {
+     "option_id": "fund:BV1",
      "label": "BV PORTFÖY BİRİNCİ HİSSE SENEDİ (TL) FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:BVV",
      "label": "BV PORTFÖY TEKNOLOJİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:CPT",
      "label": "ROTA PORTFÖY ÇİP TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DAH",
      "label": "DENİZ PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DBA",
      "label": "DENİZ PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DBH",
      "label": "DENİZ PORTFÖY EUROBOND (DÖVİZ) BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -38251,6 +38294,7 @@
      ]
     },
     {
+     "option_id": "fund:DEH",
      "label": "DESTEK PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -38258,42 +38302,49 @@
      ]
     },
     {
+     "option_id": "fund:DFC",
      "label": "DENİZ PORTFÖY TARIM VE GIDA DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DHJ",
      "label": "DENİZ PORTFÖY TEKNOLOJİ ŞİRKETLERİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DHM",
      "label": "DENİZ PORTFÖY ESG-SÜRDÜRÜLEBİLİRLİK FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DHT",
      "label": "DENİZ PORTFÖY HAVACILIK VE SAVUNMA TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DLD",
      "label": "DENİZ PORTFÖY SÜRDÜRÜLEBİLİRLİK HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DMG",
      "label": "DENİZ PORTFÖY GÜMÜŞ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DMI",
      "label": "İŞ PORTFÖY DM HİSSE SENEDİ ÖZEL FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38302,66 +38353,77 @@
      ]
     },
     {
+     "option_id": "fund:DPT",
      "label": "DENİZ PORTFÖY BİST TEMETTÜ 25 ENDEKSİ HİSSE SENEDİ FONU ( HİSSE SENEDİ YOĞUN FON )",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DTH",
      "label": "EMAA BLUE PORTFÖY DÖNÜŞÜM TEKNOLOJİLERİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DTL",
      "label": "DENİZ PORTFÖY BIST 100 DIŞI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DTM",
      "label": "DENİZ PORTFÖY TEMETTÜ ÖDEYEN ŞİRKETLER DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DTZ",
      "label": "AK PORTFÖY ROBOTİK TEKNOLOJİLER DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DVT",
      "label": "DENİZ PORTFÖY METAVERSE VE DİJİTAL YAŞAM TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DXP",
      "label": "DENİZ PORTFÖY İHRACATÇI ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DYN",
      "label": "DENİZ PORTFÖY ELEKTRİKLİ VE OTONOM ARAÇ TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:DZE",
      "label": "DENİZ PORTFÖY BIST 100 ENDEKSİ HİSSE SENEDİ FONU(HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ECA",
      "label": "GLOBAL MD PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:EGA",
      "label": "QNB PORTFÖY ENPARA ALTIN ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38370,78 +38432,91 @@
      ]
     },
     {
+     "option_id": "fund:EGR",
      "label": "EMAA BLUE PORTFÖY AGRESİF DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:EID",
      "label": "ASTRA PORTFÖY HİSSE SENEDİ FONU (HİSSE YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ENJ",
      "label": "AKTİF PORTFÖY ENERJİ ŞİRKETLERİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:EPK",
      "label": "EMAA BLUE PORTFÖY KIYMETLİ MADENLER KATILIM FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:EVM",
      "label": "DENİZ PORTFÖY ENERJİ VE MADENCİLİK SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:FAK",
      "label": "FONMAP PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:FAL",
      "label": "ONE PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:FBC",
      "label": "ONE PORTFÖY KAR PAYI ÖDEYEN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:FDG",
      "label": "FONMAP PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:FIB",
      "label": "FİBA PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:FID",
      "label": "FİBA PORTFÖY ÇOKLU VARLIK İKİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:FPH",
      "label": "FİBA PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:FSU",
      "label": "TERA PORTFÖY FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38449,102 +38524,119 @@
      ]
     },
     {
+     "option_id": "fund:FUA",
      "label": "AK PORTFÖY İHRACATÇI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:FYD",
      "label": "QNB PORTFÖY BİRİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GAE",
      "label": "GARANTİ PORTFÖY BİST30 ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GAF",
      "label": "INVEO PORTFÖY BİRİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GBC",
      "label": "AZİMUT PORTFÖY YABANCI HİSSE SENEDİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GBG",
      "label": "INVEO PORTFÖY G-20 ÜLKELERİ YABANCI HİSSE SENEDİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GBV",
      "label": "GARANTİ PORTFÖY BLOCKCHAİN TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GBZ",
      "label": "AZİMUT PORTFÖY EMTİA FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GGK",
      "label": "INVEO PORTFÖY ALTIN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GHS",
      "label": "GARANTİ PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GIE",
      "label": "GARANTİ PORTFÖY GARANTİ BBVA İKLİM ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GIH",
      "label": "ALLBATROSS PORTFÖY GIDA VE İÇECEK SEKTÖRÜ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GKF",
      "label": "GLOBAL MD PORTFÖY KATILIM FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GKG",
      "label": "GARANTİ PORTFÖY KAR PAYI ÖDEYEN HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GKV",
      "label": "GARANTİ PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GL1",
      "label": "AZİMUT PYŞ BİRİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GLL",
      "label": "GOLDEN GLOBAL PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38553,30 +38645,35 @@
      ]
     },
     {
+     "option_id": "fund:GMC",
      "label": "TEB PORTFÖY GÜMÜŞ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GMR",
      "label": "INVEO PORTFÖY BIST 30 DIŞI ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GNH",
      "label": "GLOBAL MD PORTFÖY ALGORİTMİK MODEL HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GNS",
      "label": "GARANTİ PORTFÖY ENERJİ ŞİRKETLERİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GNZ",
      "label": "AK PORTFÖY ING Z KUŞAĞI FON SEPETİ ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38584,114 +38681,133 @@
      ]
     },
     {
+     "option_id": "fund:GO9",
      "label": "ONE PORTFÖY BİRİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GOH",
      "label": "GARANTİ PORTFÖY BIST 100 DIŞI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GOL",
      "label": "GARANTİ PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GPG",
      "label": "INVEO PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GRT",
      "label": "GARANTİ PORTFÖY TEKNOLOJİ ŞİRKETLERİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GSP",
      "label": "AZİMUT PYŞ KAR PAYI ÖDEYEN HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GTA",
      "label": "GARANTİ PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GTH",
      "label": "GARANTİ PORTFÖY İHRACATÇI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GTM",
      "label": "GARANTİ PORTFÖY TEMETTÜ ÖDEYEN ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GTZ",
      "label": "GARANTİ PORTFÖY GÜMÜŞ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GUF",
      "label": "İŞ PORTFÖY GÜMÜŞ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GUH",
      "label": "GARANTİ PORTFÖY YABANCI TEKNOLOJİ HİSSE SENEDİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GUM",
      "label": "AK PORTFÖY GÜMÜŞ FON SEPETI FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GVA",
      "label": "GARANTİ PORTFÖY ELEKTRİKLİ VE OTONOM ARAÇLAR DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GZG",
      "label": "GARANTİ PORTFÖY SAĞLIK VE GENETİK TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GZR",
      "label": "GARANTİ PORTFÖY SÜRDÜRÜLEBİLİRLİK HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:GZY",
      "label": "GARANTİ PORTFÖY TURİZM VE SEYAHAT SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:HAI",
      "label": "AHLATCI PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:HAM",
      "label": "HEDEF PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38699,6 +38815,7 @@
      ]
     },
     {
+     "option_id": "fund:HBI",
      "label": "HAS PORTFÖY BİRİNCİ HİSSE SENEDİ ÖZEL FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38707,6 +38824,7 @@
      ]
     },
     {
+     "option_id": "fund:HCF",
      "label": "HEDEF PORTFÖY BİRİNCİ ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38715,12 +38833,14 @@
      ]
     },
     {
+     "option_id": "fund:HFO",
      "label": "AHLATCI PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:HFR",
      "label": "A1 CAPİTAL PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38728,6 +38848,7 @@
      ]
     },
     {
+     "option_id": "fund:HGM",
      "label": "HEDEF PORTFÖY İKİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38735,12 +38856,14 @@
      ]
     },
     {
+     "option_id": "fund:HIH",
      "label": "GARANTİ  PORTFÖY HOLDİNGLER VE İŞTİRAKLERİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:HIL",
      "label": "HEDEF PORTFÖY MEDYA VE İLETİŞİM DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38749,6 +38872,7 @@
      ]
     },
     {
+     "option_id": "fund:HJB",
      "label": "HEDEF PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38756,12 +38880,14 @@
      ]
     },
     {
+     "option_id": "fund:HKG",
      "label": "ZİRAAT PORTFÖY HALK'IN ÜRETEN KADINLARI DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:HKH",
      "label": "HEDEF PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38769,6 +38895,7 @@
      ]
     },
     {
+     "option_id": "fund:HNJ",
      "label": "HEDEF PORTFÖY BIST BANKA ENDEKSİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38777,6 +38904,7 @@
      ]
     },
     {
+     "option_id": "fund:HOI",
      "label": "İSTANBUL PORTFÖY HOLDİNGLER VE İŞTİRAKLERİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38785,6 +38913,7 @@
      ]
     },
     {
+     "option_id": "fund:HOT",
      "label": "HEDEF PORTFÖY ELEKTRİKLİ VE OTONOM ARAÇLAR DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38793,6 +38922,7 @@
      ]
     },
     {
+     "option_id": "fund:HRT",
      "label": "HEDEF PORTFÖY ROBOTİK TEKNOLOJİLER DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38801,12 +38931,14 @@
      ]
     },
     {
+     "option_id": "fund:HRZ",
      "label": "AKTİF PORTFÖY BIST HALKA ARZ ŞİRKETLERİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:HTD",
      "label": "HEDEF PORTFÖY TEKSTİL SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38815,6 +38947,7 @@
      ]
     },
     {
+     "option_id": "fund:HTE",
      "label": "HEDEF PORTFÖY TEMİZ ENERJİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38823,6 +38956,7 @@
      ]
     },
     {
+     "option_id": "fund:HTI",
      "label": "HEDEF PORTFÖY PERAKENDE TİCARET SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38831,12 +38965,14 @@
      ]
     },
     {
+     "option_id": "fund:HTK",
      "label": "QNB PORTFÖY HAVACILIK VE SAVUNMA TEKNOLOJİLERİ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:HTM",
      "label": "HEDEF PORTFÖY KAR PAYI ÖDEYEN ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38845,6 +38981,7 @@
      ]
     },
     {
+     "option_id": "fund:HTR",
      "label": "HEDEF PORTFÖY TARIM VE GIDA DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -38853,216 +38990,252 @@
      ]
     },
     {
+     "option_id": "fund:HVI",
      "label": "DENİZ PORTFÖY HOLDİNGLER VE İŞTİRAKLERİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:HVZ",
      "label": "ALLBATROSS PORTFÖY BİRİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IAY",
      "label": "INVEO PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ICA",
      "label": "TEB PORTFÖY ICBC TURKEY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ICF",
      "label": "TEB PORTFÖY BİRİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ICZ",
      "label": "AK PORTFÖY TEKNOLOJİ ŞİRKETLERİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IDH",
      "label": "İŞ PORTFÖY BIST 100 DIŞI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IDI",
      "label": "AZİMUT PORTFÖY İNŞAAT SEKTÖRÜ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IED",
      "label": "İŞ PORTFÖY AGRESİF DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IEV",
      "label": "İŞ PORTFÖY HAVACILIK VE SAVUNMA TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IFN",
      "label": "TEB PORTFÖY SÜRDÜRÜLEBİLİRLİK HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IH1",
      "label": "İNCİR PORTFÖY BİRİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IHA",
      "label": "ALLBATROSS PORTFÖY İKİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IHK",
      "label": "İŞ PORTFÖY İŞ'TE KADIN HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IHT",
      "label": "İŞ PORTFÖY İHRACATÇI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IIH",
      "label": "İSTANBUL PORTFÖY ÜÇÜNCÜ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IJB",
      "label": "İŞ PORTFÖY DİJİTAL OYUN SEKTÖRÜ KARMA FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IJC",
      "label": "İŞ PORTFÖY YARI İLETKEN TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IJP",
      "label": "İŞ PORTFÖY BLOCKCHAİN TEKNOLOJİLERİ KARMA FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IJZ",
      "label": "İŞ PORTFÖY SİBER GÜVENLİK TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IKL",
      "label": "İŞ PORTFÖY SAĞLIK ŞİRKETLERİ KARMA FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IKP",
      "label": "İŞ PORTFÖY YENİLENEBİLİR ENERJİ KARMA FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IML",
      "label": "İŞ PORTFÖY MODEL PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IPB",
      "label": "İSTANBUL PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IPJ",
      "label": "İŞ PORTFÖY ELEKTRİKLİ ARAÇLAR KARMA FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IRT",
      "label": "INVEO PORTFÖY TEKNOLOJİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ITC",
      "label": "INVEO PORTFÖY TEMETTÜ ÖDEYEN ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ITP",
      "label": "İŞ PORTFÖY TEKNOLOJİ KARMA FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IVF",
      "label": "İSTANBUL PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:IVY",
      "label": "İSTANBUL PORTFÖY BLOCKCHAIN TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:JET",
      "label": "ATA PORTFÖY HAVACILIK VE SAVUNMA TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KCL",
      "label": "KARE PORTFÖY ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KCR",
      "label": "AK PORTFÖY KÜLÇE ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KGM",
      "label": "KUVEYT TÜRK PORTFÖY GÜMÜŞ KATILIM FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KH1",
      "label": "AK PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KHA",
      "label": "PARDUS PORTFÖY İKİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39070,12 +39243,14 @@
      ]
     },
     {
+     "option_id": "fund:KHB",
      "label": "KARE PORTFÖY BIST 100 DIŞI ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KHC",
      "label": "PARDUS PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39083,6 +39258,7 @@
      ]
     },
     {
+     "option_id": "fund:KHJ",
      "label": "ATLAS PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39090,24 +39266,28 @@
      ]
     },
     {
+     "option_id": "fund:KIA",
      "label": "TRIVE PORTFÖY MUTLAK GETİRİ HEDEFLİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KIB",
      "label": "TRIVE PORTFÖY ROBOTİK TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KIK",
      "label": "KUVEYT TÜRK PORTFÖY İKİNCİ KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KIS",
      "label": "ASTRA PORTFÖY KİRA SERTİFİKASI KATILIM (DÖVİZ) FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -39115,66 +39295,77 @@
      ]
     },
     {
+     "option_id": "fund:KMF",
      "label": "AZİMUT PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KMN",
      "label": "YAPI KREDİ PORTFÖY KIYMETLİ MADENLER KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KOT",
      "label": "AZİMUT PORTFÖY KOÇ TOPLULUĞU ŞİRKETLERİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KPA",
      "label": "KUVEYT TÜRK PORTFÖY KAR PAYI ÖDEYEN KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KPC",
      "label": "KUVEYT TÜRK PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KPH",
      "label": "İŞ PORTFÖY KAR PAYI ÖDEYEN HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KPU",
      "label": "KUVEYT TÜRK PORTFÖY İKİNCİ KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KST",
      "label": "ALLBATROSS PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KTI",
      "label": "AZİMUT PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KTJ",
      "label": "KUVEYT TÜRK PORTFÖY TEKNOLOJİ KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KUB",
      "label": "KARE PORTFÖY DEĞİŞKEN  (DÖVİZ) FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -39182,30 +39373,35 @@
      ]
     },
     {
+     "option_id": "fund:KUT",
      "label": "KUVEYT TÜRK PORTFÖY KIYMETLİ MADENLER KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KVT",
      "label": "AK PORTFÖY ENERJİ ŞİRKETLERİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KYA",
      "label": "KARE PORTFÖY HİSSE SENEDİ FONU(HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:KZU",
      "label": "KUVEYT TÜRK PORTFÖY İKİNCİ ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:LAK",
      "label": "AHLATCI PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39214,144 +39410,168 @@
      ]
     },
     {
+     "option_id": "fund:LKF",
      "label": "İŞ PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:LTL",
      "label": "AHLATCI PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MAC",
      "label": "MARMARA CAPITAL PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MAD",
      "label": "MEKSA PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MET",
      "label": "GARANTİ PORTFÖY METAVERSE VE YENİ TEKNOLOJİLER DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MHF",
      "label": "MT PORTFÖY BIST HALKA ARZ ŞİRKETLERİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MJB",
      "label": "AKTİF PORTFÖY BİRİNCİ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MJG",
      "label": "AKTİF PORTFÖY GÜMÜŞ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MKA",
      "label": "MARMARA CAPİTAL PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MKG",
      "label": "AKTİF PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MMH",
      "label": "AKTİF PORTFÖY BIST 30 ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MPS",
      "label": "AKTİF PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MTH",
      "label": "MT PORTFÖY BİRİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MTK",
      "label": "MT PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MTV",
      "label": "AK PORTFÖY METAVERSE VE DİJİTAL YAŞAM TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:MTX",
      "label": "TEB PORTFÖY ÜÇÜNCÜ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NAK",
      "label": "NEO PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NAU",
      "label": "NEO PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NHY",
      "label": "NEO PORTFÖY BİRİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NJF",
      "label": "NUROL PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NKC",
      "label": "NEO PORTFÖY İKİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NKM",
      "label": "NEO PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NLE",
      "label": "NUROL PORTFÖY EMLAK SEKTÖRÜ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NNF",
      "label": "HEDEF PORTFÖY BİRİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39359,108 +39579,126 @@
      ]
     },
     {
+     "option_id": "fund:NPH",
      "label": "NUROL PORTFÖY BİRİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NRC",
      "label": "NEO PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NST",
      "label": "İŞ PORTFÖY EMLAK SEKTÖRÜ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NTI",
      "label": "NEO PORTFÖY TEKNOLOJİ VE İNOVASYON DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NUH",
      "label": "NEO PORTFÖY ÜÇÜNCÜ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:NZH",
      "label": "NEO PORTFÖY İKİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OGD",
      "label": "OYAK PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OHB",
      "label": "OYAK PORTFÖY BİRİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OHK",
      "label": "OYAK PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OIL",
      "label": "OSMANLI PORTFÖY ALTIN FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OJK",
      "label": "QNB PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OJT",
      "label": "QNB PORTFÖY TEKNOLOJİ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OKD",
      "label": "OYAK PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OLD",
      "label": "QNB PORTFÖY TEMİZ ENERJİ VE SU FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OMG",
      "label": "AZİMUT PORTFÖY İKİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OPH",
      "label": "OSMANLI PORTFÖY BİRİNCİ HİSSE SENEDİ FONU(HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OPI",
      "label": "OSMANLI PORTFÖY KAR PAYI ÖDEYEN HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OSS",
      "label": "OYAK PORTFÖY SAVUNMA SANAYİİ ŞİRKETLERİ ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39469,24 +39707,28 @@
      ]
     },
     {
+     "option_id": "fund:OTJ",
      "label": "OYAK PORTFÖY KIYMETLİ MADENLER KATILIM FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OTM",
      "label": "AZİMUT PORTFÖY OTOMOTİV SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OVD",
      "label": "QNB PORTFÖY EMTİA FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:OYH",
      "label": "OYAK PORTFÖY OYAK GRUP ŞİRKETLERİ ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39495,6 +39737,7 @@
      ]
     },
     {
+     "option_id": "fund:PA2",
      "label": "PUSULA PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39502,6 +39745,7 @@
      ]
     },
     {
+     "option_id": "fund:PAF",
      "label": "PARDUS PORTFÖY ALTIN FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39509,6 +39753,7 @@
      ]
     },
     {
+     "option_id": "fund:PBR",
      "label": "PUSULA PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39516,18 +39761,21 @@
      ]
     },
     {
+     "option_id": "fund:PEA",
      "label": "PERFORM PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:PGS",
      "label": "AZİMUT PORTFÖY PAY GERİ ALIMI YAPAN ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:PHE",
      "label": "PUSULA PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39535,36 +39783,42 @@
      ]
     },
     {
+     "option_id": "fund:PHI",
      "label": "PİRAMİT PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:PHK",
      "label": "PHİLLİP PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:PIL",
      "label": "ROTA PORTFÖY PİL TEKNOLOJİLERİ VE ENERJİ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:PIR",
      "label": "PİRAMİT PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:PKF",
      "label": "ATA PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:PMG",
      "label": "İŞ PORTFÖY MG HİSSE SENEDİ ÖZEL FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39572,12 +39826,14 @@
      ]
     },
     {
+     "option_id": "fund:PPB",
      "label": "PHİLLİP PORTFÖY BİRİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:PPH",
      "label": "PARDUS PORTFÖY BIST 100 DIŞI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39585,18 +39841,21 @@
      ]
     },
     {
+     "option_id": "fund:PSH",
      "label": "DENİZ PORTFÖY PERAKENDE SEKTÖRÜ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:PTN",
      "label": "PHİLLİP PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:PTO",
      "label": "PARDUS PORTFÖY TEMETTÜ ÖDEYEN ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39604,12 +39863,14 @@
      ]
     },
     {
+     "option_id": "fund:RBA",
      "label": "ALBARAKA PORTFÖY BEREKET VAKFI NA DESTEK ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:RDK",
      "label": "ROTA PORTFÖY ESİN HİSSE SENEDİ ÖZEL FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39617,6 +39878,7 @@
      ]
     },
     {
+     "option_id": "fund:RFM",
      "label": "ROTA PORTFÖY ENERJİ VE METAL FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -39624,60 +39886,70 @@
      ]
     },
     {
+     "option_id": "fund:RHI",
      "label": "RE-PIE PORTFÖY BİRİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:RHS",
      "label": "ROTA PORTFÖY HİSSE SENEDİ (TL) FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:RJG",
      "label": "RE-PIE PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:RPC",
      "label": "ROTA PORTFÖY İKLİM DEĞİŞİKLİĞİ ÇÖZÜMLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:RPG",
      "label": "ROTA PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:RPI",
      "label": "ROTA PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:RPM",
      "label": "ROTA PORTFÖY İLAÇ VE MEDİKAL TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:RTD",
      "label": "RE-PIE PORTFÖY TEKNOLOJİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:RTG",
      "label": "ATA PORTFÖY ROBOTİK TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:SHC",
      "label": "STRATEJİ PORTFÖY İKİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde.",
@@ -39685,24 +39957,28 @@
      ]
     },
     {
+     "option_id": "fund:SHE",
      "label": "TEB PORTFÖY ÖNCE KADIN DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:SKO",
      "label": "STRATEJİ PORTFÖY KAR PAYI ÖDEYEN HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:SLG",
      "label": "QNB PORTFÖY ALGORİTMİK STRATEJİLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:SRH",
      "label": "İSTANBUL PORTFÖY SÜRDÜRÜLEBİLİRLİK HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39711,6 +39987,7 @@
      ]
     },
     {
+     "option_id": "fund:SRL",
      "label": "PARDUS PORTFÖY SÜRDÜRÜLEBİLİRLİK HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39718,30 +39995,35 @@
      ]
     },
     {
+     "option_id": "fund:SSS",
      "label": "YAPI KREDİ PORTFÖY SAVUNMA SANAYİİ ŞİRKETLERİ ENDEKSİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:SUB",
      "label": "ÜNLÜ PORTFÖY İKİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:SUC",
      "label": "ÜNLÜ PORTFÖY ÜÇÜNCÜ DEĞIŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:SUR",
      "label": "EMAA BLUE PORTFÖY SÜRDÜRÜLEBİLİRLİK HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TAL",
      "label": "ATLAS PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39749,90 +40031,105 @@
      ]
     },
     {
+     "option_id": "fund:TAU",
      "label": "İŞ PORTFÖY BIST BANKA ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TCA",
      "label": "ZİRAAT PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TCD",
      "label": "TACİRLER PORTFÖY DEĞIŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TEJ",
      "label": "AZİMUT PORTFÖY TEKNOLOJİ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TFF",
      "label": "TEB PORTFÖY AMERİKA TEKNOLOJİ YABANCI BYF FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TGE",
      "label": "İŞ PORTFÖY EMTİA YABANCI BYF FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TGR",
      "label": "AK PORTFÖY TURİZM VE SEYAHAT SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:THD",
      "label": "TRIVE PORTFÖY BİRİNCİ HİSSE SENEDİ (TL) FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TI2",
      "label": "İŞ PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TI3",
      "label": "İŞ PORTFÖY İŞ BANKASI İŞTİRAKLERİ ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TIE",
      "label": "İŞ PORTFÖY BIST 30 ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TIL",
      "label": "İŞ PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TJF",
      "label": "TEB PORTFÖY SÜRDÜRÜLEBİLİRLİK FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TKF",
      "label": "TACİRLER PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TKK",
      "label": "İŞ PORTFÖY KUMBARA HESABI FON SEPETİ ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39840,24 +40137,28 @@
      ]
     },
     {
+     "option_id": "fund:TLH",
      "label": "AURA PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TLZ",
      "label": "ATA PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TPC",
      "label": "TEB PORTFÖY KIYMETLİ MADENLER FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TPL",
      "label": "TEB PORTFÖY EUROBOND (DÖVİZ) BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -39865,6 +40166,7 @@
      ]
     },
     {
+     "option_id": "fund:TPR",
      "label": "İŞ PORTFÖY PY HİSSE SENEDİ (TL) ÖZEL FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39872,6 +40174,7 @@
      ]
     },
     {
+     "option_id": "fund:TPZ",
      "label": "TEB PORTFÖY KİRA SERTİFİKALARI (DÖVİZ) KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -39879,12 +40182,14 @@
      ]
     },
     {
+     "option_id": "fund:TRO",
      "label": "TRIVE PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TRZ",
      "label": "HEDEF PORTFÖY TURİZM VE SEYAHAT SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39893,36 +40198,42 @@
      ]
     },
     {
+     "option_id": "fund:TTA",
      "label": "İŞ PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TTE",
      "label": "İŞ PORTFÖY BIST TEKNOLOJİ AĞIRLIK SINIRLAMALI ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TUA",
      "label": "TEB PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TVE",
      "label": "EMAA BLUE PORTFÖY TARIM VE GIDA SEKTÖRÜ KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TYH",
      "label": "TEB PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:TZC",
      "label": "ZİRAAT PORTFÖY BÜYÜYEN ÇOCUKLARA YÖNELİK DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39930,42 +40241,49 @@
      ]
     },
     {
+     "option_id": "fund:TZD",
      "label": "ZİRAAT PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:UP1",
      "label": "ÜNLÜ PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:UPH",
      "label": "ÜNLÜ PORTFÖY HİSSE SENEDİ (TL) FONU(HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:URA",
      "label": "ATA PORTFÖY ENERJİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:VCY",
      "label": "AK PORTFÖY ELEKTRİKLİ VE OTONOM ARAÇ TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:VFO",
      "label": "V PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:VHK",
      "label": "V PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -39973,18 +40291,21 @@
      ]
     },
     {
+     "option_id": "fund:VHS",
      "label": "VAKIF KATILIM PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:VLT",
      "label": "VAKIF KATILIM PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:VPH",
      "label": "V PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -39992,6 +40313,7 @@
      ]
     },
     {
+     "option_id": "fund:YAR",
      "label": "İŞ PORTFÖY RESAN DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -39999,84 +40321,98 @@
      ]
     },
     {
+     "option_id": "fund:YAS",
      "label": "YAPI KREDİ PORTFÖY KOÇ HOLDİNG İŞTİRAK VE HİSSE SENEDİ FONU(HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YAY",
      "label": "YAPI KREDİ PORTFÖY YABANCI TEKNOLOJİ SEKTÖRÜ HİSSE SENEDİ FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YDI",
      "label": "YAPI KREDİ PORTFÖY MODEL PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YEF",
      "label": "YAPI KREDİ PORTFÖY BIST 30 ENDEKSİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YHB",
      "label": "YAPI KREDİ PORTFÖY BIST 100 DIŞI ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YHK",
      "label": "YAPI KREDİ PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YHS",
      "label": "YAPI KREDİ PORTFÖY BİRİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YHZ",
      "label": "YAPI KREDİ PORTFÖY BIST TEKNOLOJİ AĞIRLIK SINIRLAMALI ENDEKSİ HİSSE SENEDİ FONU ( HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YIT",
      "label": "GARANTİ PORTFÖY YARI İLETKEN TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YKT",
      "label": "YAPI KREDİ PORTFÖY ALTIN FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YLE",
      "label": "YAPI KREDİ PORTFÖY BIST SÜRDÜRÜLEBİLİRLİK ENDEKSİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YLO",
      "label": "YAPI KREDİ PORTFÖY ELEKTRİKLİ ARAÇLAR DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YLY",
      "label": "YAPI KREDİ PORTFÖY KAR PAYI ÖDEYEN HİSSE SENEDİ (TL) FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YNF",
      "label": "AK PORTFÖY AKBANK YENİ NESİL FON SEPETİ ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40085,60 +40421,70 @@
      ]
     },
     {
+     "option_id": "fund:YPR",
      "label": "AZİMUT PORTFÖY YILDIZ PAZAR ŞİRKETLERİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YTD",
      "label": "YAPI KREDİ PORTFÖY YABANCI FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YZC",
      "label": "YAPI KREDİ PORTFÖY FİNTECH VE BLOCKCHAİN TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YZG",
      "label": "YAPI KREDİ PORTFÖY GÜMÜŞ FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:YZH",
      "label": "TEB PORTFÖY BIST BANKA ENDEKSİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZBD",
      "label": "ZİRAAT PORTFÖY DENGELİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZCN",
      "label": "ZİRAAT PORTFÖY EMTİA FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZDZ",
      "label": "ZİRAAT PORTFÖY AGRESİF DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZFB",
      "label": "AK PORTFÖY FİNTEK VE BLOKZİNCİRİ TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZIH",
      "label": "ZİRAAT PORTFÖY HAVACILIK VE SAVUNMA TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -40146,36 +40492,42 @@
      ]
     },
     {
+     "option_id": "fund:ZJL",
      "label": "ZİRAAT PORTFÖY BIST 100 DIŞI ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZJV",
      "label": "ZİRAAT PORTFÖY BIST 30 DIŞI YILDIZ PAZAR ŞİRKETLERİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZLH",
      "label": "ZİRAAT PORTFÖY BIST 100-30 ŞİRKETLERİ HİSSE SENEDİ FONU ( HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZMY",
      "label": "ZİRAAT PORTFÖY METAVERSE VE YENİ TEKNOLOJİLER DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZPE",
      "label": "ZİRAAT PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZPF",
      "label": "ZİRAAT PORTFÖY KATILIM FONU (DÖVİZ)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -40183,18 +40535,21 @@
      ]
     },
     {
+     "option_id": "fund:ZSF",
      "label": "ZİRAAT PORTFÖY S&P/OIC COMCEC (İSEDAK) 50 SHARİAH ŞİRKETLERİ YABANCI HİSSE SENEDİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZSG",
      "label": "ZİRAAT PORTFÖY ESG SÜRDÜRÜLEBİLİRLİK FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde."
      ]
     },
     {
+     "option_id": "fund:ZTS",
      "label": "İŞ PORTFÖY YAPAY ZEKA TEKNOLOJİLERİ ŞİRKETLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -40209,18 +40564,21 @@
    "count": 189,
    "options": [
     {
+     "option_id": "fund:ABU",
      "label": "AK PORTFÖY BİREBİR BANKACILIK DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:AC4",
      "label": "PARDUS PORTFÖY PARA PİYASASI (TL) FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:AHI",
      "label": "ATLAS PORTFÖY BİRİNCİ HİSSE SENEDİ FONU(HİSSE SENEDİ YOĞUN)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40228,24 +40586,28 @@
      ]
     },
     {
+     "option_id": "fund:AHU",
      "label": "ATLAS PORTFÖY BİRİNCİ ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ALE",
      "label": "AK PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ANL",
      "label": "AK PORTFÖY ALTERNATİF BANK PARA PİYASASI (TL)FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:AT2",
      "label": "AKTİF PORTFÖY İKİNCİ PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40253,6 +40615,7 @@
      ]
     },
     {
+     "option_id": "fund:AU1",
      "label": "A1 CAPİTAL PORTFÖY ALTIN FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40260,30 +40623,35 @@
      ]
     },
     {
+     "option_id": "fund:AVT",
      "label": "AK PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:AZF",
      "label": "AK PORTFÖY PY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI (TL) ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:BAG",
      "label": "BULLS PORTFÖY ATAK DEĞIŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:BBF",
      "label": "PARDUS PORTFÖY BİRİNCİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:BCO",
      "label": "BULLS PORTFÖY ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40291,6 +40659,7 @@
      ]
     },
     {
+     "option_id": "fund:BDS",
      "label": "PARDUS PORTFÖY BIST 30 DIŞI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40298,6 +40667,7 @@
      ]
     },
     {
+     "option_id": "fund:BFS",
      "label": "BULLS PORTFÖY EMTİA FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40305,6 +40675,7 @@
      ]
     },
     {
+     "option_id": "fund:BHA",
      "label": "BULLS PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40312,12 +40683,14 @@
      ]
     },
     {
+     "option_id": "fund:BHF",
      "label": "PARDUS PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:BIH",
      "label": "PARDUS PORTFÖY BİRİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40325,6 +40698,7 @@
      ]
     },
     {
+     "option_id": "fund:BLT",
      "label": "BULLS PORTFÖY ALTIN FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40332,24 +40706,28 @@
      ]
     },
     {
+     "option_id": "fund:BON",
      "label": "A1 CAPİTAL PORTFÖY BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:BPZ",
      "label": "BULLS PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:BRG",
      "label": "TEB PORTFÖY BURGAN BANK PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:BTZ",
      "label": "ATLAS PORTFÖY BIST 30 DIŞI ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40357,12 +40735,14 @@
      ]
     },
     {
+     "option_id": "fund:BUB",
      "label": "BULLS PORTFÖY BİRİNCİ FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:BUH",
      "label": "BULLS PORTFÖY HAVACILIK VE SAVUNMA TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40370,36 +40750,42 @@
      ]
     },
     {
+     "option_id": "fund:CVA",
      "label": "AK PORTFÖY ÜÇÜNCÜ KAMU BORÇLANMA ARAÇLARI (TL) ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:CVE",
      "label": "AK PORTFÖY BİRİNCİ KAMU BORÇLANMA ARAÇLARI (TL) ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:CVL",
      "label": "A1 CAPİTAL PORTFÖY ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:DCN",
      "label": "DENİZ PORTFÖY ÜÇÜNCÜ PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:DGF",
      "label": "A1 CAPİTAL PORTFÖY DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:DKK",
      "label": "DESTEK PORTFÖY PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40407,6 +40793,7 @@
      ]
     },
     {
+     "option_id": "fund:DMI",
      "label": "İŞ PORTFÖY DM HİSSE SENEDİ ÖZEL FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40415,30 +40802,35 @@
      ]
     },
     {
+     "option_id": "fund:DNF",
      "label": "A1 CAPİTAL PORTFÖY DİNAMİK FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ECB",
      "label": "GLOBAL MD PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ECV",
      "label": "GLOBAL MD PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:EDD",
      "label": "QNB PORTFÖY ENPARA DENGELİ DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:EGA",
      "label": "QNB PORTFÖY ENPARA ALTIN ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40447,30 +40839,35 @@
      ]
     },
     {
+     "option_id": "fund:EKL",
      "label": "KUVEYT TÜRK PORTFÖY EMLAK KATILIM BANKASI PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ENA",
      "label": "QNB PORTFÖY ENPARA ATAK DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ENR",
      "label": "QNB PORTFÖY ENPARA PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ENS",
      "label": "QNB PORTFÖY ENPARA DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:FDN",
      "label": "FONMAP PORTFÖY İKİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40478,18 +40875,21 @@
      ]
     },
     {
+     "option_id": "fund:FFD",
      "label": "FİBA PORTFÖY ÜÇÜNCÜ PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:FI5",
      "label": "QNB PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:FSU",
      "label": "TERA PORTFÖY FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40497,18 +40897,21 @@
      ]
     },
     {
+     "option_id": "fund:FYT",
      "label": "QNB PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:GAL",
      "label": "GARANTİ PORTFÖY İKİNCİ PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:GLE",
      "label": "GOLDEN GLOBAL PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40516,6 +40919,7 @@
      ]
     },
     {
+     "option_id": "fund:GLL",
      "label": "GOLDEN GLOBAL PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40524,12 +40928,14 @@
      ]
     },
     {
+     "option_id": "fund:GNP",
      "label": "GARANTİ PORTFÖY NEMA PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:GNZ",
      "label": "AK PORTFÖY ING Z KUŞAĞI FON SEPETİ ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40537,6 +40943,7 @@
      ]
     },
     {
+     "option_id": "fund:GOK",
      "label": "GOLDEN GLOBAL PORTFÖY KISA VADELİ KİRA SERTİFİKALARI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40544,36 +40951,42 @@
      ]
     },
     {
+     "option_id": "fund:GOP",
      "label": "GOLDEN GLOBAL PORTFÖY PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:GTK",
      "label": "GARANTİ PORTFÖY KAMU BORÇLANMA ARAÇLARI ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:GTL",
      "label": "GARANTİ PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:GUA",
      "label": "GARANTİ PORTFÖY BİRİNCİ BORÇLANMA ARAÇLARI ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:GYL",
      "label": "INVEO PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:HAA",
      "label": "HEDEF PORTFÖY ATAK FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40581,6 +40994,7 @@
      ]
     },
     {
+     "option_id": "fund:HAM",
      "label": "HEDEF PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40588,6 +41002,7 @@
      ]
     },
     {
+     "option_id": "fund:HBI",
      "label": "HAS PORTFÖY BİRİNCİ HİSSE SENEDİ ÖZEL FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40596,6 +41011,7 @@
      ]
     },
     {
+     "option_id": "fund:HBM",
      "label": "HAS PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40603,6 +41019,7 @@
      ]
     },
     {
+     "option_id": "fund:HCF",
      "label": "HEDEF PORTFÖY BİRİNCİ ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40611,12 +41028,14 @@
      ]
     },
     {
+     "option_id": "fund:HCV",
      "label": "HEDEF PORTFÖY ATAK ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:HDC",
      "label": "HEDEF PORTFÖY DENGELİ ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40624,6 +41043,7 @@
      ]
     },
     {
+     "option_id": "fund:HDL",
      "label": "HEDEF PORTFÖY DENGELİ FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40631,12 +41051,14 @@
      ]
     },
     {
+     "option_id": "fund:HFA",
      "label": "HSBC PORTFÖY ALLİANZ DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:HFR",
      "label": "A1 CAPİTAL PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40644,6 +41066,7 @@
      ]
     },
     {
+     "option_id": "fund:HGM",
      "label": "HEDEF PORTFÖY İKİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40651,6 +41074,7 @@
      ]
     },
     {
+     "option_id": "fund:HID",
      "label": "HEDEF PORTFÖY İKİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40658,6 +41082,7 @@
      ]
     },
     {
+     "option_id": "fund:HIL",
      "label": "HEDEF PORTFÖY MEDYA VE İLETİŞİM DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40666,12 +41091,14 @@
      ]
     },
     {
+     "option_id": "fund:HIP",
      "label": "HSBC PORTFÖY İKİNCİ PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:HJB",
      "label": "HEDEF PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40679,6 +41106,7 @@
      ]
     },
     {
+     "option_id": "fund:HKH",
      "label": "HEDEF PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40686,18 +41114,21 @@
      ]
     },
     {
+     "option_id": "fund:HKV",
      "label": "ZİRAAT PORTFÖY HALKBANK KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:HLL",
      "label": "ZİRAAT PORTFÖY HALKBANK PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:HMR",
      "label": "HEDEF PORTFÖY İKİNCİ BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40705,6 +41136,7 @@
      ]
     },
     {
+     "option_id": "fund:HNJ",
      "label": "HEDEF PORTFÖY BIST BANKA ENDEKSİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40713,6 +41145,7 @@
      ]
     },
     {
+     "option_id": "fund:HOI",
      "label": "İSTANBUL PORTFÖY HOLDİNGLER VE İŞTİRAKLERİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40721,6 +41154,7 @@
      ]
     },
     {
+     "option_id": "fund:HOP",
      "label": "HAS PORTFÖY ÖPY PARA PİYASASI (TL) ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40728,6 +41162,7 @@
      ]
     },
     {
+     "option_id": "fund:HOT",
      "label": "HEDEF PORTFÖY ELEKTRİKLİ VE OTONOM ARAÇLAR DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40736,12 +41171,14 @@
      ]
     },
     {
+     "option_id": "fund:HPH",
      "label": "HEDEF PORTFÖY PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:HPP",
      "label": "HEDEF PORTFÖY İKİNCİ PARA PİYASASI (TL) FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40749,12 +41186,14 @@
      ]
     },
     {
+     "option_id": "fund:HPV",
      "label": "ZİRAAT PORTFÖY HALKBANK KISA VADELİ KİRA SERTİFİKALARI KATILIM (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:HRS",
      "label": "HEDEF PORTFÖY AGRESİF FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40762,6 +41201,7 @@
      ]
     },
     {
+     "option_id": "fund:HRT",
      "label": "HEDEF PORTFÖY ROBOTİK TEKNOLOJİLER DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40770,6 +41210,7 @@
      ]
     },
     {
+     "option_id": "fund:HTD",
      "label": "HEDEF PORTFÖY TEKSTİL SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40778,6 +41219,7 @@
      ]
     },
     {
+     "option_id": "fund:HTE",
      "label": "HEDEF PORTFÖY TEMİZ ENERJİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40786,6 +41228,7 @@
      ]
     },
     {
+     "option_id": "fund:HTI",
      "label": "HEDEF PORTFÖY PERAKENDE TİCARET SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40794,12 +41237,14 @@
      ]
     },
     {
+     "option_id": "fund:HTJ",
      "label": "HEDEF PORTFÖY TEKNOLOJİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:HTM",
      "label": "HEDEF PORTFÖY KAR PAYI ÖDEYEN ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40808,6 +41253,7 @@
      ]
     },
     {
+     "option_id": "fund:HTR",
      "label": "HEDEF PORTFÖY TARIM VE GIDA DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40816,54 +41262,63 @@
      ]
     },
     {
+     "option_id": "fund:HVK",
      "label": "HEDEF PORTFÖY BİRİNCİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:HYV",
      "label": "HEDEF PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:IBK",
      "label": "İŞ PORTFÖY ÜÇÜNCÜ KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ICH",
      "label": "PARDUS PORTFÖY İKİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:IGL",
      "label": "TEB PORTFÖY ING BANK PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:INH",
      "label": "GARANTİ PORTFÖY ING BANK ÖZEL BANKACILIK VE PLATİNUM DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:IOP",
      "label": "İŞ PORTFÖY ODEABANK PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:IUZ",
      "label": "İŞ PORTFÖY ANADOLUBANK PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:KHA",
      "label": "PARDUS PORTFÖY İKİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40871,6 +41326,7 @@
      ]
     },
     {
+     "option_id": "fund:KHC",
      "label": "PARDUS PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40878,6 +41334,7 @@
      ]
     },
     {
+     "option_id": "fund:KHJ",
      "label": "ATLAS PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40885,12 +41342,14 @@
      ]
     },
     {
+     "option_id": "fund:KHP",
      "label": "KUVEYT TÜRK PORTFÖY PAYLAŞIMLI HESAP PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:LAK",
      "label": "AHLATCI PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40899,6 +41358,7 @@
      ]
     },
     {
+     "option_id": "fund:MP1",
      "label": "MT PORTFÖY GÜMÜŞ FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40906,6 +41366,7 @@
      ]
     },
     {
+     "option_id": "fund:MTA",
      "label": "MT PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40913,6 +41374,7 @@
      ]
     },
     {
+     "option_id": "fund:NBM",
      "label": "NEO PORTFÖY BİRİNCİ BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40920,6 +41382,7 @@
      ]
     },
     {
+     "option_id": "fund:NFS",
      "label": "NUROL PORTFÖY BİRİNCİ FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40927,6 +41390,7 @@
      ]
     },
     {
+     "option_id": "fund:NMP",
      "label": "AK PORTFÖY NEMA PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40934,6 +41398,7 @@
      ]
     },
     {
+     "option_id": "fund:NNF",
      "label": "HEDEF PORTFÖY BİRİNCİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40941,6 +41406,7 @@
      ]
     },
     {
+     "option_id": "fund:NP2",
      "label": "NEO PORTFÖY İKİNCİ FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40948,6 +41414,7 @@
      ]
     },
     {
+     "option_id": "fund:OAO",
      "label": "TEB PORTFÖY ODEABANK AYRICALIKLI VE ÖZEL BANKACILIK DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40955,12 +41422,14 @@
      ]
     },
     {
+     "option_id": "fund:OGF",
      "label": "OYAK PORTFÖY OYAK ÜYELERI İLE ÇALIŞANLARıNA YÖNELİK BORÇLANMA ARAÇLARI ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:OHT",
      "label": "OYAK PORTFÖY İKİNCİ KISA VADELİ KİRA SERTİFİKALARI KATILIM (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40968,12 +41437,14 @@
      ]
     },
     {
+     "option_id": "fund:OPJ",
      "label": "QNB PORTFÖY QNB PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:OSS",
      "label": "OYAK PORTFÖY SAVUNMA SANAYİİ ŞİRKETLERİ ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40982,12 +41453,14 @@
      ]
     },
     {
+     "option_id": "fund:OTF",
      "label": "OYAK PORTFÖY TÜRKİYE FİNANS KISA VADELİ KİRA SERTİFİKASI KATILIM (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:OYH",
      "label": "OYAK PORTFÖY OYAK GRUP ŞİRKETLERİ ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -40996,12 +41469,14 @@
      ]
     },
     {
+     "option_id": "fund:OYL",
      "label": "OYAK PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PA2",
      "label": "PUSULA PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41009,12 +41484,14 @@
      ]
     },
     {
+     "option_id": "fund:PAB",
      "label": "A1 CAPİTAL PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PAF",
      "label": "PARDUS PORTFÖY ALTIN FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41022,18 +41499,21 @@
      ]
     },
     {
+     "option_id": "fund:PAI",
      "label": "AK PORTFÖY ING ÖZEL BANKACILIK VE PLATINUM MUTLAK GETİRİ HEDEFLİ DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PBI",
      "label": "PARDUS PORTFÖY BİRİNCİ FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PBR",
      "label": "PUSULA PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41041,12 +41521,14 @@
      ]
     },
     {
+     "option_id": "fund:PFS",
      "label": "ATLAS PORTFÖY FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PHE",
      "label": "PUSULA PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41054,18 +41536,21 @@
      ]
     },
     {
+     "option_id": "fund:PKM",
      "label": "PUSULA PORTFÖY PARA PİYASASI KATILIM (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PLA",
      "label": "YAPI KREDİ PORTFÖY PLAY FON SEPETİ ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PMG",
      "label": "İŞ PORTFÖY MG HİSSE SENEDİ ÖZEL FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41073,18 +41558,21 @@
      ]
     },
     {
+     "option_id": "fund:PNU",
      "label": "PUSULA PORTFÖY İKİNCİ PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PP1",
      "label": "PARDUS PORTFÖY BİRİNCİ KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PPH",
      "label": "PARDUS PORTFÖY BIST 100 DIŞI ŞİRKETLER HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41092,24 +41580,28 @@
      ]
     },
     {
+     "option_id": "fund:PPT",
      "label": "ATLAS PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PRY",
      "label": "PUSULA PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PTL",
      "label": "TEB PORTFÖY İKİNCİ PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PTO",
      "label": "PARDUS PORTFÖY TEMETTÜ ÖDEYEN ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41117,18 +41609,21 @@
      ]
     },
     {
+     "option_id": "fund:PUK",
      "label": "PUSULA PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:PYB",
      "label": "TEB PORTFÖY ALTERNATİFBANK PARA PİYASASI (TL) FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:RDK",
      "label": "ROTA PORTFÖY ESİN HİSSE SENEDİ ÖZEL FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41136,36 +41631,42 @@
      ]
     },
     {
+     "option_id": "fund:SAP",
      "label": "AK PORTFÖY ŞEKERBANK PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:SKL",
      "label": "TEB PORTFÖY ŞEKERBANK PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:SKT",
      "label": "FİBA PORTFÖY ŞEKERBANK KISA VADELİ BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:SLF",
      "label": "ROTA PORTFÖY ŞEKERBANK PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:SOS",
      "label": "HEDEF PORTFÖY SAĞLIK SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:SPU",
      "label": "STRATEJİ PORTFÖY PARA PİYASASI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41173,6 +41674,7 @@
      ]
     },
     {
+     "option_id": "fund:SRH",
      "label": "İSTANBUL PORTFÖY SÜRDÜRÜLEBİLİRLİK HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41181,6 +41683,7 @@
      ]
     },
     {
+     "option_id": "fund:SRL",
      "label": "PARDUS PORTFÖY SÜRDÜRÜLEBİLİRLİK HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41188,6 +41691,7 @@
      ]
     },
     {
+     "option_id": "fund:TAL",
      "label": "ATLAS PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41195,48 +41699,56 @@
      ]
     },
     {
+     "option_id": "fund:TAO",
      "label": "TEB PORTFÖY ALARKO GRUBU DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TBP",
      "label": "İŞ PORTFÖY PRİVİA BANKACILIK FON SEPETİ ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TFE",
      "label": "AKTİF PORTFÖY TÜRKİYE FİNANS ALA BANKACILIK KATILIM ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TGT",
      "label": "GARANTİ PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:THF",
      "label": "TERA PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TI1",
      "label": "İŞ PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TIV",
      "label": "İŞ PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TKK",
      "label": "İŞ PORTFÖY KUMBARA HESABI FON SEPETİ ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41244,42 +41756,49 @@
      ]
     },
     {
+     "option_id": "fund:TKM",
      "label": "TEB PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TLC",
      "label": "TEB PORTFÖY ALTERNATİFBANK DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TLV",
      "label": "TERA PORTFÖY PARA PİYASASI KATILIM (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TNI",
      "label": "TEB PORTFÖY ING BANK ÖZEL BANKACILIK VE PLATİNUM DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TNK",
      "label": "TEB PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TP2",
      "label": "TERA PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TPE",
      "label": "İŞ PORTFÖY PY EUROBOND BORÇLANMA ARAÇLARI (DÖVİZ) ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41287,12 +41806,14 @@
      ]
     },
     {
+     "option_id": "fund:TPO",
      "label": "İŞ PORTFÖY PY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI (TL) ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TPR",
      "label": "İŞ PORTFÖY PY HİSSE SENEDİ (TL) ÖZEL FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41300,12 +41821,14 @@
      ]
     },
     {
+     "option_id": "fund:TRJ",
      "label": "TERA PORTFÖY BİRİNCİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TRZ",
      "label": "HEDEF PORTFÖY TURİZM VE SEYAHAT SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41314,12 +41837,14 @@
      ]
     },
     {
+     "option_id": "fund:TSI",
      "label": "İŞ PORTFÖY MAKSİMUM HESAP KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TZC",
      "label": "ZİRAAT PORTFÖY BÜYÜYEN ÇOCUKLARA YÖNELİK DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41327,24 +41852,28 @@
      ]
     },
     {
+     "option_id": "fund:TZL",
      "label": "ZİRAAT PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:TZV",
      "label": "ZİRAAT PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:VK6",
      "label": "V PORTFÖY VAKIFBANK PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:VKR",
      "label": "ALBARAKA PORTFÖY İKİNCİ PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41352,18 +41881,21 @@
      ]
     },
     {
+     "option_id": "fund:VKT",
      "label": "V PORTFÖY VAKIFBANK KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:VTL",
      "label": "V PORTFÖY KISA VADELİ KİRA SERTİFİKALARI KATILIM (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:YAR",
      "label": "İŞ PORTFÖY RESAN DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41371,42 +41903,49 @@
      ]
     },
     {
+     "option_id": "fund:YBP",
      "label": "YAPI KREDİ PORTFÖY PY BİRİNCİ DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:YCH",
      "label": "YAPI KREDİ PORTFÖY ODEABANK AYRICALIKLI VE ÖZEL BANKACILIK FON SEPETİ ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:YDK",
      "label": "YAPI KREDİ PORTFÖY ÇALIŞAN HESAP KISA VADELİ BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:YIV",
      "label": "YAPI KREDİ PORTFÖY ALLİANZ DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:YLB",
      "label": "YAPI KREDİ PORTFÖY PARA PİYASASI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:YMP",
      "label": "QNB PORTFÖY YMK PARA PİYASASI (TL) ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:YNF",
      "label": "AK PORTFÖY AKBANK YENİ NESİL FON SEPETİ ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41415,6 +41954,7 @@
      ]
     },
     {
+     "option_id": "fund:YOA",
      "label": "YAPI KREDİ PORTFÖY PY BORÇLANMA ARAÇLARI (DÖVİZ) ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41422,24 +41962,28 @@
      ]
     },
     {
+     "option_id": "fund:YVD",
      "label": "YAPI KREDİ PORTFÖY İKİNCİ PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ZA2",
      "label": "KUVEYT TÜRK PORTFÖY İKİNCİ SEPET HESAP PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ZAY",
      "label": "KUVEYT TÜRK PORTFÖY SEPET HESAP PARA PİYASASI KATILIM (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
      ]
     },
     {
+     "option_id": "fund:ZPK",
      "label": "ZİRAAT PORTFÖY KISA VADELİ KİRA SERTİFİKASI KATILIM (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı)."
@@ -41453,6 +41997,7 @@
    "count": 69,
    "options": [
     {
+     "option_id": "fund:AT2",
      "label": "AKTİF PORTFÖY İKİNCİ PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41460,6 +42005,7 @@
      ]
     },
     {
+     "option_id": "fund:BAI",
      "label": "BV PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -41467,6 +42013,7 @@
      ]
     },
     {
+     "option_id": "fund:BGR",
      "label": "AK PORTFÖY BIST GYO ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -41474,12 +42021,14 @@
      ]
     },
     {
+     "option_id": "fund:BPV",
      "label": "BTCTURK PORTFÖY PARA PİYASASI (TL) FONU",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:BUH",
      "label": "BULLS PORTFÖY HAVACILIK VE SAVUNMA TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41487,12 +42036,14 @@
      ]
     },
     {
+     "option_id": "fund:DAP",
      "label": "DESTEK PORTFÖY PARA PİYASASI FONU",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:DEH",
      "label": "DESTEK PORTFÖY HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -41500,6 +42051,7 @@
      ]
     },
     {
+     "option_id": "fund:DKK",
      "label": "DESTEK PORTFÖY PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41507,6 +42059,7 @@
      ]
     },
     {
+     "option_id": "fund:DMI",
      "label": "İŞ PORTFÖY DM HİSSE SENEDİ ÖZEL FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41515,6 +42068,7 @@
      ]
     },
     {
+     "option_id": "fund:EGA",
      "label": "QNB PORTFÖY ENPARA ALTIN ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41523,18 +42077,21 @@
      ]
     },
     {
+     "option_id": "fund:ETN",
      "label": "EMAA BLUE PORTFÖY TEMKİNLİ DEĞİŞKEN FON",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:EVL",
      "label": "EMAA BLUE PORTFÖY ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:FDN",
      "label": "FONMAP PORTFÖY İKİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41542,6 +42099,7 @@
      ]
     },
     {
+     "option_id": "fund:GLE",
      "label": "GOLDEN GLOBAL PORTFÖY KATILIM HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41549,6 +42107,7 @@
      ]
     },
     {
+     "option_id": "fund:GLL",
      "label": "GOLDEN GLOBAL PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41557,6 +42116,7 @@
      ]
     },
     {
+     "option_id": "fund:GOK",
      "label": "GOLDEN GLOBAL PORTFÖY KISA VADELİ KİRA SERTİFİKALARI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41564,6 +42124,7 @@
      ]
     },
     {
+     "option_id": "fund:HAA",
      "label": "HEDEF PORTFÖY ATAK FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41571,6 +42132,7 @@
      ]
     },
     {
+     "option_id": "fund:HBI",
      "label": "HAS PORTFÖY BİRİNCİ HİSSE SENEDİ ÖZEL FON (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41579,6 +42141,7 @@
      ]
     },
     {
+     "option_id": "fund:HBM",
      "label": "HAS PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41586,6 +42149,7 @@
      ]
     },
     {
+     "option_id": "fund:HCF",
      "label": "HEDEF PORTFÖY BİRİNCİ ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41594,6 +42158,7 @@
      ]
     },
     {
+     "option_id": "fund:HDC",
      "label": "HEDEF PORTFÖY DENGELİ ÇOKLU VARLIK KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41601,6 +42166,7 @@
      ]
     },
     {
+     "option_id": "fund:HDL",
      "label": "HEDEF PORTFÖY DENGELİ FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41608,6 +42174,7 @@
      ]
     },
     {
+     "option_id": "fund:HID",
      "label": "HEDEF PORTFÖY İKİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41615,6 +42182,7 @@
      ]
     },
     {
+     "option_id": "fund:HIL",
      "label": "HEDEF PORTFÖY MEDYA VE İLETİŞİM DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41623,6 +42191,7 @@
      ]
     },
     {
+     "option_id": "fund:HMR",
      "label": "HEDEF PORTFÖY İKİNCİ BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41630,6 +42199,7 @@
      ]
     },
     {
+     "option_id": "fund:HNJ",
      "label": "HEDEF PORTFÖY BIST BANKA ENDEKSİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41638,6 +42208,7 @@
      ]
     },
     {
+     "option_id": "fund:HOI",
      "label": "İSTANBUL PORTFÖY HOLDİNGLER VE İŞTİRAKLERİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41646,6 +42217,7 @@
      ]
     },
     {
+     "option_id": "fund:HOP",
      "label": "HAS PORTFÖY ÖPY PARA PİYASASI (TL) ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41653,6 +42225,7 @@
      ]
     },
     {
+     "option_id": "fund:HOT",
      "label": "HEDEF PORTFÖY ELEKTRİKLİ VE OTONOM ARAÇLAR DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41661,6 +42234,7 @@
      ]
     },
     {
+     "option_id": "fund:HPP",
      "label": "HEDEF PORTFÖY İKİNCİ PARA PİYASASI (TL) FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41668,6 +42242,7 @@
      ]
     },
     {
+     "option_id": "fund:HRS",
      "label": "HEDEF PORTFÖY AGRESİF FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41675,6 +42250,7 @@
      ]
     },
     {
+     "option_id": "fund:HRT",
      "label": "HEDEF PORTFÖY ROBOTİK TEKNOLOJİLER DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41683,6 +42259,7 @@
      ]
     },
     {
+     "option_id": "fund:HTD",
      "label": "HEDEF PORTFÖY TEKSTİL SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41691,6 +42268,7 @@
      ]
     },
     {
+     "option_id": "fund:HTE",
      "label": "HEDEF PORTFÖY TEMİZ ENERJİ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41699,6 +42277,7 @@
      ]
     },
     {
+     "option_id": "fund:HTI",
      "label": "HEDEF PORTFÖY PERAKENDE TİCARET SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41707,6 +42286,7 @@
      ]
     },
     {
+     "option_id": "fund:HTM",
      "label": "HEDEF PORTFÖY KAR PAYI ÖDEYEN ŞİRKETLER HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41715,6 +42295,7 @@
      ]
     },
     {
+     "option_id": "fund:HTR",
      "label": "HEDEF PORTFÖY TARIM VE GIDA DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41723,18 +42304,21 @@
      ]
     },
     {
+     "option_id": "fund:ICM",
      "label": "İNCİR PORTFÖY BİRİNCİ PARA PİYASASI (TL) FONU",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:ICO",
      "label": "İNCİR PORTFÖY BİRİNCİ FON SEPETİ FONU",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:LAK",
      "label": "AHLATCI PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41743,6 +42327,7 @@
      ]
     },
     {
+     "option_id": "fund:MP1",
      "label": "MT PORTFÖY GÜMÜŞ FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41750,6 +42335,7 @@
      ]
     },
     {
+     "option_id": "fund:MTA",
      "label": "MT PORTFÖY ALTIN KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41757,6 +42343,7 @@
      ]
     },
     {
+     "option_id": "fund:NBM",
      "label": "NEO PORTFÖY BİRİNCİ BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41764,6 +42351,7 @@
      ]
     },
     {
+     "option_id": "fund:NFS",
      "label": "NUROL PORTFÖY BİRİNCİ FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41771,6 +42359,7 @@
      ]
     },
     {
+     "option_id": "fund:NMP",
      "label": "AK PORTFÖY NEMA PARA PİYASASI (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41778,6 +42367,7 @@
      ]
     },
     {
+     "option_id": "fund:NP2",
      "label": "NEO PORTFÖY İKİNCİ FON SEPETİ FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41785,6 +42375,7 @@
      ]
     },
     {
+     "option_id": "fund:OAO",
      "label": "TEB PORTFÖY ODEABANK AYRICALIKLI VE ÖZEL BANKACILIK DEĞİŞKEN ÖZEL FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41792,6 +42383,7 @@
      ]
     },
     {
+     "option_id": "fund:OHT",
      "label": "OYAK PORTFÖY İKİNCİ KISA VADELİ KİRA SERTİFİKALARI KATILIM (TL) FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41799,12 +42391,14 @@
      ]
     },
     {
+     "option_id": "fund:OMT",
      "label": "OSMANLI PORTFÖY PARA PİYASASI KATILIM (TL) FONU",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:OSS",
      "label": "OYAK PORTFÖY SAVUNMA SANAYİİ ŞİRKETLERİ ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41813,6 +42407,7 @@
      ]
     },
     {
+     "option_id": "fund:OYH",
      "label": "OYAK PORTFÖY OYAK GRUP ŞİRKETLERİ ENDEKSİ HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41821,6 +42416,7 @@
      ]
     },
     {
+     "option_id": "fund:RFM",
      "label": "ROTA PORTFÖY ENERJİ VE METAL FON SEPETİ FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -41828,18 +42424,21 @@
      ]
     },
     {
+     "option_id": "fund:SD1",
      "label": "SPARTA PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:SGK",
      "label": "EMAA BLUE PORTFÖY BİYOTEKNOLOJİ VE SAĞLIK SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:SHC",
      "label": "STRATEJİ PORTFÖY İKİNCİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 7, müşterinin risk tavanı 5 üzerinde.",
@@ -41847,6 +42446,7 @@
      ]
     },
     {
+     "option_id": "fund:SPU",
      "label": "STRATEJİ PORTFÖY PARA PİYASASI FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41854,6 +42454,7 @@
      ]
     },
     {
+     "option_id": "fund:SRH",
      "label": "İSTANBUL PORTFÖY SÜRDÜRÜLEBİLİRLİK HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41862,6 +42463,7 @@
      ]
     },
     {
+     "option_id": "fund:TRZ",
      "label": "HEDEF PORTFÖY TURİZM VE SEYAHAT SEKTÖRÜ DEĞİŞKEN FON",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41870,6 +42472,7 @@
      ]
     },
     {
+     "option_id": "fund:VHK",
      "label": "V PORTFÖY KATILIM HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -41877,6 +42480,7 @@
      ]
     },
     {
+     "option_id": "fund:VKR",
      "label": "ALBARAKA PORTFÖY İKİNCİ PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41884,18 +42488,21 @@
      ]
     },
     {
+     "option_id": "fund:VPD",
      "label": "V PORTFÖY BİRİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:VPE",
      "label": "V PORTFÖY İKİNCİ DEĞİŞKEN FON",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:VPH",
      "label": "V PORTFÖY HİSSE SENEDİ (TL) FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -41903,6 +42510,7 @@
      ]
     },
     {
+     "option_id": "fund:YNF",
      "label": "AK PORTFÖY AKBANK YENİ NESİL FON SEPETİ ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -41911,6 +42519,7 @@
      ]
     },
     {
+     "option_id": "fund:ZIH",
      "label": "ZİRAAT PORTFÖY HAVACILIK VE SAVUNMA TEKNOLOJİLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -41918,18 +42527,21 @@
      ]
     },
     {
+     "option_id": "fund:ZND",
      "label": "ZİRAAT PORTFÖY NADİR TOPRAK ELEMENTLERİ VE STRATEJİK METALLER FON SEPETİ FONU",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:ZPO",
      "label": "ZİRAAT PORTFÖY PARA PİYASASI KATILIM FONU",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
      ]
     },
     {
+     "option_id": "fund:ZTS",
      "label": "İŞ PORTFÖY YAPAY ZEKA TEKNOLOJİLERİ ŞİRKETLERİ DEĞİŞKEN FON",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -41937,6 +42549,7 @@
      ]
     },
     {
+     "option_id": "fund:ZTV",
      "label": "ZİRAAT PORTFÖY TÜRKİYE VARLIK FONU İŞTİRAKLERİ HİSSE SENEDİ FONU (HİSSE SENEDİ YOĞUN FON)",
      "reasons": [
       "Yeterli geçmiş yok (yalnızca 1 aylık getiri)."
@@ -41950,12 +42563,14 @@
    "count": 14,
    "options": [
     {
+     "option_id": "fund:AKE",
      "label": "AK PORTFÖY EUROBOND (AMERİKAN DOLARI) BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Döviz fonu; müşterinin açık kısıtı: döviz maruziyetini gerekçesiz artırmama."
      ]
     },
     {
+     "option_id": "fund:DBH",
      "label": "DENİZ PORTFÖY EUROBOND (DÖVİZ) BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -41963,30 +42578,35 @@
      ]
     },
     {
+     "option_id": "fund:FPE",
      "label": "FİBA PORTFÖY EUROBOND BORÇLANMA ARAÇLARI (DÖVİZ) FONU",
      "reasons": [
       "Döviz fonu; müşterinin açık kısıtı: döviz maruziyetini gerekçesiz artırmama."
      ]
     },
     {
+     "option_id": "fund:FUB",
      "label": "QNB PORTFÖY EUROBOND (DÖVİZ) BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Döviz fonu; müşterinin açık kısıtı: döviz maruziyetini gerekçesiz artırmama."
      ]
     },
     {
+     "option_id": "fund:GPA",
      "label": "GARANTİ PORTFÖY EUROBOND BORÇLANMA ARAÇLARI (DÖVİZ) FONU",
      "reasons": [
       "Döviz fonu; müşterinin açık kısıtı: döviz maruziyetini gerekçesiz artırmama."
      ]
     },
     {
+     "option_id": "fund:IPV",
      "label": "İŞ PORTFÖY EUROBOND BORÇLANMA ARAÇLARI (DÖVİZ) FONU",
      "reasons": [
       "Döviz fonu; müşterinin açık kısıtı: döviz maruziyetini gerekçesiz artırmama."
      ]
     },
     {
+     "option_id": "fund:KIS",
      "label": "ASTRA PORTFÖY KİRA SERTİFİKASI KATILIM (DÖVİZ) FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -41994,6 +42614,7 @@
      ]
     },
     {
+     "option_id": "fund:KUB",
      "label": "KARE PORTFÖY DEĞİŞKEN  (DÖVİZ) FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -42001,6 +42622,7 @@
      ]
     },
     {
+     "option_id": "fund:TPE",
      "label": "İŞ PORTFÖY PY EUROBOND BORÇLANMA ARAÇLARI (DÖVİZ) ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -42008,6 +42630,7 @@
      ]
     },
     {
+     "option_id": "fund:TPL",
      "label": "TEB PORTFÖY EUROBOND (DÖVİZ) BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -42015,6 +42638,7 @@
      ]
     },
     {
+     "option_id": "fund:TPZ",
      "label": "TEB PORTFÖY KİRA SERTİFİKALARI (DÖVİZ) KATILIM FONU",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",
@@ -42022,12 +42646,14 @@
      ]
     },
     {
+     "option_id": "fund:YBE",
      "label": "YAPI KREDİ PORTFÖY EUROBOND (DOLAR) BORÇLANMA ARAÇLARI FONU",
      "reasons": [
       "Döviz fonu; müşterinin açık kısıtı: döviz maruziyetini gerekçesiz artırmama."
      ]
     },
     {
+     "option_id": "fund:YOA",
      "label": "YAPI KREDİ PORTFÖY PY BORÇLANMA ARAÇLARI (DÖVİZ) ÖZEL FONU",
      "reasons": [
       "Alıma kapalı (TEFAS'ta işlem görmüyor veya alıma kapalı).",
@@ -42035,6 +42661,7 @@
      ]
     },
     {
+     "option_id": "fund:ZPF",
      "label": "ZİRAAT PORTFÖY KATILIM FONU (DÖVİZ)",
      "reasons": [
       "Risk değeri 6, müşterinin risk tavanı 5 üzerinde.",

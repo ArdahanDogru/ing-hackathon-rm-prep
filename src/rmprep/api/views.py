@@ -323,7 +323,8 @@ class ViewBuilder:
                                                  "label": _label(f"rule.{rule_id}", self._lang),
                                                  "count": 0, "options": []})
                 row["count"] += 1
-                row["options"].append({"label": x.option.label, "reasons": reasons})
+                row["options"].append({"option_id": x.option.option_id,      # W28: the code
+                                       "label": x.option.label, "reasons": reasons})
 
         to_confirm = [{"text": c, "question_id": None, "choices": []} for c in r.to_confirm]
         to_confirm += [{"text": q.text, "question_id": q.question_id, "choices": list(q.choices)}

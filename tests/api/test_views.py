@@ -240,3 +240,11 @@ def test_allocation_signal_tags_name_what_raised_the_portfolio_gap_weight():
     assert allocation_signal_tags(_fixture_persona("p03"), cfg) == ["çeşitlendirme",
                                                                     "fırsat maliyetini azaltma"]
     assert allocation_signal_tags(_fixture_persona("p02"), cfg) == ["çeşitlendirme"]
+
+
+def test_w28_rejected_items_have_the_option_id(view):
+    """W28: the items of rejected_by_rule carry the option id (the code badge)."""
+    r, v = view
+    rejected = {o.option.option_id for o in r.rejected}
+    items = [i for row in v["rejected_by_rule"] for i in row["options"]]
+    assert items and all(i["option_id"] in rejected for i in items)
