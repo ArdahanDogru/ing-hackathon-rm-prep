@@ -216,7 +216,7 @@ def test_ingest_with_ing_web_and_replay(tmp_path, config_raw):
     ev = run(paths, at=T16)
     assert ev.source_status["ing_web"].status == "ok"
     rows = by(ev, source="ing_web")
-    assert len(rows) == 116 and {p.as_of.isoformat() for p in rows} == {"2026-10-16"}
+    assert len(rows) == 146 and {p.as_of.isoformat() for p in rows} == {"2026-10-16"}
     os.remove(paths.db)
     os.remove(paths.config)
     assert replay(paths, ev.snapshot_id) == ev
@@ -249,7 +249,7 @@ def test_failed_ing_web_falls_back_to_the_previous_snapshot(tmp_path, config_raw
     rec = ev.source_status["ing_web"]
     assert rec.status == "failed" and rec.fallback_from == first.snapshot_id
     rows = by(ev, source="ing_web")
-    assert len(rows) == 116 and all(Flag.FALLBACK_SNAPSHOT in p.flags for p in rows)
+    assert len(rows) == 146 and all(Flag.FALLBACK_SNAPSHOT in p.flags for p in rows)
 
 
 def test_replay_twice_is_idempotent(paths):

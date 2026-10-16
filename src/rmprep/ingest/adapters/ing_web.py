@@ -21,8 +21,9 @@ one bad page fails the source (never partial rows). `parse` is pure.
 Layouts (config `layout`):
 - grid (e-Vadeli Mevduat): header = amount columns; each body row = a term; a
   cell repeats its column label, then "%15,00".
-- balance (Turuncu Hesap): first column = balance, then the amount without
-  interest and one column per rate; two rows per balance, one per rate.
+- balance (Turuncu Hesap, Turuncu Çocuk Hesabı, e-Turuncu Biriktiren): first
+  column = balance, then the amount without interest (optional, I14b: not in
+  e-Turuncu Biriktiren) and one column per rate; one row per balance and rate.
 `as_of` comes from the text "<d> <month> <yyyy> itibariyle geçerli".
 """
 
@@ -186,7 +187,8 @@ def parse_page(product: IngProduct, text: str) -> tuple[date, list[Row]]:
         first = header[0].value or header[0].text
         if first != product.balance_header:
             raise IngPageError(f"first header cell {first!r}, expected {product.balance_header!r}")
-        expected = [product.no_interest_column, *product.rates]
+        expected = ([product.no_interest_column] if product.no_interest_column else []) + [
+            *(product.rates or {})]
         if sorted(columns) != sorted(expected):
             raise IngPageError(f"header {columns} does not match {expected}")
 
@@ -209,15 +211,18 @@ def parse_page(product: IngProduct, text: str) -> tuple[date, list[Row]]:
                                value=_percent(cell.value), note=common,
                                locator=f"{product.value};row={label};column={column}"))
             continue
-        no_interest = by_column[product.no_interest_column].value
-        if not no_interest:
-            raise IngPageError(f"row {label!r}: no {product.no_interest_column!r}")
+        amount = ""
+        if product.no_interest_column:
+            no_interest = by_column[product.no_interest_column].value
+            if not no_interest:
+                raise IngPageError(f"row {label!r}: no {product.no_interest_column!r}")
+            amount = f"Faiz işletilmeyecek tutar {no_interest} TL; "
         balance = (product.balance_labels or {}).get(label, f"{label} TL")
         for column, word in (product.rates or {}).items():
             out.append(Row(
                 entity=product.entity.format(rate=word, balance=balance),
                 value=_percent(by_column[column].value),
-                note=f"{column}; Faiz işletilmeyecek tutar {no_interest} TL; {common}",
+                note=f"{column}; {amount}{common}",
                 locator=f"{product.value};row={label};column={column}"))
     return as_of, out
 

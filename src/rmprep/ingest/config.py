@@ -187,7 +187,8 @@ class IngProduct:
     min_rows: int
     min_columns: int                 # value columns, without the row label column
     balance_header: str = ""         # balance: the first header cell
-    no_interest_column: str = ""     # balance: the column of the amount without interest
+    no_interest_column: str = ""     # balance: the column of the amount without interest;
+                                     # "" = the table has no such column (I14b)
     rates: dict[str, str] | None = None             # balance: rate column -> word in the entity
     balance_labels: dict[str, str] | None = None    # balance: page label -> name text
 
@@ -694,7 +695,7 @@ def _parse_bist_bulletin(name, s, path, quantities) -> BistBulletinSource:
 
 _ING_FORM_KEYS = {"currency_field", "product_field", "send_target", "currency", "no_product"}
 _ING_PRODUCT_KEYS = {"value", "layout", "entity", "min_rows", "min_columns"}
-_ING_BALANCE_KEYS = {"balance_header", "no_interest_column", "rates"}
+_ING_BALANCE_KEYS = {"balance_header", "rates"}
 _ING_ENTITY_FIELDS = {"grid": {"row", "column"}, "balance": {"rate", "balance"}}
 
 
@@ -711,7 +712,8 @@ def _parse_ing_product(item: Any, p: str) -> IngProduct:
     if layout == "grid":
         _check_keys(item, p, _ING_PRODUCT_KEYS, set())
     else:
-        _check_keys(item, p, _ING_PRODUCT_KEYS | _ING_BALANCE_KEYS, {"balance_labels"})
+        _check_keys(item, p, _ING_PRODUCT_KEYS | _ING_BALANCE_KEYS,
+                    {"balance_labels", "no_interest_column"})
     entity = _str(item["entity"], f"{p}.entity")
     try:
         fields = {f for _, f, _, _ in string.Formatter().parse(entity) if f is not None}
@@ -724,7 +726,8 @@ def _parse_ing_product(item: Any, p: str) -> IngProduct:
     if layout == "balance":
         extra = dict(
             balance_header=_str(item["balance_header"], f"{p}.balance_header"),
-            no_interest_column=_str(item["no_interest_column"], f"{p}.no_interest_column"),
+            no_interest_column=(_str(item["no_interest_column"], f"{p}.no_interest_column")
+                                if "no_interest_column" in item else ""),
             rates=_str_map(item["rates"], f"{p}.rates", non_empty=True),
             balance_labels=_str_map(item.get("balance_labels", {}), f"{p}.balance_labels",
                                     non_empty=False))

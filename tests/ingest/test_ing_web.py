@@ -24,7 +24,7 @@ from rmprep.ingest.snapshot import SnapshotWriter
 
 T16 = datetime(2026, 10, 16, 15, 0, tzinfo=TR_TZ)       # the day of the saved pages
 SID = "20261016-150000-0001"
-EV, TU = ING_PRODUCTS                                   # e-Vadeli, Turuncu
+EV, TU, KID, ACC = ING_PRODUCTS      # e-Vadeli, Turuncu, Turuncu Çocuk, e-Turuncu Biriktiren
 EV_PAGE, TU_PAGE = ing_page(f"step3_{EV}"), ing_page(f"step3_{TU}")
 MANUAL_NAMES = [line for line in (FIXTURES / "ing_web" / "manual_entities_20261016.txt")
                 .read_text(encoding="utf-8").splitlines() if line and not line.startswith("#")]
@@ -110,11 +110,10 @@ def test_config_rejects_unknown_keys(config_raw):
     (lambda s: s["products"][1].update(rates={}), r"products\[1\]\.rates: must not be empty"),
     (lambda s: s["products"][0].update(min_rows=0), r"products\[0\]\.min_rows: must be a positive"),
     (lambda s: s["products"].append(copy.deepcopy(s["products"][0])),
-     r"products\[2\]\.value: 'E_TIME_DEPOSIT_ACCOUNT' is listed twice"),
+     r"products\[4\]\.value: 'E_TIME_DEPOSIT_ACCOUNT' is listed twice"),
     (lambda s: s.update(quantity="gold_price"), "unknown quantity 'gold_price'"),
     (lambda s: s.update(delay_seconds=-1), "delay_seconds: must be >= 0"),
-    (lambda s: s["products"][1].pop("no_interest_column"),
-     r"products\[1\]: missing key\(s\) \['no_interest_column'\]"),
+    (lambda s: s["products"][1].pop("rates"), r"products\[1\]: missing key\(s\) \['rates'\]"),
 ])
 def test_config_rejects_bad_values(config_raw, change, match):
     import re
@@ -162,7 +161,7 @@ def test_parse_e_vadeli(tmp_path, icfg):
 
 
 def test_parse_turuncu(tmp_path, icfg):
-    pts = [p for p in _points(tmp_path, icfg) if p.entity.startswith("ING Turuncu")]
+    pts = [p for p in _points(tmp_path, icfg) if p.entity.startswith("ING Turuncu Hesap ")]
     assert len(pts) == 14 * 2
     rows = _by_entity(pts)
     std = rows["ING Turuncu Hesap standart, 0-9.999,99 TL"]
@@ -178,10 +177,52 @@ def test_parse_turuncu(tmp_path, icfg):
     assert {p.as_of for p in pts} == {date(2026, 10, 16)}
 
 
+def test_parse_turuncu_cocuk(tmp_path, icfg):
+    pts = [p for p in _points(tmp_path, icfg) if p.entity.startswith("ING Turuncu Çocuk")]
+    assert len(pts) == 14 * 2
+    rows = _by_entity(pts)
+    p = rows["ING Turuncu Çocuk Hesabı standart, 0-9.999,99 TL"]
+    assert p.value == 23.0 and p.as_of == date(2026, 10, 16)
+    assert p.note == ("Standart Faiz; Faiz işletilmeyecek tutar 3.000 TL; 16 Ekim 2026 "
+                      "itibariyle geçerli; ing.com.tr rate form, product "
+                      "ORANGE_ACCOUNT_KID_GROUP; gross/net not stated")
+    assert rows["ING Turuncu Çocuk Hesabı hoş geldin, 10.000-49.999 TL"].value == 39.0
+    assert rows["ING Turuncu Çocuk Hesabı hoş geldin, 35.000.000 TL üzeri"].value == 23.0
+
+
+def test_parse_e_turuncu_biriktiren_without_no_interest_column(tmp_path, icfg):
+    pts = [p for p in _points(tmp_path, icfg) if p.entity.startswith("ING e-Turuncu")]
+    rows = _by_entity(pts)
+    assert sorted(rows) == ["ING e-Turuncu Biriktiren standart, 0-10.000 TL",
+                            "ING e-Turuncu Biriktiren standart, 10.000 TL üzeri"]
+    assert {p.value for p in pts} == {23.0}
+    p = rows["ING e-Turuncu Biriktiren standart, 0-10.000 TL"]
+    assert p.note == ("Standart Faiz; 16 Ekim 2026 itibariyle geçerli; ing.com.tr rate form, "
+                      "product E_ORANGE_ACCOUNT_ACCUMULATING_GROUP; gross/net not stated")
+    assert p.raw_ref.endswith(f"#{ACC};row=10.000 'e kadar;column=Standart Faiz")
+
+
+def test_config_no_interest_column_is_optional(icfg):
+    acc = icfg.sources["ing_web"].products[3]
+    assert acc.value == ACC and acc.no_interest_column == "" and acc.rates == {
+        "Standart Faiz": "standart"}
+
+
+def test_unexpected_no_interest_column_fails(tmp_path, config_raw):
+    # Without no_interest_column in the config, a page that has the column
+    # does not match the header: the source fails.
+    del add_ing_web(config_raw)["sources"]["ing_web"]["products"][1]["no_interest_column"]
+    rec, _, _, _ = _fetch(tmp_path, parse_config(config_raw))
+    assert rec.status == "failed" and f"{TU}: header [" in rec.error
+    assert "does not match ['Standart Faiz', 'Hoş Geldin Faizi']" in rec.error
+
+
 def test_entity_names_are_the_manual_names(tmp_path, icfg):
     names = [p.entity for p in _points(tmp_path, icfg)]
-    assert len(names) == len(set(names)) == 116
-    assert set(names) == set(MANUAL_NAMES)
+    assert len(names) == len(set(names)) == 116 + 28 + 2
+    # e-Vadeli and Turuncu Hesap replace the manual files: the same names.
+    replaced = {n for n in names if n.startswith(("ING e-Vadeli ", "ING Turuncu Hesap "))}
+    assert replaced == set(MANUAL_NAMES)
 
 
 def test_parse_is_deterministic_and_fallback_keeps_origin(tmp_path, icfg):
@@ -200,10 +241,10 @@ def test_parse_is_deterministic_and_fallback_keeps_origin(tmp_path, icfg):
 def test_three_requests_per_product_with_the_delay(tmp_path, icfg):
     rec, snap, fake, sleeps = _fetch(tmp_path, icfg)
     assert rec.status == "ok"
-    assert [r.method for r in fake.requests] == ["GET", "POST", "POST"] * 2
+    assert [r.method for r in fake.requests] == ["GET", "POST", "POST"] * 4
     assert {str(r.url) for r in fake.requests} == {ING_URL}
     assert all(r.headers["User-Agent"] == TEST_ING_WEB["user_agent"] for r in fake.requests)
-    assert sleeps == [2, 2, 2, 2, 2]                    # before every request but the first
+    assert sleeps == [2] * 11                           # before every request but the first
     assert [p.path for p in rec.payloads] == [f"payloads/ing_web/{p}.html" for p in ING_PRODUCTS]
     assert snap.read_payload(f"payloads/ing_web/{EV}.html") == EV_PAGE.encode("utf-8")
     assert [p.meta for p in rec.payloads] == [{"product": p, "url": ING_URL} for p in ING_PRODUCTS]

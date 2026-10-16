@@ -328,7 +328,9 @@ def add_bist(config_raw: dict) -> dict:
 # --- ING rate page (I14) ------------------------------------------------------------------------
 
 ING_URL = "https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari"
-ING_PRODUCTS = ("E_TIME_DEPOSIT_ACCOUNT", "E_ORANGE_ACCOUNT_GROUP")
+ING_PRODUCTS = ("E_TIME_DEPOSIT_ACCOUNT", "E_ORANGE_ACCOUNT_GROUP", "ORANGE_ACCOUNT_KID_GROUP",
+                "E_ORANGE_ACCOUNT_ACCUMULATING_GROUP")      # I14, I14b
+ING_BALANCE_LABELS = {"9.999,99 'e kadar": "0-9.999,99 TL", "35.000.000 üzeri": "35.000.000 TL üzeri"}
 TEST_ING_WEB = {
     "adapter": "ing_web", "enabled": True, "on_failure": "previous",
     "source_url": ING_URL,
@@ -348,9 +350,22 @@ TEST_ING_WEB = {
          "balance_header": "Turuncu Hesap Bakiyesi (TL)",
          "no_interest_column": "Faiz İşletilmeyecek Tutar (TL)",
          "rates": {"Standart Faiz": "standart", "Hoş Geldin Faizi": "hoş geldin"},
-         "balance_labels": {"9.999,99 'e kadar": "0-9.999,99 TL",
-                            "35.000.000 üzeri": "35.000.000 TL üzeri"},
+         "balance_labels": dict(ING_BALANCE_LABELS),
          "min_rows": 14, "min_columns": 3},
+        # I14b: the other two products of the form (rows only)
+        {"value": "ORANGE_ACCOUNT_KID_GROUP", "layout": "balance",
+         "entity": "ING Turuncu Çocuk Hesabı {rate}, {balance}",
+         "balance_header": "Turuncu Çocuk Hesabı Bakiyesi (TL)",
+         "no_interest_column": "Faiz İşletilmeyecek Tutar (TL)",
+         "rates": {"Standart Faiz": "standart", "Hoş Geldin Faizi": "hoş geldin"},
+         "balance_labels": dict(ING_BALANCE_LABELS),
+         "min_rows": 14, "min_columns": 3},
+        {"value": "E_ORANGE_ACCOUNT_ACCUMULATING_GROUP", "layout": "balance",
+         "entity": "ING e-Turuncu Biriktiren {rate}, {balance}",
+         "balance_header": "e-Turuncu Biriktiren Bakiyesi (TL)",
+         "rates": {"Standart Faiz": "standart"},
+         "balance_labels": {"10.000 'e kadar": "0-10.000 TL", "10.000 üzeri": "10.000 TL üzeri"},
+         "min_rows": 2, "min_columns": 1},
     ],
 }
 
@@ -551,9 +566,9 @@ def config_raw():
     # The hand export source is off in the real config (2026-10-10; tefas_detail
     # gives the same values), but its adapter stays usable: tests keep it on.
     raw["sources"]["tefas"]["enabled"] = True
-    # Sources added to the real config later (I10, I11) have their own fixtures;
-    # the end-to-end tests keep the source list they were written for.
-    for name in ("tefas_byf", "bist_bulletin"):
+    # Sources added to the real config later (I10, I11, I14) have their own
+    # fixtures; the end-to-end tests keep the source list they were written for.
+    for name in ("tefas_byf", "bist_bulletin", "ing_web"):
         raw["sources"].pop(name, None)
     if isinstance(raw["sources"].get("tefas_detail", {}).get("funds_from"), list):
         raw["sources"]["tefas_detail"]["funds_from"] = "tefas_web"
