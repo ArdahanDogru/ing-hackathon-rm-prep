@@ -866,6 +866,12 @@ next to the e-Vadeli option is possible).
      `<snapshot>/payloads/<source>/page.html#tables[<i>];row=<row>;column=<column>`
      (the table index, since both Ziraat tables start with "Vade Grupları").
      `as_of` = the Turkish date of `fetched_at`, also for fallback rows.
+- Live check (lead, 2026-10-16, after the merge): `ziraat_web` ok, 74 rows
+  (internet 32 - 45 gün: 5 / 28 / 31 / 32 %). `isbank_web`: the first GET got
+  HTTP 401, a GET a few minutes later got 200 with 54 rows (32 - 35 Gün: 37 –
+  37,95 %). The 401 comes and goes (the site has a bot guard, see the `/TSPD*`
+  robots line). We do not work around it: a 401 fails the source and
+  `on_failure: previous` gives the rows of the last ok snapshot.
 
 ## Noted for later (decided 2026-10-09, not to be done now)
 
