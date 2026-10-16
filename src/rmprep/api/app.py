@@ -48,6 +48,9 @@ ViewFn = Callable[[DecisionResult], dict]
 
 
 NOT_STARTED = "henüz çalıştırılmadı"    # v1.12: GET /agent before the RM started it
+# W26: the answer keys of the documents route, with their values when nothing is found
+_NO_DOCS = {"status": "not_covered", "manager_label": "", "verdict": "", "docs": [],
+            "page_url": "", "checked_at": "", "reason": ""}
 
 
 def create_app(backend: Backend, *, views: ViewFn | None = None,
@@ -55,13 +58,16 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
                glossary_path: Path | str = GLOSSARY,
                static_dir: Path | None = None,
                ingest: IngestControl | None = None,
-               research=None, agent=None, action_log=None) -> FastAPI:
+               research=None, agent=None, action_log=None,
+               fund_docs: Callable[[str, str], object] | None = None) -> FastAPI:
     """static_dir: the built web app (web/dist); its index.html answers every
     non-API path, so the client-side routes (/meeting/..., /print/...) work.
     ingest: the data age and refresh (W14); None = /api/ingest answers 404.
     research: a rmprep.research.service.ResearchService (docs/research.md); None = no research routes.
     agent: a rmprep.agent.service.AgentService (docs/agent.md); None = the agent route answers "off".
-    action_log: a rmprep.api.action_log.ActionLog (L1); None = no RM action log."""
+    action_log: a rmprep.api.action_log.ActionLog (L1); None = no RM action log.
+    fund_docs: (fund code, issuer) -> a FundDocs of rmprep.ingest.fund_docs (W26, I16);
+    None = the documents route answers not_covered."""
     app = FastAPI(title="rmprep", docs_url="/api/docs", openapi_url="/api/openapi.json")
     runs: dict[str, DecisionResult] = {}
     texts: dict[tuple[str, str], NarrativeDraft] = {}   # (run_id, lang) -> last draft / approved text
@@ -334,6 +340,25 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
             return {}
         picks = tuple(p.option_id for p in d.picks)
         return {"top3": picks} if set(picks) != set(result.recommended) else {}
+
+    @app.get("/api/runs/{run_id}/options/{option_id}/documents")
+    def option_documents(run_id: str, option_id: str):
+        """W26: links to the official izahname and YBF on the fund manager's own
+        site (on demand, links only; I16). A site problem is status "failed", not a 500."""
+        result = _run(run_id)
+        opt = next((o.option for o in (*result.options, *result.rejected)
+                    if o.option.option_id == option_id), None)
+        if opt is None:
+            raise HTTPException(404, f"unknown option {option_id}")
+        if opt.kind not in ("fund", "etf"):
+            raise HTTPException(422, "documents are only for funds and ETFs")
+        if fund_docs is None:
+            return {**_NO_DOCS, "reason": "fund documents are not configured (config/fund_docs.yaml)"}
+        try:
+            found = _to_json(fund_docs(option_id.split(":", 1)[-1], short_name(opt.label)[0]))
+        except Exception as e:          # find_documents never raises; this is a safety net
+            return {**_NO_DOCS, "status": "failed", "reason": f"{type(e).__name__}: {e}"}
+        return {k: found.get(k, v) for k, v in _NO_DOCS.items()}
 
     @app.get("/api/runs/{run_id}/agent")
     def agent_decision(run_id: str):
