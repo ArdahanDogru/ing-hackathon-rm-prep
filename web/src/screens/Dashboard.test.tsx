@@ -305,8 +305,8 @@ test("market values: a percent and a TRY price", async () => {
   expect(marketValue({ ...item, value: 49.1267, unit: "TRY" })).toBe("49,1267 TL");
 });
 
-test("no market note: no card", () => {
-  renderDashboard({ ...sample("run_p01_ready"), market_note: [] });
+test("no market note and no bank rates: no market section (W25b: bank rates alone show it)", () => {
+  renderDashboard({ ...sample("run_p01_ready"), market_note: [], bank_context: [] });
   expect(screen.queryByTestId("market-note")).toBeNull();
 });
 

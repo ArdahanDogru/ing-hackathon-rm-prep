@@ -2,7 +2,8 @@
 // EVDS" (the policy rate, USD/TRY and the TCMB funding cost of the run's snapshot, each with
 // its date and "K" mark), "Uyarılar" (the client warnings) and "RM notu" (the RM-only notes),
 // each with its own title. An empty warnings section says so; no market data: no market section.
-import type { MarketNoteItem, Warning } from "../api/types";
+import type { MarketBankEntry, MarketNoteItem, Warning } from "../api/types";
+import { BankDate, BankDiff, fmtRate } from "./BankContext";
 import { fmtDate } from "../format";
 import { useT, type LabelKey } from "../i18n";
 import { KMark } from "./OptionsTable";
@@ -50,26 +51,60 @@ function WarningSection({
   );
 }
 
+/** W25b: one line per entry: the title, then each row "label %rate" with its K mark and date
+ * (the own row bold; the banks with the difference in points), the note small under it. */
+function BankLine({ entry, onEvidence }: { entry: MarketBankEntry; onEvidence: (id: string) => void }) {
+  const t = useT();
+  return (
+    <div data-testid="bank-line" className="mt-2.5 text-sm">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <span className="text-muted">{entry.title}</span>
+        {entry.rows.map((r, i) => (
+          <span key={`${r.label}|${i}`} data-testid="bank-part" className={`flex items-baseline gap-1.5 ${r.own ? "font-bold" : ""}`}>
+            {r.value === null ? (
+              <>
+                {r.label} <span className="text-xs font-normal text-muted">{t("bankNoData")}</span>
+              </>
+            ) : (
+              <>
+                {r.label} <span className="tabular-nums">{fmtRate(r.value)}</span>
+                <KMark id={r.evidence_id || undefined} onEvidence={onEvidence} />
+                <BankDate row={r} />
+                <BankDiff row={r} />
+              </>
+            )}
+          </span>
+        ))}
+      </div>
+      {entry.note && <p className="mt-1 text-xs text-muted">{entry.note}</p>}
+    </div>
+  );
+}
+
 export function MarketNote({
   items,
+  banks = [],
   clientWarnings = [],
   rmWarnings = [],
   onEvidence,
 }: {
   items: MarketNoteItem[];
+  /** W25b: the bank rates entries of the run */
+  banks?: MarketBankEntry[];
   clientWarnings?: Warning[];
   rmWarnings?: Warning[];
   onEvidence: (id: string) => void;
 }) {
   const t = useT();
+  const market = items.length > 0 || banks.length > 0;
   return (
     <section
       data-testid="notes-box"
       className={`mb-6 grid gap-x-8 gap-y-4 rounded-2xl bg-white px-[26px] py-4 shadow-sm ${
-        items.length ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]" : "lg:grid-cols-2"
+        market ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]" : "lg:grid-cols-2"
       }`}
     >
-      {items.length > 0 && (
+      {market && (
         <div data-testid="market-note" className="min-w-0">
           <h3 className={heading}>{`${t("marketNote")} · TCMB EVDS`}</h3>
           <ul className="mt-2 flex flex-wrap gap-x-8 gap-y-2 text-sm">
@@ -82,6 +117,9 @@ export function MarketNote({
               </li>
             ))}
           </ul>
+          {banks.map((b) => (
+            <BankLine key={b.option_id} entry={b} onEvidence={onEvidence} />
+          ))}
         </div>
       )}
       <WarningSection testId="box-warnings" title="warningsTab" empty="noWarnings" warnings={clientWarnings} onEvidence={onEvidence} />
