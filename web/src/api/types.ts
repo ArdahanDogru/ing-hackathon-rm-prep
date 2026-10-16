@@ -304,6 +304,12 @@ export interface BankContext {
   note: string;
 }
 
+/** W25b: RunView.bank_context, one entry per configured option, for the "Piyasa notu" panel. */
+export interface MarketBankEntry extends BankContext {
+  option_id: string;
+  title: string; // "Vadeli mevduat, ~32 gün, 100–250 bin TL"
+}
+
 /** W26: one official document on the manager's own site. */
 export interface FundDocument {
   kind: "izahname" | "ybf";
@@ -367,6 +373,8 @@ export interface RunView {
   market_note: MarketNoteItem[];
   /** W16 (PR #1): scoring criterion → the client's priorities (as written) that boost it. */
   priority_criteria: Record<string, string[]>;
+  /** W25b: other banks' rates once per run (empty without the config); optional for older samples. */
+  bank_context?: MarketBankEntry[];
   /** W18: the current split's status and sources. Optional until the API fixtures have it. */
   holdings?: Holdings;
   /** W18: criterion → the weight used for this client. */

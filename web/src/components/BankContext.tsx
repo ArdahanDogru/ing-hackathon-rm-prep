@@ -2,7 +2,7 @@
 // for the RM"): in the fund card only, for the RM. The own rate first (bold), then the other banks'
 // rates with the difference in points, in a neutral color: a higher rate elsewhere is neither good
 // nor bad for the RM. Nothing here changes a score or a rank.
-import type { BankContext as BankContextData } from "../api/types";
+import type { BankContext as BankContextData, BankRow } from "../api/types";
 import { fmtDate } from "../format";
 import { useT } from "../i18n";
 import { KMark } from "./OptionsTable";
@@ -20,6 +20,36 @@ const ROW = "grid grid-cols-[minmax(0,1fr)_64px_18px_92px_76px] items-baseline g
 export function fmtPoints(v: number): string {
   const text = nf2.format(Math.abs(v));
   return text === "0,00" ? text : v < 0 ? `${MINUS}${text}` : `+${text}`;
+}
+
+/** The date of a rate; a stale one in amber with "· eski" and a tooltip (W25). */
+export function BankDate({ row, className = "" }: { row: BankRow; className?: string }) {
+  const t = useT();
+  return (
+    <span
+      data-testid="bank-date"
+      data-stale={row.stale ? "true" : undefined}
+      title={row.stale ? t("bankStaleTip") : undefined}
+      className={`whitespace-nowrap text-xs font-normal tabular-nums ${row.stale ? "text-[#B54708]" : "text-muted"} ${className}`}
+    >
+      {row.as_of ? fmtDate(row.as_of) : ""}
+      {row.stale && ` · ${t("bankStale")}`}
+    </span>
+  );
+}
+
+/** "+2,50 puan" for a bank row (neutral grey: a higher rate elsewhere is not good or bad); empty otherwise. */
+export function BankDiff({ row, className = "" }: { row: BankRow; className?: string }) {
+  const t = useT();
+  const shown = !row.own && row.diff_pp !== null;
+  return (
+    <span
+      data-testid={shown ? "bank-diff" : undefined}
+      className={`whitespace-nowrap text-xs font-semibold tabular-nums text-[#475467] ${className}`}
+    >
+      {shown ? `${fmtPoints(row.diff_pp!)} ${t("bankPoints")}` : ""}
+    </span>
+  );
 }
 
 export function BankContext({ context, onEvidence }: { context: BankContextData | null | undefined; onEvidence: (id: string) => void }) {
@@ -55,21 +85,8 @@ export function BankContext({ context, onEvidence }: { context: BankContextData 
                 <span>
                   <KMark id={r.evidence_id || undefined} onEvidence={onEvidence} />
                 </span>
-                <span
-                  data-testid="bank-date"
-                  data-stale={r.stale ? "true" : undefined}
-                  title={r.stale ? t("bankStaleTip") : undefined}
-                  className={`whitespace-nowrap text-right text-xs font-normal tabular-nums ${r.stale ? "text-[#B54708]" : "text-muted"}`}
-                >
-                  {r.as_of ? fmtDate(r.as_of) : ""}
-                  {r.stale && ` · ${t("bankStale")}`}
-                </span>
-                <span
-                  data-testid={!r.own && r.diff_pp !== null ? "bank-diff" : undefined}
-                  className="whitespace-nowrap text-right text-xs font-semibold tabular-nums text-[#475467]"
-                >
-                  {!r.own && r.diff_pp !== null ? `${fmtPoints(r.diff_pp)} ${t("bankPoints")}` : ""}
-                </span>
+                <BankDate row={r} className="text-right" />
+                <BankDiff row={r} className="text-right" />
               </>
             )}
           </li>

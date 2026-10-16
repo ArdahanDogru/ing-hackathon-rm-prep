@@ -124,7 +124,7 @@ export function Dashboard({
         onEvidence={setEvidenceId}
         refresh={agentChanged ? agent.picks.map((p) => p.option_id).join("|") : ""}
       />
-      <MarketNote items={view.market_note} clientWarnings={view.client_warnings} rmWarnings={view.rm_warnings} onEvidence={setEvidenceId} />
+      <MarketNote items={view.market_note} banks={view.bank_context ?? []} clientWarnings={view.client_warnings} rmWarnings={view.rm_warnings} onEvidence={setEvidenceId} />
       {error && (
         <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-white p-3 text-sm">
           {`${t("errorTitle")}: ${error}`}
