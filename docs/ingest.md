@@ -787,6 +787,60 @@ those files stay in `data/inbox/manual` as the fallback.
   pipeline tests' `config_raw` drops `ing_web` (as `tefas_byf`), so they keep
   their source list; `ing_web` has its own tests.
 
+I15 (the user, 2026-10-16: "add them to the ingest pipeline for now"): the TL
+deposit rates of other banks, from their own public pages. Rows only: the
+engine, the narrator and the web app do not use them now (a later comparison
+next to the e-Vadeli option is possible).
+
+- Lead check of 2026-10-16 (robots.txt of 10 banks, one GET per rate page, the
+  legal notice pages):
+
+  | Bank | Rate page | Rates in the static HTML | Legal notice | Now |
+  |---|---|---|---|---|
+  | İş Bankası | `/kampanyali-mevduat-oranlari` | one table, 9 terms × 6 amounts | `/yasal-uyari`: information only, not binding; no rule on reuse or automated access | **in** |
+  | Ziraat | `/tr/fiyatlar-ve-oranlar` | TL tables for branch and internet branch (+ FX, gold, bonds, repo) | `/tr/yasal-uyari`: information only; rates in use can differ the same day | **in** |
+  | Enpara (QNB) | `/hesaplar/mevduat-faiz-oranlari` | yes (4 terms × 4 amounts, in divs) | no Enpara page found; QNB `/destek/kullanim-kosullari`: content "kopyalanamaz, çoğaltılamaz, kamuya açık bir şekilde gösterilemez … ticari amaçla kullanılamaz" | **out** (terms) |
+  | QNB | `/vadeli-mevduat-urunleri` | only the stopaj table | as Enpara | out |
+  | Akbank, DenizBank | product pages | only one "up to" rate (38,75 %, 43,5 %) | no reuse rule found | out (no table) |
+  | Garanti BBVA, Yapı Kredi, Halkbank | rate pages | no: a script loads the rates | Halkbank: no rule; others not found | out (later: check for an allowed data URL) |
+
+  robots.txt allows both pages for `*` (İş disallows `/fiyatoran/FiyatTabloGoster.asp*`
+  and search paths; Ziraat disallows `/_layouts/` and some news paths).
+- One source per bank (`isbank_web`, `ziraat_web`), one shared adapter
+  `bank_table` (as `tefas_web` / `tefas_byf`), so one changed page fails only its
+  own bank. One GET per source and ingest (2 requests per day), no redirects,
+  the robots rules in code as for `ing_web`, honest `user_agent`. Payload = the
+  page HTML (SHA-256 in the manifest); replay parses the payload.
+- Config per table: `header` = the exact header row (the first cell, then the
+  amount columns; this selects the table on the page and detects a change),
+  `entity` template `"<bank> <product>, {row}, {column}"`, `decimal` ("," for
+  İş, "." for Ziraat: `%28.00`), `min_rows`, and `skip_rows` (row labels that
+  are not terms, e.g. Ziraat `Vadesiz`, `Birikimli Mevduat Hesabı`). Tables:
+  - İş: header `VADE | 5.000 - 100.000 TL | … | 10.000.001 TL Üzeri`;
+    entity `İş Bankası kampanyalı vadeli TL, {row}, {column}`; note "campaign
+    rates (İşCep, İnternet Şube, Bankamatik); conditions apply".
+  - Ziraat branch: header `Vade Grupları | 0,00 - 999,99 TL | 1.000 TL ve Üzeri`;
+    entity `Ziraat Bankası vadeli TL (şube), {row}, {column}`.
+  - Ziraat internet branch: header `Vade Grupları | 1.000,00 - 4.999,99 TL |
+    5.000 - 99.999,99 TL | 100.000 - 499.999,99 TL | 500.000,00 TL ve üzeri`;
+    entity `Ziraat Bankası vadeli TL (internet), {row}, {column}`.
+  Row and column labels are kept as on the page (whitespace normalised).
+- Values: quantity `deposit_rate`, unit pct. A cell is a percent after all
+  whitespace is removed (`% 3 7,95` on the İş page = 37,95), with the decimal
+  of the config; `%31` = 31. A cell that is not a percent fails the source.
+- `as_of`: neither page shows a date for the deposit tables, so `as_of` = the
+  Turkish date of the fetch, and the note says "the page shows no date; as_of
+  = the fetch date". (If a date is added to the page later, a config field can
+  read it.)
+- Fails the source (`on_failure: previous`): HTTP status not 200, no table
+  with the configured header, two such tables, fewer than `min_rows` rows, a
+  row with another number of cells, a bad cell.
+- Tests (offline): the saved pages of 2026-10-16 (gzip, in
+  `C:/Users/yardang/dev/ing-wt/ingest-fixtures/`) as fixtures; the count, names
+  and values of each table (İş 9 × 6 = 54; Ziraat branch and internet with
+  their skipped rows); the whitespace and decimal cases; each failure case;
+  replay identical; the pipeline tests keep their source list (as `ing_web`).
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes
