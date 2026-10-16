@@ -471,7 +471,14 @@ export interface QuestionAnswer {
 export type ResearchView =
   | { state: "running" }
   | { state: "off"; reason: string }
-  | { state: "ready"; products: ProductResearch[]; questions: QuestionAnswer[] };
+  | {
+      state: "ready";
+      products: ProductResearch[];
+      questions: QuestionAnswer[];
+      /** W29: while the agent runs again on a run that followed an earlier one, that run's
+       * candidates that are not in this list; absent otherwise. */
+      previous?: { run_id: string; products: ProductResearch[] };
+    };
 
 // Agent decision (contract v1.11; spec docs/superpowers/specs/2026-10-15-agent-decision-design.md).
 export type AgentState = "running" | "done" | "fallback" | "off";
