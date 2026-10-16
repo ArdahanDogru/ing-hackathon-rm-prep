@@ -5,6 +5,7 @@ import type { RejectedByRule, RunView } from "../api/types";
 import { useT, type LabelKey } from "../i18n";
 import { CategoryList } from "./CategoryList";
 import { NoteDialog } from "./NoteDialog";
+import { CodeBadge } from "../product";
 
 export type NoteKind = "categories" | "assumptions" | "dataNotes" | "eliminated";
 
@@ -20,7 +21,10 @@ function RuleRow({ rule }: { rule: RejectedByRule }) {
         <ul data-testid={`rule-${rule.rule_id}`} className="mb-2 ml-3 space-y-1 pr-1 text-xs">
           {rule.options.map((o, i) => (
             <li key={o.label + i}>
-              <span className="font-medium">{o.label}</span>
+              <span className="font-medium">
+                {o.option_id && <CodeBadge optionId={o.option_id} />}
+                {o.label}
+              </span>
               <span className="text-muted">{` · ${o.reasons.join("; ")}`}</span>
             </li>
           ))}
