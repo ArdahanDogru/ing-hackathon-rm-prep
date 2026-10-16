@@ -622,6 +622,37 @@ Web only: no API, contract or narrator change.
   controls before Düzenle, the comment saved as an option note, the block edit,
   dikkat not deletable, a deleted block, the print disabled by a finding, EN).
 
+### One page: the presentation with the RM's help (W28, 2026-10-17)
+
+The user, 2026-10-17: two tabs (Müşteri sunumu, RM hazırlık notu) are one too
+many; the step is the RM's preparation for the meeting with the client, so the
+page speaks to the client and the rest is there to make the RM's work easier.
+W28 replaces the switch, Düzenle and `MeetingText initialMode` of W27:
+
+- **One page:** the W27 client presentation, with the right column of the note
+  (card, Notlarım, RM notu, Kaynaklar, terms) next to it. The ✎ and Sil
+  controls, the edit marks and findings, and the source numbers are on the
+  page. The narrator blocks of the page show source numbers again.
+- **The RM's help, in yellow boxes** ("yalnızca siz · müşteriye gösterilmez",
+  `RmNote`) next to the part they belong to: under the cover, Görüşmenin amacı
+  (`ozet`) and Piyasa notu; under the key figures, Konuşulacaklar (the talking
+  points, with Bölümü sil); under the fund cards, Diğer seçenekler
+  (`alternatifler`), for "what about X?"; under the risks, Varsayımlar. Each
+  fund card has its yellow comment (`rm_option_notes`). The collapsed lines of
+  the note are gone (the boxes are open), and so is "Öneriler: Bölümü sil"
+  (each fund block has its own Sil).
+- **👁 Müşteri görünümü** hides everything for the RM: the boxes, comments,
+  controls, deleted-block lines, source numbers and the right column. It is
+  the page as the client sees it.
+- **Yazdır / PDF** switches to the client view first, then prints.
+- Source numbers follow the page order: teklif_metni, ozet, piyasa_notu,
+  talking points, oneriler, alternatifler, dikkat, varsayimlar, sorular.
+- Still not in this step: the W27 list (client-facing narrator speech, a
+  client-visible RM note).
+- Tests: `MeetingText.test.tsx` (the boxes inside the page, the client view
+  hides the RM's parts, the print is the client view; the W9–W19 tests on the
+  one page) and `ClientPresentation.test.tsx`.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

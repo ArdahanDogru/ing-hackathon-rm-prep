@@ -37,7 +37,7 @@ function mockNarrative(n: NarrativeView) {
   return vi.spyOn(api, "narrative").mockResolvedValue(n);
 }
 function renderMeeting(view: RunView) {
-  return renderWith(<MeetingText view={view} initialMode="note" />);
+  return renderWith(<MeetingText view={view} />);
 }
 
 beforeEach(() => {
@@ -50,11 +50,12 @@ afterEach(() => {
 
 // --- plan W9 ---------------------------------------------------------------------
 
-test("sections in order in one document column", async () => {
+test("the RM's boxes in page order, inside the presentation", async () => {
   mockNarrative(narrative());
   renderMeeting(sample("run_p01_approved"));
   const heads = (await screen.findAllByTestId("doc-heading")).map((h) => h.textContent);
-  expect(heads.slice(0, 5)).toEqual(["Görüşmenin amacı", "Konuşulacaklar", "Söyleyebileceğiniz", "Öneriler", "Dikkat"]);
+  expect(heads.slice(0, 2)).toEqual(["Görüşmenin amacı", "Konuşulacaklar"]);
+  for (const box of screen.getAllByTestId("rm-note")) expect(screen.getByTestId("presentation")).toContainElement(box);
 });
 
 test("source numbers match the Kaynaklar list", async () => {
@@ -108,21 +109,21 @@ test("a source number opens with the keyboard", async () => {
   expect(ev).toHaveBeenCalledTimes(2);
 });
 
-test("collapsed lines open on click", async () => {
+test("the other options and the assumptions are RM boxes", async () => {
   mockNarrative(narrative());
   renderMeeting(sample("run_p01_approved"));
-  const line = await screen.findByRole("button", { name: /Varsayımlar/ });
-  expect(screen.getByTestId("section-varsayimlar")).not.toBeVisible();
-  await userEvent.click(line);
-  expect(screen.getByTestId("section-varsayimlar")).toBeVisible();
-  expect(line).toHaveTextContent(`(${section("varsayimlar")!.sentences.length})`);
+  const boxes = await screen.findAllByTestId("rm-note");
+  for (const key of ["alternatifler", "varsayimlar"] as const) {
+    const box = boxes.find((b) => b.querySelector(`[data-block="${key}"]`))!;
+    section(key)!.sentences.forEach((x) => expect(box).toHaveTextContent(x.text));
+  }
 });
 
 test("RM-only warnings only in RM notu", async () => {
   mockNarrative(narrative());
   const v = sample("run_p01_approved");
   renderMeeting(v);
-  const doc = await screen.findByTestId("document");
+  const doc = await screen.findByTestId("presentation");
   expect(v.rm_warnings.length).toBeGreaterThan(0);
   v.rm_warnings.forEach((w) => expect(doc).not.toHaveTextContent(w.message));
   v.rm_warnings.forEach((w) => expect(screen.getByTestId("rm-notes")).toHaveTextContent(w.message));
@@ -130,32 +131,31 @@ test("RM-only warnings only in RM notu", async () => {
 
 // --- the document ----------------------------------------------------------------
 
-test("the document: status line, title, aim, talking points, script, Dikkat", async () => {
+test("the page: status line, goal, script, aim, talking points, Dikkat", async () => {
   const n = narrative();
   mockNarrative(n);
   const v = sample("run_p01_approved");
   renderMeeting(v);
-  const doc = await screen.findByTestId("document");
-  expect(within(doc).getByTestId("doc-status")).toHaveTextContent(n.source === "template" ? "şablon metin" : n.model);
-  expect(within(doc).getByRole("heading", { level: 1 })).toHaveTextContent(`${v.result.persona.profil}, ${v.result.persona.yas}`);
+  const doc = await screen.findByTestId("presentation");
+  expect(screen.getByTestId("doc-status")).toHaveTextContent(n.source === "template" ? "şablon metin" : n.model);
+  expect(within(doc).getByRole("heading", { level: 1 })).toHaveTextContent(v.result.persona.yatirim_amaci);
+  expect(doc.querySelector('[data-block="teklif_metni"]')).toHaveTextContent(sectionText("teklif_metni"));
   expect(doc).toHaveTextContent(sectionText("ozet"));
   section("talking_points")!.sentences.forEach((s) => expect(doc).toHaveTextContent(s.title));
-  expect(within(doc).getByTestId("script")).toHaveTextContent(sectionText("teklif_metni"));
   expect(doc).toHaveTextContent(sectionText("dikkat"));
 });
 
-test("one block per selected option: short name, facts, need tags, its sentences, a note field", async () => {
+test("one card per selected option: short name, facts, its sentences, a comment field", async () => {
   const n = narrative();
   mockNarrative(n);
   const v = sample("run_p01_approved");
   renderMeeting(v);
-  const blocks = await screen.findAllByTestId("doc-option");
+  const blocks = await screen.findAllByTestId("pres-fund");
   expect(blocks).toHaveLength(v.result.rm_selected.length);
   const id = v.result.rm_selected[0];
   const o = v.options[id];
   expect(blocks[0]).toHaveTextContent(o.short_label);
   expect(blocks[0]).toHaveTextContent(`risk ${o.risk!.level}/7`);
-  (n.need_tags[id] ?? []).forEach((tag) => expect(within(blocks[0]).getByText(tag)).toBeInTheDocument());
   // a sentence belongs to the block of its first option (server rule: oneriler:<option_ids[0]>)
   section("oneriler")!.sentences.filter((s) => s.option_ids[0] === id).forEach((s) => expect(blocks[0]).toHaveTextContent(s.text));
   expect(within(blocks[0]).getByRole("textbox")).toBeInTheDocument();
@@ -167,7 +167,7 @@ test("a v1.2 draft without talking_points uses the decision talking points", asy
   mockNarrative(n);
   const v = sample("run_p01_approved");
   renderMeeting(v);
-  const doc = await screen.findByTestId("document");
+  const doc = await screen.findByTestId("presentation");
   expect(doc).toHaveTextContent(v.talking_points[0].label);
   expect(doc).toHaveTextContent(v.talking_points[0].text);
 });
@@ -193,7 +193,7 @@ test("waiting shows Metin hazırlanıyor…; a 504 shows Tekrar dene", async () 
   renderMeeting(sample("run_p01_approved"));
   expect(screen.getByText("Metin hazırlanıyor…")).toBeInTheDocument();
   await userEvent.click(await screen.findByRole("button", { name: "Tekrar dene" }));
-  expect(await screen.findByTestId("document")).toBeInTheDocument();
+  expect(await screen.findByTestId("presentation")).toBeInTheDocument();
   expect(get).toHaveBeenCalledTimes(2);
 });
 
@@ -220,7 +220,7 @@ test("an option note is saved with the general note", async () => {
   mockNarrative(narrative());
   const v = sample("run_p01_approved");
   renderMeeting(v);
-  const block = (await screen.findAllByTestId("doc-option"))[0];
+  const block = (await screen.findAllByTestId("pres-fund"))[0];
   await userEvent.type(within(block).getByRole("textbox"), "ilk bu fon");
   vi.advanceTimersByTime(900);
   expect(notes.mock.calls.at(-1)![2]).toEqual({ [v.result.rm_selected[0]]: "ilk bu fon" });
@@ -237,8 +237,8 @@ test("pencil edits one block; others keep their layout", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Kaydet" }));
   expect(edit).toHaveBeenCalledWith(expect.any(String), "TR", "ozet", "Yeni amaç.");
   expect(await screen.findByText("düzenlendi")).toBeInTheDocument();
-  expect(screen.getByTestId("document")).toHaveTextContent("Yeni amaç.");
-  expect(screen.getAllByTestId("doc-option").length).toBeGreaterThan(0);
+  expect(screen.getByTestId("presentation")).toHaveTextContent("Yeni amaç.");
+  expect(screen.getAllByTestId("pres-fund").length).toBeGreaterThan(0);
 });
 
 test("Vazgeç closes the editor without a call", async () => {
@@ -259,7 +259,7 @@ test("each talking point and each option is its own block", async () => {
   const pencils = await screen.findAllByRole("button", { name: /düzenle/i });
   const tp = section("talking_points")!.sentences.length;
   expect(pencils.length).toBeGreaterThanOrEqual(tp + v.result.rm_selected.length);
-  const block = (await screen.findAllByTestId("doc-option"))[1];
+  const block = (await screen.findAllByTestId("pres-fund"))[1];
   await userEvent.click(within(block).getByRole("button", { name: /düzenle/i }));
   await userEvent.click(screen.getByRole("button", { name: "Kaydet" }));
   expect(edit.mock.calls[0][2]).toBe(`oneriler:${v.result.rm_selected[1]}`);
@@ -311,7 +311,7 @@ test("a number finding only warns: the card links stay open", async () => {
 
 test("W19 EN: the reason under the disabled card links", async () => {
   mockNarrative(withChecks(withEdit(sample("narrative_p01_en"), "ozet", "Guaranteed return."), "ozet", ["phrase: 'guaranteed' must not be used"]));
-  renderWith(<MeetingText view={sample("run_p01_approved")} initialMode="note" />, { lang: "EN" });
+  renderWith(<MeetingText view={sample("run_p01_approved")} />, { lang: "EN" });
   expect(await screen.findByTestId("card-blocked")).toHaveTextContent("A rule finding is open: fix it before you download the card.");
 });
 
@@ -329,7 +329,7 @@ test("an edited block has no source marks of the replaced sentences", async () =
   const id = sample("run_p01_approved").result.rm_selected[0];
   mockNarrative(withEdit(n, `oneriler:${id}`, "Kendi cümlem."));
   renderMeeting(sample("run_p01_approved"));
-  const block = (await screen.findAllByTestId("doc-option"))[0];
+  const block = (await screen.findAllByTestId("pres-fund"))[0];
   expect(block).toHaveTextContent("Kendi cümlem.");
   expect(within(block).queryAllByTestId("src-mark")).toHaveLength(0);
   const marks = screen.getAllByTestId("src-mark");
@@ -339,7 +339,7 @@ test("an edited block has no source marks of the replaced sentences", async () =
 test("no whole-text Düzenle any more", async () => {
   mockNarrative(sample("narrative_p01_tr"));
   renderMeeting(sample("run_p01_approved"));
-  await screen.findByTestId("document");
+  await screen.findByTestId("presentation");
   expect(screen.queryByRole("button", { name: "Düzenle" })).toBeNull();
 });
 
@@ -378,8 +378,8 @@ test("a source item opens the evidence of one of its ids", async () => {
 
 test("EN asks for the EN text", async () => {
   const get = mockNarrative(sample("narrative_p01_en"));
-  renderWith(<MeetingText view={sample("run_p01_approved")} initialMode="note" />, { lang: "EN" });
-  await screen.findByTestId("document");
+  renderWith(<MeetingText view={sample("run_p01_approved")} />, { lang: "EN" });
+  await screen.findByTestId("presentation");
   expect(get.mock.calls[0][1]).toBe("EN");
   expect(screen.getAllByTestId("doc-heading")[0]).toHaveTextContent("Aim of the meeting");
 });
@@ -403,7 +403,7 @@ test("Sil deletes one block; it shows as Silindi · Geri al without its source n
   expect(edit).toHaveBeenCalledWith(expect.any(String), "TR", "ozet", "");
   const line = await screen.findByTestId("deleted-block");
   expect(line).toHaveTextContent("Silindi · Geri al");
-  expect(screen.getByTestId("document")).not.toHaveTextContent(section("ozet")!.sentences[0].text);
+  expect(screen.getByTestId("presentation")).not.toHaveTextContent(section("ozet")!.sentences[0].text);
   const cited = section("ozet")!.sentences.filter((x) => x.evidence_ids.length).length;
   if (cited) expect(screen.getAllByTestId("src-mark").length).toBeLessThan(before);
 });
@@ -416,20 +416,7 @@ test("Geri al restores a deleted block (null)", async () => {
   await userEvent.click(await screen.findByRole("button", { name: "Geri al" }));
   expect(edit).toHaveBeenCalledWith(expect.any(String), "TR", "ozet", null);
   await waitFor(() => expect(screen.queryByTestId("deleted-block")).toBeNull());
-  expect(screen.getByTestId("document")).toHaveTextContent(section("ozet")!.sentences[0].text);
-});
-
-test("Bölümü sil deletes every block of Öneriler, one PUT each", async () => {
-  const n = narrative();
-  mockNarrative(n);
-  const edit = statefulEdit(n);
-  const v = sample("run_p01_approved");
-  renderMeeting(v);
-  await userEvent.click(await screen.findByRole("button", { name: "Öneriler: Bölümü sil" }));
-  await waitFor(() => expect(edit).toHaveBeenCalledTimes(v.result.rm_selected.length));
-  expect(edit.mock.calls.map((c) => [c[2], c[3]])).toEqual(v.result.rm_selected.map((id) => [`oneriler:${id}`, ""]));
-  expect(await screen.findAllByTestId("deleted-block")).toHaveLength(v.result.rm_selected.length);
-  expect(screen.queryByRole("button", { name: "Öneriler: Bölümü sil" })).toBeNull();
+  expect(screen.getByTestId("presentation")).toHaveTextContent(section("ozet")!.sentences[0].text);
 });
 
 test("Bölümü sil for Konuşulacaklar; one-block sections have no Bölümü sil", async () => {
@@ -463,20 +450,45 @@ test("the approved text leaves deleted blocks and empty sections out", async () 
   const d = withDeleted(narrative(), "ozet", "dikkat", ...v.result.rm_selected.map((id) => `oneriler:${id}`));
   mockNarrative({ ...d, status: "approved", rm_text: d.markdown });
   renderMeeting(v);
-  const doc = await screen.findByTestId("document");
+  const doc = await screen.findByTestId("presentation");
   expect(screen.queryByTestId("deleted-block")).toBeNull();
-  expect(screen.queryAllByTestId("doc-option")).toHaveLength(0);
   const heads = screen.getAllByTestId("doc-heading").map((h) => h.textContent);
   expect(heads).not.toContain("Görüşmenin amacı");
-  expect(heads).not.toContain("Öneriler");
-  expect(heads).not.toContain("Dikkat");
   expect(doc).not.toHaveTextContent(section("ozet")!.sentences[0].text);
+  expect(doc).not.toHaveTextContent(section("dikkat")!.sentences[0].text);
+  v.result.rm_selected.forEach((id) => expect(doc.querySelector(`[data-block="oneriler:${id}"]`)).toBeNull());
 });
 
-test("the screen notes that the disclaimer is always added", async () => {
+test("the page always ends with the disclaimer", async () => {
   mockNarrative(narrative());
   renderMeeting(sample("run_p01_approved"));
-  expect(await screen.findByText("Yatırım tavsiyesi değildir notu her zaman eklenir.")).toBeInTheDocument();
+  expect((await screen.findByTestId("presentation")).lastElementChild!.lastElementChild).toHaveTextContent(/yatırım tavsiyesi değildir/);
+});
+
+// --- W28: one page; "Müşteri görünümü" ---------------------------------------------------
+
+test("Müşteri görünümü hides everything for the RM; a second click brings it back", async () => {
+  mockNarrative(narrative());
+  renderMeeting(sample("run_p01_approved"));
+  await screen.findAllByTestId("rm-note");
+  const toggle = screen.getByRole("button", { name: "👁 Müşteri görünümü" });
+  await userEvent.click(toggle);
+  expect(screen.getByRole("button", { name: "👁 Müşteri görünümü açık" })).toHaveAttribute("aria-pressed", "true");
+  for (const id of ["rm-note", "pres-comment", "src-mark", "pres-hint", "card-box", "rm-notes"]) expect(screen.queryAllByTestId(id)).toHaveLength(0);
+  expect(screen.queryAllByRole("button", { name: /düzenle$/i })).toHaveLength(0);
+  expect(screen.getByTestId("presentation")).toHaveTextContent(sectionText("teklif_metni"));
+  await userEvent.click(screen.getByRole("button", { name: "👁 Müşteri görünümü açık" }));
+  expect(screen.getAllByTestId("rm-note").length).toBeGreaterThan(0);
+});
+
+test("Yazdır prints the client view", async () => {
+  mockNarrative(narrative());
+  const print = vi.spyOn(window, "print").mockImplementation(() => {
+    expect(screen.queryAllByTestId("rm-note")).toHaveLength(0);
+  });
+  renderMeeting(sample("run_p01_approved"));
+  await userEvent.click(await screen.findByRole("button", { name: "⤓ Yazdır / PDF" }));
+  expect(print).toHaveBeenCalledTimes(1);
 });
 
 // --- W15 part 3: the market note block ---------------------------------------------------

@@ -1,18 +1,28 @@
-// "Müşteri sunumu" (W27): the meeting text as a page the RM shows or prints for the client.
-// Numbers and charts come from the RunView (code, not the narrator; locked); the text blocks
-// are the narrator's blocks with the same editing and checks as the "RM hazırlık notu".
-// Comments are the RM's notes (rm_note, rm_option_notes): never in the page or its print.
+// The meeting text (W27, W28): one page the RM shows or prints for the client, with the RM's
+// own help in yellow boxes next to the part it belongs to. Numbers and charts come from the
+// RunView (code, not the narrator; locked); the text blocks are the narrator's blocks with
+// their editing and checks. The yellow boxes and the comments (rm_note, rm_option_notes) are
+// never in the client view or the print.
 import { useState, type ReactNode } from "react";
 import type { NarrativeView, OptionView, RunView } from "../api/types";
 import { fmtDate, fmtPct } from "../format";
 import { fill, useT } from "../i18n";
-import { NotesBox, type SaveState } from "./NotesBox";
 
 export interface BlockOpts {
-  /** false: no ✎ and delete (the RM is not editing) */
-  controls?: boolean;
   /** true: the block can be edited but not deleted (the risks) */
   noDelete?: boolean;
+}
+
+/** The RM's help next to a part of the page: the slots MeetingText fills. */
+export interface RmNotes {
+  /** under the cover: the aim of the meeting, the market note */
+  cover?: ReactNode;
+  /** under the key figures: the talking points */
+  figures?: ReactNode;
+  /** under the fund cards: the other options */
+  funds?: ReactNode;
+  /** under the risks: the assumptions */
+  risks?: ReactNode;
 }
 
 const ACCENT = "#C2410C";
@@ -62,6 +72,23 @@ function Heading({ n, children }: { n: string; children: ReactNode }) {
   );
 }
 
+/** A yellow box for the RM only: a small heading, "only you", an optional action and the body. */
+export function RmNote({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  const t = useT();
+  return (
+    <section data-testid="rm-note" className="rounded-xl border border-dashed border-[#E3C766] bg-[#FFFBEA] px-5 py-4 text-[15px] leading-relaxed text-[#2C2924] print:hidden">
+      <div className="mb-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h3 data-testid="doc-heading" className="m-0 text-xs font-bold uppercase tracking-[0.06em] text-[#8A6100]">
+          {title}
+        </h3>
+        <span className="text-xs text-[#8A6100]">{t("presRmOnly")}</span>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 function Comment({ label, value, placeholder, onChange }: { label: string; value: string; placeholder: string; onChange: (v: string) => void }) {
   return (
     <label data-testid="pres-comment" className="flex flex-col gap-1 rounded-xl border border-[#F0DC8A] bg-[#FFF8D6] px-3 py-2 text-[13px] text-[#6B4E00] print:hidden">
@@ -81,24 +108,23 @@ function Comment({ label, value, placeholder, onChange }: { label: string; value
 export function ClientPresentation({
   view,
   draft,
-  editing,
+  rm,
+  editable,
   block,
-  note,
-  onNote,
+  notes,
   optionNotes,
   onOptionNote,
-  saveState,
 }: {
   view: RunView;
   draft: NarrativeView;
-  editing: boolean;
-  /** One narrator block (ozet, teklif_metni, oneriler:<id>, dikkat, sorular) with its editing. */
+  /** true: the RM's view with the yellow boxes and comments; false: what the client sees */
+  rm: boolean;
+  editable: boolean;
+  /** One narrator block (teklif_metni, oneriler:<id>, dikkat, sorular) with its editing. */
   block: (id: string, title: string, opts?: BlockOpts) => ReactNode;
-  note: string;
-  onNote: (v: string) => void;
+  notes: RmNotes;
   optionNotes: Record<string, string>;
   onOptionNote: (id: string, v: string) => void;
-  saveState: SaveState;
 }) {
   const t = useT();
   const r = view.result;
@@ -146,16 +172,11 @@ export function ClientPresentation({
   const card = "rounded-xl border border-[#ECE9E3] bg-[#FBFAF8] p-6";
 
   return (
-    <div data-testid="presentation" className="mx-auto flex max-w-[960px] flex-col gap-4">
-      {editing && (
-        <div className="flex flex-col gap-3 print:hidden">
-          <p data-testid="pres-edit-hint" className="m-0 px-1 text-[13px] text-[#4A463F]">
-            {t("presEditHint")}
-          </p>
-          <div className="rounded-2xl border border-[#F0DC8A] bg-[#FFF8D6] p-1 shadow-sm">
-            <NotesBox value={note} onChange={onNote} state={saveState} />
-          </div>
-        </div>
+    <div data-testid="presentation" className="flex min-w-0 flex-col gap-4">
+      {rm && (
+        <p data-testid="pres-hint" className="m-0 px-1 text-[13px] text-[#4A463F] print:hidden">
+          {t("presHint")}
+        </p>
       )}
 
       <article className="flex flex-col gap-11 rounded-2xl bg-white px-6 py-10 text-[#1D1B18] shadow-sm sm:px-14 print:shadow-none">
@@ -172,6 +193,7 @@ export function ClientPresentation({
             {r.persona.yatirim_amaci}
           </h1>
           <div className="max-w-[760px] text-[18px] leading-relaxed text-[#3A362F]">{block("teklif_metni", t("scriptShort"))}</div>
+          {rm && notes.cover}
         </div>
 
         {/* key figures */}
@@ -188,6 +210,7 @@ export function ClientPresentation({
             ))}
           </div>
         )}
+        {rm && notes.figures}
 
         {/* 01 real return */}
         {rows.length > 0 && (
@@ -265,7 +288,7 @@ export function ClientPresentation({
                     {o.access.label && <span className="rounded-md bg-[#F7F5F1] px-2 py-1">{o.access.label}</span>}
                   </div>
                   {content !== null && <div className="border-t border-[#ECE9E3] pt-3 text-[15px] leading-relaxed text-[#2C2924]">{content}</div>}
-                  {editing && (
+                  {rm && (
                     <Comment
                       label={t("presComment")}
                       placeholder={t("optionNote")}
@@ -277,6 +300,7 @@ export function ClientPresentation({
               );
             })}
           </div>
+          {rm && notes.funds}
         </section>
 
         {/* 03 access */}
@@ -338,7 +362,8 @@ export function ClientPresentation({
             </div>
             <div className="text-[15px] leading-relaxed text-[#2C2924]">{block("dikkat", t("attention"), { noDelete: true })}</div>
           </div>
-          {editing && <p className="m-0 text-[13px] text-[#5E5950] print:hidden">{t("pres4Locked")}</p>}
+          {rm && editable && <p className="m-0 text-[13px] text-[#5E5950] print:hidden">{t("pres4Locked")}</p>}
+          {rm && notes.risks}
         </section>
 
         {/* 05 next step */}
