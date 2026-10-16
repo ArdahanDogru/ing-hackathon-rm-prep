@@ -592,6 +592,50 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### An edited profile can be approved (W30, 2026-10-17)
+
+Approved by the user 2026-10-17 (option A). Before, an edited persona was a
+what-if "test run" that could not be approved, so screen 2 (the meeting text)
+was closed for it. Now:
+
+- API (lead): `POST /approval` accepts a test run. The `decision_approved` /
+  `_rejected` log record adds `test_run` and `persona_changes`. The card
+  (`card.md`, the print card) shows, in the client section, "Düzenlenmiş profil
+  ile hazırlandı: <field>: <original> → <edited>; …" (EN "Prepared with an
+  edited profile: …"). The RunView keeps `test_run` and `persona_changes` as now.
+- Feedback report F1: approvals with `test_run: true` are left out of R2–R4 and
+  counted in one line ("Düzenlenmiş profil onayları (dışarıda): n").
+- Web (ing-web): the approval works for a test run; the banner says "Düzenlenmiş
+  profil: onaylanırsa metin ve kart bu profille hazırlanır; değişiklikler kartta
+  gösterilir." Screen 2 and the print card show the same "Düzenlenmiş profil
+  ile hazırlandı" line with the changes (from `persona_changes`).
+
+### Client upload (W31, 2026-10-17)
+
+Asked by the user 2026-10-17: "a place near the client dropdown … that allows us
+to upload client JSONs".
+
+- API (lead): `POST /api/personas` `{persona: {...}}` → `{persona, replaced}`;
+  `GET /api/personas/uploaded` → the uploaded ids. Checks (422 with a Turkish
+  text): the fields and types of `persona_schema.json` (`Persona.from_dict`:
+  no missing, no unknown field), at most 64 KB, `persona_id` of letters, digits,
+  `-` and `_` (1–32), not the id of a built-in client (P01–P05). The id of an
+  earlier upload replaces it (`replaced: true`). Stored in
+  `data/personas/<id>.json` (gitignored; the original `../p0*.json` files are
+  never changed); `GET /api/personas` lists the built-in clients, then the
+  uploaded ones. RM action log: `persona_uploaded {persona_id, replaced}`. The
+  reset (W27) moves the uploads to the archive too.
+- Web (ing-web): an "Yükle" / "Upload" button next to the client dropdown → a
+  dialog with a file picker (`.json`), the KVKK warning "Gerçek müşteri verisi
+  yüklemeyin. Profil bu bilgisayarda saklanır; AI özeti, metin ve ajan için
+  Anthropic'e gönderilir." and "Yükle" / "Vazgeç". The web reads the file and
+  posts its JSON; a parse error or a 422 shows the text in the dialog. After
+  success: reload the list, select the new client, close the dialog. The
+  dropdown marks uploaded clients with "(yüklendi)" / "(uploaded)".
+- Tests: API (a valid upload, each refusal, replace, the list order, the log,
+  the reset archive); web (the dialog, the warning, a parse error, a 422 text,
+  the success path and the selection, the mark in the dropdown, TR and EN).
+
 ### The earlier research list stays while the agent runs again (W29, 2026-10-17)
 
 Asked by the user 2026-10-17, after the fix "a new run follows the agent"
