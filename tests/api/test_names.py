@@ -63,3 +63,12 @@ def test_narrator_name_forms_accept_every_issuer_word():
 ])
 def test_short_name_acronyms_and_final_fon(label, issuer, short):
     assert short_name(label) == (issuer, short)
+
+
+@pytest.mark.parametrize("oid,code", [("fund:PPN", "PPN"), ("etf:GLDTR", "GLDTR"),
+                                      ("stock:THYAO", "THYAO"), ("deposit:ing_turuncu", ""),
+                                      ("time_deposit:ing_e_vadeli", ""), ("fund:", ""), ("PPN", "")])
+def test_w28_product_code(oid, code):
+    from rmprep.api.names import product_code, with_code
+    assert product_code(oid) == code
+    assert with_code(oid, "Ad") == (f"{code} · Ad" if code else "Ad")

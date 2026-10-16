@@ -19,6 +19,7 @@ from rmprep.contracts import (
     NarrativeStatus,
     RmStatus,
 )
+from rmprep.api.names import with_code
 from rmprep.ui import glossary, views
 from rmprep.ui.i18n import t
 
@@ -54,7 +55,7 @@ def _sections(r: DecisionResult, ev: EvidenceSet, lang: str) -> list[_Section]:
         oid = o.option.option_id
         if oid not in r.rm_selected:
             continue
-        head = [o.option.label, views.kind_label(o, lang)] + (["FX"] if o.option.fx else [])
+        head = [with_code(oid, o.option.label), views.kind_label(o, lang)] + (["FX"] if o.option.fx else [])
         sub = [f"{t('score', lang)} {points(o.score)} · {t('confidence', lang)} %{round(o.confidence * 100)} · "
                f"{t('stability', lang)} %{round(o.stability * 100)}"]
         sub += [f"{b['part']} ({points(b['value'], signed=True)}): {b['reason']}" for b in views.main_parts(o, lang)]
@@ -133,7 +134,7 @@ def _agent_lines(r: DecisionResult, agent: AgentDecision | None, lang: str) -> l
     """v1.11: the section "Ajan kararı" (Markdown lines; empty without a done or fallback decision)."""
     if agent is None or agent.state not in ("done", "fallback") or agent.run_id != r.run_id:
         return []
-    names = {o.option.option_id: o.option.label for o in r.options}
+    names = {o.option.option_id: with_code(o.option.option_id, o.option.label) for o in r.options}
     label = lambda oid: names.get(oid, oid)                       # noqa: E731
     reason = lambda x: " ".join([x.text, *x.labels])              # noqa: E731
     out = ["", f"## {t('ag_title', lang)}", "",

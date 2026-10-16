@@ -53,3 +53,16 @@ def test_english_card(fake):
     r = _approved(fake)
     md = card.render_markdown(r, fake.evidence(SNAPSHOT), lang="EN", agent=_done(r))
     assert "## Agent decision" in md and "Engine recommendation:" in md and "RM choice:" in md
+
+
+def test_w28_product_codes_in_the_card(fake):
+    """W28: every product line of the card starts with its code ("PPN · <name>")."""
+    from rmprep.api.names import product_code
+    r = _approved(fake)
+    d = _done(r)
+    md = card.render_markdown(r, fake.evidence(SNAPSHOT), agent=d)
+    for oid in r.rm_selected:
+        code = product_code(oid)
+        assert code and f"{code} · {_label(r, oid)}" in md
+    pick = d.picks[0].option_id
+    assert f"**{product_code(pick)} · {_label(r, pick)}**" in md.split("## Ajan kararı", 1)[1]

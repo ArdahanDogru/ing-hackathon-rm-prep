@@ -16,6 +16,22 @@ VOWELS = set("AEIİOÖUÜ")
 ISSUER_WORDS = ("PORTFÖY", "PYŞ")       # the issuer ends with one of these
 
 
+CODE_KINDS = ("fund", "etf", "stock")   # W28: kinds whose option id ends with a code
+
+
+def product_code(option_id: str) -> str:
+    """W28: the TEFAS code or BIST ticker of a fund, ETF or share option ("fund:PPN"
+    -> "PPN"); "" for the ING deposit options and any other kind."""
+    kind, _, code = option_id.partition(":")
+    return code if kind in CODE_KINDS else ""
+
+
+def with_code(option_id: str, name: str) -> str:
+    """W28: "PPN · <name>" for a product with a code, else the name."""
+    code = product_code(option_id)
+    return f"{code} · {name}" if code else name
+
+
 def _tr_lower(word: str) -> str:
     return word.replace("İ", "i").replace("I", "ı").lower()
 
