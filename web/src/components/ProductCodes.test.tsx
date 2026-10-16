@@ -160,3 +160,25 @@ test("the brief's sources list: 'PPN · …' for a cited fund", async () => {
   await userEvent.click(await screen.findByRole("button", { name: /Kaynaklar/ }));
   expect(screen.getByTestId("brief-sources")).toHaveTextContent(`PPN · ${(PPN as OptionView).short_label}`);
 });
+
+test("the rejected options of the Elenen note carry their code (rejected_by_rule items have option_id)", async () => {
+  const rule = v.rejected_by_rule[0];
+  expect(rule.options[0].option_id).toBeTruthy();
+  renderDashboard(v);
+  await userEvent.click(screen.getByRole("button", { name: "Elenenleri gör" }));
+  const note = screen.getByRole("dialog");
+  await userEvent.click(within(note).getByRole("button", { name: new RegExp(rule.label) }));
+  const items = within(within(note).getByTestId(`rule-${rule.rule_id}`)).getAllByRole("listitem");
+  items.slice(0, 5).forEach((li, i) => expect(badges(li)).toEqual([productCode(rule.options[i].option_id ?? "")].filter(Boolean)));
+  expect(badges(items[0])).toEqual([productCode(rule.options[0].option_id!)]);
+});
+
+test("a rejected option without option_id (an older API) shows its label only", async () => {
+  const w: RunView = structuredClone(v);
+  w.rejected_by_rule[0].options = w.rejected_by_rule[0].options.map(({ label, reasons }) => ({ label, reasons }));
+  renderDashboard(w);
+  await userEvent.click(screen.getByRole("button", { name: "Elenenleri gör" }));
+  const note = screen.getByRole("dialog");
+  await userEvent.click(within(note).getByRole("button", { name: new RegExp(w.rejected_by_rule[0].label) }));
+  expect(badges(within(note).getByTestId(`rule-${w.rejected_by_rule[0].rule_id}`))).toEqual([]);
+});

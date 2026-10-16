@@ -353,7 +353,7 @@ export interface RejectedByRule {
   rule_id: string;
   label: string;
   count: number;
-  options: { label: string; reasons: string[] }[];
+  options: { option_id?: string; label: string; reasons: string[] }[]; // option_id: W28 (the code badge)
 }
 
 export interface RunView {
