@@ -27,11 +27,15 @@ class MarkRequest(BaseModel):
 
 def research_router(service: ResearchService, get_run: Callable[[str], DecisionResult],
                     log: Callable[..., None] | None = None,
-                    shown: Callable[[DecisionResult], list[str]] | None = None) -> APIRouter:
+                    shown: Callable[[DecisionResult], list[str]] | None = None,
+                    previous: Callable[[DecisionResult], DecisionResult | None] | None = None
+                    ) -> APIRouter:
     """get_run: the app's run registry (404 for an unknown run). log: the RM action log
     (L1): every research question, also a refused one, and every RM mark. shown (v1.12):
     the product ids the panel shows for a run (the engine's top 3, after an agent run
-    its N candidates); None = all products of the status."""
+    its N candidates); None = all products of the status. previous (W29): the earlier
+    run whose list stays visible while the agent runs again on this run; the answer
+    then has `previous: {run_id, products}` (the products not in this run's list)."""
     router = APIRouter()
 
     def _lang(lang: str) -> str:
@@ -42,14 +46,23 @@ def research_router(service: ResearchService, get_run: Callable[[str], DecisionR
     @router.get("/api/runs/{run_id}/research")
     def research(run_id: str, lang: str = "TR"):
         result = get_run(run_id)
-        status = service.status(result, _lang(lang))
+        status = _shown(result, service.status(result, _lang(lang)))
+        old = previous(result) if previous is not None else None
+        if old is not None:                 # the key only while there is an earlier list
+            here = {p["option_id"] for p in status.get("products", ())}
+            products = [p for p in _shown(old, service.status(old, lang)).get("products", ())
+                        if p["option_id"] not in here]
+            status = {**status, "previous": {"run_id": old.run_id, "products": products}}
         if status["state"] == "running":
             return JSONResponse(status_code=202, content=status)
-        if shown is not None and "products" in status:
-            keep = shown(result)
-            by_id = {p["option_id"]: p for p in status["products"]}
-            status = {**status, "products": [by_id[i] for i in keep if i in by_id]}
         return status
+
+    def _shown(result: DecisionResult, status: dict) -> dict:
+        if shown is None or "products" not in status:
+            return status
+        keep = shown(result)
+        by_id = {p["option_id"]: p for p in status["products"]}
+        return {**status, "products": [by_id[i] for i in keep if i in by_id]}
 
     @router.post("/api/runs/{run_id}/research/questions")
     def ask(run_id: str, req: QuestionRequest):

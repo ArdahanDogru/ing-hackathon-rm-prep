@@ -171,3 +171,38 @@ def test_a_body_without_mark_or_run_id_is_422_and_changes_nothing(tmp_path):
     assert service.marks() == {finding["id"]: "ok"} and log.calls == []
     assert client.post("/api/research/marks", json={**base, "mark": None}).status_code == 200
     assert service.marks() == {}
+
+
+def test_w29_previous_list_while_the_agent_runs_again(tmp_path):
+    """W29: after a split the agent runs again on the new run; until it is done the
+    research answer keeps the earlier run's other candidates under `previous`."""
+    import dataclasses
+
+    from rmprep.agent.pack import candidates
+    from tests.api.test_agent_api import FakeAgent, _decision
+
+    service = ResearchService(load_config(), (FakeProvider(),), tmp_path, now=lambda: NOW,
+                              max_workers=1)
+    backend = FakeBackend(FIX, results=[ready_result()])
+    agent = FakeAgent()
+    client = TestClient(create_app(backend, research=service, agent=agent))
+    rid = new_run(client)
+    service.wait()
+    old = backend._runs[rid][0]
+    agent.started.append(rid)
+    agent.done[rid] = dataclasses.replace(_decision(old), n_candidates=5)
+    extra = [s.option for s in candidates(old, 5)][3:]          # the candidates after the top 3
+    service.research_many(extra, "TR")
+    assert [p["option_id"] for p in client.get(f"/api/runs/{rid}/research").json()["products"]] \
+        == [s.option.option_id for s in candidates(old, 5)]
+    shares = {"nakit_benzeri": 50.0, "borclanma": 20.0, "hisse": 10.0, "altin_doviz": 10.0,
+              "dengeli": 10.0}
+    new = client.post(f"/api/runs/{rid}/holdings", json={"shares": shares, "origin": "rm"}
+                      ).json()["result"]["run_id"]
+    service.wait()
+    body = client.get(f"/api/runs/{new}/research").json()        # the agent runs on the new run
+    assert [p["option_id"] for p in body["products"]] == list(RECOMMENDED)
+    assert body["previous"]["run_id"] == rid
+    assert [p["option_id"] for p in body["previous"]["products"]] == [o.option_id for o in extra]
+    agent.done[new] = dataclasses.replace(_decision(backend._runs[new][0]), n_candidates=5)
+    assert "previous" not in client.get(f"/api/runs/{new}/research").json()   # done: the new list

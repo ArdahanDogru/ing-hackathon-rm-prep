@@ -72,6 +72,7 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     reset: rmprep.api.reset.make_reset(...) (W27); None = POST /api/reset answers 404."""
     app = FastAPI(title="rmprep", docs_url="/api/docs", openapi_url="/api/openapi.json")
     runs: dict[str, DecisionResult] = {}
+    followed: dict[str, str] = {}   # W29: new run id -> the run whose agent it followed
     texts: dict[tuple[str, str], NarrativeDraft] = {}   # (run_id, lang) -> last draft / approved text
     terms = glossary.load(glossary_path)
     pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="narrative")
@@ -332,6 +333,7 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
             return
         n = old.n_candidates or None
         _start_agent(new, n)
+        followed[new.run_id] = old_id
         _log("agent_started", run=new, details={"n": n, "auto": True, "from_run": old_id})
 
     def _agent_off(result: DecisionResult, reason: str) -> dict:
@@ -347,6 +349,15 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
             return top
         from rmprep.agent.pack import candidates
         return [s.option.option_id for s in candidates(result, d.n_candidates)]
+
+    def _research_previous(result: DecisionResult) -> DecisionResult | None:
+        """W29: while the agent runs again on a run that followed an earlier one, the
+        earlier run (its research list stays visible); else None."""
+        old_id = followed.get(result.run_id)
+        if old_id is None or old_id not in runs or not _agent_on():
+            return None
+        d = agent.status(result.run_id)
+        return runs[old_id] if d is not None and d.state == "running" else None
 
     def _brief_top3(result: DecisionResult) -> dict:
         """W20c: {"top3": the agent's picks} when the agent is done and changed the top 3
@@ -372,6 +383,7 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
             raise HTTPException(409, str(e)) from None
         runs.clear()
         texts.clear()
+        followed.clear()
         _log("reset", details=out)
         return out
 
@@ -474,7 +486,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
 
     if research is not None:      # before the web app's catch-all route
         from rmprep.api.research import research_router
-        app.include_router(research_router(research, _run, log=_log, shown=_research_shown))
+        app.include_router(research_router(research, _run, log=_log, shown=_research_shown,
+                                       previous=_research_previous))
 
     if static_dir is not None:
         static = Path(static_dir)

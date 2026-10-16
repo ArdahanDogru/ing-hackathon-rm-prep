@@ -592,6 +592,30 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### The earlier research list stays while the agent runs again (W29, 2026-10-17)
+
+Asked by the user 2026-10-17, after the fix "a new run follows the agent"
+(docs/agent.md): during the agent's new run (about 30 s) the research panel
+showed only the new top 3, so the research seemed gone again.
+
+- API (lead, done): `GET /api/runs/{id}/research` has an extra key `previous:
+  {run_id, products}` only while the agent runs on a run that followed an earlier
+  run (`followed` in the app, filled by `_follow_agent`, cleared by the reset).
+  `products` = the earlier run's shown products (its N candidates) that are not
+  in this run's list, with the same shape as `products` (findings, news, marks).
+  The key is absent otherwise (also when the agent is done: the new list then
+  has the new N candidates).
+- Web (ing-web): under the run's products, a muted section "Önceki dağılıma göre
+  — ajan yeniden çalışıyor" / "From the earlier split — the agent is running
+  again", with those products in the normal product form (bullets, news, marks,
+  code badges), visibly muted. Poll the research while the agent runs (as now
+  after an agent start), so the section goes away when the agent is done and
+  the new candidates appear. Marks on these bullets work as everywhere (a mark
+  belongs to the finding and the day).
+- Tests: API `test_w29_previous_list_while_the_agent_runs_again`; web (the
+  section with the previous products, its label, gone when `previous` is absent,
+  TR and EN).
+
 ### Product codes everywhere a product is a title (W28, 2026-10-17)
 
 Asked by the user 2026-10-17: "the abbreviations/codes of the funds, stocks and
