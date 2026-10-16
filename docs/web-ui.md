@@ -668,6 +668,18 @@ bullets or shorter versions than as paragraphs.
 - Not in this step: shorter sentences from the narrator (a prompt change,
   docs/narrator.md).
 
+### Fund sentences without the fund's name (W30, 2026-10-17)
+
+The user, 2026-10-17: in "Önerimiz", every bullet starts with the fund's name,
+the card's title. The page shows each `oneriler:<id>` sentence without the
+name in front (`withoutName`): one of "issuer short_label", `label` or
+`short_label`, case-insensitive, then a join (":", ",", "için", "de", "da",
+"ise" or a space), with the first letter capitalised. A sentence that does not
+start with the name, or would be empty, stays as it is. Display only: the
+narrator's sentences and their checks are unchanged; the block editor opens
+on the shortened text, so an edit saves it. Not in this step: the narrator
+writing the sentences without the name (a prompt change).
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

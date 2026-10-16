@@ -157,7 +157,8 @@ test("one card per selected option: short name, facts, its sentences, a comment 
   expect(blocks[0]).toHaveTextContent(o.short_label);
   expect(blocks[0]).toHaveTextContent(`risk ${o.risk!.level}/7`);
   // a sentence belongs to the block of its first option (server rule: oneriler:<option_ids[0]>)
-  section("oneriler")!.sentences.filter((s) => s.option_ids[0] === id).forEach((s) => expect(blocks[0]).toHaveTextContent(s.text));
+  // shown without the fund's name in front (W30)
+  section("oneriler")!.sentences.filter((s) => s.option_ids[0] === id).forEach((s) => expect(blocks[0]).toHaveTextContent(s.text.slice(-40)));
   expect(within(blocks[0]).getByRole("textbox")).toBeInTheDocument();
 });
 

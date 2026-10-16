@@ -54,6 +54,27 @@ export function fundRoles(funds: OptionView[], needTags: Record<string, string[]
   return out;
 }
 
+/** What may join the fund's name to the rest of a sentence: ":", ",", "için", "de", or a space. */
+const NAME_JOIN = /^(\s*[:,–-]\s*|\s+(için|de|da|ise)\s+|\s+)/i;
+
+/**
+ * A fund card's sentence without the fund's name in front (W30): the card's title is the name.
+ * "Nurol Portföy Para Piyasası (TL) için getirisi …" → "Getirisi …". Unchanged when no name
+ * of the fund starts it, or when nothing would be left.
+ */
+export function withoutName(text: string, o: OptionView, lang: "TR" | "EN"): string {
+  const loc = lang === "TR" ? "tr" : "en";
+  const names = [`${o.issuer} ${o.short_label}`, o.label, o.short_label].filter(Boolean).sort((a, b) => b.length - a.length);
+  const lower = text.toLocaleLowerCase(loc);
+  for (const name of names) {
+    if (!lower.startsWith(name.toLocaleLowerCase(loc))) continue;
+    const rest = text.slice(name.length).replace(NAME_JOIN, "");
+    if (!rest || rest.length === text.length - name.length) continue;
+    return rest.charAt(0).toLocaleUpperCase(loc) + rest.slice(1);
+  }
+  return text;
+}
+
 /** "1.000.000" → 1000000; anything without digits → 0. */
 export const parseAmount = (s: string) => Number(s.replace(/\D/g, "")) || 0;
 const tl = (n: number) => `${Math.round(n).toLocaleString("tr-TR")} TL`;

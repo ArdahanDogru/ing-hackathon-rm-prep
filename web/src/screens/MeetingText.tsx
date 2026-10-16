@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { NarrativeView, OptionKind, OptionView, RunView, SectionKey } from "../api/types";
 import { BlockEditor } from "../components/BlockEditor";
-import { ClientPresentation, RmNote, type BlockOpts } from "../components/ClientPresentation";
+import { ClientPresentation, RmNote, withoutName, type BlockOpts } from "../components/ClientPresentation";
 import { snapshotDate } from "../components/BriefCard";
 import { SourceMark } from "../components/DocumentSection";
 import { ErrorBox } from "../components/ErrorBox";
@@ -296,8 +296,10 @@ export function MeetingText({ view }: { view: RunView }) {
 
   /** A block of the client page: its sentences, with source numbers only for the RM. */
   const presBlock = (id: string, title: string, opts: BlockOpts = {}) => {
-    const own = id.startsWith("oneriler:")
-      ? (perOption.find((o) => `oneriler:${o.id}` === id)?.sentences ?? [])
+    const fund = id.startsWith("oneriler:") ? view.options[id.slice("oneriler:".length)] : undefined;
+    // a fund card's sentences without the fund's name in front: the card's title is the name
+    const own = fund
+      ? (perOption.find((o) => `oneriler:${o.id}` === id)?.sentences ?? []).map((c) => ({ ...c, text: withoutName(c.text, fund, lang) }))
       : sentences(id as SectionKey);
     if (!own.length && !(id in edits)) return null;
     const text = (c: Cited) => (preview ? c.text : withMark(c));

@@ -5,7 +5,7 @@ import type { NarrativeView } from "../api/types";
 import { renderWith } from "../test/render";
 import { sample } from "../test/samples";
 import { MeetingText } from "../screens/MeetingText";
-import { fundRoles, parseAmount, parseFigure } from "./ClientPresentation";
+import { fundRoles, parseAmount, parseFigure, withoutName } from "./ClientPresentation";
 
 const narrative = () => sample("narrative_p01_tr");
 
@@ -50,8 +50,24 @@ test("each fund has its own role from the client's priorities and its narrator b
   show();
   const funds = await screen.findAllByTestId("pres-fund");
   expect(funds.map((f) => within(f).getAllByText(/./)[0].textContent)).toEqual(["DÜZENLİ GELİR", "SINIRLI DALGALANMA", "LİKİDİTEYİ KORUMA"]);
-  const own = narrative().sections.find((s) => s.key === "oneriler")!.sentences.filter((s) => s.option_ids[0] === "fund:PPN");
-  expect(funds[0]).toHaveTextContent(own[0].text);
+  // the sentences without the fund's name in front: the card's title is the name
+  const items = within(funds[0]).getAllByRole("listitem").map((x) => x.textContent!);
+  expect(items).toHaveLength(3);
+  items.forEach((x) => expect(x).not.toMatch(/^Nurol/));
+  expect(items[0]).toMatch(/^Enflasyon sonrası reel getirisi %7,36/);
+  expect(items[2]).toMatch(/^Getirisi faiz değişimine bağlıdır/);
+});
+
+test("withoutName: the joins of TR and EN, and texts it leaves alone", () => {
+  const o = sample("run_p01_approved").options["fund:IST"];
+  const n = "İstanbul Portföy KV Borçlanma (TL)";
+  expect(withoutName(`${n}: reel getirisi %7,06.`, o, "TR")).toBe("Reel getirisi %7,06.");
+  expect(withoutName(`${n}, 1-3 yıllık ufkunuza uygun.`, o, "TR")).toBe("1-3 yıllık ufkunuza uygun.");
+  expect(withoutName(`${n} de faiz değişimine bağlı.`, o, "TR")).toBe("Faiz değişimine bağlı.");
+  expect(withoutName(`${n} için getirisi faize bağlıdır.`, o, "TR")).toBe("Getirisi faize bağlıdır.");
+  expect(withoutName(`${n} also follows interest rates.`, o, "EN")).toBe("Also follows interest rates.");
+  expect(withoutName("Getirisi faize bağlıdır.", o, "TR")).toBe("Getirisi faize bağlıdır.");
+  expect(withoutName(n, o, "TR")).toBe(n);
 });
 
 test("the risk scale marks the funds' level and the client's limit", async () => {
