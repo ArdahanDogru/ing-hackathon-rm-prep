@@ -18,7 +18,8 @@ from urllib.parse import urlsplit
 import yaml
 
 CONFIG_VERSION = 1
-ADAPTERS = ("evds", "tefas", "tefas_web", "tefas_detail", "manual", "bist_bulletin", "ing_web")
+ADAPTERS = ("evds", "tefas", "tefas_web", "tefas_detail", "manual", "bist_bulletin", "ing_web",
+            "bank_table")
 TEFAS_WEB_HOST = "www.tefas.gov.tr"
 BIST_HOST = "www.borsaistanbul.com"
 ING_HOST = "www.ing.com.tr"
@@ -224,6 +225,63 @@ def ing_robots_disallows(url: str) -> bool:
     return (full.endswith(("-tamam", "-hata", "-mim", "-kaydet-ve-cik", "1000", "?IsPreview=1"))
             or "-mim?" in full or path.startswith(("/error-page", "/hata-sayfasi"))
             or "/search/" in path or "/arama/" in path)
+
+
+@dataclass(frozen=True)
+class BankTable:
+    """I15: one rate table on a bank page, chosen by its exact header row."""
+    header: tuple[str, ...]          # the row label cell, then the amount columns
+    entity: str                      # with {row} and {column}
+    decimal: Literal[",", "."]
+    min_rows: int                    # rows after skip_rows
+    skip_rows: tuple[str, ...] = ()  # row labels that are not terms
+    note: str = ""
+
+
+@dataclass(frozen=True)
+class BankTableSource(SourceConfig):
+    url: str
+    user_agent: str
+    timeout_seconds: float
+    quantity: str
+    tables: tuple[BankTable, ...]
+
+
+# I15: the Disallow lines for "*" of each bank host (robots.txt read 2026-10-16).
+# A bank_table source on a host that is not here is a config error.
+BANK_ROBOTS_DISALLOW: dict[str, tuple[str, ...]] = {
+    "www.isbank.com.tr": (
+        "/_layouts/", "/_vti_bin/", "/_catalogs/", "/temp/", "/programs/", "/hidden",
+        "/ru/search*", "/ru/_vti_bin/", "/en/_vti_bin/", "/TSPD*", "/arama/*",
+        "/fiyatoran/FiyatTabloGoster.asp*", "/?tknfv*", "/*search.asmx*", "/?dsclosureid=*",
+        "/?tribe-bar-date=*"),
+    "www.ziraatbank.com.tr": (
+        "/_layouts/", "/_vti_bin/", "/_catalogs/",
+        "/tr/gecmisin-sahidi-gelecegin-sahibi-buyuk-ziraat-ailesi",
+        "/tr/ziraat-katilim-10-yasinda", "/tr/bankamiz/basin-odasi/basin-bultenleri",
+        "/tr/Sayfalar/ziraat-basketbol-turkiye-isim-sponsoru.aspx", "/tr/turkiye-kupasi-2202",
+        "/tr/Sayfalar/genclik-caddesi-subemiz-acilisi.aspx", "/tr/25-yildir-gucumuz-teknoloji-2026",
+        "/tr/bankamiz/ziraatten-duyurular/duyurular/kurban-bayrami-hizmet-veren-subeler-2026",
+        "/tr/Bankamiz-ZB/ziraatten-duyurular/genel-duyurular/Documents/"
+        "kurban-bayrami-subeler-2026.pdf",
+        "/tr/Bankamiz-ZB/ziraatten-duyurular/genel-duyurular/Documents/"
+        "kurban-bayrami-mobil-subeler-2026.pdf",
+        "/tr/ziraat-ilk-balikci-fabrika-gemisi", "/tr/Bankamiz-ZB/basin-odasi/BasinBultenleri/",
+        "/tr/1985-ayin-altin-adami-odulleri"),
+}
+
+
+def robots_disallows(patterns: tuple[str, ...], url: str) -> bool:
+    """True if a Disallow pattern matches the path (+ query) of `url`: a prefix
+    match, `*` = any text, `$` at the end = the end of the URL."""
+    parts = urlsplit(url)
+    target = parts.path + (f"?{parts.query}" if parts.query else "")
+    for pattern in patterns:
+        anchored = pattern.endswith("$")
+        regex = ".*".join(re.escape(p) for p in pattern.rstrip("$").split("*"))
+        if re.match(regex + ("$" if anchored else ""), target):
+            return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -774,6 +832,59 @@ def _parse_ing_web(name, s, path, quantities) -> IngWebSource:
     )
 
 
+def _parse_bank_table(name, s, path, quantities) -> BankTableSource:
+    """I15: rate tables on a bank's own page (one GET)."""
+    _check_keys(s, path, _COMMON_REQUIRED | {"url", "user_agent", "quantity", "tables"},
+                _COMMON_OPTIONAL | {"timeout_seconds"})
+    url = _str(s["url"], f"{path}.url")
+    parts = urlsplit(url)
+    if parts.scheme != "https" or not parts.netloc:
+        raise ConfigError(f"{path}.url: must be an https URL")
+    if parts.netloc not in BANK_ROBOTS_DISALLOW:
+        raise ConfigError(f"{path}.url: no robots.txt rules in the code for {parts.netloc!r}")
+    if robots_disallows(BANK_ROBOTS_DISALLOW[parts.netloc], url):
+        raise ConfigError(f"{path}.url: {parts.path!r} is disallowed by "
+                          f"{parts.netloc}/robots.txt")
+    if not isinstance(s["tables"], list) or not s["tables"]:
+        raise ConfigError(f"{path}.tables: must be a non-empty list")
+    tables: list[BankTable] = []
+    for i, item in enumerate(s["tables"]):
+        p = f"{path}.tables[{i}]"
+        item = _mapping(item, p)
+        _check_keys(item, p, {"header", "entity", "decimal", "min_rows"}, {"skip_rows", "note"})
+        header = item["header"]
+        if not isinstance(header, list) or len(header) < 2:
+            raise ConfigError(f"{p}.header: needs the row label cell and at least one column")
+        header = tuple(" ".join(_str(h, f"{p}.header[{k}]").split()) for k, h in enumerate(header))
+        for j, other in enumerate(tables):
+            if other.header == header:
+                raise ConfigError(f"{p}.header: the same header as tables[{j}]")
+        entity = _str(item["entity"], f"{p}.entity")
+        fields = {f for _, f, _, _ in string.Formatter().parse(entity) if f is not None}
+        if fields != {"row", "column"}:
+            raise ConfigError(f"{p}.entity: must use exactly the fields ['column', 'row'], "
+                              f"got {sorted(fields)}")
+        skip = item.get("skip_rows", [])
+        if not isinstance(skip, list):
+            raise ConfigError(f"{p}.skip_rows: must be a list of strings")
+        tables.append(BankTable(
+            header=header, entity=entity,
+            decimal=_choice(item["decimal"], f"{p}.decimal", (",", ".")),
+            min_rows=_pos_int(item["min_rows"], f"{p}.min_rows"),
+            skip_rows=tuple(" ".join(_str(r, f"{p}.skip_rows[{k}]").split())
+                            for k, r in enumerate(skip)),
+            note=_str(item["note"], f"{p}.note") if "note" in item else ""))
+    timeout = _num(s.get("timeout_seconds", 30), f"{path}.timeout_seconds")
+    if timeout <= 0:
+        raise ConfigError(f"{path}.timeout_seconds: must be > 0")
+    return BankTableSource(
+        **_common(name, s, path), url=url,
+        user_agent=_str(s["user_agent"], f"{path}.user_agent"), timeout_seconds=timeout,
+        quantity=_quantity_ref(s["quantity"], f"{path}.quantity", quantities),
+        tables=tuple(tables))
+
+
 _PARSERS = {"evds": _parse_evds, "tefas": _parse_tefas, "tefas_web": _parse_tefas_web,
             "tefas_detail": _parse_tefas_detail, "manual": _parse_manual,
-            "bist_bulletin": _parse_bist_bulletin, "ing_web": _parse_ing_web}
+            "bist_bulletin": _parse_bist_bulletin, "ing_web": _parse_ing_web,
+            "bank_table": _parse_bank_table}
