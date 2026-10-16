@@ -9,7 +9,7 @@ import pytest
 import yaml
 
 from tests.ingest.conftest import (BIST_END, FIXTURES, ING_URL, KEY, T0, FakeEvds, FakeIng,
-                                   add_bist, add_byf, add_cpi_annual, add_holdings,
+                                   add_banks, add_bist, add_byf, add_cpi_annual, add_holdings,
                                    add_ing_web, bist_name, default_detail_pages, detail_page)
 from rmprep.cli import main
 from rmprep.decision.universe import EvidenceIndex
@@ -250,6 +250,30 @@ def test_failed_ing_web_falls_back_to_the_previous_snapshot(tmp_path, config_raw
     assert rec.status == "failed" and rec.fallback_from == first.snapshot_id
     rows = by(ev, source="ing_web")
     assert len(rows) == 146 and all(Flag.FALLBACK_SNAPSHOT in p.flags for p in rows)
+
+
+# --- isbank_web, ziraat_web (I15) ---------------------------------------------------------
+
+def test_ingest_with_bank_tables_and_replay(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_banks(config_raw))
+    ev = run(paths, at=T16)
+    assert ev.source_status["isbank_web"].status == "ok"
+    assert ev.source_status["ziraat_web"].status == "ok"
+    assert len(by(ev, source="isbank_web")) == 54 and len(by(ev, source="ziraat_web")) == 74
+    assert {p.as_of.isoformat() for p in by(ev, source="ziraat_web")} == {"2026-10-16"}
+    os.remove(paths.db)
+    os.remove(paths.config)
+    assert replay(paths, ev.snapshot_id) == ev
+
+
+def test_one_changed_bank_page_fails_only_that_bank(tmp_path, config_raw):
+    paths = make_project(tmp_path / "proj", add_banks(config_raw))
+    ev = run(paths, fake=FakeEvds(bank_pages={"www.isbank.com.tr": "<html>yeni sayfa</html>"}),
+             at=T16)
+    assert ev.source_status["isbank_web"].status == "failed"
+    assert "no table with the header" in ev.source_status["isbank_web"].error
+    assert ev.source_status["ziraat_web"].status == "ok"
+    assert by(ev, source="isbank_web") == []
 
 
 def test_replay_twice_is_idempotent(paths):

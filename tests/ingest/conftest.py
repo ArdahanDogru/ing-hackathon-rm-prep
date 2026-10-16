@@ -433,16 +433,73 @@ class FakeIng:
         return httpx.Client(transport=httpx.MockTransport(self))
 
 
+# --- rate pages of other banks (I15, adapter bank_table) ------------------------------------
+
+ISBANK_URL = "https://www.isbank.com.tr/kampanyali-mevduat-oranlari"
+ZIRAAT_URL = "https://www.ziraatbank.com.tr/tr/fiyatlar-ve-oranlar"
+BANK_PAGES = {"www.isbank.com.tr": "isbank", "www.ziraatbank.com.tr": "ziraat"}
+
+
+@functools.lru_cache(maxsize=None)
+def bank_page(bank: str) -> str:
+    """The saved real rate page of 2026-10-16: "isbank" or "ziraat"."""
+    return gzip.decompress((FIXTURES / "bank_table" / f"{bank}_20261016.html.gz").read_bytes()
+                           ).decode("utf-8")
+
+
+ZIRAAT_SKIP = ["Vadesiz", "Birikimli Mevduat Hesabı", "Çeyiz Hesabı", "Konut Hesabı"]
+TEST_BANK_SOURCES = {
+    "isbank_web": {
+        "adapter": "bank_table", "enabled": True, "on_failure": "previous",
+        "source_url": ISBANK_URL, "tos_note": "test copy of the isbank_web source",
+        "url": ISBANK_URL, "user_agent": "rmprep-hackathon-prototype/0.1 (ING hackathon; test)",
+        "timeout_seconds": 30, "quantity": "deposit_rate",
+        "tables": [{
+            "header": ["VADE", "5.000 - 100.000 TL", "100.001 - 250.000 TL",
+                       "250.001 - 500.000 TL", "500.001 - 1.000.000 TL",
+                       "1.000.001 - 10.000.000 TL", "10.000.001 TL Üzeri"],
+            "entity": "İş Bankası kampanyalı vadeli TL, {row}, {column}",
+            "decimal": ",", "min_rows": 9,
+            "note": "campaign rates (İşCep, İnternet Şube, Bankamatik); conditions apply"}],
+    },
+    "ziraat_web": {
+        "adapter": "bank_table", "enabled": True, "on_failure": "previous",
+        "source_url": ZIRAAT_URL, "tos_note": "test copy of the ziraat_web source",
+        "url": ZIRAAT_URL, "user_agent": "rmprep-hackathon-prototype/0.1 (ING hackathon; test)",
+        "timeout_seconds": 30, "quantity": "deposit_rate",
+        "tables": [
+            {"header": ["Vade Grupları", "0,00 - 999,99 TL", "1.000 TL ve Üzeri"],
+             "entity": "Ziraat Bankası vadeli TL (şube), {row}, {column}",
+             "decimal": ".", "min_rows": 9, "skip_rows": list(ZIRAAT_SKIP)},
+            {"header": ["Vade Grupları", "1.000,00 - 4.999,99 TL", "5.000 - 99.999,99 TL",
+                        "100.000 - 499.999,99 TL", "500.000,00 TL ve üzeri"],
+             "entity": "Ziraat Bankası vadeli TL (internet), {row}, {column}",
+             "decimal": ".", "min_rows": 14, "skip_rows": list(ZIRAAT_SKIP)},
+        ],
+    },
+}
+
+
+def add_banks(config_raw: dict) -> dict:
+    """config_raw with the I15 sources isbank_web and ziraat_web."""
+    config_raw["sources"].update(copy.deepcopy(TEST_BANK_SOURCES))
+    return config_raw
+
+
 class FakeEvds:
     """httpx transport that serves fixture files and records requests. Also
     serves the TEFAS web page (tefas_page=None -> HTTP 503 for it), the BYF
-    view of it (byf_page, same rule) and the BIST bulletins (bist_files: file
-    name -> ZIP; others -> HTTP 404)."""
+    view of it (byf_page, same rule), the BIST bulletins (bist_files: file
+    name -> ZIP; others -> HTTP 404), the ING form (ing) and the bank rate
+    pages (bank_pages: host -> HTML, None -> HTTP 503)."""
 
     def __init__(self, status=200, body=None, error=None, tefas_page=b"default",
-                 detail_pages=None, byf_page=b"default", bist_files=None, ing=None):
+                 detail_pages=None, byf_page=b"default", bist_files=None, ing=None,
+                 bank_pages=None):
         self.status, self.body, self.error = status, body, error
         self.ing = ing or FakeIng()                 # the ING rate page (I14)
+        self.bank_pages = {h: bank_page(b) for h, b in BANK_PAGES.items()}
+        self.bank_pages.update(bank_pages or {})    # I15
         self.bist_files = bist_files                # None -> _default_bist_files()
         self.tefas_page = tefas_web_page() if tefas_page == b"default" else tefas_page
         self.byf_page = tefas_web_page(TEFAS_BYF_FUNDS) if byf_page == b"default" else byf_page
@@ -454,6 +511,9 @@ class FakeEvds:
         self.requests.append(request)
         if request.url.host == "www.ing.com.tr":
             return self.ing(request)
+        if request.url.host in BANK_PAGES:
+            page = self.bank_pages[request.url.host]
+            return httpx.Response(503) if page is None else httpx.Response(200, text=page)
         if request.url.host == "www.borsaistanbul.com":
             files = _default_bist_files() if self.bist_files is None else self.bist_files
             data = files.get(request.url.path.rsplit("/", 1)[-1])
@@ -566,9 +626,9 @@ def config_raw():
     # The hand export source is off in the real config (2026-10-10; tefas_detail
     # gives the same values), but its adapter stays usable: tests keep it on.
     raw["sources"]["tefas"]["enabled"] = True
-    # Sources added to the real config later (I10, I11, I14) have their own
+    # Sources added to the real config later (I10, I11, I14, I15) have their own
     # fixtures; the end-to-end tests keep the source list they were written for.
-    for name in ("tefas_byf", "bist_bulletin", "ing_web"):
+    for name in ("tefas_byf", "bist_bulletin", "ing_web", "isbank_web", "ziraat_web"):
         raw["sources"].pop(name, None)
     if isinstance(raw["sources"].get("tefas_detail", {}).get("funds_from"), list):
         raw["sources"]["tefas_detail"]["funds_from"] = "tefas_web"

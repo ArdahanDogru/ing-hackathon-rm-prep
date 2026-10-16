@@ -26,8 +26,8 @@ import httpx
 from dotenv import dotenv_values
 
 from rmprep.contracts import TR_TZ, DataPoint, EntityInfo, EvidenceSet, Flag
-from rmprep.ingest.adapters import (bist_bulletin, evds, ing_web, manual, tefas, tefas_detail,
-                                    tefas_web)
+from rmprep.ingest.adapters import (bank_table, bist_bulletin, evds, ing_web, manual, tefas,
+                                    tefas_detail, tefas_web)
 from rmprep.ingest.config import (
     Config,
     EvdsSource,
@@ -48,7 +48,8 @@ from rmprep.ingest.store import EvidenceStore
 
 _PARSERS = {"evds": evds.parse, "tefas": tefas.parse, "tefas_web": tefas_web.parse,
             "tefas_detail": tefas_detail.parse, "manual": manual.parse,
-            "bist_bulletin": bist_bulletin.parse, "ing_web": ing_web.parse}
+            "bist_bulletin": bist_bulletin.parse, "ing_web": ing_web.parse,
+            "bank_table": bank_table.parse}
 # Adapters that also give EntityInfo (fund and share names, types) from their payloads.
 _ENTITY_READERS = {"tefas_web": tefas_web.entities, "bist_bulletin": bist_bulletin.entities}
 _log = logging.getLogger(__name__)
@@ -240,6 +241,8 @@ def _fetch(src: SourceConfig, w: SnapshotWriter, cfg: Config, paths: Paths,
         return manual.fetch(src, w, cfg, inbox=paths.inbox(src.inbox), now=now)
     if src.adapter == "ing_web":
         return ing_web.fetch(src, w, client=client, now=now, sleep=sleep)
+    if src.adapter == "bank_table":
+        return bank_table.fetch(src, w, client=client, now=now)
     if src.adapter == "bist_bulletin":
         return bist_bulletin.fetch(src, w, client=client, today=created_at.date(), now=now,
                                    sleep=sleep)
