@@ -11,6 +11,7 @@ import { fill, useT, type LabelKey } from "../i18n";
 import { AllocationLegend, AllocationSummary, markColor, pct, SourceLine, StackedBar, TargetNote } from "./AllocationParts";
 import { realColor, signedPct } from "./OptionsTable";
 import { riskColor } from "./RiskBar";
+import { CodeBadge } from "../product";
 
 /** The total of the RM's split may differ from 100 by this much (contract v1.10). */
 const TOTAL_TOLERANCE = 0.5;
@@ -100,6 +101,7 @@ export function AllocationCard({
             onClick={() => onOpen(o.option_id)}
           >
             {o.issuer && <span className="block text-[11px] font-bold uppercase tracking-[0.05em] text-muted">{o.issuer}</span>}
+            <CodeBadge optionId={o.option_id} />
             <span className="font-semibold">{o.short_label}</span>
           </button>
         )}

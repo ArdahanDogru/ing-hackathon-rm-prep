@@ -44,8 +44,9 @@ test("fund card of an ETF: badge, T+2 access, source TEFAS", () => {
   expect(screen.getByTestId("kind-badge")).toHaveTextContent("BYF");
   expect(screen.getAllByTestId("fund-tile")[2]).toHaveTextContent("2 iş günü (borsa takası)");
   expect(container).toHaveTextContent("Kaynak: TEFAS, 10.10.2026");
-  // the code after the official name, as for a fund
-  expect(container).toHaveTextContent(`${etf.label.replace(/\s+/g, " ")} · ${etf.option_id.split(":")[1]}`);
+  // W28: the code is a badge in the title, the official name alone in the sub-title
+  expect(container).toHaveTextContent(etf.label.replace(/\s+/g, " "));
+  expect(screen.getByTestId("code-badge")).toHaveTextContent(etf.option_id.split(":")[1]);
 });
 
 test("fund card of a share: badge Pay, source Borsa İstanbul", () => {

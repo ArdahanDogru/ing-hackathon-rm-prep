@@ -6,6 +6,7 @@ import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { AgentDecision, AgentNode, AgentNodeState } from "../api/types";
 import { fill, LangContext, useT, type LabelKey } from "../i18n";
+import { CodeBadge, productCode } from "../product";
 
 const POLL_MS = 2000;
 const MAX_POLLS = 60;
@@ -79,6 +80,9 @@ function seconds(n: AgentNode): number | null {
   return Math.max(0, Math.round((Date.parse(n.finished_at) - Date.parse(n.started_at)) / 1000));
 }
 
+/** The option id of a sub-node "arastirma:fund:PPN"; "" for other sub-nodes. */
+const subOption = (id: string) => (id.startsWith("arastirma:") ? id.slice("arastirma:".length) : "");
+
 function NodeDetails({ node }: { node: AgentNode }) {
   const t = useT();
   return (
@@ -97,7 +101,12 @@ function NodeDetails({ node }: { node: AgentNode }) {
         <ul className="mt-2 space-y-1">
           {node.children.map((c) => (
             <li key={c.id} className="flex flex-wrap items-baseline gap-x-2">
-              <span className={c.state === "failed" ? "text-[#B42318]" : ""}>{`${c.state === "done" ? "✓" : c.state === "failed" ? "✕" : "·"} ${c.label}`}</span>
+              <span className={c.state === "failed" ? "text-[#B42318]" : ""}>
+                {`${c.state === "done" ? "✓" : c.state === "failed" ? "✕" : "·"} `}
+                {/* W28: a research sub-node "arastirma:<option id>" carries the product code */}
+                <CodeBadge optionId={subOption(c.id)} />
+                {productCode(subOption(c.id)) === c.label ? "" : c.label}
+              </span>
               <span className="text-xs text-muted">{t(STATE_WORD[c.state])}</span>
               {c.notes.map((x) => (
                 <span key={x} className="basis-full pl-4 text-xs text-muted">

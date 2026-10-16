@@ -6,6 +6,7 @@ import { confidenceLevel, stabilityLevel, type Explanation, type Level, type Sco
 import { fmtScore } from "../format";
 import { fill, labels, LangContext, useT, type LabelKey } from "../i18n";
 import { colors } from "../theme";
+import { CodeBadge } from "../product";
 
 const chip: Record<Level, { bg: string; fg: string }> = colors;
 
@@ -128,7 +129,10 @@ export function WhyPanel({ explanation: x, onEvidence }: { explanation: Explanat
           <div className="mb-2.5 text-xs font-bold uppercase tracking-[0.06em] text-muted">{t("closestAlt")}</div>
           <div className="flex flex-col gap-2 rounded-xl border border-gray-200 p-3.5">
             <div className="flex justify-between gap-3 text-sm">
-              <b>{x.alternative.label}</b>
+              <b>
+                <CodeBadge optionId={x.alternative.option_id} />
+                {x.alternative.label}
+              </b>
               <span className="tabular-nums text-muted">{fmtScore(x.alternative.score, false)}</span>
             </div>
             <div className="text-[13px] leading-normal text-[#344054]">

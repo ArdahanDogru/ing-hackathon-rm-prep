@@ -4,12 +4,13 @@ import { api } from "../api/client";
 import type { OptionView, RunView } from "../api/types";
 import { fmtDateTime } from "../format";
 import { useT } from "../i18n";
+import { withCode } from "../product";
 
-/** "Nurol · Para Piyasası (TL)": the issuer's first word and the short name. */
+/** "PPN · Nurol · Para Piyasası (TL)": the code (W28), the issuer's first word and the short name. */
 export function chipName(o: OptionView | undefined, id: string): string {
-  if (!o) return id;
+  if (!o) return withCode(id, id.split(":")[1] ?? id);
   const who = o.issuer.split(" ")[0];
-  return who ? `${who} · ${o.short_label}` : o.short_label;
+  return withCode(id, who ? `${who} · ${o.short_label}` : o.short_label);
 }
 
 /** Bottom bar: the selection as chips, an optional note, the open "Teyit edin" reminder,

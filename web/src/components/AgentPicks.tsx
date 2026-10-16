@@ -8,6 +8,7 @@ import { api, ApiError } from "../api/client";
 import type { AgentDecision, AgentPick, ResearchFinding, ResearchView, RunView } from "../api/types";
 import { fill, LangContext, useT } from "../i18n";
 import { useLabelOf } from "./WhyPanel";
+import { CodeBadge } from "../product";
 
 /** The ids of the agent's picks that have an option view (the cards and the meeting chips use them). */
 export function agentTop(view: RunView, d: AgentDecision | null): string[] | null {
@@ -247,7 +248,9 @@ export function AgentPicks({
         {decision.picks.map((p, i) => (
           <li key={p.option_id} data-testid="agent-pick" className="border-t border-gray-100 pt-2.5">
             <button type="button" className="text-left text-sm font-bold hover:underline" onClick={() => onOpen(p.option_id)}>
-              {`${i + 1} · ${name(p.option_id)}`}
+              {`${i + 1} · `}
+              <CodeBadge optionId={p.option_id} />
+              {name(p.option_id)}
             </button>
             {reasons(p)}
           </li>
@@ -258,6 +261,7 @@ export function AgentPicks({
           <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted">{t("agentDropped")}</div>
           {decision.dropped.map((p) => (
             <div key={p.option_id} className="mt-1">
+              <CodeBadge optionId={p.option_id} />
               <span className="text-[13px] font-semibold line-through decoration-gray-400">{name(p.option_id)}</span>
               {reasons(p)}
             </div>
@@ -278,7 +282,9 @@ export function AgentPicks({
             const o = view.options[id];
             return (
               <li key={id}>
-                {`${i + 1}. ${o ? o.short_label : name(id)}`}
+                {`${i + 1}. `}
+                <CodeBadge optionId={id} />
+                {o ? o.short_label : name(id)}
                 {o?.issuer && <span className="text-muted">{` · ${o.issuer}`}</span>}
               </li>
             );

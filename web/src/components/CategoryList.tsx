@@ -4,6 +4,7 @@ import { fmtPct } from "../format";
 import { useT } from "../i18n";
 import { RiskBar } from "./RiskBar";
 import { Stars } from "./Stars";
+import { CodeBadge } from "../product";
 
 function FundRow({
   option,
@@ -22,7 +23,10 @@ function FundRow({
     <li data-testid="fund-row" className="border-t border-gray-100">
       <div className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-4 py-2.5">
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-medium">{option.label}</div>
+          <div className="truncate text-[13px] font-medium">
+            <CodeBadge optionId={option.option_id} />
+            {option.label}
+          </div>
           <div className="text-[11px] text-muted">
             {option.rank ? `${option.rank.position}. / ${option.rank.of} ${t("categoryRank")}` : t("noRank")}
             {option.access.label && ` · ${t("access")}: ${option.access.label}`}
