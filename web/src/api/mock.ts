@@ -147,6 +147,24 @@ function documentsAnswer(load: Loader, runId: string, optionId: string): MockAns
   return { status: 200, body: { ...base, status: "not_covered", reason } };
 }
 
+// Reset (W27): 409 while a mock agent runs; else forget the agent starts and the marks.
+function resetAnswer(): MockAnswer {
+  const now = Date.now();
+  if ([...agentStarted.values()].some((s) => now - s.at < AGENT_RUN_MS))
+    return { status: 409, body: { detail: "Ajan çalışıyor; bitince sıfırlayın." } };
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Istanbul", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+    })
+      .formatToParts(new Date(now))
+      .map((x) => [x.type, x.value]),
+  );
+  const moved = { runs: 0, texts: 0, cards: 0, agent: agentStarted.size, research_marks: marks.size };
+  agentStarted.clear();
+  marks.clear();
+  return { status: 200, body: { archive: `data/reset-archive/${p.year}${p.month}${p.day}-${p.hour}${p.minute}${p.second}`, moved } };
+}
+
 function setMark(req: Record<string, unknown>): MockAnswer {
   const id = req.finding_id;
   const mark = req.mark ?? null;
@@ -182,6 +200,7 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
   }
 
   if (method === "POST" && a === "research" && b === "marks") return setMark(req);
+  if (method === "POST" && a === "reset" && !b) return resetAnswer();
 
   if (a === "runs") {
     if (method === "POST" && !b) {

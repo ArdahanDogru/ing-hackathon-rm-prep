@@ -1,8 +1,8 @@
 // App shell: top bar, run state, routes / (dashboard), /meeting/:runId, /print/:runId.
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
-import { api, getRunOrRerun, recallInputs, rememberInputs } from "./api/client";
-import type { Lang, NarrativeView, Persona, RunInputs, RunView, SourceStatus } from "./api/types";
+import { api, clearRmState, getRunOrRerun, recallInputs, rememberInputs } from "./api/client";
+import type { Lang, NarrativeView, Persona, ResetResult, RunInputs, RunView, SourceStatus } from "./api/types";
 import { DataFreshness } from "./components/DataFreshness";
 import { ErrorBox } from "./components/ErrorBox";
 import { DashboardSkeleton } from "./components/Skeleton";
@@ -10,7 +10,7 @@ import { TopBar } from "./components/TopBar";
 import { Dashboard } from "./screens/Dashboard";
 import { MeetingText } from "./screens/MeetingText";
 import { PrintCard } from "./screens/PrintCard";
-import { LangContext, labels, useT } from "./i18n";
+import { fill, LangContext, labels, useT } from "./i18n";
 
 function MeetingRoute() {
   const t = useT();
@@ -93,6 +93,8 @@ export function App() {
   const [run, setRun] = useState<RunView | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resets, setResets] = useState(0); // W27: a reset loads the run again and remounts the dashboard
+  const [resetDone, setResetDone] = useState<string | null>(null);
 
   const init = useCallback(() => {
     if (printing) return;
@@ -141,8 +143,20 @@ export function App() {
         setLoading(false);
       },
     );
-  }, [personas, personaId, snapshotId, excluded, edited]);
+  }, [personas, personaId, snapshotId, excluded, edited, resets]);
   useEffect(makeRun, [makeRun]);
+
+  // W27: after POST /reset: forget the RM state of the browser, close every drawer and note (the
+  // dashboard remounts), go to "/" and load the selected client's run as on the first visit
+  const afterReset = (r: ResetResult) => {
+    clearRmState();
+    setEdited(null);
+    setExcluded([]);
+    setRun(null);
+    setResets((n) => n + 1);
+    setResetDone(r.archive);
+    navigate("/");
+  };
 
   const retry = personas.length ? makeRun : init;
 
@@ -170,8 +184,23 @@ export function App() {
                 onExcluded={setExcluded}
                 lang={lang}
                 onLang={setLang}
+                onReset={afterReset}
+                onResetError={setError}
               />
               <main className="mx-auto max-w-[1400px] p-6">
+                {resetDone && (
+                  <p role="status" className="mb-4 flex items-center gap-3 rounded-xl border border-[#ABEFC6] bg-[#ECFDF3] px-4 py-2 text-sm text-[#067647]">
+                    <span>{fill(labels[lang].resetDone, { archive: resetDone })}</span>
+                    <button
+                      type="button"
+                      aria-label={labels[lang].close}
+                      className="ml-auto rounded-md px-2 text-[#067647] hover:bg-white/60"
+                      onClick={() => setResetDone(null)}
+                    >
+                      ✕
+                    </button>
+                  </p>
+                )}
                 <Routes>
                   <Route
                     path="/"
@@ -184,7 +213,7 @@ export function App() {
                           <DashboardSkeleton />
                         ) : run ? (
                           <Dashboard
-                            key={run.result.run_id + run.result.rm_status}
+                            key={`${run.result.run_id}${run.result.rm_status}|${resets}`}
                             view={run}
                             onView={setRun}
                             onPersona={setEdited}
