@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { Lang, Persona, SourceStatus } from "../api/types";
+import type { Lang, Persona, ResetResult, SourceStatus } from "../api/types";
+import { ResetButton } from "./ResetButton";
 import { snapshotLabel } from "../format";
 import { useT } from "../i18n";
 
@@ -15,6 +16,9 @@ export interface TopBarProps {
   onExcluded: (excluded: string[]) => void;
   lang: Lang;
   onLang: (lang: Lang) => void;
+  /** W27: "Sıfırla" done; another error than 409 */
+  onReset?: (r: ResetResult) => void;
+  onResetError?: (e: Error) => void;
 }
 
 export function TopBar(p: TopBarProps) {
@@ -122,6 +126,8 @@ export function TopBar(p: TopBarProps) {
               </div>
             )}
           </div>
+
+          {p.onReset && <ResetButton onDone={p.onReset} onError={(e) => p.onResetError?.(e)} />}
 
           <div role="group" aria-label={t("language")} className="flex overflow-hidden rounded-lg border border-gray-300 text-sm">
             {(["TR", "EN"] as const).map((l) => (

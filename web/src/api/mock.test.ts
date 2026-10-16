@@ -147,3 +147,21 @@ test("fund documents (W26): ok for a Nurol fund, not_found, failed, not_covered 
   expect(get("fund:ZBJ").body).toMatchObject({ status: "not_covered" });
   expect(get("time_deposit:x").status).toBe(422);
 });
+
+test("reset (W27): 409 while a mock agent runs; then ok, and the agent and the marks are forgotten", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-10-17T10:15:00+03:00"));
+  resetAgentMock();
+  const run = { result: { run_id: "R01", recommended: ["fund:A"], options: [{ option: { option_id: "fund:A", kind: "fund" } }] }, options: {} };
+  const loadRun = (name: string) => (name === "run_p01_ready" ? run : undefined);
+  resolveMock("POST", "/api/runs/R01/agent", { n: 5 }, loadRun);
+  resolveMock("POST", "/api/research/marks", { finding_id: "Fa0000001", option_id: "fund:A", mark: "ok", run_id: "R01" }, loadRun);
+  const busy = resolveMock("POST", "/api/reset", undefined, loadRun);
+  expect(busy).toMatchObject({ status: 409, body: { detail: "Ajan çalışıyor; bitince sıfırlayın." } });
+  vi.advanceTimersByTime(16_000);
+  const ok = resolveMock("POST", "/api/reset", undefined, loadRun);
+  expect(ok.status).toBe(200);
+  expect(ok.body).toMatchObject({ archive: "data/reset-archive/20261017-101516", moved: { agent: 1, research_marks: 1 } });
+  expect(resolveMock("GET", "/api/runs/R01/agent", undefined, loadRun).body).toMatchObject({ state: "off", fallback_reason: "henüz çalıştırılmadı" });
+  vi.useRealTimers();
+});

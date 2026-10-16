@@ -310,6 +310,12 @@ export interface MarketBankEntry extends BankContext {
   title: string; // "Vadeli mevduat, ~32 gün, 100–250 bin TL"
 }
 
+/** POST /api/reset (W27): where the old records went, and how many of each kind moved. */
+export interface ResetResult {
+  archive: string; // "data/reset-archive/20261017-101500"
+  moved: Record<string, number>; // runs, texts, cards, agent, research_marks
+}
+
 /** W26: one official document on the manager's own site. */
 export interface FundDocument {
   kind: "izahname" | "ybf";

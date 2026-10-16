@@ -2,6 +2,7 @@
 // Vite proxy (dev), the mock middleware (dev:mock) or `rmprep serve` answers.
 import type {
   AgentDecision,
+  ResetResult,
   FundDocuments,
   FindingMark,
   EvidenceItem,
@@ -103,6 +104,8 @@ export const api = {
   brief,
   research,
   agentStatus,
+  /** POST /reset (W27): every client back to the first state; 409 while an agent runs. */
+  reset: () => request<ResetResult>("POST", "/reset"),
   /** GET /runs/{id}/options/{option_id}/documents (W26): the izahname / YBF links on the manager's site. */
   documents: (runId: string, optionId: string) =>
     request<FundDocuments>("GET", `/runs/${enc(runId)}/options/${enc(optionId)}/documents`),
@@ -142,6 +145,21 @@ export function rememberInputs(runId: string, inputs: RunInputs): void {
     sessionStorage.setItem(KEY + runId, JSON.stringify(inputs));
   } catch {
     // storage full or blocked: the 404 path then shows the error
+  }
+}
+
+/** W27: forget the RM state the browser keeps (the agenda and Teyit edin checks, the run
+ * inputs); the language and the view mode stay. */
+export function clearRmState(): void {
+  const drop = (store: Storage, prefixes: string[]) => {
+    const keys = Array.from({ length: store.length }, (_, i) => store.key(i)).filter((k): k is string => k !== null);
+    for (const k of keys) if (prefixes.some((p) => k.startsWith(p))) store.removeItem(k);
+  };
+  try {
+    drop(localStorage, ["rmprep.agenda.", "rmprep.confirm."]);
+    drop(sessionStorage, [KEY]);
+  } catch {
+    // storage blocked: nothing kept there
   }
 }
 
