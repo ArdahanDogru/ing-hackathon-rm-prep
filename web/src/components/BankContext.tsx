@@ -34,36 +34,38 @@ export function BankContext({ context, onEvidence }: { context: BankContextData 
             key={`${r.label}|${i}`}
             data-testid="bank-row"
             data-own={r.own ? "true" : undefined}
-            className={`flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-1.5 ${r.own ? "font-bold" : ""}`}
+            className={`py-1.5 ${r.own ? "font-bold" : ""}`}
           >
-            <span className="min-w-[150px]">{r.label}</span>
-            <span className="flex-1 text-xs font-normal text-muted">{r.cell}</span>
-            {r.value === null ? (
-              <span className="text-xs font-normal text-muted">{t("bankNoData")}</span>
-            ) : (
-              <>
-                <span className="tabular-nums">
-                  {fmtRate(r.value)}
-                  <KMark id={r.evidence_id || undefined} onEvidence={onEvidence} />
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+              <span>{r.label}</span>
+              {r.value === null ? (
+                <span className="text-xs font-normal text-muted">{t("bankNoData")}</span>
+              ) : (
+                <span className="flex flex-wrap items-baseline gap-x-2.5">
+                  <span className="tabular-nums">
+                    {fmtRate(r.value)}
+                    <KMark id={r.evidence_id || undefined} onEvidence={onEvidence} />
+                  </span>
+                  {r.as_of && (
+                    <span
+                      data-testid="bank-date"
+                      data-stale={r.stale ? "true" : undefined}
+                      title={r.stale ? t("bankStaleTip") : undefined}
+                      className={`text-xs font-normal tabular-nums ${r.stale ? "text-[#B54708]" : "text-muted"}`}
+                    >
+                      {fmtDate(r.as_of)}
+                      {r.stale && ` · ${t("bankStale")}`}
+                    </span>
+                  )}
+                  {!r.own && r.diff_pp !== null && (
+                    <span data-testid="bank-diff" className="whitespace-nowrap text-xs font-semibold tabular-nums text-[#475467]">
+                      {`${fmtPoints(r.diff_pp)} ${t("bankPoints")}`}
+                    </span>
+                  )}
                 </span>
-                {r.as_of && (
-                  <span
-                    data-testid="bank-date"
-                    data-stale={r.stale ? "true" : undefined}
-                    title={r.stale ? t("bankStaleTip") : undefined}
-                    className={`text-xs font-normal tabular-nums ${r.stale ? "text-[#B54708]" : "text-muted"}`}
-                  >
-                    {fmtDate(r.as_of)}
-                    {r.stale && ` · ${t("bankStale")}`}
-                  </span>
-                )}
-                {!r.own && r.diff_pp !== null && (
-                  <span data-testid="bank-diff" className="text-xs font-semibold tabular-nums text-[#475467]">
-                    {`${fmtPoints(r.diff_pp)} ${t("bankPoints")}`}
-                  </span>
-                )}
-              </>
-            )}
+              )}
+            </div>
+            <div className="text-xs font-normal text-muted">{r.cell}</div>
           </li>
         ))}
       </ul>
