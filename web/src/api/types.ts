@@ -283,6 +283,25 @@ export interface OptionView {
   data_notes: DataNote[];
   selected: boolean;
   rm_note: string;
+  /** W25: other banks' rates as context for the RM (not in the score); null for most options */
+  bank_context?: BankContext | null;
+}
+
+/** W25: one line of "Diğer bankalar": the own rate first (own, diff_pp null), then the banks. */
+export interface BankRow {
+  label: string;
+  cell: string; // "32-45 gün / 99.999,99-250.000 TL"
+  own: boolean;
+  value: number | null; // % ; null = "veri yok"
+  as_of: string; // "2026-10-16" or ""
+  evidence_id: string; // "" without a value
+  stale: boolean;
+  diff_pp: number | null; // the bank's rate − the own rate, in percentage points
+}
+
+export interface BankContext {
+  rows: BankRow[];
+  note: string;
 }
 
 export interface Category {
