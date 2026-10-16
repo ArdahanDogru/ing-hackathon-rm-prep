@@ -10,8 +10,11 @@ import { KMark } from "./OptionsTable";
 const nf2 = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const MINUS = "−";
 
-/** "34,50 %" */
-export const fmtRate = (v: number) => `${nf2.format(v)} %`;
+/** "%34,50": the Turkish percent form of the app (% first; W25 asks for two decimals). */
+export const fmtRate = (v: number) => `%${nf2.format(v)}`;
+
+/** One grid for every row, so the rate, the date and the difference line up. */
+const ROW = "grid grid-cols-[minmax(0,1fr)_64px_18px_92px_76px] items-baseline gap-x-2";
 
 /** "+2,50" / "−3,50" / "0,00": the difference in percentage points. */
 export function fmtPoints(v: number): string {
@@ -34,38 +37,41 @@ export function BankContext({ context, onEvidence }: { context: BankContextData 
             key={`${r.label}|${i}`}
             data-testid="bank-row"
             data-own={r.own ? "true" : undefined}
-            className={`py-1.5 ${r.own ? "font-bold" : ""}`}
+            className={`${ROW} py-1.5 ${r.own ? "font-bold" : ""}`}
           >
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-              <span>{r.label}</span>
-              {r.value === null ? (
-                <span className="text-xs font-normal text-muted">{t("bankNoData")}</span>
-              ) : (
-                <span className="flex flex-wrap items-baseline gap-x-2.5">
-                  <span className="tabular-nums">
-                    {fmtRate(r.value)}
-                    <KMark id={r.evidence_id || undefined} onEvidence={onEvidence} />
-                  </span>
-                  {r.as_of && (
-                    <span
-                      data-testid="bank-date"
-                      data-stale={r.stale ? "true" : undefined}
-                      title={r.stale ? t("bankStaleTip") : undefined}
-                      className={`text-xs font-normal tabular-nums ${r.stale ? "text-[#B54708]" : "text-muted"}`}
-                    >
-                      {fmtDate(r.as_of)}
-                      {r.stale && ` · ${t("bankStale")}`}
-                    </span>
-                  )}
-                  {!r.own && r.diff_pp !== null && (
-                    <span data-testid="bank-diff" className="whitespace-nowrap text-xs font-semibold tabular-nums text-[#475467]">
-                      {`${fmtPoints(r.diff_pp)} ${t("bankPoints")}`}
-                    </span>
-                  )}
-                </span>
-              )}
+            <div className="min-w-0">
+              <div>{r.label}</div>
+              <div className="text-xs font-normal text-muted">{r.cell}</div>
             </div>
-            <div className="text-xs font-normal text-muted">{r.cell}</div>
+            {r.value === null ? (
+              <span data-testid="bank-missing" className="col-span-4 text-right text-xs font-normal text-muted">
+                {t("bankNoData")}
+              </span>
+            ) : (
+              <>
+                <span data-testid="bank-rate" className="text-right tabular-nums">
+                  {fmtRate(r.value)}
+                </span>
+                <span>
+                  <KMark id={r.evidence_id || undefined} onEvidence={onEvidence} />
+                </span>
+                <span
+                  data-testid="bank-date"
+                  data-stale={r.stale ? "true" : undefined}
+                  title={r.stale ? t("bankStaleTip") : undefined}
+                  className={`whitespace-nowrap text-right text-xs font-normal tabular-nums ${r.stale ? "text-[#B54708]" : "text-muted"}`}
+                >
+                  {r.as_of ? fmtDate(r.as_of) : ""}
+                  {r.stale && ` · ${t("bankStale")}`}
+                </span>
+                <span
+                  data-testid={!r.own && r.diff_pp !== null ? "bank-diff" : undefined}
+                  className="whitespace-nowrap text-right text-xs font-semibold tabular-nums text-[#475467]"
+                >
+                  {!r.own && r.diff_pp !== null ? `${fmtPoints(r.diff_pp)} ${t("bankPoints")}` : ""}
+                </span>
+              </>
+            )}
           </li>
         ))}
       </ul>

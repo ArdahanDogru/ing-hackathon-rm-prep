@@ -36,7 +36,7 @@ test("the own row: bold, the rate in Turkish format with its K mark, the date, n
   expect(own).toHaveClass("font-bold");
   expect(own).toHaveTextContent("ING e-Vadeli");
   expect(own).toHaveTextContent("32-45 gün / 99.999,99-250.000 TL");
-  expect(own).toHaveTextContent("34,50 %");
+  expect(own).toHaveTextContent("%34,50");
   expect(own).toHaveTextContent("16.10.2026");
   expect(within(own).queryByTestId("bank-diff")).toBeNull();
   await userEvent.click(within(own).getByRole("button", { name: "Kanıt" }));
@@ -48,7 +48,7 @@ test("a bank row: the rate and the signed difference in points, in a neutral col
   const isbank = rows()[1];
   expect(isbank).not.toHaveClass("font-bold");
   expect(isbank).toHaveTextContent("İş Bankası (kampanya)");
-  expect(isbank).toHaveTextContent("37,00 %");
+  expect(isbank).toHaveTextContent("%37,00");
   const diff = within(isbank).getByTestId("bank-diff");
   expect(diff).toHaveTextContent("+2,50 puan");
   expect(diff.className).not.toMatch(/green|red|#067647|#B42318|#12B76A|#F04438/i);
@@ -99,7 +99,7 @@ test("no block when bank_context is null (a fund)", () => {
 test("not in the options table", () => {
   render(<OptionsTable options={[option()]} baseline={null} onOpen={vi.fn()} onEvidence={vi.fn()} />);
   expect(screen.queryByText(/Diğer bankalar/)).toBeNull();
-  expect(screen.queryByText(/37,00/)).toBeNull();
+  expect(screen.queryByText(/37,00/)).toBeNull(); // no rate of another bank
 });
 
 test("W25 EN labels", () => {
@@ -109,4 +109,19 @@ test("W25 EN labels", () => {
   expect(block).toHaveTextContent("context — not in the score");
   expect(within(rows()[1]).getByTestId("bank-diff")).toHaveTextContent("+2,50 points");
   expect(rows()[2]).toHaveTextContent("no data");
+});
+
+test("the rows line up: one grid template, the rate, the date and the difference in fixed right-aligned columns", () => {
+  show(option());
+  const templates = rows().map((r) => [...r.classList].find((c) => c.startsWith("grid-cols-")));
+  expect(templates[0]).toBeTruthy();
+  expect(new Set(templates).size).toBe(1);
+  rows().forEach((r) => expect(r).toHaveClass("grid"));
+  for (const id of ["bank-rate", "bank-date", "bank-diff"]) {
+    within(screen.getByTestId("bank-context"))
+      .queryAllByTestId(id)
+      .forEach((cell) => expect(cell).toHaveClass("text-right"));
+  }
+  // a missing row fills the value columns, so its label stays in the first column
+  expect(within(rows()[2]).getByTestId("bank-missing")).toHaveClass("col-span-4");
 });
