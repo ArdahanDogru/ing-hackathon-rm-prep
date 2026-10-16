@@ -873,6 +873,64 @@ next to the e-Vadeli option is possible).
   robots line). We do not work around it: a 401 fails the source and
   `on_failure: previous` gives the rows of the last ok snapshot.
 
+I16 (approved by the user 2026-10-16, "step 1" of the KAP to-do): links to the
+official fund documents (izahname, yatırımcı bilgi formu = YBF) on the fund
+manager's own site. **Links only:** no PDF is downloaded, stored or read. Not
+from KAP (it blocks bots) and not from mirror sites (their terms forbid robots);
+see the memory of the legal check. Not in the score, the agent, the narrator,
+the meeting text or the card; the RM sees the links in the fund drawer
+(web-ui.md W26).
+
+- Lead check of 2026-10-16 (12 managers; the table and the saved pages:
+  `C:/Users/yardang/dev/ing-wt/ingest-fixtures/fund_docs/`). In scope, 9
+  managers: `ok` Nurol, Osmanlı, Astra, Oyak, Ak, Kuveyt Türk; `link_only`
+  TEB, Rota, Garanti (their terms forbid copying: we show the link, we store
+  nothing but the URL and the label). Not covered, with the reason shown:
+  İş Portföy (robots.txt disallows `/medium/*`, the document path), Azimut (the
+  links go to KAP), Yapı Kredi (a script loads the list).
+- **On demand, not in the daily ingest:** the API calls it when the RM opens a
+  fund drawer. Hundreds of daily requests for links that are rarely opened
+  would not be polite. So the result is not in a snapshot (as Exa research);
+  a replay does not show the links.
+- Module `src/rmprep/ingest/fund_docs.py` (ing-ingest), pure functions + one
+  fetch function; config `config/fund_docs.yaml` (lead-owned; the worker sends
+  the block):
+  - per manager: `key`, `issuers` (the issuer texts of `api.names.short_name`
+    that map to it, e.g. "Nurol Portföy"), `site`, `verdict` (`ok` |
+    `link_only`), `robots_disallow` (the Disallow lines of 2026-10-16, checked
+    before each request, as `bank_table`), the way to the fund page (a URL
+    template from the fund code, or a list page with the code in the link
+    text, or a map page such as the Garanti menu), and the link rules (which
+    link label or file name is the izahname and which is the YBF; how to read
+    the date from the label or the file name).
+  - `not_covered`: issuer → reason TR/EN (İş, Azimut, Yapı Kredi).
+  - `user_agent` "rmprep-hackathon-prototype/0.1 (ING hackathon; on demand,
+    one fund page per fund per day)", `timeout_seconds`, `delay_seconds` (2,
+    per host), `max_requests` per call (3).
+- `find_documents(code, issuer, cfg, *, client, now, sleep, cache_dir) ->
+  FundDocs` (never raises):
+  - `FundDocs {code, manager, manager_label, verdict, status, docs, page_url,
+    page_sha256, checked_at, reason}`; `status` = `ok` (at least one link) |
+    `not_found` (the page has no matching link) | `not_covered` (no manager or
+    a `not_covered` issuer; `reason` from config) | `failed` (HTTP error,
+    robots, timeout; `reason` = a short text).
+  - `FundDoc {kind: "izahname" | "ybf", url (absolute, percent-encoded),
+    label (as on the page), date (date | None)}`; at most one link per kind:
+    the newest by date, else the first on the page. Only `http(s)` URLs on the
+    manager's site or its configured CDN host (Nurol `cdn.nurolportfoy.com.tr`);
+    a KAP or other-host link is ignored.
+  - GET of HTML pages only (never a PDF, no HEAD to a PDF); no redirects to
+    another host; at most `max_requests` per call; `delay_seconds` between two
+    requests to one host (a lock per host, the API serves several RMs).
+  - Cache: `data/cache/fund_docs/<CODE>-<YYYY-MM-DD>.json` (Turkish day); a
+    cached `ok` / `not_found` result of today is returned without a request; a
+    `failed` result is not cached. A list page shared by many funds (Osmanlı,
+    Oyak) is cached per day too, so a second fund costs no request.
+- Tests (offline, fixtures from the saved pages): one example fund per manager
+  (the URLs of the check table), the date rules, `not_found`, `not_covered`,
+  `failed` (HTTP 404/403, robots), the host rule, the cache (today, other day,
+  failed not cached), at most `max_requests`, the delay per host.
+
 ## Noted for later (decided 2026-10-09, not to be done now)
 
 - **To do, I9 (the user, 2026-10-14): zeros from TEFAS.** TEFAS sometimes

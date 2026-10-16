@@ -542,6 +542,42 @@ for RM, not in score"). Data: ingest I14 (`ing_web`) and I15 (`isbank_web`,
   Web: the block with the three rows, a missing row, the stale style, the
   signed difference format, no block when `bank_context` is null, TR and EN.
 
+### Fund documents: links to the manager's own site (W26, 2026-10-16)
+
+Approved by the user 2026-10-16 (step 1 of the KAP to-do). The data: ingest I16
+(`rmprep.ingest.fund_docs`, on demand, links only). Not in the score, the agent,
+the narrator, the meeting text or the card.
+
+- API (lead): `GET /api/runs/{run_id}/options/{option_id}/documents` for an
+  option of kind `fund` or `etf` (other kinds: 422). The fund code is the part
+  of the option id after ":"; the issuer comes from `short_name(label)`.
+  Sync (FastAPI runs it in the thread pool); at most 3 page GETs, 2 s apart,
+  so up to about 6 s on a cold cache. Answer:
+  `{status, manager_label, verdict, docs: [{kind, label, url, date}], page_url,
+  checked_at, reason}` with `status` `ok` | `not_found` | `not_covered` |
+  `failed` (I16). Never 500 for a site problem: that is `failed` with a reason.
+  `serve.py` builds it from `config/fund_docs.yaml` (a root without the file:
+  the route answers `not_covered`).
+- Web (ing-web): a "Belgeler" / "Documents" block in the FundDrawer of a fund
+  or ETF, loaded when the drawer opens (not on the card list):
+  - while it loads: "Belgeler aranıyor…" / "Looking for the documents…";
+  - `ok`: one link per document, "İzahname · 04.02.2025" and "Yatırımcı bilgi
+    formu · 13.03.2026" (no date part when `date` is null), opened in a new tab
+    (`target="_blank" rel="noopener noreferrer"`), with an external-link mark;
+    under them, small and muted: "Kaynak: <manager site>, kontrol <dd.mm.yyyy>"
+    ("Source: …, checked …"); one kind missing → only the other link;
+  - `not_found`: "Kurucunun sayfasında belge bağlantısı bulunamadı." and a link
+    to `page_url` when it is not empty;
+  - `not_covered`: the `reason` text (e.g. "İş Portföy: robots.txt belge
+    yolunu engelliyor; belgeler KAP'ta.");
+  - `failed`: "Belgeler şu an alınamadı." and a "Tekrar dene" button (a new
+    request);
+  - no link to KAP or to any other site is made by the web.
+- Tests: API (a fake `find_documents`, the 422 for other kinds, the issuer and
+  code passed, the answer shape); web (the four states, the new-tab link
+  attributes, the date and no-date labels, the retry, TR and EN; the samples
+  of `web/src/test` or the mock).
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no
