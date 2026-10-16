@@ -502,6 +502,46 @@ view). A failed write never changes the action. **KVKK:** the records can contai
 the RM's notes and edited text; with the synthetic personas this is acceptable,
 with real client data a KVKK review is required before the log is kept or used.
 
+### Other banks' rates as context for the RM (W25, 2026-10-16)
+
+Approved by the user 2026-10-16 ("these banks rates should be shown as context
+for RM, not in score"). Data: ingest I14 (`ing_web`) and I15 (`isbank_web`,
+`ziraat_web`), docs/ingest.md.
+
+- **Not in the score.** Nothing changes in the engine, the top 3, the agent, the
+  narrator, the meeting text or the downloaded card. On the screen only, for
+  the RM (an ING text for the client must not say "the other bank pays more").
+- Config `config/bank_context.yaml` (lead-owned; a separate file, so the
+  decision config hash does not change): per option id, the `own` cell and the
+  `banks` cells (label TR/EN, quantity, entity) and a `note` TR/EN; strict keys
+  (`check_bank_context`). Now only `time_deposit:ing_e_vadeli`: own = the engine
+  cell `32-45 gün / 99.999,99-250.000 TL`; İş Bankası campaign `32 - 35 Gün /
+  100.001 - 250.000 TL`; Ziraat internet `32 - 45 gün / 100.000 - 499.999,99 TL`.
+  Digital channels only (e-Vadeli is digital), so the Ziraat branch rate is out.
+- API (lead, done): each option view has `bank_context`: `null`, or
+  `{rows: [{label, cell, own, value, as_of, evidence_id, stale, diff_pp}], note}`.
+  The first row is the own rate (`own: true`, `diff_pp: null`). `cell` = the
+  entity after its first ", " with " / " between term and amount. A row without
+  a usable value has `value: null`, `evidence_id: ""` (the web shows "veri
+  yok"). `diff_pp` = the bank's rate − the own rate in percentage points (null
+  when one side is missing). `stale` = the row has the ingest `stale` flag. The
+  evidence ids open with the existing `GET /api/evidence/{snapshot}/{id}`.
+- Web (ing-web): in the card and the drawer of the option (FundCard /
+  FundDrawer; any option with a non-null `bank_context`), a small block
+  "Diğer bankalar" / "Other banks", with the subtitle "bağlam — puana dahil
+  değil" / "context — not in the score". One line per row: label, cell (small,
+  muted), rate (`34,50 %`, Turkish format) with the K mark of the evidence,
+  the date (`16.10.2026`), and for the bank rows the difference as a signed
+  points value ("+2,50 puan" / "−3,50 puan", Turkish minus sign; neutral
+  color, not green/red: a higher rate elsewhere is not "good" or "bad" for the
+  RM). The own row is bold. A missing row shows "veri yok"; a stale row shows
+  the date with the existing stale style. The note text under the block. TR
+  and EN labels. Not in the options table, the compare view or the card PDF.
+- Tests: API `tests/api/test_bank_context.py` (rows, differences, missing,
+  stale, strict config, only the configured option, the ranking unchanged).
+  Web: the block with the three rows, a missing row, the stale style, the
+  signed difference format, no block when `bank_context` is null, TR and EN.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

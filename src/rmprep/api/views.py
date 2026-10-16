@@ -10,7 +10,7 @@ from collections.abc import Mapping, Sequence
 from datetime import date
 
 from rmprep.api.names import short_name
-from rmprep.contracts import Backend, DecisionResult, ScoredOption, _to_json
+from rmprep.contracts import Backend, DecisionResult, Flag, ScoredOption, _to_json
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.display import DisplayFacts, access_text, display_facts
 from rmprep.decision.persona import read_persona
@@ -107,14 +107,65 @@ def _label(key: str, lang: str) -> str:
     return _MORE_LABELS.get(key, {}).get(lang, key.split(".", 1)[-1])
 
 
+def check_bank_context(raw: Mapping) -> dict:
+    """W25: config/bank_context.yaml with strict keys; returns the options mapping
+    (option id -> {own, banks, note})."""
+    def keys(m, path, need):
+        if not isinstance(m, Mapping) or set(m) != set(need):
+            raise ValueError(f"bank_context {path}: keys must be {sorted(need)}")
+
+    def cell(m, path):
+        keys(m, path, ("label", "quantity", "entity"))
+        keys(m["label"], f"{path}.label", ("TR", "EN"))
+        if ", " not in m["entity"]:
+            raise ValueError(f"bank_context {path}.entity: needs '<name>, <cell>'")
+
+    keys(raw, "", ("version", "options"))
+    for oid, o in raw["options"].items():
+        keys(o, oid, ("own", "banks", "note"))
+        cell(o["own"], f"{oid}.own")
+        if not o["banks"]:
+            raise ValueError(f"bank_context {oid}.banks: at least one bank")
+        for i, b in enumerate(o["banks"]):
+            cell(b, f"{oid}.banks[{i}]")
+        keys(o["note"], f"{oid}.note", ("TR", "EN"))
+    return dict(raw["options"])
+
+
+def bank_context(spec: Mapping | None, idx, lang: str) -> dict | None:
+    """W25: the own rate and the other banks' rates of one option, for the RM only
+    (not in the score). A row without a usable value has value None (missing);
+    diff_pp = the bank's rate - the own rate, in percentage points."""
+    if spec is None:
+        return None
+
+    def row(c, own: bool) -> dict:
+        d = idx.get(c["quantity"], c["entity"])
+        return {"label": c["label"][lang], "cell": c["entity"].split(", ", 1)[1].replace(", ", " / "),
+                "own": own, "value": None if d is None else d.value,
+                "as_of": "" if d is None else d.as_of.isoformat(),
+                "evidence_id": "" if d is None else d.id,
+                "stale": d is not None and Flag.STALE in d.flags, "diff_pp": None}
+
+    rows = [row(spec["own"], True), *(row(b, False) for b in spec["banks"])]
+    base = rows[0]["value"]
+    for r in rows[1:]:
+        if base is not None and r["value"] is not None:
+            r["diff_pp"] = round(r["value"] - base, 2)
+    return {"rows": rows, "note": spec["note"][lang]}
+
+
 class ViewBuilder:
     """views(result) -> the RunView keys after result / test_run / persona_changes."""
 
     def __init__(self, backend: Backend, config: DecisionConfig, lang: str = "TR",
-                 market_series: Sequence[Mapping] | None = None) -> None:
-        """market_series: config/narrator.yaml market_note.series (W15); None = no note."""
+                 market_series: Sequence[Mapping] | None = None,
+                 bank_context: Mapping | None = None) -> None:
+        """market_series: config/narrator.yaml market_note.series (W15); None = no note.
+        bank_context: the checked options of config/bank_context.yaml (W25); None = none."""
         self._backend, self._config, self._lang = backend, config, lang
         self._market_series = list(market_series or ())
+        self._bank_context = dict(bank_context or {})
 
     def _market_note(self, ev) -> list[dict]:
         """W15: the EVDS values of the market note (latest usable row of each
@@ -198,7 +249,9 @@ class ViewBuilder:
         return {"status": status, "sources": sources}
 
     def __call__(self, r: DecisionResult) -> dict:
+        from rmprep.decision.universe import EvidenceIndex
         ev = self._backend.evidence(r.snapshot_id, r.excluded_sources)
+        idx = EvidenceIndex(ev) if self._bank_context else None
         facts = display_facts(r, ev, self._config)
         members: dict[str, list[str]] = {}
         for o in (*r.options, *r.rejected):          # the category: ranked and eliminated funds
@@ -240,6 +293,8 @@ class ViewBuilder:
                                if n.evidence_ids and set(n.evidence_ids) <= ev_ids],
                 "selected": oid in r.rm_selected,
                 "rm_note": r.rm_option_notes.get(oid, ""),
+                # W25: other banks' rates, context for the RM only (not in the score)
+                "bank_context": bank_context(self._bank_context.get(oid), idx, self._lang),
             }
 
         baseline = r.options[0] if r.options and r.options[0].option.kind == "deposit" else None

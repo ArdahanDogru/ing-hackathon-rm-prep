@@ -21,8 +21,14 @@ def build_app(root: Path, personas_dir: Path | None = None):
     backend = RealBackend(root, personas_dir=personas_dir)
     import yaml
     narrator_raw = yaml.safe_load((root / "config" / "narrator.yaml").read_text(encoding="utf-8")) or {}
+    # W25: other banks' rates as context for the RM; a root without the file has none
+    from rmprep.api.views import check_bank_context
+    bc_file = Path(root) / "config" / "bank_context.yaml"
+    bank_ctx = (check_bank_context(yaml.safe_load(bc_file.read_text(encoding="utf-8")))
+                if bc_file.is_file() else None)
     views = ViewBuilder(backend, load_config(root / "config" / "decision.yaml"),
-                        market_series=narrator_raw.get("market_note", {}).get("series"))   # W15
+                        market_series=narrator_raw.get("market_note", {}).get("series"),   # W15
+                        bank_context=bank_ctx)
     dist = root / "web" / "dist"
     if not (dist / "index.html").is_file():
         print(f"web/dist missing: run `npm ci; npm run build` in {root / 'web'} (API only for now)",

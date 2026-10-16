@@ -122,7 +122,7 @@ def test_no_section_gives_no_option_and_no_note(raw):
 def test_missing_row_gives_a_note(td_config):
     r = decide(make_evidence(FUNDS), load_persona("P04"), td_config, created_at=T0)
     [n] = [n for n in r.data_quality if "e-Vadeli" in n.message]
-    assert TD in n.message and n.sources == ("manual",)
+    assert TD in n.message and n.sources == (td_config.raw["time_deposit"]["source"],)
 
 
 # --- scoring -------------------------------------------------------------------------------

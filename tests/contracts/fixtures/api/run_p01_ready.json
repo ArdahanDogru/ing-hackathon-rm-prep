@@ -25992,7 +25992,8 @@
    ],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:AIS": {
    "option_id": "fund:AIS",
@@ -26061,7 +26062,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:BRR": {
    "option_id": "fund:BRR",
@@ -26130,7 +26132,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:GO6": {
    "option_id": "fund:GO6",
@@ -26199,7 +26202,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:GPN": {
    "option_id": "fund:GPN",
@@ -26268,7 +26272,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:IST": {
    "option_id": "fund:IST",
@@ -26337,7 +26342,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:KCV": {
    "option_id": "fund:KCV",
@@ -26406,7 +26412,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:KZL": {
    "option_id": "fund:KZL",
@@ -26468,7 +26475,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:NSP": {
    "option_id": "fund:NSP",
@@ -26537,7 +26545,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:OSD": {
    "option_id": "fund:OSD",
@@ -26606,7 +26615,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:PPN": {
    "option_id": "fund:PPN",
@@ -26675,7 +26685,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:ZBJ": {
    "option_id": "fund:ZBJ",
@@ -26744,7 +26755,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "time_deposit:ing_e_vadeli": {
    "option_id": "time_deposit:ing_e_vadeli",
@@ -26792,7 +26804,42 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": {
+    "rows": [
+     {
+      "label": "ING e-Vadeli",
+      "cell": "32-45 gün / 99.999,99-250.000 TL",
+      "own": true,
+      "value": 34.5,
+      "as_of": "2026-10-16",
+      "evidence_id": "Ef018fa9e",
+      "stale": false,
+      "diff_pp": null
+     },
+     {
+      "label": "İş Bankası (kampanya)",
+      "cell": "32 - 35 Gün / 100.001 - 250.000 TL",
+      "own": false,
+      "value": 37.0,
+      "as_of": "2026-10-16",
+      "evidence_id": "Ed9620177",
+      "stale": false,
+      "diff_pp": 2.5
+     },
+     {
+      "label": "Ziraat (internet)",
+      "cell": "32 - 45 gün / 100.000 - 499.999,99 TL",
+      "own": false,
+      "value": null,
+      "as_of": "",
+      "evidence_id": "",
+      "stale": false,
+      "diff_pp": null
+     }
+    ],
+    "note": "Bağlam: puana dahil değil. Oranlar bankaların kendi sayfalarından; brüt/net belirtilmemiş. İş Bankası oranı kampanya koşullarına bağlıdır."
+   }
   }
  },
  "talking_points": [

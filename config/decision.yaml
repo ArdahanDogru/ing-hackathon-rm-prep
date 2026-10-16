@@ -8,7 +8,7 @@ version: 1
 deposit:
   option_id: "deposit:ing_turuncu"
   label: "ING Turuncu Hesap (standart)"
-  source: manual
+  source: ing_web           # I14: the web rows; the manual CSV is the fallback
   quantity: deposit_rate
   # entity = "<entity_prefix>, <tier>"; the persona has no amount, so one tier.
   entity_prefix: "ING Turuncu Hesap standart"
@@ -21,7 +21,7 @@ deposit:
 time_deposit:
   option_id: "time_deposit:ing_e_vadeli"
   label: "ING e-Vadeli Mevduat"
-  source: manual
+  source: ing_web           # I14: the web rows; the manual CSV is the fallback
   quantity: deposit_rate
   entity_prefix: "ING e-Vadeli Mevduat"
   term: "32-45 gün"

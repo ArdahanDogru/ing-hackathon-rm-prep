@@ -1078,6 +1078,17 @@ API by the lead):
   sources: [{id, ref, label, url, date}]}` with `id` = the `current_source` of a
   row; `RunView.effective_weights`.
 
+## 18. ING rates from the web; other banks as context (2026-10-16)
+
+- The ING deposit and e-Vadeli rows now come from `ing_web` (ingest I14); the
+  manual CSV rows stay as the fallback. The engine reads the row with the latest
+  `as_of` per entity (`EvidenceIndex`), so no engine change. The config field
+  `source` of `deposit` and `time_deposit` is only the source named by the
+  "row missing" note: changed from `manual` to `ing_web` (this changes the
+  config hash once; nothing else).
+- The rates of other banks (ingest I15) are **not** in the score: they are
+  context for the RM on the screen only (web-ui.md W25, `config/bank_context.yaml`).
+
 ## Later / optional
 
 - **D6 Jev text mapper** (TypeSafe AI, decision-only model, hosted API): only

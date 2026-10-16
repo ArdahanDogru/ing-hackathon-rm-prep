@@ -34390,7 +34390,8 @@
    ],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:BVF": {
    "option_id": "fund:BVF",
@@ -34451,7 +34452,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:CPU": {
    "option_id": "fund:CPU",
@@ -34512,7 +34514,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:EIB": {
    "option_id": "fund:EIB",
@@ -34573,7 +34576,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:EIL": {
    "option_id": "fund:EIL",
@@ -34634,7 +34638,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:GBL": {
    "option_id": "fund:GBL",
@@ -34695,7 +34700,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:IDY": {
    "option_id": "fund:IDY",
@@ -34756,7 +34762,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:IRF": {
    "option_id": "fund:IRF",
@@ -34817,7 +34824,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:KDE": {
    "option_id": "fund:KDE",
@@ -34878,7 +34886,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:KSK": {
    "option_id": "fund:KSK",
@@ -34939,7 +34948,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:KUD": {
    "option_id": "fund:KUD",
@@ -35000,7 +35010,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:KZL": {
    "option_id": "fund:KZL",
@@ -35058,7 +35069,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:NBO": {
    "option_id": "fund:NBO",
@@ -35119,7 +35131,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:NJR": {
    "option_id": "fund:NJR",
@@ -35180,7 +35193,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:OLE": {
    "option_id": "fund:OLE",
@@ -35241,7 +35255,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:OSL": {
    "option_id": "fund:OSL",
@@ -35302,7 +35317,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:RPP": {
    "option_id": "fund:RPP",
@@ -35363,7 +35379,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   },
   "fund:TE4": {
    "option_id": "fund:TE4",
@@ -35424,7 +35441,8 @@
    "warnings": [],
    "data_notes": [],
    "selected": false,
-   "rm_note": ""
+   "rm_note": "",
+   "bank_context": null
   }
  },
  "talking_points": [

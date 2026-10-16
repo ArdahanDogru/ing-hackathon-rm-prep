@@ -1,0 +1,25 @@
+# Rates of other banks as context for the RM (W25, approved by the user
+# 2026-10-16; lead-owned). On the screen only: not in the score, the agent, the
+# meeting text, the narrator or the downloaded card. A separate file, so the
+# decision config hash does not change. Each row names one evidence cell
+# (quantity + entity, docs/ingest.md I14/I15); the cell text on the screen is
+# the entity after its first ", " (the term and the amount as on the bank page).
+version: 1
+options:
+  "time_deposit:ing_e_vadeli":
+    own:
+      label: {TR: "ING e-Vadeli", EN: "ING e-Vadeli"}
+      quantity: deposit_rate
+      entity: "ING e-Vadeli Mevduat, 32-45 gün, 99.999,99-250.000 TL"
+    banks:
+      # digital channels only (e-Vadeli is a digital product); the cell with the
+      # same term (about 32 days) and the amount range that holds 100.000-249.999 TL
+      - label: {TR: "İş Bankası (kampanya)", EN: "İş Bankası (campaign)"}
+        quantity: deposit_rate
+        entity: "İş Bankası kampanyalı vadeli TL, 32 - 35 Gün, 100.001 - 250.000 TL"
+      - label: {TR: "Ziraat (internet)", EN: "Ziraat (internet)"}
+        quantity: deposit_rate
+        entity: "Ziraat Bankası vadeli TL (internet), 32 - 45 gün, 100.000 - 499.999,99 TL"
+    note:
+      TR: "Bağlam: puana dahil değil. Oranlar bankaların kendi sayfalarından; brüt/net belirtilmemiş. İş Bankası oranı kampanya koşullarına bağlıdır."
+      EN: "Context: not in the score. Rates from the banks' own pages; gross/net not stated. The İş Bankası rate depends on campaign conditions."
