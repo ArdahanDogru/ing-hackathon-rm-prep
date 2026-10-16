@@ -21,3 +21,6 @@ data/.ingest.lock
 .superpowers/
 web/node_modules/
 web/dist/
+data/personas/
+data/reset-archive/
+data/feedback/
