@@ -7,6 +7,7 @@ import { useContext, useEffect, useRef, useState, type FormEvent } from "react";
 import { api, ApiError } from "../api/client";
 import type { FindingMark, Lang, ProductResearch, QuestionAnswer, ResearchFinding, ResearchSource, ResearchView, RunView } from "../api/types";
 import { fill, LangContext, useT } from "../i18n";
+import { CodeBadge } from "../product";
 
 const POLL_MS = 3000;
 const POLL_MAX = 40; // 2 minutes; 3 products take about 10 s
@@ -195,6 +196,7 @@ function ProductBlock({ p, runId }: { p: ProductResearch; runId: string }) {
   return (
     <article data-testid="research-product" className="rounded-xl bg-[#F7F9FC] px-4 py-3">
       <h3 className="font-semibold">
+        <CodeBadge optionId={p.option_id} />
         {p.label}
         {p.company && <span className="ml-2 text-sm font-normal text-muted">{p.company}</span>}
       </h3>

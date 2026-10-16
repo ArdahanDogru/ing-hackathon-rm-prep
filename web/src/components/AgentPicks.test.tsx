@@ -6,6 +6,7 @@ import { agentDecision, SAMPLE_FINDING } from "../api/agentSample";
 import type { AgentDecision, Lang, ResearchView, RunView } from "../api/types";
 import { renderDashboard } from "../test/render";
 import { sample } from "../test/samples";
+import { productCode } from "../product";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => vi.restoreAllMocks());
@@ -66,7 +67,8 @@ test("Motor sıralaması is closed and opens with the engine's top 3", async () 
   expect(screen.queryByTestId("engine-rank")).toBeNull();
   await userEvent.click(toggle);
   const list = screen.getByTestId("engine-rank");
-  v.top.forEach((id, i) => expect(list).toHaveTextContent(`${i + 1}. ${v.options[id].short_label}`));
+  // W28: the code badge sits between the number and the name
+  v.top.forEach((id, i) => expect(list).toHaveTextContent(`${i + 1}. ${productCode(id)}${v.options[id].short_label}`));
 });
 
 test("chips: E opens the evidence pop-up", async () => {

@@ -8,6 +8,7 @@ import { fmtScore } from "../format";
 import { fill, LangContext, useT, type LabelKey } from "../i18n";
 import { colors } from "../theme";
 import type { NoteKind } from "./DetailNotes";
+import { CodeBadge } from "../product";
 
 /** The holdings status line of step 1 (W17b). */
 const HOLDINGS_LINE: Record<string, LabelKey> = {
@@ -231,7 +232,10 @@ export function PipelinePanel({ view, onOpen, onDetails, agent = null }: {
                     <li key={id} data-testid="pipe-pick">
                       <button type="button" className="flex w-full flex-col gap-0.5 rounded-[10px] bg-surface px-3 py-2.5 text-left hover:bg-[#EEF1F5]" onClick={() => onOpen(id)}>
                         <span className="flex w-full justify-between gap-2 text-[13px]">
-                          <b>{nameOf(id, o)}</b>
+                          <b>
+                            <CodeBadge optionId={id} />
+                            {nameOf(id, o)}
+                          </b>
                           {o && <span className="tabular-nums">{fmtScore(o.score, false)}</span>}
                         </span>
                         <span className={`text-xs ${fresh ? "font-semibold text-cobalt" : "text-muted"}`}>

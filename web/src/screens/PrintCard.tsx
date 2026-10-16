@@ -7,6 +7,7 @@ import { fmtPct } from "../format";
 import { LangContext, useT } from "../i18n";
 import { Markdown } from "../markdown";
 import "../print.css";
+import { CodeBadge } from "../product";
 
 function List({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null;
@@ -117,9 +118,12 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
             const tags = narrative.need_tags[id] ?? [];
             return (
               <section key={id} className="print-avoid mb-3 rounded-lg border border-gray-200 p-3">
-                <div className="flex items-baseline gap-2">
+                <div data-testid="print-option" className="flex items-baseline gap-2">
                   <b>{`${i + 1}.`}</b>
-                  <b>{o.label}</b>
+                  <b>
+                    <CodeBadge optionId={id} />
+                    {o.label}
+                  </b>
                   <span className="text-xs text-muted">{o.category_label}</span>
                 </div>
                 <div className="mt-1.5 grid grid-cols-3 gap-3 text-xs">

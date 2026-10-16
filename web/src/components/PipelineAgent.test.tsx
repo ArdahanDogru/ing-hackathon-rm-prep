@@ -23,7 +23,15 @@ function step5(v: RunView, agent: AgentDecision | null, lang: Lang = "TR") {
   );
   return screen.getAllByTestId("pipeline-step")[4];
 }
-const pickNames = (step: HTMLElement) => within(step).getAllByTestId("pipe-pick").map((p) => p.querySelector("b")!.textContent);
+/** The pick names without the W28 code badge. */
+const pickNames = (step: HTMLElement) =>
+  within(step)
+    .getAllByTestId("pipe-pick")
+    .map((p) => {
+      const b = p.querySelector("b")!;
+      const code = b.querySelector("[data-testid=code-badge]")?.textContent ?? "";
+      return b.textContent!.slice(code.length);
+    });
 
 test("running: the engine's picks and the line Ajan değerlendiriyor…", () => {
   const v = view();

@@ -8,6 +8,7 @@ import { KindBadge } from "./KindBadge";
 import { KMark, fullName, realColor, signedPct, whyLine } from "./OptionsTable";
 import { RiskBar } from "./RiskBar";
 import { Stars } from "./Stars";
+import { CodeBadge } from "../product";
 
 export function OptionsCards({
   options,
@@ -48,6 +49,7 @@ export function OptionsCards({
                     {o.issuer ? `${i + 1} · ${o.issuer}` : `${i + 1}`}
                   </div>
                   <div className="text-[17px] font-bold leading-snug">
+                    <CodeBadge optionId={o.option_id} />
                     {o.short_label}
                     <KindBadge kind={o.kind} />
                   </div>

@@ -18,6 +18,7 @@ import { TermsBox } from "../components/TermsBox";
 import { fmtDateTime, fmtPct } from "../format";
 import { LangContext, useT } from "../i18n";
 import { Markdown } from "../markdown";
+import { CodeBadge, withCode } from "../product";
 
 const SAVE_DELAY_MS = 800;
 const HIGHLIGHT_MS = 2000;
@@ -220,7 +221,7 @@ export function MeetingText({ view }: { view: RunView }) {
   const keyOf = (c: Cited) => [...c.evidence_ids].sort().join("|");
   for (const c of ordered) {
     if (!c.evidence_ids.length || numbers.has(keyOf(c))) continue;
-    const named = c.option_ids.map((id) => (view.options[id] ? docName(view.options[id]) : id.split(":")[1] ?? id));
+    const named = c.option_ids.map((id) => withCode(id, view.options[id] ? docName(view.options[id]) : id.split(":")[1] ?? id));
     // the data sources of the options: TEFAS (funds, ETFs), Borsa İstanbul (shares), else ING
     const kinds = c.option_ids.map((id) => view.options[id]?.kind ?? (id.split(":")[0] as OptionKind));
     const from = [...new Set(kinds.map(sourceName))].filter((x) => x !== "ING").join(", ") || "ING";
@@ -462,7 +463,10 @@ export function MeetingText({ view }: { view: RunView }) {
                       if (gone(`oneriler:${id}`))
                         return approved ? null : (
                           <div key={id} className="mb-3">
-                            <b className="text-muted">{docName(o)}</b>
+                            <b className="text-muted">
+                              <CodeBadge optionId={id} />
+                              {docName(o)}
+                            </b>
                             {block(`oneriler:${id}`, docName(o), [], null)}
                           </div>
                         );
@@ -476,7 +480,11 @@ export function MeetingText({ view }: { view: RunView }) {
                       return (
                         <div key={id} data-testid="doc-option" className="mb-5" title={o.label}>
                           <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <b>{`${i + 1} · ${docName(o)}`}</b>
+                            <b>
+                              {`${i + 1} · `}
+                              <CodeBadge optionId={id} />
+                              {docName(o)}
+                            </b>
                             <span className="text-muted">{facts.join(" · ")}</span>
                             {(draft.need_tags[id] ?? []).map((tag) => (
                               <span key={tag} className="rounded-full bg-[#EEF2F9] px-[11px] py-1 text-[13px] leading-none text-[#2C4F8F]">

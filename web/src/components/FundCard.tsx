@@ -7,11 +7,12 @@ import { fmtNum, fmtPct } from "../format";
 import { LangContext, useT } from "../i18n";
 import { snapshotDate } from "./BriefCard";
 import { BankContext } from "./BankContext";
-import { hasCode, KindBadge, sourceName } from "./KindBadge";
+import { KindBadge, sourceName } from "./KindBadge";
 import { ReturnBars, type ReturnRow } from "./ReturnBars";
 import { RiskBar, riskColor } from "./RiskBar";
 import { Stars } from "./Stars";
 import { WhyPanel } from "./WhyPanel";
+import { CodeBadge } from "../product";
 
 function Tile({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -61,7 +62,6 @@ export function FundCard({
   const share =
     top !== null && top <= 50 ? (lang === "TR" ? `Kategoride ilk ${fmtPct(top)}` : `Top ${fmtNum(top)} % of the category`) : null;
   const riskWord = o.risk?.level === 1 ? t("lowestRisk") : o.risk?.level === 7 ? t("highestRisk") : "";
-  const code = hasCode(o.kind) ? (o.option_id.split(":")[1] ?? "") : "";
   const evidence = [
     ...new Set(
       [...Object.values(o.returns).map((f) => f?.evidence_id), o.risk?.evidence_id, o.access.evidence_id].filter(
@@ -76,10 +76,11 @@ export function FundCard({
         {[o.issuer, o.category_label].filter(Boolean).join(" · ")}
       </div>
       <div className="mt-1 flex items-center">
+        <CodeBadge optionId={o.option_id} className="text-[13px]" />
         <h2 className="text-[22px] font-bold leading-tight">{o.short_label}</h2>
         <KindBadge kind={o.kind} />
       </div>
-      <div className="mt-1 text-[13px] text-muted">{code ? `${o.label} · ${code}` : o.label}</div>
+      <div className="mt-1 text-[13px] text-muted">{o.label}</div>
 
       <div className="my-[22px] grid grid-cols-3 gap-3">
         <Tile label={t("rowMatch")}>

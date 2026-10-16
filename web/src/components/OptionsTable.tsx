@@ -4,10 +4,11 @@ import type { OptionView } from "../api/types";
 import { fmtNum, fmtPct } from "../format";
 import { useT } from "../i18n";
 import { colors } from "../theme";
-import { hasCode, KindBadge } from "./KindBadge";
+import { KindBadge } from "./KindBadge";
 import { matchColor } from "./MatchRing";
 import { riskColor } from "./RiskBar";
 import { Stars } from "./Stars";
+import { CodeBadge, withCode } from "../product";
 
 /** The small "K" next to a value: opens its evidence. */
 export function KMark({ id, onEvidence }: { id: string | undefined; onEvidence: (id: string) => void }) {
@@ -32,8 +33,8 @@ export function KMark({ id, onEvidence }: { id: string | undefined; onEvidence: 
 export const signedPct = (v: number) => (fmtNum(v) !== "0" && v > 0 ? `+${fmtPct(v)}` : fmtPct(v));
 export const realColor = (v: number) => (v < 0 ? colors.bad.fg : colors.good.fg);
 export const whyLine = (o: OptionView) => o.why.map(([priority]) => priority).join(" · ");
-const code = (o: OptionView) => o.option_id.split(":")[1] ?? o.option_id;
-export const fullName = (o: OptionView) => (hasCode(o.kind) ? `${o.label} · ${code(o)}` : o.label);
+/** The hover name: "PPN · <official name>" (W28); the official name alone for a deposit. */
+export const fullName = (o: OptionView) => withCode(o.option_id, o.label);
 
 export function OptionsTable({
   options,
@@ -144,6 +145,7 @@ export function OptionsTable({
                 <th key={o.option_id} scope="col" className="border-b border-gray-100 bg-[#FAFAFB] px-4 py-[13px] text-left align-top font-normal">
                   <div data-testid="compare-head" title={fullName(o)} className="text-[#475467]">
                     <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted">{t("comparison")}</div>
+                    <CodeBadge optionId={o.option_id} />
                     <span className="font-semibold">{o.short_label}</span>
                   </div>
                 </th>
@@ -159,6 +161,7 @@ export function OptionsTable({
                     <div className="text-xs font-bold uppercase tracking-[0.05em] text-muted">
                       {o.issuer ? `${i + 1} · ${o.issuer}` : `${i + 1}`}
                     </div>
+                    <CodeBadge optionId={o.option_id} />
                     <span className="font-bold">{o.short_label}</span>
                     <KindBadge kind={o.kind} />
                   </button>

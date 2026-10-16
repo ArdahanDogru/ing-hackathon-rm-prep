@@ -3,6 +3,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { Lang, NarrativeBrief, Persona, RunView } from "../api/types";
 import { LangContext, useT } from "../i18n";
+import { withCode } from "../product";
 
 const POLL_MS = 2000;
 const POLL_MAX = 10;
@@ -150,7 +151,7 @@ export function BriefCard({
                     {cite.map((c) =>
                       view.options[c] ? (
                         <span key={c} title={view.options[c].label} className="rounded-full bg-white px-2 py-0.5 text-xs">
-                          {view.options[c].short_label}
+                          {withCode(c, view.options[c].short_label)}
                         </span>
                       ) : onEvidence && /^E[0-9a-f]+$/i.test(c) ? (
                         <button
