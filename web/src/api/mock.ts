@@ -112,6 +112,41 @@ function researchAnswer(load: Loader, runId: string): MockAnswer {
   return { status: 200, body: { ...MOCK_RESEARCH, products: marked } };
 }
 
+// Fund documents (W26): Nurol funds ok (two links), AIS not_found, IST failed, the rest
+// not_covered (the İş Portföy text for an İş Portföy fund); other kinds 422.
+const IS_REASON = "İş Portföy: robots.txt belge yolunu engelliyor; belgeler KAP'ta.";
+
+function documentsAnswer(load: Loader, runId: string, optionId: string): MockAnswer {
+  const found = runOf(load, runId);
+  if (!found) return notFound(`unknown run ${runId}`);
+  const o = (found.run as unknown as { options: Record<string, { issuer?: string; kind?: string } | undefined> }).options[optionId];
+  if (!o) return notFound(`unknown option ${optionId}`);
+  if (o.kind !== "fund" && o.kind !== "etf") return { status: 422, body: { detail: `documents only for funds and ETFs, not ${o.kind}` } };
+  const code = (optionId.split(":")[1] ?? optionId).toLowerCase();
+  const issuer = o.issuer ?? "";
+  const base = { manager_label: issuer, verdict: "", docs: [], page_url: "", checked_at: new Date().toISOString(), reason: "" };
+  if (issuer.startsWith("Nurol")) {
+    const site = "https://www.nurolportfoy.com.tr";
+    return {
+      status: 200,
+      body: {
+        ...base,
+        status: "ok",
+        verdict: "izahname and ybf found",
+        page_url: `${site}/fonlar/${code}`,
+        docs: [
+          { kind: "izahname", label: "İzahname", url: `${site}/belgeler/${code}-izahname.pdf`, date: "2025-02-04" },
+          { kind: "ybf", label: "Yatırımcı Bilgi Formu", url: `${site}/belgeler/${code}-ybf.pdf`, date: "2026-03-13" },
+        ],
+      },
+    };
+  }
+  if (code === "ais") return { status: 200, body: { ...base, status: "not_found", page_url: "https://www.akportfoy.com.tr/fonlar/ais" } };
+  if (code === "ist") return { status: 200, body: { ...base, status: "failed", reason: "timeout" } };
+  const reason = issuer.startsWith("İş Portföy") ? IS_REASON : `${issuer || "Kurucu"}: belge bağlantıları bu kurucu için tanımlı değil.`;
+  return { status: 200, body: { ...base, status: "not_covered", reason } };
+}
+
 function setMark(req: Record<string, unknown>): MockAnswer {
   const id = req.finding_id;
   const mark = req.mark ?? null;
@@ -167,6 +202,7 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
     if (method === "GET" && c === "research" && !d) return researchAnswer(load, b ?? "");
     if (method === "GET" && c === "agent" && !d) return agentAnswer(load, b ?? "");
     if (method === "POST" && c === "agent" && !d) return startAgent(load, b ?? "", req);
+    if (method === "GET" && c === "options" && d && e === "documents") return documentsAnswer(load, b ?? "", d);
     if (method === "POST" && c === "research" && d === "questions") {
       const question = String(req.question ?? "");
       if (/müşteri|client/i.test(question)) {

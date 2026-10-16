@@ -29,6 +29,7 @@ export function FundCard({
   onToggle,
   onEvidence,
   explanation,
+  documents,
 }: {
   option: OptionView;
   selected?: boolean;
@@ -37,6 +38,8 @@ export function FundCard({
   onEvidence?: (evidenceId: string) => void;
   /** W16: the engine's reasoning; without it the card shows the `why` lines. */
   explanation?: Explanation | null;
+  /** W26: the "Belgeler" block (the drawer gives it; the card list does not) */
+  documents?: ReactNode;
 }) {
   const t = useT();
   const lang = useContext(LangContext);
@@ -110,6 +113,8 @@ export function FundCard({
           </div>
         </>
       )}
+
+      {documents}
 
       <BankContext context={o.bank_context} onEvidence={(id) => onEvidence?.(id)} />
 

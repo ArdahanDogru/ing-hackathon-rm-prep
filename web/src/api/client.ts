@@ -2,6 +2,7 @@
 // Vite proxy (dev), the mock middleware (dev:mock) or `rmprep serve` answers.
 import type {
   AgentDecision,
+  FundDocuments,
   FindingMark,
   EvidenceItem,
   GlossaryTerm,
@@ -102,6 +103,9 @@ export const api = {
   brief,
   research,
   agentStatus,
+  /** GET /runs/{id}/options/{option_id}/documents (W26): the izahname / YBF links on the manager's site. */
+  documents: (runId: string, optionId: string) =>
+    request<FundDocuments>("GET", `/runs/${enc(runId)}/options/${enc(optionId)}/documents`),
   /** POST /runs/{id}/agent {n} (W24): the RM starts the agent; 202 with the running decision; 422 for a bad n. */
   startAgent: (runId: string, n: number) => request<AgentDecision>("POST", `/runs/${enc(runId)}/agent`, { n }),
   /** POST /research/marks (W24): ✓ "ok", ✗ "wrong" or null (no mark) for one finding. */
