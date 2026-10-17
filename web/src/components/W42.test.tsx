@@ -125,3 +125,18 @@ test("W42 EN block", () => {
   renderDashboard(testRun(), () => {}, "EN");
   expect(screen.getByTestId("profile-checks")).toHaveTextContent("Conflicting profile information (1)");
 });
+
+test("W48: the findings are cards side by side, a stripe and a label for the kind, a calm block", () => {
+  const v = testRun();
+  v.profile_checks = [...v.profile_checks!, { ...v.profile_checks![0], id: "c2", kind: "confirm", text: "Bir soru" }];
+  renderDashboard(v);
+  const block = screen.getByTestId("profile-checks");
+  expect(block).not.toHaveClass("bg-[#FFFAEB]");
+  expect(block).toHaveAttribute("data-tone", "conflict");
+  expect(block.querySelector("ul")).toHaveClass("grid", "md:grid-cols-2", "xl:grid-cols-3");
+  const [conflict, ask] = within(block).getAllByTestId("profile-check");
+  expect(conflict).toHaveClass("border-l-4", "border-l-[#F79009]", "bg-white");
+  expect(conflict).toHaveTextContent("Çelişki");
+  expect(ask).toHaveClass("border-l-[#98A2B3]");
+  expect(ask).toHaveTextContent("Sorulacak");
+});

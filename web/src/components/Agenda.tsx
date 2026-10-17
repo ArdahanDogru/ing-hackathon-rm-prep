@@ -1,5 +1,5 @@
 // "Gündem · müşteriyle konuşulacaklar": talking points as checkable agenda items,
-// then the "Teyit edin" items (B4 item 4, left column).
+// then the "Teyit edin" items (B4 item 4). W47: over the full width, the points side by side.
 import type { ConfirmItem, TalkingPoint } from "../api/types";
 import { useT } from "../i18n";
 
@@ -26,9 +26,9 @@ export function Agenda({
   return (
     <section data-testid="agenda" className="h-full rounded-2xl bg-white px-[22px] py-5 shadow-sm">
       <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.06em] text-muted">{t("agenda")}</h2>
-      <ul>
+      <ul className="mb-4 grid gap-x-8 gap-y-3 lg:grid-cols-3">
         {points.slice(0, 3).map((p, i) => (
-          <li key={p.code} data-testid="agenda-point" className="mb-4 flex items-start gap-3">
+          <li key={p.code} data-testid="agenda-point" className="flex items-start gap-3">
             <input
               type="checkbox"
               className="mt-1"
@@ -56,7 +56,7 @@ export function Agenda({
       {confirm.length > 0 && (
         <div className="border-t border-gray-100 pt-3.5">
           <h3 className="mb-2 font-bold text-[#B54708]">{t("confirm")}</h3>
-          <ul className="space-y-3">
+          <ul className="grid gap-x-8 gap-y-3 lg:grid-cols-2">
             {confirm.map((c, i) => (
               <li key={c.text} data-testid="confirm-item" className="flex items-start gap-3">
                 <input

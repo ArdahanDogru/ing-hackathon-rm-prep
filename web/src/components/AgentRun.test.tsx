@@ -31,7 +31,7 @@ test("before a run: the text, the field Aday sayısı (10) and Ajanı çalışt�
   expect(box).not.toHaveTextContent("henüz çalıştırılmadı");
   expect(screen.queryByTestId("agent-panel")).toBeNull();
   expect(screen.getAllByTestId("option-card").map((c) => c.getAttribute("aria-label"))).toEqual(v.top.map((id) => v.options[id].label));
-  // the box sits next to Gündem (W23 row 1)
+  // the box is in row 1, under Gündem (W47)
   expect(within(screen.getByTestId("dash-row1")).getByTestId("agent-picks")).toBe(box);
 });
 
@@ -103,7 +103,7 @@ test("off for another reason (no key): the reason and no button", async () => {
   expect(screen.queryByTestId("agent-panel")).toBeNull();
 });
 
-test("no agent on the server (404): no box, Gündem and Öneriler side by side", async () => {
+test("no agent on the server (404): no box, Öneriler under Gündem", async () => {
   const get = vi.spyOn(api, "agentStatus").mockResolvedValue(null);
   renderDashboard(view());
   await waitFor(() => expect(get).toHaveBeenCalled());

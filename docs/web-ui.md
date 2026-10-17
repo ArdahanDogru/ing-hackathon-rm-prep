@@ -592,6 +592,30 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### Gündem over the full width; the eliminated count without a minus (W47, 2026-10-17)
+
+The user, 2026-10-17: "Make the Gündem section span horizontally; and the Ajan
+değerlendirmesi section comes under it", and "194 elendi", not "−194 elendi".
+
+- Dashboard: `dash-agenda` (Gündem, full width) → `dash-row1` (the agent box; without
+  it Öneriler; before a ready run the questions) → `dash-row2` (Öneriler under the
+  agent box). This replaces the W23 grid `lg:grid-cols-[1fr_2fr]`.
+- Gündem: the three talking points side by side (`lg:grid-cols-3`), the "Teyit edin"
+  items in two columns (`lg:grid-cols-2`); one column on narrow screens.
+- "3 · Kesin kurallar": the big number is the count without a sign.
+
+### The profile findings as calm cards side by side (W48, 2026-10-17)
+
+The user, 2026-10-17: the conflict alerts are "not pretty"; make them easier on the
+eyes and maybe horizontal. The block (W42–W44) is now a neutral box (no amber
+background): a title row (a small "!" or "?" mark, "Profilde çelişki (n)" or
+"Sorulacak (n)", the AI state), then one white card per finding in a grid
+(`md:grid-cols-2 xl:grid-cols-3`). A card has a 4 px stripe on the left (amber
+`#F79009` for a conflict, grey `#98A2B3` for a question), a soft label "Çelişki" or
+"Sorulacak" (new key `pcConflict`), the AI label for an AI finding, the text, the
+quotes as grey chips, and the W44 actions at the bottom of the card. Texts, test
+ids and the W44 rules are unchanged.
+
 ### Turkish only; no other banks' rates on the screen (W46, 2026-10-17)
 
 The user, 2026-10-17: "Remove the English part of the system" and remove the

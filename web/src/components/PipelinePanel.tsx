@@ -187,7 +187,7 @@ export function PipelinePanel({ view, onOpen, onDetails, agent = null }: {
               <div className="text-[13px] leading-normal text-[#344054]">{t("pipeUniverseText")}</div>
               <Bar pct={100} color={colors.chart} />
             </Step>
-            <Step n={3} title={t("pipeRules")} big={`−${rejected}`} unit={t("pipeEliminated")} tone={colors.bad.fg}
+            <Step n={3} title={t("pipeRules")} big={String(rejected)} unit={t("pipeEliminated")} tone={colors.bad.fg}
               link={link(t("pipeSeeEliminated"), "eliminated")}>
               <div className="text-[13px] leading-normal text-[#344054]">{t("pipeRulesText")}</div>
               <ul className="flex flex-col gap-2.5">

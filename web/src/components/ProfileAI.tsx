@@ -68,32 +68,55 @@ export function aiConfirms(v: ProfileAIView | null | undefined): ConfirmItem[] {
   return findings(v).map((f) => ({ text: f.text, question_id: null, choices: [] }));
 }
 
-/** The AI findings in the profile block: the label, the text, the quotes side by side. */
+/** W48: one finding = one white card in the row of the profile block; a colored stripe on the left
+ * (amber: a conflict, grey: a question), the action at the bottom so the cards of a row line up. */
+export const findingCard = (kind: ProfileCheck["kind"]) =>
+  `flex flex-col gap-1.5 rounded-lg border border-l-4 border-gray-200 bg-white px-3 py-2.5 text-[13px] leading-snug text-[#344054] ${
+    kind === "conflict" ? "border-l-[#F79009]" : "border-l-[#98A2B3]"
+  }`;
+
+/** W48: the soft label on top of a card: "Çelişki" (amber) or "Sorulacak" (grey). */
+export function KindChip({ kind }: { kind: ProfileCheck["kind"] }) {
+  const t = useT();
+  return (
+    <span
+      className={`rounded px-1.5 py-px text-[11px] font-semibold ${
+        kind === "conflict" ? "bg-[#FFFAEB] text-[#B54708]" : "bg-[#F2F4F7] text-[#475467]"
+      }`}
+    >
+      {t(kind === "conflict" ? "pcConflict" : "pcConfirm")}
+    </span>
+  );
+}
+
+/** The AI findings in the profile block: the labels, the text, the quotes under it. */
 export function AIFindings({ view, resolve }: { view: ProfileAIView | null | undefined; resolve?: ResolveProps }) {
   const t = useT();
   return (
     <>
       {findings(view).map((f, i) => (
-        <li
-          key={aiId(f, i)}
-          data-testid="profile-check"
-          data-kind={f.kind}
-          className={f.kind === "conflict" ? "font-medium" : "font-normal text-[#475467]"}
-        >
+        <li key={aiId(f, i)} data-testid="profile-check" data-kind={f.kind} className={findingCard(f.kind)}>
           <span data-testid="ai-finding" data-kind={f.kind} className="contents">
-            <span className="mr-1.5 rounded bg-white px-1.5 text-[11px] font-semibold text-[#6941C6]">{t("aiFound")}</span>
-            {f.text}
+            <span className="flex flex-wrap gap-1.5">
+              <KindChip kind={f.kind} />
+              <span className="rounded bg-[#F4F3FF] px-1.5 py-px text-[11px] font-semibold text-[#6941C6]">{t("aiFound")}</span>
+            </span>
+            <span>{f.text}</span>
             {f.quotes.length > 0 && (
-              <span className="mt-1 flex flex-wrap gap-1.5 text-xs font-normal">
+              <span className="flex flex-wrap gap-1.5 text-xs">
                 {f.quotes.map((q, j) => (
-                  <span key={j} data-testid="ai-quote" className="rounded border border-[#FEC84B] bg-white px-1.5 py-px text-[#475467]">
+                  <span key={j} data-testid="ai-quote" className="rounded border border-gray-200 bg-[#F9FAFB] px-1.5 py-px text-[#475467]">
                     {`${t(`f_${q.field as keyof Persona}` as LabelKey)}: “${q.text}”`}
                   </span>
                 ))}
               </span>
             )}
           </span>
-          {f.kind === "conflict" && <Resolve id={aiId(f, i)} resolve={resolve} />}
+          {f.kind === "conflict" && (
+            <div className="mt-auto">
+              <Resolve id={aiId(f, i)} resolve={resolve} />
+            </div>
+          )}
         </li>
       ))}
     </>
@@ -101,11 +124,11 @@ export function AIFindings({ view, resolve }: { view: ProfileAIView | null | und
 }
 
 /** "AI kontrolü sürüyor…" while it runs; "AI kontrolü yapılamadı" with the reason when it failed. */
-export function AIStatus({ view }: { view: ProfileAIView | null | undefined }) {
+export function AIStatus({ view, className = "mt-2" }: { view: ProfileAIView | null | undefined; className?: string }) {
   const t = useT();
   if (view?.state !== "running" && view?.state !== "failed") return null;
   return (
-    <p data-testid="ai-check-status" className="mt-2 text-xs text-muted">
+    <p data-testid="ai-check-status" className={`${className} text-xs text-muted`}>
       {view.state === "running" ? t("aiRunning") : `${t("aiFailed")}${view.reason ? ` (${view.reason})` : ""}`}
     </p>
   );

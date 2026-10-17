@@ -152,13 +152,10 @@ export function Dashboard({
 
       {ready && <AgentPanel decision={agent} />}
 
-      {/* W23: with the agent box, row 1 = Gündem and the agent box (same height: the grid
-          stretches both; the taller content sets the row height), row 2 = Öneriler over the full
-          width. Without it, Gündem and Öneriler side by side as before. One column on narrow screens. */}
-      <div
-        data-testid="dash-row1"
-        className={`mb-6 grid gap-6 lg:grid-cols-[1fr_2fr] ${agentBox ? "items-stretch" : "items-start"}`}
-      >
+      {/* W47 (the user, 2026-10-17): Gündem over the full width; under it row 1 = the agent box
+          (or Öneriler without it, or the questions before a ready run); row 2 = Öneriler under the
+          agent box. Was W23: Gündem and the agent box side by side. */}
+      <div data-testid="dash-agenda" className="mb-6">
         <Agenda
           points={view.talking_points}
           confirm={toConfirm}
@@ -169,6 +166,8 @@ export function Dashboard({
           onAnswer={answer}
           onEvidence={setEvidenceId}
         />
+      </div>
+      <div data-testid="dash-row1" className="mb-6">
         {!ready ? (
           <QuestionsPanel questions={r.questions} onAnswer={answer} />
         ) : !view.top.length ? (

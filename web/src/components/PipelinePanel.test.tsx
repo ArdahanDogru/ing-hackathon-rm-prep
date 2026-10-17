@@ -135,3 +135,10 @@ test("W17b EN: weights and the holdings line", async () => {
   expect(step).toHaveTextContent("Portfolio gap");
   expect(within(step).getByTestId("pipe-holdings")).toHaveTextContent("Portfolio split: confirmed by the RM");
 });
+
+test("W47: step 3 shows the eliminated count without a minus sign", () => {
+  const { v } = setup();
+  const step = screen.getAllByTestId("pipeline-step")[2];
+  expect(step).toHaveTextContent(`${v.result.rejected.length} elendi`);
+  expect(step).not.toHaveTextContent("−");
+});

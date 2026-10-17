@@ -2,7 +2,7 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { Lang, NarrativeBrief, Persona, ProfileAIView, ProfileCheck, RunView } from "../api/types";
-import { AIFindings, AIStatus, aiChecks } from "./ProfileAI";
+import { AIFindings, AIStatus, aiChecks, findingCard, KindChip } from "./ProfileAI";
 import { Resolve, type ResolveProps } from "./Resolve";
 import { fill, LangContext, useT } from "../i18n";
 import { withCode } from "../product";
@@ -55,30 +55,38 @@ function ProfileChecks({ checks = [], ai, resolve }: { checks?: ProfileCheck[]; 
   const all = [...checks, ...aiChecks(ai)];
   if (!all.length) return <AIStatus view={ai} />;
   const conflicts = all.some((c) => c.kind === "conflict");
+  // W48: a calm neutral block; the title row (a small mark, the count, the AI state), then the
+  // findings as cards side by side (one column on narrow screens)
   return (
-    <div
-      data-testid="profile-checks"
-      className={`mt-3 max-w-[70ch] rounded-xl border px-4 py-2.5 text-sm ${
-        conflicts ? "border-[#FEC84B] bg-[#FFFAEB] text-[#93370D]" : "border-gray-200 bg-[#F9FAFB] text-[#344054]"
-      }`}
-    >
-      <b>{fill(t(conflicts ? "pcTitle" : "pcConfirmTitle"), { n: all.length })}</b>
-      <ul className="mt-1 space-y-1">
+    <div data-testid="profile-checks" data-tone={conflicts ? "conflict" : "confirm"} className="mt-3 rounded-xl border border-gray-200 bg-[#FCFCFD] px-4 py-3 text-sm">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <span
+          aria-hidden
+          className={`grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold ${
+            conflicts ? "bg-[#FEF0C7] text-[#B54708]" : "bg-[#F2F4F7] text-[#475467]"
+          }`}
+        >
+          {conflicts ? "!" : "?"}
+        </span>
+        <b className="text-[#101828]">{fill(t(conflicts ? "pcTitle" : "pcConfirmTitle"), { n: all.length })}</b>
+        <AIStatus view={ai} className="" />
+      </div>
+      <ul className="mt-2.5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {checks.map((c) => (
-          <li
-            key={c.id}
-            data-testid="profile-check"
-            data-kind={c.kind}
-            className={c.kind === "conflict" ? "font-medium" : "font-normal text-[#475467]"}
-          >
-            {c.kind === "confirm" && <span className="mr-1.5 rounded bg-white px-1.5 text-[11px] font-semibold text-[#475467]">{t("pcConfirm")}</span>}
-            {c.text}
-            {c.kind === "conflict" && <Resolve id={c.id} resolve={resolve} />}
+          <li key={c.id} data-testid="profile-check" data-kind={c.kind} className={findingCard(c.kind)}>
+            <span className="flex">
+              <KindChip kind={c.kind} />
+            </span>
+            <span>{c.text}</span>
+            {c.kind === "conflict" && (
+              <div className="mt-auto">
+                <Resolve id={c.id} resolve={resolve} />
+              </div>
+            )}
           </li>
         ))}
         <AIFindings view={ai} resolve={resolve} />
       </ul>
-      <AIStatus view={ai} />
       {resolve?.decided && resolve.recorded && resolve.recorded.ai_check !== "done" && (
         <p data-testid="ai-not-done" className="mt-2 text-xs text-muted">
           {fill(t("aiNotDone"), { state: resolve.recorded.ai_check })}

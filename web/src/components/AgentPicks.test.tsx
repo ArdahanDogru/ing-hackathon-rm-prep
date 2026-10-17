@@ -180,16 +180,20 @@ test("W20 EN", async () => {
 
 // --- W23: the layout of the dashboard rows ------------------------------------------------------
 
-test("with the agent box: row 1 = Gündem and the agent box at the same height, row 2 = Öneriler over the full width", async () => {
+test("W47: Gündem over the full width, then the agent box (row 1), then Öneriler (row 2)", async () => {
   await showWith(agentDecision(view(), "done"));
-  const row1 = await screen.findByTestId("dash-row1");
+  const agenda = await screen.findByTestId("dash-agenda");
+  const row1 = screen.getByTestId("dash-row1");
   const row2 = screen.getByTestId("dash-row2");
-  expect(row1).toHaveClass("grid", "items-stretch", "lg:grid-cols-[1fr_2fr]");
-  expect(within(row1).getByTestId("agenda")).toHaveClass("h-full");
-  expect(within(row1).getByTestId("agent-picks")).toHaveClass("h-full");
+  expect(within(agenda).getByTestId("agenda")).toBeInTheDocument();
+  expect(within(agenda).queryByTestId("agent-picks")).toBeNull();
+  expect(within(row1).getByTestId("agent-picks")).toBeInTheDocument();
+  expect(within(row1).queryByTestId("agenda")).toBeNull();
   expect(within(row1).queryByTestId("options-compare")).toBeNull();
   expect(within(row2).getByTestId("options-compare")).toBeInTheDocument();
+  expect(agenda.compareDocumentPosition(row1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(row1.compareDocumentPosition(row2) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(within(agenda).getByTestId("agenda").querySelector("ul")).toHaveClass("lg:grid-cols-3"); // the points side by side
 });
 
 test("while the agent runs the box is in row 1 too", async () => {
@@ -198,11 +202,9 @@ test("while the agent runs the box is in row 1 too", async () => {
   expect(within(screen.getByTestId("dash-row2")).getByTestId("options-compare")).toBeInTheDocument();
 });
 
-test("without the agent box (no agent on the server): Gündem and Öneriler side by side as before, no second row", async () => {
+test("without the agent box (no agent on the server): Gündem on top, Öneriler under it, no second row", async () => {
   await showWith(null);
-  const row1 = screen.getByTestId("dash-row1");
-  expect(row1).toHaveClass("lg:grid-cols-[1fr_2fr]");
-  expect(within(row1).getByTestId("agenda")).toBeInTheDocument();
-  expect(within(row1).getByTestId("options-compare")).toBeInTheDocument();
+  expect(within(screen.getByTestId("dash-agenda")).getByTestId("agenda")).toBeInTheDocument();
+  expect(within(screen.getByTestId("dash-row1")).getByTestId("options-compare")).toBeInTheDocument();
   expect(screen.queryByTestId("dash-row2")).toBeNull();
 });
