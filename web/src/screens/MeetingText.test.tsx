@@ -481,19 +481,19 @@ test("the page always ends with the disclaimer", async () => {
   expect((await screen.findByTestId("presentation")).lastElementChild!.lastElementChild).toHaveTextContent(/yatırım tavsiyesi değildir/);
 });
 
-// --- W28: one page; "Müşteri görünümü" ---------------------------------------------------
+// --- W28: one page; "Sunum görünümü" ---------------------------------------------------
 
-test("Müşteri görünümü hides everything for the RM; a second click brings it back", async () => {
+test("Sunum görünümü hides everything for the RM; a second click brings it back", async () => {
   mockNarrative(narrative());
   renderMeeting(sample("run_p01_approved"));
   await screen.findAllByTestId("rm-note");
-  const toggle = screen.getByRole("button", { name: "👁 Müşteri görünümü" });
+  const toggle = screen.getByRole("button", { name: "👁 Sunum görünümü" });
   await userEvent.click(toggle);
-  expect(screen.getByRole("button", { name: "👁 Müşteri görünümü açık" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "👁 Sunum görünümü açık" })).toHaveAttribute("aria-pressed", "true");
   for (const id of ["rm-note", "pres-comment", "src-mark", "pres-hint", "card-box", "rm-notes"]) expect(screen.queryAllByTestId(id)).toHaveLength(0);
   expect(screen.queryAllByRole("button", { name: /düzenle$/i })).toHaveLength(0);
   expect(screen.getByTestId("presentation")).toHaveTextContent(sectionText("teklif_metni"));
-  await userEvent.click(screen.getByRole("button", { name: "👁 Müşteri görünümü açık" }));
+  await userEvent.click(screen.getByRole("button", { name: "👁 Sunum görünümü açık" }));
   expect(screen.getAllByTestId("rm-note").length).toBeGreaterThan(0);
 });
 

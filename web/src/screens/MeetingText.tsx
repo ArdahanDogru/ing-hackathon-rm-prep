@@ -15,6 +15,7 @@ import { EvidencePopup } from "../components/EvidencePopup";
 import { FindingList, isBlocking } from "../components/FindingList";
 import { sourceName } from "../components/KindBadge";
 import { LifecycleTabs } from "../components/LifecycleTabs";
+import { NarrativeProgress } from "../components/NarrativeProgress";
 import { NotesBox, type SaveState } from "../components/NotesBox";
 import { SourceList, type Source } from "../components/SourceList";
 import { fmtDateTime } from "../format";
@@ -73,7 +74,7 @@ export function MeetingText({ view }: { view: RunView }) {
   const [openBlock, setOpenBlock] = useState<string | null>(null);
   const [blockError, setBlockError] = useState<string | null>(null);
   const [blockBusy, setBlockBusy] = useState(false);
-  /** "Müşteri görünümü": the page as the client sees it (and as it prints), without the RM's help */
+  /** "Sunum görünümü": the page as the client sees it (and as it prints), without the RM's help */
   const [preview, setPreview] = useState(false);
 
   const load = useCallback(() => {
@@ -446,7 +447,7 @@ export function MeetingText({ view }: { view: RunView }) {
       {loadError ? (
         <ErrorBox error={loadError} onRetry={load} />
       ) : !draft ? (
-        <p className="animate-pulse rounded-2xl bg-white p-6 text-base text-muted shadow-sm">{t("textPreparing")}</p>
+        <NarrativeProgress view={view} />
       ) : (
         <div className={preview ? "mx-auto max-w-[960px]" : "grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_300px]"}>
           {markdown ? (

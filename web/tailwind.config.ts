@@ -14,6 +14,9 @@ export default {
         cobalt: colors.chart,
         catgrey: colors.category,
       },
+      // W41: the steps of the meeting-text wait come in one by one
+      keyframes: { rise: { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "none" } } },
+      animation: { rise: "rise 0.35s ease-out both" },
     },
   },
   plugins: [],
