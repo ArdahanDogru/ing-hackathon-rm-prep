@@ -83,38 +83,70 @@ function seconds(n: AgentNode): number | null {
 /** The option id of a sub-node "arastirma:fund:PPN"; "" for other sub-nodes. */
 const subOption = (id: string) => (id.startsWith("arastirma:") ? id.slice("arastirma:".length) : "");
 
-function NodeDetails({ node }: { node: AgentNode }) {
+/** W40: what each stage does, on top of its opened box (fixed screen texts; docs/web-ui.md W40). */
+const STAGE_DESC: Record<string, LabelKey> = {
+  adaylar: "stageAdaylar",
+  arastirma: "stageArastirma",
+  analiz: "stageAnaliz",
+  kontrol: "stageKontrol",
+  karar: "stageKarar",
+};
+
+function NodeDetails({ node, n }: { node: AgentNode; n: number }) {
   const t = useT();
+  const desc = STAGE_DESC[node.id];
   return (
     <div data-testid="node-details" className="mt-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-[13px] text-[#344054]">
       <b>{node.label}</b>
+      {desc && (
+        <p data-testid="node-desc" className="mt-1 text-muted">
+          {fill(t(desc), { n })}
+        </p>
+      )}
       {node.notes.length > 0 ? (
-        <ul className="mt-1 list-disc space-y-0.5 pl-5">
-          {node.notes.map((x) => (
-            <li key={x}>{x}</li>
-          ))}
+        <ul className="mt-2 space-y-0.5">
+          {node.notes.map((x, k) => {
+            const problem = x.startsWith("– "); // a problem under "k. öneri: …"
+            return (
+              <li
+                key={`${k}|${x}`}
+                data-testid="node-note"
+                data-problem={problem ? "true" : undefined}
+                className={problem ? "pl-5 text-[#93370D]" : "ml-4 list-disc"}
+              >
+                {x}
+              </li>
+            );
+          })}
         </ul>
       ) : (
         !node.children.length && <p className="mt-1 text-muted">{t("nodeNoNotes")}</p>
       )}
       {node.children.length > 0 && (
         <ul className="mt-2 space-y-1">
-          {node.children.map((c) => (
-            <li key={c.id} className="flex flex-wrap items-baseline gap-x-2">
-              <span className={c.state === "failed" ? "text-[#B42318]" : ""}>
-                {`${c.state === "done" ? "✓" : c.state === "failed" ? "✕" : "·"} `}
-                {/* W28: a research sub-node "arastirma:<option id>" carries the product code */}
-                <CodeBadge optionId={subOption(c.id)} />
-                {productCode(subOption(c.id)) === c.label ? "" : c.label}
-              </span>
-              <span className="text-xs text-muted">{t(STATE_WORD[c.state])}</span>
-              {c.notes.map((x) => (
-                <span key={x} className="basis-full pl-4 text-xs text-muted">
-                  {x}
+          {node.children.map((c) => {
+            // W40: a proposal that the checks returned is a normal step of the analysis, not a failure
+            const returned = node.id === "analiz" && c.state === "failed";
+            const mark = c.state === "done" ? "✓" : returned ? "↺" : c.state === "failed" ? "✕" : "·";
+            return (
+              <li key={c.id} data-testid="node-step" data-state={c.state} className="flex flex-wrap items-baseline gap-x-2">
+                <span className={c.state === "failed" && !returned ? "text-[#B42318]" : ""}>
+                  {`${mark} `}
+                  {/* W28: a research sub-node "arastirma:<option id>" carries the product code */}
+                  <CodeBadge optionId={subOption(c.id)} />
+                  {productCode(subOption(c.id)) === c.label ? "" : c.label}
                 </span>
-              ))}
-            </li>
-          ))}
+                <span data-testid="step-state" className={`text-xs ${returned ? "font-semibold text-[#B54708]" : "text-muted"}`}>
+                  {returned ? t("stepReturned") : t(STATE_WORD[c.state])}
+                </span>
+                {c.notes.map((x) => (
+                  <span key={x} className="basis-full pl-4 text-xs text-muted">
+                    {x}
+                  </span>
+                ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -166,7 +198,12 @@ export function AgentPanel({ decision }: { decision: AgentDecision | null }) {
           );
         })}
       </ol>
-      {opened && <NodeDetails node={opened} />}
+      {opened && (
+        <NodeDetails
+          node={opened}
+          n={decision.n_candidates || decision.nodes.find((x) => x.id === "arastirma")?.children.length || 10}
+        />
+      )}
     </section>
   );
 }
