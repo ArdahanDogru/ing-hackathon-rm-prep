@@ -50,7 +50,7 @@ test("done: the agent's picks with the badge, the engine place of a new pick, th
   const fresh = d.picks.findIndex((p) => !d.engine_top3.includes(p.option_id));
   const place = ranked(v).indexOf(d.picks[fresh].option_id) + 1;
   const picks = within(step).getAllByTestId("pipe-pick");
-  expect(picks[fresh]).toHaveTextContent(`motor: ${place}. sıra`);
+  expect(picks[fresh]).toHaveTextContent(`motor: puana göre ${place}.`);
   expect(picks[0]).not.toHaveTextContent("motor:");
   expect(within(step).getByTestId("pipe-agent")).toHaveTextContent(
     `Motorun önerisi: ${d.engine_top3.map((id) => name(v, id)).join(", ")}`,
@@ -87,7 +87,9 @@ test("W20b EN", () => {
   const step = step5(v, d, "EN");
   expect(within(step).getByText("Agent recommendation")).toBeInTheDocument();
   const fresh = d.picks.findIndex((p) => !d.engine_top3.includes(p.option_id));
-  expect(within(step).getAllByTestId("pipe-pick")[fresh]).toHaveTextContent(`engine: no. ${ranked(v).indexOf(d.picks[fresh].option_id) + 1}`);
+  const n = ranked(v).indexOf(d.picks[fresh].option_id) + 1;
+  const ord = n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th";
+  expect(within(step).getAllByTestId("pipe-pick")[fresh]).toHaveTextContent(`engine: ${n}${ord} by score`);
   expect(within(step).getByTestId("pipe-agent")).toHaveTextContent("The engine's recommendation:");
 });
 

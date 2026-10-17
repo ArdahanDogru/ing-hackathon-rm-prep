@@ -69,6 +69,9 @@ export function PipelinePanel({ view, onOpen, onDetails, agent = null }: {
   const rejected = r.rejected.length;
   const universe = scored + rejected;
   const ranked = [...r.options].sort(byScore);
+  // W41: a place in words: "1." in TR (the label adds the dot), "1st" in EN
+  const place = (n: number) =>
+    lang === "TR" ? String(n) : `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th"}`;
   // W32: "kendi grubunda" = the sub-type of the categories (category_key); the engine kind without a view
   const groupOf = (o: ScoredOption) => view.options[o.option.option_id]?.category_key ?? (o.option.fund_kind || o.option.kind);
   const picks = r.recommended
@@ -221,13 +224,13 @@ export function PipelinePanel({ view, onOpen, onDetails, agent = null }: {
                   const fresh = agentDone && !agent.engine_top3.includes(id);
                   let where: string;
                   if (!o) where = t("pipeAgentNotTop3");
-                  else if (fresh) where = fill(t("pipeAgentEnginePlace"), { n: ranked.indexOf(o) + 1 });
+                  else if (fresh) where = fill(t("pipeAgentEnginePlace"), { n: place(ranked.indexOf(o) + 1) });
                   else {
                     const overall = ranked.indexOf(o) + 1;
                     const inGroup = ranked.filter((x) => groupOf(x) === groupOf(o)).indexOf(o) + 1;
                     where = overall === inGroup
-                      ? fill(t("pipeRankOverall"), { n: overall })
-                      : `${fill(t("pipeRankOverall"), { n: overall })}, ${fill(t("pipeRankGroup"), { n: inGroup })}`;
+                      ? fill(t("pipeRankOverall"), { n: place(overall) })
+                      : `${fill(t("pipeRankOverall"), { n: place(overall) })}, ${fill(t("pipeRankGroup"), { n: place(inGroup) })}`;
                   }
                   return (
                     <li key={id} data-testid="pipe-pick">

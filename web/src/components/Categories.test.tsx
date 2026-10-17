@@ -98,7 +98,7 @@ test("step 5: 'kendi grubunda n.' counts within the pick's sub-type (category_ke
     const overall = ranked.findIndex((o) => o.option.option_id === id) + 1;
     const inGroup = ranked.filter((o) => v.options[o.option.option_id]?.category_key === key).findIndex((o) => o.option.option_id === id) + 1;
     expect(picks[i]).toHaveTextContent(v.options[id].category_label);
-    expect(picks[i]).toHaveTextContent(overall === inGroup ? `genel ${overall}. sıra` : `genel ${overall}. sıra, kendi grubunda ${inGroup}.`);
+    expect(picks[i]).toHaveTextContent(overall === inGroup ? `puana göre genel ${overall}.` : `puana göre genel ${overall}., kendi türünde ${inGroup}.`);
   });
 });
 
