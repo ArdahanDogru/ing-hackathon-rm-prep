@@ -66,3 +66,13 @@ def test_w28_product_codes_in_the_card(fake):
         assert code and f"{code} · {_label(r, oid)}" in md
     pick = d.picks[0].option_id
     assert f"**{product_code(pick)} · {_label(r, pick)}**" in md.split("## Ajan kararı", 1)[1]
+
+
+def test_the_card_lists_the_confirmations(fake):
+    r = _approved(fake)
+    record = {"resolutions": [{"id": "ai:abc", "source": "ai", "text": "Nakit ihtiyacı çelişiyor.",
+                               "note": "Peşinat ayrı hesapta."}], "ai_check": "running"}
+    md = card.render_markdown(r, fake.evidence(SNAPSHOT), resolutions=record)
+    assert "**Çözülen profil çelişkileri**" in md
+    assert "Nakit ihtiyacı çelişiyor. → Müşteriyle teyit edildi: Peşinat ayrı hesapta." in md
+    assert "AI kontrolü tamamlanmadan onaylandı (running)" in md

@@ -592,6 +592,42 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### A profile conflict must be resolved before the approval (W44, 2026-10-17)
+
+The user asked (2026-10-17) whether the RM has to clarify a conflict; before W44
+the conflicts were advice only (the "Teyit edin" checks lived in the browser).
+Approved ("whatever you recommend"):
+
+- **Conflicts** (kind `conflict`, from the rules W42 or the AI check W43 when it is
+  done) need the RM's confirmation before an **approval**: a short reason
+  ("Müşteriyle teyit edildi: …"). "Profili düzelt" needs no record: an edit is a
+  new run, where a remaining conflict must be confirmed again. **Questions** (kind
+  `confirm`) stay advice. A rejection needs nothing.
+- API (lead, done): `POST /approval` takes `resolutions: [{finding_id, note}]`;
+  an open conflict (no non-empty note for its id) → 422 "Çözülmemiş çelişki var:
+  <texts>". Finding ids: the rule id (e.g. `fx_open_vs_limit`), or `ai:<hash>` of
+  the AI finding (also in `GET /profile-check`). The record `{resolutions: [{id,
+  source, text, note}], ai_check, at}` is kept next to the run
+  (`data/runs/<run>.resolutions.json`, archived by the reset), shown in the
+  RunView as `resolutions` (null before an approval), logged with
+  `decision_approved` (`resolutions`, `ai_check`), and printed on the card
+  ("Çözülen profil çelişkileri", each "<text> → Müşteriyle teyit edildi: <note>";
+  "AI kontrolü tamamlanmadan onaylandı (<state>)" when the AI check was still
+  running or failed). **An AI check that is not done never blocks the approval.**
+- Web (ing-web): each conflict in the profile block gets two actions: "Profili
+  düzelt" (opens "Profili düzenle" with its fields marked) and "Müşteriyle teyit
+  edildi" (a small required text field for the reason; the item then shows the
+  reason and "teyit edildi"). The approval bar: while a conflict has no reason,
+  "Onayla ve metni hazırla" is disabled with "n çelişki çözülmedi" (a hover text
+  says how to resolve); the reasons go with the approval (`resolutions`); a 422
+  shows its text. After the approval the block shows the recorded reasons
+  (`RunView.resolutions`). TR and EN.
+- Tests: API `tests/api/test_conflict_resolution.py` (an open AI or rule conflict
+  blocks, an empty reason is no reason, the record / log / view, a running AI
+  check is noted, a rejection needs nothing) and the card test; web (the two
+  actions, the disabled button and its text, the request body, the 422 text,
+  the view after the approval, TR and EN).
+
 ### AI check of the client profile (W43, 2026-10-17)
 
 Approved by the user 2026-10-17 ("Layer 3 sounds good, an agentic check"). The

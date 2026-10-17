@@ -33,10 +33,16 @@ class AgentStartRequest(BaseModel):
     n: int | None = None
 
 
+class Resolution(BaseModel):          # W44: the RM's confirmation of a profile conflict
+    finding_id: str
+    note: str
+
+
 class ApprovalRequest(BaseModel):
     status: Literal["approved", "rejected"]
     note: str = ""
     selected: list[str] = []
+    resolutions: list[Resolution] = []  # W44
 
 
 class NotesRequest(BaseModel):

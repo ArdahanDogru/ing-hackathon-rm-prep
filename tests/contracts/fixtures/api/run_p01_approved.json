@@ -25832,6 +25832,7 @@
  },
  "test_run": false,
  "persona_changes": [],
+ "resolutions": null,
  "risk_ceiling": 2,
  "baseline": {
   "option_id": "deposit:ing_turuncu",

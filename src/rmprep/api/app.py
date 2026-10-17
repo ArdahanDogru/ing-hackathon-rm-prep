@@ -102,7 +102,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         if profile_check is not None:          # W43: the AI check of the profile, in the background
             profile_check.start(result)
         changes = _changes(result.persona)
-        out = {"result": result.to_dict(), "test_run": bool(changes), "persona_changes": changes}
+        out = {"result": result.to_dict(), "test_run": bool(changes), "persona_changes": changes,
+               "resolutions": _resolutions(result.run_id)}                   # W44
         if views is not None:
             out.update(views(result))
         return out
@@ -118,6 +119,23 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         if block_id in d.rm_edits:
             return d.rm_edits[block_id]
         return edits.block_text(d, block_id)
+
+    resolved: dict[str, dict] = {}     # W44: run id -> the RM's conflict confirmations
+
+    def _save_resolutions(run_id: str, record: dict) -> None:
+        resolved[run_id] = record
+        save = getattr(backend, "save_resolutions", None)
+        if callable(save):
+            save(run_id, record)
+
+    def _resolutions(run_id: str) -> dict | None:
+        if run_id not in resolved:
+            load = getattr(backend, "load_resolutions", None)
+            found = load(run_id) if callable(load) else None
+            if found is None:
+                return None
+            resolved[run_id] = found
+        return resolved[run_id]
 
     def _run(run_id: str) -> DecisionResult:
         if run_id not in runs:
@@ -228,7 +246,19 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     def approval(run_id: str, req: schemas.ApprovalRequest):
         before = _run(run_id)
         changes = _changes(before.persona)       # W30: an edited profile can be approved
+        record = None
+        if req.status == "approved" and profile_check is not None:
+            # W44: every profile conflict needs the RM's confirmation (with a reason) first
+            conflicts, ai_state = profile_check.conflicts(before, "TR")
+            notes = {r.finding_id: r.note.strip() for r in req.resolutions if r.note.strip()}
+            missing = [c for c in conflicts if c["id"] not in notes]
+            if missing:
+                raise ValueError("Çözülmemiş çelişki var: " + " · ".join(c["text"] for c in missing))
+            record = {"resolutions": [{**c, "note": notes[c["id"]]} for c in conflicts],
+                      "ai_check": ai_state, "at": datetime.now(TR_TZ).isoformat()}
         decided = backend.approve(run_id, RmStatus(req.status), req.note, tuple(req.selected))
+        if record is not None:
+            _save_resolutions(run_id, record)
         view = _view(decided)
         for lang in NARRATIVE_LANGS:              # the texts of an earlier decision no longer apply
             texts.pop((run_id, lang), None)
@@ -239,7 +269,9 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
                  "agent_top3": [p.option_id for p in d.picks] if d is not None else [],
                  "agent_state": d.state if d is not None else "none",
                  "selected": list(req.selected), "note": req.note,
-                 "test_run": bool(changes), "persona_changes": changes})   # W30
+                 "test_run": bool(changes), "persona_changes": changes,   # W30
+                 **({"resolutions": record["resolutions"], "ai_check": record["ai_check"]}
+                    if record is not None else {})})                         # W44
         return view
 
     @app.put("/api/runs/{run_id}/notes")
@@ -306,7 +338,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
                                   glossary_terms=terms,
                                   current_text=_current_text(run_id, lang, strict),
                                   agent=agent.status(run_id) if _agent_on() else None,
-                                  persona_changes=_changes(result.persona))   # W30
+                                  persona_changes=_changes(result.persona),   # W30
+                                  resolutions=_resolutions(run_id))           # W44
         backend.save_card(run_id, md)
         return md
 
@@ -432,6 +465,7 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         runs.clear()
         texts.clear()
         followed.clear()
+        resolved.clear()
         _log("reset", details=out)
         return out
 

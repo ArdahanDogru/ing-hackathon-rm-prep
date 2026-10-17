@@ -356,6 +356,21 @@ class RealBackend:
             self._edits.clear()
         return out
 
+    def save_resolutions(self, run_id: str, record: dict) -> None:
+        """W44: the RM's confirmations of the profile conflicts, next to the run (the
+        reset archives them with the runs)."""
+        path = self._paths.root / "data" / "runs" / f"{run_id}.resolutions.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(record, ensure_ascii=False, indent=1) + "\n", encoding="utf-8",
+                        newline="\n")
+
+    def load_resolutions(self, run_id: str) -> dict | None:
+        try:
+            return json.loads((self._paths.root / "data" / "runs" / f"{run_id}.resolutions.json")
+                              .read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+
     def _saved_run(self, run_id: str) -> DecisionResult | None:
         path = self._paths.root / "data" / "runs" / f"{run_id}.json"
         try:

@@ -39,7 +39,8 @@ class _Section:
 
 
 def _sections(r: DecisionResult, ev: EvidenceSet, lang: str,
-              persona_changes: Sequence[Mapping] = ()) -> list[_Section]:
+              persona_changes: Sequence[Mapping] = (),
+              resolutions: Mapping | None = None) -> list[_Section]:
     if r.rm_status != RmStatus.APPROVED:
         raise ValueError("only an approved run has a card")
     p = r.persona
@@ -48,6 +49,12 @@ def _sections(r: DecisionResult, ev: EvidenceSet, lang: str,
         client.items.append(_Item(f"{t('card_edited', lang)}: " + "; ".join(
             f"{t('f_' + c['field'], lang)}: {_value(c['original'])} → {_value(c['edited'])}"
             for c in persona_changes), strong=True))
+    res = resolutions or {}
+    done = [f"{x['text']} → {t('card_confirmed', lang)}: {x['note']}" for x in res.get("resolutions", ())]
+    if res.get("ai_check") not in (None, "done", "off"):
+        done.append(t("card_ai_not_done", lang).format(state=res["ai_check"]))
+    if done:                         # W44: the RM's confirmations of the profile conflicts
+        client.items.append(_Item(t("card_resolved", lang), tuple(done), strong=True))
     for f in dataclasses.fields(p):
         v = getattr(p, f.name)
         if f.name in views.LIST_FIELDS:
@@ -172,11 +179,12 @@ def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
                     glossary_terms: tuple[glossary.Term, ...] = (),
                     current_text: str | None = None,
                     agent: AgentDecision | None = None,
-                    persona_changes: Sequence[Mapping] = ()) -> str:
+                    persona_changes: Sequence[Mapping] = (),
+                    resolutions: Mapping | None = None) -> str:
     """current_text (W19, 2026-10-15): the meeting text as it is now, with the RM's
     edits, used when there is no approved text. agent (v1.11): the agent decision.
     persona_changes (W30): the fields of an edited profile ({field, original, edited})."""
-    body = _markdown_body(r, evidence, lang, narrative, current_text, agent, persona_changes)
+    body = _markdown_body(r, evidence, lang, narrative, current_text, agent, persona_changes, resolutions)
     found = _terms(body, glossary_terms, lang)
     if not found:
         return body
@@ -188,10 +196,11 @@ def render_markdown(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
 def _markdown_body(r: DecisionResult, evidence: EvidenceSet, lang: str,
                    narrative: NarrativeDraft | None, current_text: str | None = None,
                    agent: AgentDecision | None = None,
-                   persona_changes: Sequence[Mapping] = ()) -> str:
+                   persona_changes: Sequence[Mapping] = (),
+                   resolutions: Mapping | None = None) -> str:
     lines = [f"# {_title(r, lang)}", "", _meta(r, lang)]
     lines += _approvals(r, narrative, lang)
-    for s in _sections(r, evidence, lang, persona_changes):
+    for s in _sections(r, evidence, lang, persona_changes, resolutions):
         lines += ["", f"## {s.heading}", ""]
         for it in s.items:
             lines.append(f"- **{it.text}**" if it.strong else f"- {it.text}")
@@ -215,12 +224,13 @@ def render_html(r: DecisionResult, evidence: EvidenceSet, lang: str = "TR",
                 glossary_terms: tuple[glossary.Term, ...] = (),
                 current_text: str | None = None,
                 agent: AgentDecision | None = None,
-                persona_changes: Sequence[Mapping] = ()) -> str:
+                persona_changes: Sequence[Mapping] = (),
+                resolutions: Mapping | None = None) -> str:
     e = html.escape
     parts = ["<!DOCTYPE html>", f'<html lang="{lang.lower()}"><head><meta charset="utf-8">',
              f"<title>{e(_title(r, lang))}</title><style>{_CSS}</style></head><body>",
              f"<h1>{e(_title(r, lang))}</h1>", f'<p class="meta">{e(_meta(r, lang))}</p>']
-    for s in _sections(r, evidence, lang, persona_changes):
+    for s in _sections(r, evidence, lang, persona_changes, resolutions):
         parts.append(f"<h2>{e(s.heading)}</h2><ul>")
         for it in s.items:
             text = f"<strong>{e(it.text)}</strong>" if it.strong else e(it.text)

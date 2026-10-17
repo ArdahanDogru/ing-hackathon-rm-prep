@@ -118,6 +118,9 @@ LABELS: dict[str, dict[str, str]] = {
                   "EN": "Run {run_id} · data {snapshot} · {created}"},
     "card_client": {"TR": "Müşteri", "EN": "Client"},
     "card_edited": {"TR": "Düzenlenmiş profil ile hazırlandı", "EN": "Prepared with an edited profile"},  # W30
+    "card_resolved": {"TR": "Çözülen profil çelişkileri", "EN": "Resolved profile conflicts"},  # W44
+    "card_confirmed": {"TR": "Müşteriyle teyit edildi", "EN": "Confirmed with the client"},
+    "card_ai_not_done": {"TR": "AI kontrolü tamamlanmadan onaylandı ({state})", "EN": "Approved before the AI check was done ({state})"},
     "card_options": {"TR": "Görüşmede konuşulacak seçenekler", "EN": "Options to discuss"},
     "card_general_warnings": {"TR": "Genel uyarılar", "EN": "General warnings"},
     "card_sources": {"TR": "Kaynaklar", "EN": "Sources"},

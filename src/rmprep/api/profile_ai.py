@@ -184,7 +184,9 @@ def validate(raw: Mapping[str, Any], persona: Persona, rule_fields: list[set[str
         if not ok:
             dropped += 1
             continue
-        kept.append({"kind": f["kind"], "fields": sorted(fields, key=FIELDS.index),
+        ident = hashlib.sha1(json.dumps([f["kind"], sorted((q["field"], _norm(q["text"])) for q in quotes)],
+                                        ensure_ascii=False).encode("utf-8")).hexdigest()[:10]
+        kept.append({"id": f"ai:{ident}", "kind": f["kind"], "fields": sorted(fields, key=FIELDS.index),
                      "quotes": [{"field": q["field"], "text": str(q["text"]).strip()} for q in quotes],
                      "explanation": {"TR": f["explanation_tr"].strip(), "EN": f["explanation_en"].strip()}})
     return kept, dropped
@@ -353,7 +355,8 @@ class ProfileCheck:
     """The API side: starts the check when a run opens and answers the route with
     the findings in the RM's language (repeats of a rule finding left out)."""
 
-    def __init__(self, ai: ProfileAI, decision_config: DecisionConfig, texts: Mapping | None) -> None:
+    def __init__(self, ai: ProfileAI | None, decision_config: DecisionConfig, texts: Mapping | None) -> None:
+        """ai None: only the fixed rules (the route answers off, conflicts are the rules')."""
         self._ai, self._dc, self._texts = ai, decision_config, texts
 
     @staticmethod
@@ -361,6 +364,8 @@ class ProfileCheck:
         return {q.question_id: q.answer for q in result.questions if q.answer is not None}
 
     def start(self, result) -> None:
+        if self._ai is None:
+            return
         try:
             self._ai.start(result.persona, self._answers(result))
         except Exception as e:          # never breaks the run view
@@ -369,8 +374,22 @@ class ProfileCheck:
     def status(self, result, lang: str = "TR") -> dict:
         from rmprep.api.profile_checks import check_run
         rules = check_run(result, self._dc, self._texts, lang) if self._texts else []
+        if self._ai is None:
+            return {"state": "off", "findings": [], "reason": "the AI check is not configured"}
         out = self._ai.status(result.persona, self._answers(result), [set(r["fields"]) for r in rules])
-        out["findings"] = [{"kind": f["kind"], "fields": f["fields"], "quotes": f["quotes"],
+        out["findings"] = [{"id": f["id"], "kind": f["kind"], "fields": f["fields"], "quotes": f["quotes"],
                             "text": f["explanation"].get(lang, f["explanation"]["TR"])}
                            for f in out.get("findings", [])]
         return out
+
+    def conflicts(self, result, lang: str = "TR") -> tuple[list[dict], str]:
+        """W44: the conflict findings the RM must resolve before an approval (the rules'
+        and, when the AI check is done, the AI's), and the AI check's state."""
+        from rmprep.api.profile_checks import check_run
+        rules = check_run(result, self._dc, self._texts, lang) if self._texts else []
+        out = [{"id": r["id"], "source": "rule", "text": r["text"]} for r in rules if r["kind"] == "conflict"]
+        ai = self.status(result, lang)
+        if ai["state"] == "done":
+            out += [{"id": f["id"], "source": "ai", "text": f["text"]}
+                    for f in ai["findings"] if f["kind"] == "conflict"]
+        return out, ai["state"]

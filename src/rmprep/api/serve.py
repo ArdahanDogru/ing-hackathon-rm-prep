@@ -87,8 +87,8 @@ def _profile_check(root):
     from rmprep.api.profile_ai import ProfileCheck, profile_ai_from_root
     from rmprep.decision import load_config
     dc = load_config(Path(root) / "config" / "decision.yaml")
-    ai = profile_ai_from_root(root, dc)
-    return ProfileCheck(ai, dc, _profile_texts(root)) if ai is not None else None
+    ai, texts = profile_ai_from_root(root, dc), _profile_texts(root)
+    return ProfileCheck(ai, dc, texts) if (ai is not None or texts) else None
 
 
 def _profile_texts(root):
