@@ -33,7 +33,7 @@ test("five steps, the rules with their counts, the three picks", () => {
   expect(steps[0]).toHaveTextContent(v.result.persona.gelir_nakit_akisi_ihtiyaci);
   v.rejected_by_rule.forEach((x) => expect(steps[2]).toHaveTextContent(`${x.label}${x.count}`));
   expect(within(steps[4]).getAllByRole("button")).toHaveLength(v.result.recommended.length);
-  expect(steps[4]).toHaveTextContent("genel 1. sıra");
+  expect(steps[4]).toHaveTextContent("puana göre genel 1.");
 });
 
 test("a pick opens its fund card; a step link opens its details tab", async () => {
@@ -49,7 +49,7 @@ test("a pick below other options of its group is not ranked first there", () => 
   const { v } = setup();
   const picks = within(screen.getAllByTestId("pipeline-step")[4]).getAllByRole("button");
   // fund:IST is 20th overall and the best debt fund
-  expect(picks[v.result.recommended.indexOf("fund:IST")]).toHaveTextContent("genel 20. sıra, kendi grubunda 1.");
+  expect(picks[v.result.recommended.indexOf("fund:IST")]).toHaveTextContent("puana göre genel 20., kendi türünde 1.");
 });
 
 test("no recommendation, no pipeline", () => {

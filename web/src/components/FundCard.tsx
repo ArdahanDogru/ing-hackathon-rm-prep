@@ -1,10 +1,10 @@
 // The fund card, layout "A" (docs/web-ui.md "Fund card (A)"; mockup redesign-v4.html
 // tab 4): shown in a side panel (FundDrawer) on the dashboard.
-import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { OptionView } from "../api/types";
 import type { Explanation } from "../explain";
-import { fmtNum, fmtPct } from "../format";
-import { LangContext, useT } from "../i18n";
+import { fmtNum } from "../format";
+import { fill, useT } from "../i18n";
 import { snapshotDate } from "./BriefCard";
 import { BankContext } from "./BankContext";
 import { KindBadge, sourceName } from "./KindBadge";
@@ -43,7 +43,7 @@ export function FundCard({
   documents?: ReactNode;
 }) {
   const t = useT();
-  const lang = useContext(LangContext);
+  const [peerInfo, setPeerInfo] = useState(false); // W41: the pop-up of the peer rank
   const [showEv, setShowEv] = useState(false);
   const o = option;
   const avg = o.category_avg;
@@ -57,10 +57,10 @@ export function FundCard({
   )
     .map(([k, label]) => ({ period: k, label, fund: o.returns[k]?.value ?? null, category: avg ? avg[k] : null }))
     .filter((r) => r.fund !== null);
-  // "Kategoride ilk %4": the share of the category at or above this fund; only for the upper half.
+  // W41: the peer rank says what it ranks by: "1 yıllık getiriye göre · ilk %28" (the share of the
+  // peers at or above this fund; only for the upper half)
   const top = o.better_than_pct !== null ? 100 - o.better_than_pct : null;
-  const share =
-    top !== null && top <= 50 ? (lang === "TR" ? `Kategoride ilk ${fmtPct(top)}` : `Top ${fmtNum(top)} % of the category`) : null;
+  const peerSub = `${t("peerSub")}${top !== null && top <= 50 ? fill(t("peerTop"), { n: fmtNum(top) }) : ""}`;
   const riskWord = o.risk?.level === 1 ? t("lowestRisk") : o.risk?.level === 7 ? t("highestRisk") : "";
   const evidence = [
     ...new Set(
@@ -90,9 +90,23 @@ export function FundCard({
         <Tile label={t("rowCategory")}>
           {o.rank && o.stars !== null ? (
             <>
-              <div className="text-2xl font-bold">{`${o.rank.position}. / ${o.rank.of}`}</div>
+              <div className="flex items-start justify-between gap-1">
+                <div className="text-2xl font-bold">{`${o.rank.position}. / ${o.rank.of}`}</div>
+                <button
+                  type="button"
+                  aria-label={t("peerInfoButton")}
+                  title={t("peerInfoButton")}
+                  aria-expanded={peerInfo}
+                  className="rounded-full border border-gray-300 px-1.5 text-[11px] font-bold leading-4 text-muted hover:border-cobalt"
+                  onClick={() => setPeerInfo(!peerInfo)}
+                >
+                  i
+                </button>
+              </div>
               <Stars count={o.stars} />
-              {share && <div className="mt-0.5 text-[11px] font-semibold text-[#067647]">{share}</div>}
+              <div data-testid="peer-sub" className="mt-0.5 text-[11px] font-semibold text-[#067647]">
+                {peerSub}
+              </div>
             </>
           ) : (
             <div className="mt-1 text-sm text-muted">{t("noRank")}</div>
@@ -102,6 +116,18 @@ export function FundCard({
           <div className="mt-1 text-base font-bold leading-snug">{o.access.label ?? "—"}</div>
         </Tile>
       </div>
+      {peerInfo && o.rank && (
+        <div data-testid="peer-info" role="note" className="-mt-3 mb-[22px] rounded-xl border border-gray-200 bg-white px-4 py-3 text-[13px] text-[#344054] shadow-sm">
+          <div className="flex items-start gap-3">
+            <p className="flex-1">
+              {fill(t("peerInfo"), { cat: o.category_label, of: o.rank.of, pos: o.rank.position })}
+            </p>
+            <button type="button" aria-label={t("close")} className="rounded-md px-1.5 text-muted hover:bg-gray-100" onClick={() => setPeerInfo(false)}>
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {rows.length > 0 && (
         <>

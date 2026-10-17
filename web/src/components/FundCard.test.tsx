@@ -57,13 +57,13 @@ test("selected fund shows Seçimden çıkar and toggles", async () => {
   expect(onToggle).toHaveBeenCalled();
 });
 
-test("the share in words: Kategoride ilk %N, only for the upper half", () => {
+test("the share in words (W41): '1 yıllık getiriye göre · ilk %N', the share only for the upper half", () => {
   const o = { ...top0(), better_than_pct: 96 };
   const { unmount } = render(<FundCard option={o} />);
-  expect(screen.getByText("Kategoride ilk %4")).toBeInTheDocument();
+  expect(screen.getByTestId("peer-sub")).toHaveTextContent("1 yıllık getiriye göre · ilk %4");
   unmount();
   render(<FundCard option={{ ...o, better_than_pct: 30 }} />);
-  expect(screen.queryByText(/Kategoride ilk/)).toBeNull();
+  expect(screen.getByTestId("peer-sub").textContent).toBe("1 yıllık getiriye göre");
 });
 
 test("the drawer: ✕ closes; focus moves in", async () => {

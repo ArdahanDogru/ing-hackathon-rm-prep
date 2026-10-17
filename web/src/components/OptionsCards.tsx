@@ -70,7 +70,7 @@ export function OptionsCards({
               )}
               {o.rank && o.stars !== null && (
                 <div className="mt-2 text-[13px]">
-                  <Stars count={o.stars} /> <span className="text-muted">{`${o.rank.position}. / ${o.rank.of}`}</span>
+                  <Stars count={o.stars} /> <span className="text-muted">{`${o.rank.position}. / ${o.rank.of} ${t("peerShort")}`}</span>
                 </div>
               )}
               {whyLine(o) && <div className="mt-2 text-sm text-[#344054]">{whyLine(o)}</div>}

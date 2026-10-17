@@ -15,7 +15,7 @@ test("the fund card shows the engine's reasoning instead of the why lines", () =
   const { container } = render(<FundCard option={o} explanation={x} />);
   expect(screen.getByRole("heading", { name: "Neden bu öneri?" })).toBeInTheDocument();
   expect(screen.queryByText("Bu müşteri için neden?")).toBeNull();
-  expect(container).toHaveTextContent(`${x.of} aday içinde 1. sıra`);
+  expect(container).toHaveTextContent(`Puana göre ${x.of} aday içinde 1. sıra`);
   expect(screen.getAllByTestId("score-row")).toHaveLength(x.criteria.length + x.penalties.length);
   x.criteria.forEach((r) => expect(container).toHaveTextContent(r.reason));
   expect(screen.getByTestId("total-score").textContent).toBe(String(Math.round(x.score * 100))); // W21: ×100

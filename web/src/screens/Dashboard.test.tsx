@@ -82,7 +82,7 @@ test("the table rows: match, return, real, risk, access, category, why", () => {
   tableView();
   renderDashboard(v);
   const table = screen.getByRole("table");
-  for (const row of ["Uygunluk", "1 yıl getiri", "Reel", "SPK risk", "Paraya erişim", "Kategorisinde", "Neden bu müşteri"])
+  for (const row of ["Uygunluk", "1 yıl getiri", "Reel", "SPK risk", "Paraya erişim", "Benzerleri arasında", "Neden bu müşteri"])
     expect(within(table).getByRole("rowheader", { name: new RegExp(row) })).toBeInTheDocument();
   const o = v.options[v.top[0]];
   expect(table).toHaveTextContent(`${o.rank!.position}. / ${o.rank!.of}`);
