@@ -45,6 +45,7 @@ class RealBackend:
         self._now = now
         self._config = decision.load_config(self._paths.root / "config" / "decision.yaml")
         self._evidence: dict[tuple[str, frozenset[str]], EvidenceSet] = {}
+        self._evidence_locks: dict[tuple[str, frozenset[str]], threading.Lock] = {}
         self._runs: dict[str, tuple[DecisionResult, _Inputs]] = {}
         self._narrator_obj = None          # made on first use (imports the LLM SDK)
         self._narratives: dict[tuple[str, str], NarrativeDraft] = {}   # approved texts
@@ -104,9 +105,22 @@ class RealBackend:
     def evidence(self, snapshot_id: str,
                  exclude_sources: frozenset[str] = frozenset()) -> EvidenceSet:
         key = (snapshot_id, frozenset(exclude_sources))
-        if key not in self._evidence:
-            self._evidence[key] = build_evidence(self._paths.snapshots, snapshot_id, key[1])
+        if key in self._evidence:
+            return self._evidence[key]
+        # Speed (2026-10-17): the server warms the newest snapshot in the background;
+        # a request in the meantime waits for that build (one lock per key), not a second one
+        with self._lock:
+            lock = self._evidence_locks.setdefault(key, threading.Lock())
+        with lock:
+            if key not in self._evidence:
+                self._evidence[key] = build_evidence(self._paths.snapshots, snapshot_id, key[1])
         return self._evidence[key]
+
+    def warm(self) -> None:
+        """Speed (2026-10-17): build the newest snapshot's evidence ahead of the first run."""
+        snaps = self.list_snapshots()
+        if snaps:
+            self.evidence(snaps[0])
 
     # --- runs -----------------------------------------------------------------
 

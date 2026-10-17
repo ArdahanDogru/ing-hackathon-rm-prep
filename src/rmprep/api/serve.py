@@ -20,6 +20,7 @@ def build_app(root: Path, personas_dir: Path | None = None):
     from rmprep.research.service import research_from_root
 
     backend = RealBackend(root, personas_dir=personas_dir)
+    _start_warm(backend)          # speed (2026-10-17): the first client does not wait ~18 s
     import yaml
     narrator_raw = yaml.safe_load((root / "config" / "narrator.yaml").read_text(encoding="utf-8")) or {}
     # W25: other banks' rates as context for the RM; a root without the file has none
@@ -77,6 +78,23 @@ def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None
     app = build_app(root, personas_dir)
     print(f"rmprep: http://127.0.0.1:{port}", file=sys.stderr)
     uvicorn.run(app, host="127.0.0.1", port=port)       # local only, no login
+
+
+def _start_warm(backend) -> None:
+    """Speed (2026-10-17, found and fixed): the server answers at once; in the
+    background it builds the newest snapshot's evidence (~18 s) and loads the LLM SDK
+    of the AI summary and the meeting text (~10 s), so the first client does not wait
+    for them. A failure only costs speed."""
+    import threading
+
+    def warm() -> None:
+        try:
+            backend.warm()
+            import anthropic  # noqa: F401  (the narrator's SDK; the import is slow on Windows)
+        except Exception as e:          # never stops the server
+            print(f"warm-up: {type(e).__name__}: {e}", file=sys.stderr)
+
+    threading.Thread(target=warm, name="rmprep-warm", daemon=True).start()
 
 
 def _prompt_versions(root) -> dict:

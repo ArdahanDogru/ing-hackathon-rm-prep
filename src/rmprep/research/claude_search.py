@@ -128,16 +128,24 @@ class ClaudeSearchProvider:
                  workspace_id: str | None = None, sdk=None,
                  highlights_prompt: Mapping[str, str] | None = None,
                  now: Callable[[], datetime] = lambda: datetime.now(TR_TZ)) -> None:
-        if sdk is None:
-            import anthropic          # optional extra [narrator]
-            extra = {"default_headers": {WORKSPACE_HEADER: workspace_id}} if workspace_id else {}
-            sdk = anthropic.Anthropic(api_key=api_key, timeout=CLIENT_TIMEOUT_S, **extra)
-        self._sdk = sdk
+        # Speed (2026-10-17): the SDK import takes ~10 s on Windows; it is made on the
+        # first search (this provider is the fallback), not at the server start
+        self._sdk_obj = sdk
+        self._sdk_args = (api_key, workspace_id)
         self._config = config
         self._system = system_prompt
         self._highlights = highlights_prompt
         self._domains = tuple(exclude_domains)
         self._now = now
+
+    @property
+    def _sdk(self):
+        if self._sdk_obj is None:
+            import anthropic          # optional extra [narrator]
+            api_key, workspace_id = self._sdk_args
+            extra = {"default_headers": {WORKSPACE_HEADER: workspace_id}} if workspace_id else {}
+            self._sdk_obj = anthropic.Anthropic(api_key=api_key, timeout=CLIENT_TIMEOUT_S, **extra)
+        return self._sdk_obj
 
     @classmethod
     def from_env(cls, config: ClaudeSearchConfig, system_prompt: Mapping[str, str],

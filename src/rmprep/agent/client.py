@@ -62,14 +62,22 @@ def _block(b) -> dict:
 class AnthropicAgentClient:
     def __init__(self, config: AgentConfig, *, api_key: str | None = None,
                  workspace_id: str | None = None, sdk=None):
-        if sdk is None:
+        # Speed (2026-10-17): the SDK is made on the first agent step, not at the
+        # server start (the import takes ~10 s on Windows)
+        self._sdk_obj = sdk
+        self._sdk_args = (api_key, workspace_id)
+        self._config = config
+
+    @property
+    def _sdk(self):
+        if self._sdk_obj is None:
             import anthropic         # optional extra [narrator]
 
+            api_key, workspace_id = self._sdk_args
             extra = {"default_headers": {WORKSPACE_HEADER: workspace_id}} if workspace_id else {}
-            sdk = anthropic.Anthropic(api_key=api_key, timeout=config.timeout_s, max_retries=1,
-                                      **extra)
-        self._sdk = sdk
-        self._config = config
+            self._sdk_obj = anthropic.Anthropic(api_key=api_key, timeout=self._config.timeout_s,
+                                                max_retries=1, **extra)
+        return self._sdk_obj
 
     def step(self, system: str, messages: list[dict], tools: list[dict]) -> AgentTurn:
         import anthropic

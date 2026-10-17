@@ -290,8 +290,10 @@ def test_the_client_has_a_60_s_timeout(monkeypatch):
         def __init__(self, **kw):
             seen.update(kw)
     monkeypatch.setattr(anthropic, "Anthropic", Spy)
-    ClaudeSearchProvider(CONFIG.claude, CONFIG.system_prompt, CONFIG.exa.exclude_domains, api_key="k",
-                         workspace_id="w", now=lambda: NOW)
+    p = ClaudeSearchProvider(CONFIG.claude, CONFIG.system_prompt, CONFIG.exa.exclude_domains, api_key="k",
+                             workspace_id="w", now=lambda: NOW)
+    assert seen == {}                       # speed (2026-10-17): no SDK until the first search
+    p._sdk
     assert seen["timeout"] == 60.0 and seen["api_key"] == "k"
     assert seen["default_headers"] == {"anthropic-workspace-id": "w"}
 

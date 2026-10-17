@@ -45,6 +45,12 @@ class EvidenceIndex:
         for d in sorted(self.rows, key=lambda d: (d.as_of, d.source)):
             latest[(d.quantity, d.entity)] = d
         self._latest = latest
+        # Speed (2026-10-17): quantities_of scanned every key for each entity (1,442
+        # calls x ~30,000 keys, ~10 s per run); the same rows, in the same order, by entity
+        by_entity: dict[str, list[str]] = {}
+        for (q, e) in latest:
+            by_entity.setdefault(e, []).append(q)
+        self._by_entity = by_entity
 
     def get(self, quantity: str, entity: str) -> DataPoint | None:
         d = self._latest.get((quantity, entity))
@@ -54,8 +60,8 @@ class EvidenceIndex:
 
     def quantities_of(self, entity: str) -> dict[str, DataPoint]:
         out = {}
-        for (q, e) in self._latest:
-            if e == entity and (d := self.get(q, e)) is not None:
+        for q in self._by_entity.get(entity, ()):
+            if (d := self.get(q, entity)) is not None:
                 out[q] = d
         return out
 
