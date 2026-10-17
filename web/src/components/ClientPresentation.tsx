@@ -183,7 +183,6 @@ export function ClientPresentation({
   const real = (o: OptionView) => o.returns.real_1y?.value ?? null;
   const deposit = view.talking_points.find((p) => p.code === "deposit_real");
   const depositReal = parseFigure(deposit?.figure);
-  const best = funds.reduce<OptionView | null>((b, o) => (real(o) !== null && (b === null || real(o)! > real(b)!) ? o : b), null);
 
   // 01: the deposit market average and each fund, real 1-year return
   const rows = [
@@ -212,34 +211,54 @@ export function ClientPresentation({
   const snapshot = /^(\d{4})(\d{2})(\d{2})/.exec(r.snapshot_id);
   const dataDate = snapshot ? fmtDate(`${snapshot[1]}-${snapshot[2]}-${snapshot[3]}`) : "";
 
-  // W32: each key figure names the option it belongs to (or says it holds for all)
-  const fastest = known.reduce<OptionView | null>((b, o) => (b === null || (days(o) ?? Infinity) < (days(b) ?? Infinity) ? o : b), null);
-  const riskiest = funds.find((o) => o.risk?.level === maxLevel) ?? null;
+  // W33: the key figures sum up the whole proposal, never the best case of each: a range
+  // (lowest – highest) when the options differ, one value when they agree, and under it the
+  // options it covers (all of them, the funds, or by name when only some have the value)
+  const isFund = (o: OptionView) => o.kind === "fund";
+  const scope = (opts: OptionView[], same: boolean) => {
+    if (opts.length === 1) return fullName(opts[0]);
+    if (opts.length === funds.length) return same ? t("presFigAll") : fill(t("presFigIn"), { n: opts.length });
+    if (opts.every(isFund) && opts.length === funds.filter(isFund).length)
+      return same ? t("presFigFunds") : fill(t("presFigInFunds"), { n: opts.length });
+    return opts.map(fullName).join(", ");
+  };
+  const span = (lo: string, hi: string) => (lo === hi ? lo : `${lo} – ${hi}`);
+  const plus = (v: number) => fmtPct(v).replace(/^%/, "+%");
+
+  const withReal = funds.filter((o) => real(o) !== null);
+  const reals = withReal.map((o) => real(o)!);
+  const realSpan = reals.length ? span(plus(Math.min(...reals)), plus(Math.max(...reals))) : "";
+
+  const byDays = [...known].sort((a, b) => (days(a) ?? 0) - (days(b) ?? 0));
+  const slow = byDays[byDays.length - 1];
+  const accessSpan = !known.length
+    ? ""
+    : sameAccess
+      ? known[0].access.label!
+      : span(byDays[0].access.label!, days(slow) != null ? fill(t("presDays"), { n: days(slow)! }) : slow.access.label!);
+
   const withRisk = funds.filter((o) => o.risk);
+  const minLevel = levels.length ? levels[0] : null;
+
   const figures: Figure[] = [
-    best && {
+    reals.length > 0 && {
       label: t("presFigReal"),
-      value: fmtPct(real(best)!).replace(/^%/, "+%"),
-      who: fullName(best),
+      value: realSpan,
+      who: scope(withReal, !realSpan.includes("–")),
       sub: deposit ? fill(t("presFigDeposit"), { figure: deposit.figure }) : "",
       accent: true,
     },
-    fastest && {
+    known.length > 0 && {
       label: t("presFigAccess"),
-      value: fastest.access.label!,
-      who: sameAccess && known.length === funds.length && funds.length > 1 ? t("presFigAll") : fullName(fastest),
-      sub: sameAccess || known.length === 1 ? "" : t("presFigFastest"),
+      value: accessSpan,
+      who: scope(known, sameAccess),
+      sub: "",
       accent: false,
     },
-    maxLevel !== null && riskiest && {
+    maxLevel !== null && {
       label: t("presFigRisk"),
-      value: `${maxLevel} / 7`,
-      who:
-        riskDiffers || withRisk.length === 1
-          ? fullName(riskiest)
-          : withRisk.length === funds.length
-            ? t("presFigAll")
-            : t("presFigFunds"),
+      value: `${span(String(minLevel), String(maxLevel))} / 7`,
+      who: scope(withRisk, !riskDiffers),
       sub: ceiling !== null ? fill(t("presFigRiskSub"), { ceiling }) : "",
       accent: false,
     },

@@ -710,6 +710,21 @@ without a risk level). Options without a known access do not count: the access
 labels show when only some have one, and the 03 timeline needs at least two
 known, different values (only those rows).
 
+### Key figures as ranges over the proposal (W33, 2026-10-17)
+
+The user, 2026-10-17: with mixed options, naming the best option per figure
+(W32) put the best case of different options side by side (the return of one
+fund, the access of a deposit): a product that does not exist. Replaces the
+naming of W32. The key figures now sum up the whole proposal: a range (lowest –
+highest) when the options differ, one value when they agree: the real 1-year
+return ("+%2,5 – +%9,7", the deposit average under it), the access (the fastest
+label – the slowest in days, "Aynı gün – 32 gün"), the SPK risk ("1 – 2 / 7",
+the client's limit under it). Under each value, the options it covers:
+"Önerilerin hepsinde" (one value for all), "Önerilen 3 seçenekte" (a range over
+all), "Fonların hepsinde" / "Önerilen 2 fonda" (only the funds have it, e.g. a
+deposit has no SPK level), else the options by name (e.g. the only option with
+a known access).
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

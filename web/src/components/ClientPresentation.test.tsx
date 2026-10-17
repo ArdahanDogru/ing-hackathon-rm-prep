@@ -83,16 +83,21 @@ test("funds with different risk and access show the labels and the timeline", as
   expect(funds[1]).toHaveTextContent("risk 2/7");
   expect(funds[1]).toHaveTextContent("2 gün");
   expect(screen.getAllByTestId("pres-access")).toHaveLength(3);
-  // the key figures name the fastest and the riskiest option
-  const who = screen.getAllByTestId("pres-figure-who").map((x) => x.textContent);
-  expect(who).toEqual(["Nurol Portföy Para Piyasası (TL)", "Nurol Portföy Para Piyasası (TL)", "İstanbul Portföy KV Borçlanma (TL)"]);
-  expect(screen.getAllByTestId("pres-figure")[1]).toHaveTextContent("en hızlı erişim");
+  // the key figures are ranges over the whole proposal (W33)
+  const figures = screen.getAllByTestId("pres-figure");
+  expect(figures[1]).toHaveTextContent("Aynı gün – 2 gün");
+  expect(figures[2]).toHaveTextContent("1 – 2 / 7");
+  expect(screen.getAllByTestId("pres-figure-who").map((x) => x.textContent)).toEqual(Array(3).fill("Önerilen 3 seçenekte"));
 });
 
-test("key figures: the best fund by name; one value for all says so", async () => {
+test("key figures sum up the proposal: a range when the options differ, one value when they agree", async () => {
   show();
-  const who = (await screen.findAllByTestId("pres-figure-who")).map((x) => x.textContent);
-  expect(who).toEqual(["Nurol Portföy Para Piyasası (TL)", "Önerilerin hepsinde", "Önerilerin hepsinde"]);
+  const figures = await screen.findAllByTestId("pres-figure");
+  expect(figures[0]).toHaveTextContent("+%6,5 – +%7,4");
+  expect(figures[1]).toHaveTextContent("Aynı gün");
+  expect(figures[2]).toHaveTextContent("1 / 7");
+  const who = screen.getAllByTestId("pres-figure-who").map((x) => x.textContent);
+  expect(who).toEqual(["Önerilen 3 seçenekte", "Önerilerin hepsinde", "Önerilerin hepsinde"]);
 });
 
 test("only one option with a known access: the figure names it, no timeline, its label on its card", async () => {
@@ -100,13 +105,19 @@ test("only one option with a known access: the figure names it, no timeline, its
   const none = { days: null, lock_days: null, label: null, evidence_id: "" };
   v.options["fund:IST"] = { ...v.options["fund:IST"], access: { ...v.options["fund:IST"].access, ...none } };
   v.options["fund:AIS"] = { ...v.options["fund:AIS"], access: { ...v.options["fund:AIS"].access, ...none } };
-  v.options["fund:PPN"] = { ...v.options["fund:PPN"], access: { ...v.options["fund:PPN"].access, days: null, lock_days: 32, label: "Vade sonunda (32 gün)" } };
+  // as a term deposit: a lock, no SPK risk level
+  v.options["fund:PPN"] = {
+    ...v.options["fund:PPN"],
+    kind: "time_deposit",
+    risk: null,
+    access: { ...v.options["fund:PPN"].access, days: null, lock_days: 32, label: "Vade sonunda (32 gün)" },
+  };
   vi.spyOn(api, "narrative").mockResolvedValue(narrative());
   renderWith(<MeetingText view={v} />);
   const figures = await screen.findAllByTestId("pres-figure");
   expect(figures[1]).toHaveTextContent("Vade sonunda (32 gün)");
   expect(within(figures[1]).getByTestId("pres-figure-who")).toHaveTextContent("Nurol Portföy Para Piyasası (TL)");
-  expect(figures[1]).not.toHaveTextContent("en hızlı");
+  expect(within(figures[2]).getByTestId("pres-figure-who")).toHaveTextContent("Fonların hepsinde");
   expect(screen.queryAllByTestId("pres-access")).toHaveLength(0);
   const funds = screen.getAllByTestId("pres-fund");
   expect(funds[0]).toHaveTextContent("Vade sonunda (32 gün)");
