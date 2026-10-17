@@ -104,7 +104,7 @@ def peer_key(o: ProductOption) -> str:
 def tree(options: Sequence[ProductOption], best_1y: dict[str, float | None],
          lang: str) -> list[dict]:
     """The categories of the candidates: classes (in CLASS_ORDER) with their
-    sub-types; every option once, in the given order (the engine's order).
+    sub-types; every option once, in the given order (the caller gives the best score first).
     best_1y: option id -> 1-year return for the sub-type's best figure."""
     by_class: dict[str, dict[str, list[str]]] = {}
     for o in options:

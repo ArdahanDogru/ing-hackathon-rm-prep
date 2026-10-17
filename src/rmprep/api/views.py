@@ -307,7 +307,8 @@ class ViewBuilder:
         # sub-type; every option is in `options`, so each row of the list opens its card
         one_year = {o.option.option_id: (facts[o.option.option_id].returns.get("1y") or None)
                     for o in r.options}
-        cats = cat.tree([o.option for o in r.options],
+        best_first = sorted(r.options, key=lambda o: (-o.score, o.option.option_id))
+        cats = cat.tree([o.option for o in best_first],      # each sub-type best first
                         {k: (v.value if v else None) for k, v in one_year.items()}, self._lang)
         shown_ids = {o.option.option_id for o in top} | {o.option.option_id for o in r.options}
         if baseline is not None:

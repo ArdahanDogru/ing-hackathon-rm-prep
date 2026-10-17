@@ -25908,8 +25908,8 @@
      "count": 2,
      "best_return_1y": 35.0,
      "option_ids": [
-      "deposit:ing_turuncu",
-      "time_deposit:ing_e_vadeli"
+      "time_deposit:ing_e_vadeli",
+      "deposit:ing_turuncu"
      ]
     },
     {
@@ -25919,11 +25919,8 @@
      "best_return_1y": 51.408,
      "option_ids": [
       "fund:PPN",
-      "fund:AIS",
       "fund:GO6",
       "fund:ZBJ",
-      "fund:GPN",
-      "fund:NSP",
       "fund:HVT",
       "fund:RBP",
       "fund:IRY",
@@ -25952,8 +25949,11 @@
       "fund:IOO",
       "fund:ICE",
       "fund:PPP",
+      "fund:AIS",
       "fund:PJL",
       "fund:FSK",
+      "fund:GPN",
+      "fund:NSP",
       "fund:KIE",
       "fund:AAL",
       "fund:PPK",

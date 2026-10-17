@@ -58,6 +58,10 @@ def test_runview_shape(view):
     assert sorted(ids) == sorted(o.option.option_id for o in r.options) and set(ids) <= set(v["options"])
     assert all(c["count"] == sum(s["count"] for s in c["subtypes"]) for c in v["categories"])
     assert sum(c["count"] for c in v["categories"]) == len(r.options)
+    score = {o.option.option_id: o.score for o in r.options}       # each sub-type best first
+    for c in v["categories"]:
+        for s in c["subtypes"]:
+            assert [score[i] for i in s["option_ids"]] == sorted((score[i] for i in s["option_ids"]), reverse=True)
     for o in v["options"].values():
         assert o["category_key"] and o["class_key"] and isinstance(o["badges"], list)
         if o["kind"] == "fund":

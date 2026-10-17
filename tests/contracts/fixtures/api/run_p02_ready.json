@@ -34294,8 +34294,8 @@
      "count": 2,
      "best_return_1y": 35.0,
      "option_ids": [
-      "deposit:ing_turuncu",
-      "time_deposit:ing_e_vadeli"
+      "time_deposit:ing_e_vadeli",
+      "deposit:ing_turuncu"
      ]
     },
     {
@@ -34306,7 +34306,6 @@
      "option_ids": [
       "fund:BVF",
       "fund:EIL",
-      "fund:KSK",
       "fund:RPP",
       "fund:PLR",
       "fund:PRD",
@@ -34316,6 +34315,7 @@
       "fund:IOO",
       "fund:PPP",
       "fund:FSK",
+      "fund:KSK",
       "fund:KIE",
       "fund:GO6",
       "fund:PPN",
@@ -34647,12 +34647,12 @@
      "count": 94,
      "best_return_1y": 59.5898,
      "option_ids": [
+      "fund:KCV",
       "fund:TE4",
       "fund:EIB",
-      "fund:KCV",
       "fund:IDY",
-      "fund:SUA",
       "fund:CKF",
+      "fund:SUA",
       "fund:CKL",
       "fund:HIZ",
       "fund:OPF",
