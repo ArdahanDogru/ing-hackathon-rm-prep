@@ -6,7 +6,6 @@ import type { Explanation } from "../explain";
 import { fmtNum } from "../format";
 import { fill, useT } from "../i18n";
 import { snapshotDate } from "./BriefCard";
-import { BankContext } from "./BankContext";
 import { KindBadge, sourceName } from "./KindBadge";
 import { ReturnBars, type ReturnRow } from "./ReturnBars";
 import { RiskBar, riskColor } from "./RiskBar";
@@ -143,8 +142,6 @@ export function FundCard({
       )}
 
       {documents}
-
-      <BankContext context={o.bank_context} onEvidence={(id) => onEvidence?.(id)} />
 
       {explanation ? (
         <WhyPanel explanation={explanation} onEvidence={onEvidence} />

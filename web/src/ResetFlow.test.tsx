@@ -110,16 +110,3 @@ test("another error: the error box with the server text", async () => {
   expect(await screen.findByText(/disk full/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Tekrar dene" })).toBeInTheDocument();
 });
-
-test("W27 EN", async () => {
-  localStorage.setItem("rmprep.lang", "EN");
-  await open();
-  vi.spyOn(api, "reset").mockResolvedValue(RESULT);
-  await userEvent.click(within(screen.getByRole("banner")).getByRole("button", { name: "Reset" }));
-  const dialog = screen.getByRole("dialog", { name: /Reset all clients/ });
-  expect(dialog).toHaveTextContent("Every client goes back to the first state");
-  expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeInTheDocument();
-  await userEvent.click(within(dialog).getByRole("button", { name: "Reset" }));
-  expect(await screen.findByText(`Reset done. Old records: ${RESULT.archive}`)).toBeInTheDocument();
-  expect(localStorage.getItem("rmprep.lang")).toBe("EN");
-});

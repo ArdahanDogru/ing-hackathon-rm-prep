@@ -592,6 +592,24 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### Turkish only; no other banks' rates on the screen (W46, 2026-10-17)
+
+The user, 2026-10-17: "Remove the English part of the system" and remove the
+other banks' rates (İş Bankası, Ziraat) with their note.
+
+- Language: the TR / EN switch in the top bar is gone; `App` uses `lang = "TR"`
+  and ignores an old `rmprep.lang` key. The EN labels stay in `i18n.ts` and the
+  API keeps `?lang=` (no API change), so a later EN version needs only the switch.
+- Bank rates: the fund-card block "Diğer bankalar — bağlam" (W25) is removed;
+  the market note line (W25b) shows only the own ING rows, without the other
+  banks, their difference in points and the note. The API still sends
+  `bank_context` and the ingest still reads `isbank_web` and `ziraat_web`
+  (docs/ingest.md I15, I16): the data is kept, only the screen changed. Nothing
+  here changed a score before or after.
+- Tests: `BankContext.test.tsx` (no block in the fund card, the rate helpers),
+  `MarketBank.test.tsx` (the own row only), `App.test.tsx` (no switch; an old EN
+  choice is ignored). The EN tests of single components stay.
+
 ### A profile conflict must be resolved before the approval (W44, 2026-10-17)
 
 The user asked (2026-10-17) whether the RM has to clarify a conflict; before W44

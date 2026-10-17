@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Lang, Persona, ResetResult, SourceStatus } from "../api/types";
+import type { Persona, ResetResult, SourceStatus } from "../api/types";
 import { ResetButton } from "./ResetButton";
 import { snapshotLabel } from "../format";
 import { useT } from "../i18n";
@@ -15,8 +15,6 @@ export interface TopBarProps {
   sources: Record<string, SourceStatus>;
   excluded: string[];
   onExcluded: (excluded: string[]) => void;
-  lang: Lang;
-  onLang: (lang: Lang) => void;
   /** W31: the ids of the uploaded clients (marked in the dropdown) and the upload */
   uploaded?: string[];
   onUploaded?: (p: Persona) => void;
@@ -133,20 +131,6 @@ export function TopBar(p: TopBarProps) {
           </div>
 
           {p.onReset && <ResetButton onDone={p.onReset} onError={(e) => p.onResetError?.(e)} />}
-
-          <div role="group" aria-label={t("language")} className="flex overflow-hidden rounded-lg border border-gray-300 text-sm">
-            {(["TR", "EN"] as const).map((l) => (
-              <button
-                key={l}
-                type="button"
-                aria-pressed={p.lang === l}
-                className={p.lang === l ? "bg-ink px-2.5 py-1 font-semibold text-white" : "px-2.5 py-1"}
-                onClick={() => p.onLang(l)}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </header>

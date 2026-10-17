@@ -49,15 +49,17 @@ function WarningSection({
   );
 }
 
-/** W25b: one line per entry: the title, then each row "label %rate" with its K mark and date
- * (the own row bold; the banks with the difference in points), the note small under it. */
+/** W25b: one line per entry: the title, then each row "label %rate" with its K mark and date.
+ * W46: only the own (ING) rows; the other banks' rows and their note are not shown (the user, 2026-10-17). */
 function BankLine({ entry, onEvidence }: { entry: MarketBankEntry; onEvidence: (id: string) => void }) {
   const t = useT();
+  const rows = entry.rows.filter((r) => r.own);
+  if (rows.length === 0) return null;
   return (
     <div data-testid="bank-line" className="mt-2.5 text-sm">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <span className="text-muted">{entry.title}</span>
-        {entry.rows.map((r, i) => (
+        {rows.map((r, i) => (
           <span key={`${r.label}|${i}`} data-testid="bank-part" className={`flex items-baseline gap-1.5 ${r.own ? "font-bold" : ""}`}>
             {r.value === null ? (
               <>
@@ -74,7 +76,6 @@ function BankLine({ entry, onEvidence }: { entry: MarketBankEntry; onEvidence: (
           </span>
         ))}
       </div>
-      {entry.note && <p className="mt-1 text-xs text-muted">{entry.note}</p>}
     </div>
   );
 }

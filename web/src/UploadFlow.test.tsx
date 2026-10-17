@@ -104,16 +104,3 @@ test("a server without uploads: the list still loads, no mark", async () => {
   await open();
   expect(screen.queryByText(/yüklendi/)).toBeNull();
 });
-
-test("W31 EN", async () => {
-  localStorage.setItem("rmprep.lang", "EN");
-  vi.spyOn(api, "personas").mockResolvedValue([...sample("personas"), upload()]);
-  vi.spyOn(api, "uploadedPersonas").mockResolvedValue(["DEMO1"]);
-  await open();
-  expect(within(screen.getByRole("combobox", { name: /Client/ })).getByRole("option", { name: "DEMO1 · Demo müşteri (uploaded)" })).toBeInTheDocument();
-  await userEvent.click(within(screen.getByRole("banner")).getByRole("button", { name: "Upload" }));
-  const dialog = screen.getByRole("dialog", { name: /Upload a client/ });
-  expect(dialog).toHaveTextContent("Do not upload real client data.");
-  expect(within(dialog).getByLabelText("JSON file")).toBeInTheDocument();
-  expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeInTheDocument();
-});

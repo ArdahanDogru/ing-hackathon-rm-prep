@@ -61,28 +61,12 @@ function PrintRoute() {
   return <PrintCard view={run} narrative={text} />;
 }
 
-const LANG_KEY = "rmprep.lang";
-
-function savedLang(): Lang {
-  try {
-    return localStorage.getItem(LANG_KEY) === "EN" ? "EN" : "TR";
-  } catch {
-    return "TR";
-  }
-}
+/** W46: the app is Turkish only (the user, 2026-10-17); the EN labels stay in i18n but nothing selects them. */
+const lang: Lang = "TR";
 
 export function App() {
   const navigate = useNavigate();
   const printing = useLocation().pathname.startsWith("/print/"); // a print tab loads only its own run
-  const [lang, setLangState] = useState<Lang>(savedLang);
-  const setLang = (l: Lang) => {
-    setLangState(l);
-    try {
-      localStorage.setItem(LANG_KEY, l);
-    } catch {
-      // storage blocked: the choice holds for this tab only
-    }
-  };
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [snapshots, setSnapshots] = useState<string[]>([]);
   const [personaId, setPersonaId] = useState("");
@@ -198,8 +182,6 @@ export function App() {
                 sources={sources}
                 excluded={excluded}
                 onExcluded={setExcluded}
-                lang={lang}
-                onLang={setLang}
                 onReset={afterReset}
                 uploaded={uploaded}
                 onUploaded={afterUpload}

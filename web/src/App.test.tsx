@@ -42,17 +42,19 @@ test("another persona or an excluded source makes a new run", async () => {
   await waitFor(() => expect(run.mock.calls.at(-1)![0].exclude_sources).toEqual(["evds"]));
 });
 
-test("TR / EN switches the labels", async () => {
+test("W46: Turkish only, no TR / EN switch", async () => {
   vi.spyOn(api, "run").mockResolvedValue(sample("run_p01_ready"));
+  localStorage.setItem("rmprep.lang", "EN"); // an old choice is ignored
   render(
     <MemoryRouter>
       <App />
     </MemoryRouter>,
   );
   await screen.findByTestId("brief-card");
-  await userEvent.click(screen.getByRole("button", { name: "EN" }));
-  expect(screen.getByText("Meeting preparation")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("button", { name: "EN" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "TR" })).toBeNull();
+  expect(screen.queryByText("Meeting preparation")).toBeNull();
+  localStorage.clear();
 });
 
 test("an API error shows its detail and Tekrar dene", async () => {
@@ -64,26 +66,6 @@ test("an API error shows its detail and Tekrar dene", async () => {
   );
   expect(await screen.findByText(/evidence store is locked/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Tekrar dene" })).toBeInTheDocument();
-});
-
-test("the TR / EN choice is kept for the next tab", async () => {
-  vi.spyOn(api, "run").mockResolvedValue(sample("run_p01_ready"));
-  localStorage.clear();
-  const { unmount } = render(
-    <MemoryRouter>
-      <App />
-    </MemoryRouter>,
-  );
-  await screen.findByTestId("brief-card");
-  await userEvent.click(screen.getByRole("button", { name: "EN" }));
-  unmount();
-  render(
-    <MemoryRouter>
-      <App />
-    </MemoryRouter>,
-  );
-  expect(await screen.findByText("Meeting preparation")).toBeInTheDocument();
-  localStorage.clear();
 });
 
 test("a print tab makes no default run", async () => {

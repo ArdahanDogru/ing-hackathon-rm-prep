@@ -1,4 +1,5 @@
 // W25b: the bank rates line in the "Piyasa notu" panel (RunView.bank_context, once per run).
+// W46 (the user, 2026-10-17): only the own ING row; no other bank and no note.
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { api } from "../api/client";
@@ -12,49 +13,38 @@ const view = () => sample("run_p01_ready");
 const line = () => within(screen.getByTestId("market-note")).getByTestId("bank-line");
 const parts = () => within(line()).getAllByTestId("bank-part");
 
-test("the sample's line: the title and three rows, the own row bold, the note under it", () => {
+test("the sample's line: the title and the own ING row only, bold, without a note", () => {
   const v = view();
   const entry = v.bank_context![0];
+  expect(entry.rows).toHaveLength(3); // the API still sends the other banks
   expect(entry.title).toBe("Vadeli mevduat, ~32 gün, 100–250 bin TL");
   renderDashboard(v);
   expect(line()).toHaveTextContent(entry.title);
-  expect(parts()).toHaveLength(3);
+  expect(parts()).toHaveLength(1);
   expect(parts()[0]).toHaveClass("font-bold");
   expect(parts()[0]).toHaveTextContent("ING e-Vadeli %34,50");
   expect(parts()[0]).toHaveTextContent("16.10.2026");
   expect(within(parts()[0]).queryByTestId("bank-diff")).toBeNull();
-  expect(screen.getByTestId("market-note")).toHaveTextContent(entry.note);
+  const note = screen.getByTestId("market-note");
+  expect(note).not.toHaveTextContent("İş Bankası");
+  expect(note).not.toHaveTextContent("Ziraat");
+  expect(note).not.toHaveTextContent("puan");
+  expect(note).not.toHaveTextContent(entry.note);
 });
 
-test("a bank row: the rate, the date and the signed difference in neutral grey", () => {
-  renderDashboard(view());
-  const isbank = parts()[1];
-  expect(isbank).not.toHaveClass("font-bold");
-  expect(isbank).toHaveTextContent("İş Bankası (kampanya) %37,00");
-  const diff = within(isbank).getByTestId("bank-diff");
-  expect(diff).toHaveTextContent("+2,50 puan");
-  expect(diff).toHaveClass("text-[#475467]");
-});
-
-test("a missing row says veri yok; a negative difference uses the minus sign; a stale date is amber", () => {
-  const v = view();
-  const rows = v.bank_context![0].rows;
-  rows[1] = { ...rows[1], value: 31, diff_pp: -3.5, stale: true, as_of: "2026-10-09" };
-  renderDashboard(v);
-  expect(parts()[2]).toHaveTextContent("Ziraat (internet) veri yok");
-  expect(within(parts()[2]).queryByRole("button", { name: "Kanıt" })).toBeNull();
-  expect(within(parts()[1]).getByTestId("bank-diff")).toHaveTextContent("−3,50 puan");
-  const date = within(parts()[1]).getByTestId("bank-date");
-  expect(date).toHaveAttribute("data-stale", "true");
-  expect(date).toHaveTextContent("09.10.2026 · eski");
-});
-
-test("the K mark opens the evidence pop-up", async () => {
+test("the K mark of the own row opens the evidence pop-up", async () => {
   const v = view();
   const ev = vi.spyOn(api, "evidence").mockResolvedValue(sample("evidence_item"));
   renderDashboard(v);
-  await userEvent.click(within(parts()[1]).getByRole("button", { name: "Kanıt" }));
-  expect(ev).toHaveBeenCalledWith(v.result.snapshot_id, v.bank_context![0].rows[1].evidence_id);
+  await userEvent.click(within(parts()[0]).getByRole("button", { name: "Kanıt" }));
+  expect(ev).toHaveBeenCalledWith(v.result.snapshot_id, v.bank_context![0].rows[0].evidence_id);
+});
+
+test("an entry without an own row: no line", () => {
+  const v = view();
+  v.bank_context![0].rows = v.bank_context![0].rows.filter((r) => !r.own);
+  renderDashboard(v);
+  expect(within(screen.getByTestId("market-note")).queryByTestId("bank-line")).toBeNull();
 });
 
 test("an empty list: no line; no market values but bank rates: the section shows the line", () => {
@@ -64,12 +54,4 @@ test("an empty list: no line; no market values but bank rates: the section shows
   renderDashboard({ ...view(), market_note: [] } as RunView);
   expect(line()).toBeInTheDocument();
   expect(within(screen.getByTestId("market-note")).queryAllByTestId("market-item")).toHaveLength(0);
-});
-
-test("W25b EN", () => {
-  const v = view();
-  v.bank_context![0].rows[2] = { ...v.bank_context![0].rows[2] };
-  renderDashboard(v, () => {}, "EN");
-  expect(within(parts()[1]).getByTestId("bank-diff")).toHaveTextContent("+2,50 points");
-  expect(parts()[2]).toHaveTextContent("no data");
 });
