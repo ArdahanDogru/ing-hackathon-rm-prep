@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import dataclasses
 import inspect
+import json
+import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
@@ -48,6 +50,9 @@ ViewFn = Callable[[DecisionResult], dict]
 
 
 NOT_STARTED = "henüz çalıştırılmadı"    # v1.12: GET /agent before the RM started it
+# W31: client upload limits
+MAX_UPLOAD_BYTES = 64 * 1024
+PERSONA_ID = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
 # W26: the answer keys of the documents route, with their values when nothing is found
 _NO_DOCS = {"status": "not_covered", "manager_label": "", "verdict": "", "docs": [],
             "page_url": "", "checked_at": "", "reason": ""}
@@ -118,6 +123,34 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     @app.get("/api/personas")
     def personas():
         return [p.to_dict() for p in backend.list_personas()]
+
+    @app.get("/api/personas/uploaded")
+    def personas_uploaded():
+        """W31: the ids of the uploaded clients (none for a backend without uploads)."""
+        fn = getattr(backend, "uploaded_ids", None)
+        return list(fn()) if callable(fn) else []
+
+    @app.post("/api/personas")
+    def upload_persona(req: schemas.PersonaUploadRequest):
+        """W31: a client JSON uploaded by the RM (docs/web-ui.md); 422 with a Turkish text."""
+        save = getattr(backend, "save_persona", None)
+        if not callable(save):
+            raise HTTPException(404, "no client upload in this server")
+        if len(json.dumps(req.persona, ensure_ascii=False).encode("utf-8")) > MAX_UPLOAD_BYTES:
+            raise ValueError("Dosya çok büyük: en fazla 64 KB.")
+        try:
+            p = Persona.from_dict(req.persona)
+        except (ValueError, TypeError, KeyError) as e:
+            raise ValueError(f"Geçersiz müşteri dosyası (persona_schema.json): {e}") from None
+        if not PERSONA_ID.match(p.persona_id):
+            raise ValueError("persona_id yalnızca harf, rakam, '-' ve '_' içerebilir (1–32 karakter).")
+        builtin = getattr(backend, "builtin_personas", None)
+        if callable(builtin) and p.persona_id in {x.persona_id for x in builtin()}:
+            raise ValueError(f"persona_id {p.persona_id} yerleşik bir müşteriye ait; "
+                             "başka bir kimlik seçin.")
+        replaced = save(p)
+        _log("persona_uploaded", details={"persona_id": p.persona_id, "replaced": replaced})
+        return {"persona": p.to_dict(), "replaced": replaced}
 
     @app.get("/api/snapshots")
     def snapshots():

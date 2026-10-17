@@ -57,7 +57,7 @@ def test_backend_reset_moves_the_rm_records_and_keeps_the_caches(tmp_path):
     b._narratives[("R1", "TR")] = "text"
     b._edits[("R1", "TR")] = ({}, {})
     archive = data / "reset-archive" / "X"
-    assert b.reset_state(archive) == {"runs": 1, "texts": 2, "cards": 1}
+    assert b.reset_state(archive) == {"runs": 1, "texts": 2, "cards": 1, "personas": 0}
     assert names(data / "runs") == [] and names(data / "cards") == []
     assert names(data / "narratives") == ["R1-TR-brief-b1-m.json", "R1-TR-n9-m.json"]
     assert names(archive / "narratives") == ["R1-TR-approved.json", "R1-TR-edits.json"]

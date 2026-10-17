@@ -561,7 +561,7 @@ place"; scope: all clients; the user's approved P01 record goes to the archive
 too).
 
 - API (lead, `rmprep.api.reset`): `POST /api/reset` → `{archive, moved: {runs,
-  texts, cards, agent, research_marks}}`; 409 "Ajan çalışıyor; bitince
+  texts, cards, personas, agent, research_marks}}` (personas: the W31 uploads); 409 "Ajan çalışıyor; bitince
   sıfırlayın." while an agent job runs; 404 when the server has no reset.
   - **Moved, not deleted**, to `data/reset-archive/<YYYYMMDD-HHMMSS>/`:
     `data/runs/*.json` (approvals, rejections, notes), the approved texts and

@@ -13,6 +13,10 @@ class RunRequest(BaseModel):
     exclude_sources: list[str] = []
 
 
+class PersonaUploadRequest(BaseModel):     # W31
+    persona: dict
+
+
 class AnswerRequest(BaseModel):
     question_id: str
     answer: str

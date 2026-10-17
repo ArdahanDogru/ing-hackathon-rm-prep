@@ -41,6 +41,7 @@ class RealBackend:
                  now: Callable[[], datetime] = lambda: datetime.now(TR_TZ)) -> None:
         self._paths = Paths(Path(root).resolve())
         self._personas_dir = Path(personas_dir) if personas_dir else self._paths.root.parent
+        self._uploads = self._paths.root / "data" / "personas"      # W31: uploaded clients
         self._now = now
         self._config = decision.load_config(self._paths.root / "config" / "decision.yaml")
         self._evidence: dict[tuple[str, frozenset[str]], EvidenceSet] = {}
@@ -58,12 +59,44 @@ class RealBackend:
     # --- reading --------------------------------------------------------------
 
     def list_personas(self) -> list[Persona]:
+        """The built-in clients (../p0*.json), then the uploaded ones (W31,
+        data/personas/*.json; a built-in id wins, a broken file is skipped)."""
+        out = self.builtin_personas()
+        ids = {p.persona_id for p in out}
+        for f in sorted(self._uploads.glob("*.json")) if self._uploads.is_dir() else ():
+            try:
+                p = Persona.from_dict(json.loads(f.read_text(encoding="utf-8")))
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+            if p.persona_id not in ids:
+                ids.add(p.persona_id)
+                out.append(p)
+        return out
+
+    def builtin_personas(self) -> list[Persona]:
         out = []
         for f in sorted(self._personas_dir.glob("p0*.json")):
             d = json.loads(f.read_text(encoding="utf-8"))
             if isinstance(d, dict) and "persona_id" in d:
                 out.append(Persona.from_dict(d))
         return out
+
+    def uploaded_ids(self) -> list[str]:
+        """W31: the ids of the uploaded clients that are listed."""
+        builtin = {p.persona_id for p in self.builtin_personas()}
+        return [p.persona_id for p in self.list_personas() if p.persona_id not in builtin]
+
+    def save_persona(self, persona: Persona) -> bool:
+        """W31: stores an uploaded client as data/personas/<id>.json (the caller has
+        checked the id); True when it replaced an earlier upload."""
+        path = self._uploads / f"{persona.persona_id}.json"
+        replaced = path.is_file()
+        self._uploads.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f".{path.name}.tmp")
+        tmp.write_text(json.dumps(persona.to_dict(), ensure_ascii=False, indent=1) + "\n",
+                       encoding="utf-8", newline="\n")
+        tmp.replace(path)
+        return replaced
 
     def list_snapshots(self) -> list[str]:
         return [s.snapshot_id for s in reversed(list_snapshots(self._paths.snapshots))]
@@ -301,6 +334,8 @@ class RealBackend:
                 "texts": move_files(data / "narratives", archive / "narratives",
                                     lambda p: p.name.endswith(("-approved.json", "-edits.json"))),
                 "cards": move_files(data / "cards", archive / "cards", lambda p: True),
+                "personas": move_files(self._uploads, archive / "personas",          # W31
+                                       lambda p: p.suffix == ".json"),
             }
             self._runs.clear()
             self._narratives.clear()
