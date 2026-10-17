@@ -1,15 +1,14 @@
 # RM Görüşme Hazırlığı: kanıta dayalı yatırım karar desteği
 
-ING Agentic AI Hackathon · Private Banking RM Yatırım Karar Destek Çözümü
+Agent 007 grubu olarak sunduğumuz bu ürün, Private Banking'deki RMler (Relationship Manager) için tasarlanmış bir yatırım karar destek çözümüdür. 
 
-Bu araç, Private Banking RM'inin bir müşteri görüşmesine hazırlanmasına
-yardım eder. 1.444 yatırım seçeneğini (TEFAS fonları, BYF'ler, Borsa İstanbul
-payları, ING mevduatı) müşterinin profiline ve kısıtlarına göre eler, açık bir
-puanla sıralar ve önerdiği ilk 3'ü gerekçesiyle gösterir. RM onay verirse
-görüşme metnini de yazar. RM isterse bir ajan, motorun en iyi adaylarını web
-araştırmasıyla karşılaştırıp kendi ilk 3'ünü önerir; ajanın her adımını kod
-denetler. Ekrandaki her sayının kaynağı, tarihi ve kanıt kimliği vardır.
-**Araç yatırım tavsiyesi vermez; kararı ve müşteri iletişimini RM yapar.**
+Ürünümüz, data science ve agentic mühendislik yardımıyla RM'lerin müşteri görüşmesi hazırlığına yardım eder. 
+
+Sistemimizde TEFAS, Borsa İstanbul, TCMB gibi kayaklardan topladığımız ve işlediğimiz toplam 1.444 yatırım seçeneği var. Bu yatırım seçenekleri öncelikle müşterinin profiline ve kısıtlarına göre incelenir, uygunsuz opsiyonlar elenir ve geriye kalan uygun ürünler müşteriye özel puanlama sistemimizle sıralanır. Bu sıralama sonucunda puanlama motorumuz RM'in önüne en yüksek puanlı  3 ürünü öneri olarak sunar. RM, isterse bu önerilerin üzerine tıklayarak detaylarını inceleyebilir, motorun hangi kategorilere göre, neden bu yatırım seçeneğini önerdiğini görebilir. RM, bu üç opsiyon hakkında tereddüt ederse ya da yüksek puanlı opsiyonlar hakkında daha detaylı bir karşılaştırma yapmak isterse *Ajan Araştırması* bölümünü kullanabilir. Ajan araştırması, puanlama motorunun sıraladığı en üst seçenekler hakkında detaylı bir şirket ve ürün araştırması yapar, bununla birlikte müşterinin portföy bilgisi, istek ve kısıtlarını göz önünde bulundurarak motorun yaptığı tercihleri değiştirebilir, RM'e yeni bir ürün sıralaması önerebilir. 
+
+RM; bu süreç boyunca müşteri profilini düzenleyebilir; müşterinin portföy detaylarını değiştirebilir, yatırım seçenekleri hakkında detaylı web araştırması yaptırabilir. Web araştırması sonucunda çıkan bulguları onaylayabilir veya reddedebilir. Reddedilen bilgiler ajana girdi olarak verilmez, onaylanan bilgiler ajana daha güçlü bir şekilde önerilir. 
+
+RM hazırlık sayfasındaki önerilerden ve haberlerden, değiştirdiği bilgilerden memnun olduğu takdirde müşteri görüşme metnini hazırlatabilir. Metin; sayfada yer alan bilgiler ve RM'in verdiği kararlara göre hazırlanır. Bu süreçte ekrandaki her sayının kaynağı, tarihi ve kanıt kimliği vardır. Araç yatırım tavsiyesi vermez; kararı ve müşteri iletişimini RM yapar.
 
 ![P02 panosu: profil, AI ile bulunan teyit soruları, piyasa notu ve onay çubuğu](docs/img/readme/dashboard.png)
 *P02 (ihracatçı, Dengeli) panosu, 17.10.2026 verisi. Üstte profil ve AI
