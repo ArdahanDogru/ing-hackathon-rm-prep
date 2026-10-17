@@ -307,6 +307,14 @@ export interface BankContext {
   note: string;
 }
 
+/** W42: a finding about the profile: a conflict between fields, or a point to confirm. */
+export interface ProfileCheck {
+  id: string;
+  kind: "conflict" | "confirm";
+  fields: string[]; // persona field names
+  text: string;
+}
+
 /** W25b: RunView.bank_context, one entry per configured option, for the "Piyasa notu" panel. */
 export interface MarketBankEntry extends BankContext {
   option_id: string;
@@ -397,6 +405,8 @@ export interface RunView {
   market_note: MarketNoteItem[];
   /** W16 (PR #1): scoring criterion → the client's priorities (as written) that boost it. */
   priority_criteria: Record<string, string[]>;
+  /** W42: conflicting client information over the engine's reading of the profile; [] when none. */
+  profile_checks?: ProfileCheck[];
   /** W25b: other banks' rates once per run (empty without the config); optional for older samples. */
   bank_context?: MarketBankEntry[];
   /** W18: the current split's status and sources. Optional until the API fixtures have it. */

@@ -72,3 +72,42 @@ export function fmtScore(value: number, signed = true): string {
   if (n === 0) return "0";
   return value < 0 ? `${MINUS}${n}` : signed ? `+${n}` : String(n);
 }
+
+const nfTR2 = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 });
+const nfEN2 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+// TRY keeps the source value: 2 to 4 decimals ("49,1267 TL", "23,50 TL")
+const nfTRYtr = new Intl.NumberFormat("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+const nfTRYen = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+
+/**
+ * W42: one formatter for every value with a unit (no "pct" on a screen): pct → "%34,5" (EN "34.5 %"),
+ * TRY → "49,1267 TL" / "23,50 TL" (2 to 4 decimals), TRY/kg → "… TL/kg", days → "3 gün", count and index → the number,
+ * flag → "evet" / "hayır" (1 / 0), level → "3 / 7"; another unit after the number.
+ */
+export function fmtUnit(value: number, unit: string, lang: "TR" | "EN" = "TR"): string {
+  const money = unit === "TRY" || unit === "TRY/kg";
+  const nf = money ? (lang === "TR" ? nfTRYtr : nfTRYen) : lang === "TR" ? nfTR2 : nfEN2;
+  const abs = nf.format(Math.abs(value));
+  const num = value < 0 && abs !== "0" ? `${MINUS}${abs}` : abs;
+  switch (unit) {
+    case "pct":
+      if (lang === "EN") return `${num} %`;
+      return value < 0 && abs !== "0" ? `${MINUS}%${abs}` : `%${abs}`;
+    case "TRY":
+      return `${num} TL`;
+    case "TRY/kg":
+      return `${num} TL/kg`;
+    case "days":
+      return lang === "TR" ? `${num} gün` : `${num} ${Math.abs(value) === 1 ? "day" : "days"}`;
+    case "flag":
+      return value ? (lang === "TR" ? "evet" : "yes") : lang === "TR" ? "hayır" : "no";
+    case "level":
+      return `${num} / 7`;
+    case "count":
+    case "index":
+    case "":
+      return num;
+    default:
+      return `${num} ${unit}`;
+  }
+}

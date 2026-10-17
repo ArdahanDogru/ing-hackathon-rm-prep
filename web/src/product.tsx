@@ -24,7 +24,9 @@ export function CodeBadge({ optionId, className = "" }: { optionId: string; clas
   return (
     <span
       data-testid="code-badge"
-      className={`mr-1.5 inline-block rounded border border-gray-300 bg-white px-1 py-px align-[1px] font-mono text-[11px] font-bold leading-tight tracking-normal text-[#475467] normal-case ${className}`}
+      className={`mr-1.5 inline-block rounded border border-gray-300 bg-white px-1 py-px align-[1px] font-mono ${
+        className.includes("text-[") ? "" : "text-[max(11px,0.85em)]" // W42: the size of the text it stands in
+      } font-bold leading-tight tracking-normal text-[#475467] normal-case ${className}`}
     >
       {code}
     </span>
