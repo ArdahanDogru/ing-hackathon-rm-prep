@@ -407,3 +407,20 @@ nothing. Tests (offline): the prompt text of each rule; the validator accepts an
 no past-return reminder; `to_markdown` keeps the `###` heading per option.
 Live check (lead, paid, about $1–2): P01–P05 TR with n11: validator status,
 the sentence lengths, the five points by eye; then the eval narrator run.
+
+**N16 as built** (merged 2026-10-17, narrator@4e843f0; prompt_version n11):
+
+- The prompt changes of the five points as specified; the length line "Short
+  sentences: one idea per sentence, each at most about 100 characters; split a
+  longer one."
+- Validator: `_starts_with_name` and `_check_shape` (N13) are removed; the
+  finding kind "shape" no longer exists. All other checks are unchanged (N13b
+  repeats, coverage, citations); no length limit.
+- Template fallback: `oneriler` has one sentence per option (the fit, with the
+  RM's option note), without the name, the facts or a risk sentence. Design
+  detail (worker): the asset-class risk note moves from `oneriler` (c) to
+  `dikkat`, once per distinct note, as "<names>: <note>" (the names, because
+  `dikkat` has no per-fund heading), citing every option with that note. The
+  template writes no (c): it cannot judge an option-specific trade-off. Slow
+  access and fees stay in the per-option `dikkat` sentence. `teklif_metni` has
+  no past-return reminder (2 sentences).
