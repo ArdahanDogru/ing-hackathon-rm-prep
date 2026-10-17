@@ -30,7 +30,8 @@ def build_app(root: Path, personas_dir: Path | None = None):
                 if bc_file.is_file() else None)
     views = ViewBuilder(backend, load_config(root / "config" / "decision.yaml"),
                         market_series=narrator_raw.get("market_note", {}).get("series"),   # W15
-                        bank_context=bank_ctx)
+                        bank_context=bank_ctx,
+                        profile_texts=_profile_texts(root))                     # W42
     dist = root / "web" / "dist"
     if not (dist / "index.html").is_file():
         print(f"web/dist missing: run `npm ci; npm run build` in {root / 'web'} (API only for now)",
@@ -78,6 +79,13 @@ def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None
     app = build_app(root, personas_dir)
     print(f"rmprep: http://127.0.0.1:{port}", file=sys.stderr)
     uvicorn.run(app, host="127.0.0.1", port=port)       # local only, no login
+
+
+def _profile_texts(root):
+    """W42: config/profile_checks.yaml; a root without the file has no profile check."""
+    from rmprep.api.profile_checks import load_texts
+    f = Path(root) / "config" / "profile_checks.yaml"
+    return load_texts(f) if f.is_file() else None
 
 
 def _start_warm(backend) -> None:

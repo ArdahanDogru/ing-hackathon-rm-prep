@@ -592,6 +592,37 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### Bigger codes, readable units, conflicting client information (W42, 2026-10-17)
+
+Asked by the user 2026-10-17.
+
+1. **Product codes a bit bigger**: the code badge (`CodeBadge`) was too small;
+   it gets the size of the text it stands in (about 0.85 em, at least 11 px),
+   the same monospace and border.
+2. **No "pct" on any screen**: the evidence pop-up showed `34,5 pct`. One unit
+   formatter for every value with a unit: `pct` → "%34,5" (Turkish: % first;
+   EN "34.5 %"), `TRY` → "49,13 TL", `TRY/kg` → "… TL/kg", `days` → "3 gün",
+   `count` → the number, `flag` → "evet" / "hayır" (1 / 0), `index` → the
+   number, `level` → "3 / 7". The market note uses the same formatter.
+3. **Conflicting client information** (API, lead, done): the RunView has
+   `profile_checks: [{id, kind, fields, text}]` (`kind` "conflict" or
+   "confirm"; `fields` = persona field names). Fixed rules over the engine's own
+   reading of the profile (`rmprep.api.profile_checks`, texts in
+   `config/profile_checks.yaml`): risk vs growth priorities, Agresif vs principal
+   protection, liquidity level vs liquidity priorities or constraints, income
+   level vs "düzenli gelir", FX "Açık" vs the FX limit (conflicts); a 5+ year
+   horizon with a high liquidity need, a horizon under 1 year with a growth
+   priority (confirm). The five built-in clients have no finding. Each finding
+   is also a "Teyit edin" item (in `to_confirm`, no question id). Display only.
+   Web (ing-web): in the client card, an amber block "Profilde çelişki (n)" /
+   "Conflicting profile information (n)" with each finding's text (a "confirm"
+   finding with a softer look and the title "Sorulacak"); in the "Profili
+   düzenle" panel, the fields of a finding get an amber mark and its text under
+   them, so the RM sees the conflict while editing (the panel's preview run gives
+   the findings of the edited profile). Nothing when the list is empty.
+- Tests: the badge size; each unit form (TR and EN); the block, its items, the
+  kinds, the field marks in the edit panel, nothing for an empty list.
+
 ### Every rank says what it ranks by (W41, 2026-10-17)
 
 Asked by the user 2026-10-17: "Kategorisinde 26. / 92 ★★★★☆ Kategoride ilk %28"

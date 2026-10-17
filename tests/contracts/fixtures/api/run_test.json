@@ -36374,6 +36374,22 @@
    "text": "Mevcut portföy dağılımını sorun.",
    "question_id": null,
    "choices": []
+  },
+  {
+   "text": "Risk profili Muhafazakâr (fon riski en fazla 2 / 7), ama öncelikler büyüme istiyor (uzun vadeli büyüme). Büyüme daha yüksek risk ister: müşteriyle hangisinin geçerli olduğunu teyit edin.",
+   "question_id": null,
+   "choices": []
+  }
+ ],
+ "profile_checks": [
+  {
+   "id": "risk_vs_growth",
+   "kind": "conflict",
+   "fields": [
+    "risk_profili",
+    "oncelikler"
+   ],
+   "text": "Risk profili Muhafazakâr (fon riski en fazla 2 / 7), ama öncelikler büyüme istiyor (uzun vadeli büyüme). Büyüme daha yüksek risk ister: müşteriyle hangisinin geçerli olduğunu teyit edin."
   }
  ],
  "assumptions": [
