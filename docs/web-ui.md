@@ -592,6 +592,36 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### The agent's stage boxes explain themselves (W40, 2026-10-17)
+
+Asked by the user 2026-10-17 (the boxes "are not so intuitive"). The notes of
+the boxes are now in the RM's words (docs/agent.md A4). The web adds, at the top
+of an opened box, a fixed sentence or two on what the stage does (TR; EN in the
+same sense):
+
+1. Adaylar: "Motor, müşterinin profiline göre puanladığı ürünlerden en iyi N
+   tanesini ajana verir (ING mevduatları hariç). Motorun ilk 3'ü listenin
+   başındadır; ajan yalnızca bu adaylar arasından seçer."
+2. Ajan araştırması: "Her aday için web'de fonun kendi bilgileri ve son
+   haberleri aranır. Bugün araştırılmış bir ürün yeniden aranmaz. RM'in ✗
+   işaretlediği bulgular ajana verilmez; ✓ işaretlenenler “RM doğruladı” diye gider."
+3. Ajan analizi: "Ajan adayların puanlarını, risklerini, portföy dağılımına
+   etkisini ve web bulgularını tartar. Gerekirse iki adayı karşılaştırır ya da
+   bir ürün için ek soru araştırır; sonra üç ürünlük bir öneri yapar."
+4. Kontrol: "Ajanın önerisi kurallarla denetlenir: her sayı ve tarih gösterilen
+   kaynakta olmalı, her gerekçenin kaynağı olmalı, yasak ifade olmamalı, seçim
+   ürün sınıfı sınırlarına uymalı. Sorun bulunursa öneri ajana geri verilir;
+   iki kez geçmezse motorun ilk 3'ü kullanılır."
+5. Karar: "Ajanın son seçimi ve kısa gerekçesi. Ajan karar veremezse motorun
+   ilk 3'ü kullanılır ve nedeni burada yazar."
+
+- A step of "Ajan analizi" with the state `failed` (a proposal that the checks
+  returned) shows "geri verildi" / "returned", not a red failure word; a failed
+  stage itself keeps its failure look.
+- The stage's duration ("8 sn") and cost stay as now; the notes are a list.
+- Tests: each stage's description in the opened box, the "geri verildi" state
+  word, TR and EN; the dev:mock decision gets notes in the new form.
+
 ### Categories by what a fund invests in (W32, 2026-10-17)
 
 Asked by the user 2026-10-17: the "Kategorileri gör" pop-up of step 4 did not

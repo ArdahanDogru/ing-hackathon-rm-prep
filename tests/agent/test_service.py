@@ -47,7 +47,7 @@ def test_happy_path_decides_and_labels(svc_factory, ready_p01, ev):
     assert any("tahmini dağılıma göre" in lbl for p in d.picks for r in p.reasons
                for lbl in r.labels)
     analysis = d.nodes[2]
-    assert analysis.children[0].notes == ("Getirileri karşılaştır.",)
+    assert analysis.children[0].notes == ("Amaç: Getirileri karşılaştır.",)   # A4
     assert research.many_calls == [cand_ids(ready_p01)]       # all 10 researched first
     assert len(d.nodes[1].children) == 10
     assert d.model == "claude-sonnet-5-5" and d.prompt_version == "a3"
@@ -77,7 +77,7 @@ def test_bad_pick_count_retries_then_falls_back(svc_factory, ready_p01, ev):
     assert retry["type"] == "tool_result" and retry["is_error"] is True
     assert "3 picks" in retry["content"]
     assert d.nodes[3].state == "failed" and d.nodes[4].state == "done"
-    assert any("3 picks" in n for n in d.nodes[3].notes)
+    assert any("3 seçim olmalı" in n for n in d.nodes[3].notes)      # A4: the RM's words
 
 
 def test_retry_that_passes_is_done(svc_factory, ready_p01, ev):
@@ -86,7 +86,7 @@ def test_retry_that_passes_is_done(svc_factory, ready_p01, ev):
                             turn(call("karar_ver", **karar(ready_p01, picks))))
     d = _run(svc_factory(client), ready_p01, ev)
     assert d.state == "done" and d.nodes[3].state == "done"
-    assert any("3 picks" in n for n in d.nodes[3].notes)
+    assert any("3 seçim olmalı" in n for n in d.nodes[3].notes)      # A4: the RM's words
 
 
 def test_unknown_id_and_rule_breaks_are_refused(svc_factory, ready_p01, ev):
@@ -94,7 +94,7 @@ def test_unknown_id_and_rule_breaks_are_refused(svc_factory, ready_p01, ev):
     bad = karar(ready_p01, [picks[0], picks[1], "fund:ZZZ"])
     client = ScriptedClient(turn(call("karar_ver", **bad)), turn(call("karar_ver", **bad)))
     d = _run(svc_factory(client), ready_p01, ev)
-    assert d.state == "fallback" and "fund:ZZZ" in d.fallback_reason
+    assert d.state == "fallback" and "ZZZ aday listesinde yok" in d.fallback_reason   # A4
 
 
 def test_no_tool_call_counts_as_a_failed_try(svc_factory, ready_p01, ev):
@@ -261,7 +261,7 @@ def test_arastir_answer_findings_can_be_cited(svc_factory, ready_p01, ev):
     assert research.personas == [ready_p01.persona]      # the full question check (R3)
     assert d.picks[0].uses_web
     node = d.nodes[2].children[0]
-    assert node.notes == ("Ücreti öğren.",) and node.cost_usd == 0.02
+    assert node.notes == ("Amaç: Ücreti öğren.",) and node.cost_usd == 0.02   # A4
 
 
 class _Interactive:
@@ -404,3 +404,24 @@ def test_with_the_real_research_service(svc_factory, ready_p01, ev, tmp_path):
     assert d.picks[1].uses_web
     assert sum(1 for c in provider.calls if c[0] == "product") == 10
     assert first["answer"]["bulgular"][0]["id"].startswith("F")
+
+
+def test_a4_readable_steps_and_checks(svc_factory=None):
+    """A4 (the user, 2026-10-17): the check problems in the RM's words, with codes."""
+    from rmprep.agent.explain import code, explain
+    assert code("fund:PPN") == "PPN" and code("time_deposit:ing_e_vadeli") == "ING e-Vadeli"
+    cases = {
+        'fund:OSD: number 75 not in the cited data: "Portföy %75 nakit"': "OSD: “75” sayısı gösterilen kaynaklarda yok",
+        'summary: forbidden phrase "garanti"': "özette yasak ifade: “garanti”",
+        "needs 3 picks, got 2": "3 seçim olmalı, 2 verildi",
+        "fund:ZZZ is not a candidate (candidates: fund:A, fund:B)": "ZZZ aday listesinde yok",
+        "2 options of class borclanma (at most 1 per class; the candidates allow it)":
+            "borçlanma sınıfından 2 ürün seçilmiş (en fazla 1)",
+        "dropped: fund:AIS of the engine's top 3 is dropped without a reason":
+            "motorun ilk 3'ündeki AIS gerekçesiz çıkarılmış",
+        "fund:PPN: reason without a citation: \"x\"": "PPN: bir gerekçenin kaynağı gösterilmemiş",
+        "something new": "something new",
+    }
+    for raw, want in cases.items():
+        assert explain(raw, "TR") == want
+    assert explain("needs 3 picks, got 2", "EN") == "3 picks needed, 2 given"

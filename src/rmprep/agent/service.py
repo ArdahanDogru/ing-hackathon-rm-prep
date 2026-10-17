@@ -41,6 +41,7 @@ from typing import Any, Protocol
 from rmprep.agent.checks import check_decision
 from rmprep.agent.client import AgentClient, AgentError, AgentTurn, agent_client_from_env
 from rmprep.agent.config import AgentConfig, load_agent_config
+from rmprep.agent.explain import code, explain
 from rmprep.agent.pack import MARKS, build_pack, candidates, finding_items, marks_hash
 from rmprep.agent.tools import TOOLS, karsilastir
 from rmprep.contracts import (
@@ -70,7 +71,7 @@ NODE_LABELS = {"TR": ("Adaylar", "Ajan araştırması", "Ajan analizi", "Kontrol
 
 TEXTS = {
     "TR": {
-        "candidates": "Motorun en iyi {n} adayı (mevduat hariç).",
+        "candidates": "Motorun en iyi {n} adayı (ING mevduatları hariç): {codes}.",
         "research_done": "{ok}/{n} ürün araştırıldı.",
         "research_off": "Ajan araştırması kapalı; ajan araştırmasız karar verir.",
         "research_failed": "Ajan araştırması yapılamadı: {why}",
@@ -78,11 +79,18 @@ TEXTS = {
         "not_researched": "ING ürünü; web araştırması yapılmaz.",
         "findings": "{n} bulgu, {m} haber.",
         "checks_ok": "Tüm kontroller geçti.",
-        "problem": "Sorun: {p}",
-        "no_call": "Model araç çağırmadı.",
-        "compare": "karşılaştır {a} – {b}",
-        "ask": "araştır {a}: {q}",
-        "decide": "karar ver",
+        "problem": "– {p}",
+        "no_call": "Ajan bu turda bir adım seçmedi; yeniden istendi.",
+        "compare": "Karşılaştırma: {a} ile {b}",
+        "ask": "Ek araştırma: {a} — “{q}”",
+        "decide": "Karar önerisi ({k}. deneme)",
+        "goal": "Amaç: {amac}",
+        "proposal_failed": "Kontrolde {n} sorun bulundu; ajan düzeltip yeniden önerdi.",
+        "proposal_ok": "Kontrollerden geçti.",
+        "attempt_problems": "{k}. öneri: {n} sorun bulundu, ajana düzeltmesi için geri verildi:",
+        "attempt_ok": "{k}. öneri: tüm kontroller geçti.",
+        "research_marks": "RM'in ✗ işaretlediği {n} bulgu ajana verilmedi.",
+        "picks": "Ajanın seçimi: {codes}.",
         "too_few": "3'ten az aday var",
         "limit": "günlük ajan bütçesi doldu ({limit:.2f} USD)",
         "timeout": "süre sınırı aşıldı ({s:.0f} sn)",
@@ -97,7 +105,7 @@ TEXTS = {
         "call_tool": "Bir araç çağır; son adımda karar_ver'i çağır.",
     },
     "EN": {
-        "candidates": "The engine's best {n} candidates (without the deposit).",
+        "candidates": "The engine's best {n} candidates (without the ING deposits): {codes}.",
         "research_done": "{ok}/{n} products researched.",
         "research_off": "Agent research is off; the agent decides without it.",
         "research_failed": "Agent research failed: {why}",
@@ -105,11 +113,18 @@ TEXTS = {
         "not_researched": "An ING product; not researched on the web.",
         "findings": "{n} findings, {m} news items.",
         "checks_ok": "All checks passed.",
-        "problem": "Problem: {p}",
-        "no_call": "The model called no tool.",
-        "compare": "compare {a} – {b}",
-        "ask": "research {a}: {q}",
-        "decide": "decide",
+        "problem": "– {p}",
+        "no_call": "The agent chose no step in this turn; it was asked again.",
+        "compare": "Comparison: {a} and {b}",
+        "ask": "More research: {a} — “{q}”",
+        "decide": "Decision proposal (attempt {k})",
+        "goal": "Goal: {amac}",
+        "proposal_failed": "The checks found {n} problems; the agent corrected them and proposed again.",
+        "proposal_ok": "Passed the checks.",
+        "attempt_problems": "Proposal {k}: {n} problems found, returned to the agent to correct:",
+        "attempt_ok": "Proposal {k}: all checks passed.",
+        "research_marks": "{n} findings that the RM marked ✗ were not given to the agent.",
+        "picks": "The agent's picks: {codes}.",
         "too_few": "fewer than 3 candidates",
         "limit": "the daily agent budget is used ({limit:.2f} USD)",
         "timeout": "the time limit was exceeded ({s:.0f} s)",
@@ -450,7 +465,8 @@ class AgentService:
 
         n_cands.begin(self._now())
         cands = candidates(result, run.n)
-        n_cands.notes.append(t["candidates"].format(n=len(cands)))
+        n_cands.notes.append(t["candidates"].format(                     # A4: the codes
+            n=len(cands), codes=", ".join(code(o.option.option_id) for o in cands)))
         n_cands.end(self._now())
         self._publish(run)
         if len(cands) < 3:
@@ -459,6 +475,9 @@ class AgentService:
         research = self._research_all(run, cands)
         marks = self._marks()
         ids = {o.option.option_id for o in cands}
+        wrong = _wrong_found(research, ids, marks)                     # A4: the RM's ✗ marks
+        if wrong:
+            n_research.notes.append(t["research_marks"].format(n=wrong))
         run.marks_hash = marks_hash({k: v for k, v in research.items() if k in ids}, marks)
         stored = self._stored(result.run_id, run.n, run.marks_hash)
         if stored is not None:
@@ -517,8 +536,9 @@ class AgentService:
                         raise _Fallback(t["tool_limit"].format(tool=call.name, max=limit))
                 inp = call.input if isinstance(call.input, Mapping) else {}
                 child = _Node(f"analiz:{len(n_analysis.children) + 1}",
-                              self._call_label(run, call.name, inp))
-                child.notes.append(_short(inp.get("amac", ""), cfg.words["amac"]))
+                              self._call_label(run, call.name, inp, failures + 1))
+                if inp.get("amac"):
+                    child.notes.append(t["goal"].format(amac=_short(inp["amac"], cfg.words["amac"])))
                 child.begin(self._now())
                 n_analysis.children.append(child)
                 self._publish(run)
@@ -530,18 +550,22 @@ class AgentService:
                         labels={k: v.get(run.lang, v["TR"]) for k, v in cfg.labels.items()},
                         words=cfg.words)
                     if not problems:
+                        child.notes.append(t["proposal_ok"])
                         child.end(self._now())
                         n_analysis.end(self._now())
-                        n_checks.notes.append(t["checks_ok"])
+                        n_checks.notes.append(t["attempt_ok"].format(k=failures + 1))
                         n_checks.end(self._now())
                         return self._done(run, picks, dropped, summary)
                     failures += 1
-                    n_checks.notes += [t["problem"].format(p=p) for p in problems[:MAX_NOTES]]
+                    child.notes.append(t["proposal_failed"].format(n=len(problems)))
+                    n_checks.notes.append(t["attempt_problems"].format(k=failures, n=len(problems)))
+                    n_checks.notes += [t["problem"].format(p=explain(p, run.lang))
+                                       for p in problems[:MAX_NOTES]]
                     child.end(self._now(), "failed")
                     if failures >= MAX_FAILURES:
                         n_checks.end(self._now(), "failed")
                         n_analysis.end(self._now(), "failed")
-                        raise _Fallback(t["checks"].format(first=problems[0]))
+                        raise _Fallback(t["checks"].format(first=explain(problems[0], run.lang)))
                     res: dict[str, Any] = {"hata": t["retry"], "sorunlar": problems}
                 elif call.name == "karsilastir":
                     res = karsilastir(pack, str(inp.get("a", "")), str(inp.get("b", "")))
@@ -645,14 +669,16 @@ class AgentService:
 
     # --- helpers -------------------------------------------------------------------
 
-    def _call_label(self, run: _Run, name: str, inp: Mapping) -> str:
+    def _call_label(self, run: _Run, name: str, inp: Mapping, attempt: int = 1) -> str:
+        """A4: the step in the RM's words, with fund codes (not the tool name)."""
         t = run.text
         if name == "karsilastir":
-            return t["compare"].format(a=inp.get("a", "?"), b=inp.get("b", "?"))
+            return t["compare"].format(a=code(str(inp.get("a", "?"))), b=code(str(inp.get("b", "?"))))
         if name == "arastir":
-            return t["ask"].format(a=inp.get("option_id", "?"), q=_short(inp.get("soru", ""), 12))
+            return t["ask"].format(a=code(str(inp.get("option_id", "?"))),
+                                   q=_short(inp.get("soru", ""), 12))
         if name == "karar_ver":
-            return t["decide"]
+            return t["decide"].format(k=attempt)
         return name
 
     @staticmethod
@@ -703,6 +729,7 @@ class AgentService:
     def _done(self, run: _Run, picks, dropped, summary: str) -> AgentDecision:
         node = run.nodes[4]
         node.begin(self._now())
+        node.notes.append(run.text["picks"].format(codes=", ".join(code(p.option_id) for p in picks)))
         node.notes.append(summary)
         node.end(self._now())
         return self._decision(run, "done", picks=tuple(picks), dropped=tuple(dropped),
@@ -785,6 +812,15 @@ class AgentService:
         except Exception as e:
             log.warning("cannot read the research marks: %s", type(e).__name__)
             return {}
+
+
+def _wrong_found(research: Mapping[str, ProductResearch], ids: set[str],
+                 marks: Mapping[str, str]) -> int:
+    """A4: how many findings or news of the candidates the RM marked ✗ (they are not
+    given to the agent)."""
+    seen = {f.id for oid, r in research.items() if oid in ids
+            for f in (*r.findings, *r.news)}
+    return sum(1 for fid, m in marks.items() if m == "wrong" and fid in seen)
 
 
 def agent_from_root(root: Path | str, research: ResearchLike | None,

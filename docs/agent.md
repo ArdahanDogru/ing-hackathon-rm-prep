@@ -110,3 +110,26 @@ earlier split, or the reset of the split). The web needs no change: a new run id
 polls the status at once, and the research panel asks again after the run. Cost:
 one agent run per new split after an agent run (the content cache makes a repeat
 free). Tests: `tests/api/test_agent_follow.py`.
+
+## A4: readable stage boxes (lead, 2026-10-17, asked by the user)
+
+The user: the explanations of the agent's stage boxes "are not so intuitive;
+some of them are not explanatory even" (e.g. "Kontrol" showed raw English check
+messages such as `fund:OSD: number 75 not in the cited data`, then "Tüm
+kontroller geçti" without saying that a first proposal had failed; "Ajan
+analizi" showed the tool name "karar ver" twice, one failed).
+
+- `agent/explain.py`: each problem form of `checks.check_decision` as a short
+  TR / EN sentence with the fund code (`explain`); `code(option_id)` = the code
+  ("fund:PPN" → PPN; ING deposits by name). The model still gets the English
+  problems; only the RM's notes and the fallback reason use `explain`.
+- Notes in the RM's words (`service.TEXTS`): Adaylar lists the codes; Ajan
+  araştırması adds how many ✗-marked findings were not given to the agent;
+  the analysis steps are "Karşılaştırma: PPN ile OSD", "Ek araştırma: AIS —
+  “…”", "Karar önerisi (k. deneme)", each with "Amaç: …" and, for a proposal,
+  its result ("Kontrolde n sorun bulundu; ajan düzeltip yeniden önerdi." /
+  "Kontrollerden geçti."); Kontrol gives per proposal "k. öneri: n sorun
+  bulundu, ajana düzeltmesi için geri verildi:" with the explained problems,
+  or "k. öneri: tüm kontroller geçti."; Karar starts with "Ajanın seçimi: …".
+- The stage descriptions themselves (what each stage does) are fixed screen
+  texts (web-ui.md W40). Stored decisions of earlier runs keep their old notes.
