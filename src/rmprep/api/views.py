@@ -11,6 +11,7 @@ from datetime import date
 
 from rmprep.api import categories as cat
 from rmprep.api.names import short_name
+from rmprep.api.profile_checks import check_run
 from rmprep.contracts import Backend, DecisionResult, Flag, ScoredOption, _to_json
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.display import DisplayFacts, access_text, display_facts
@@ -161,12 +162,14 @@ class ViewBuilder:
 
     def __init__(self, backend: Backend, config: DecisionConfig, lang: str = "TR",
                  market_series: Sequence[Mapping] | None = None,
-                 bank_context: Mapping | None = None) -> None:
+                 bank_context: Mapping | None = None,
+                 profile_texts: Mapping | None = None) -> None:
         """market_series: config/narrator.yaml market_note.series (W15); None = no note.
         bank_context: the checked options of config/bank_context.yaml (W25); None = none."""
         self._backend, self._config, self._lang = backend, config, lang
         self._market_series = list(market_series or ())
         self._bank_context = dict(bank_context or {})
+        self._profile_texts = profile_texts    # W42: config/profile_checks.yaml; None = no check
 
     def _market_note(self, ev) -> list[dict]:
         """W15: the EVDS values of the market note (latest usable row of each
@@ -328,7 +331,11 @@ class ViewBuilder:
                 row["options"].append({"option_id": x.option.option_id,      # W28: the code
                                        "label": x.option.label, "reasons": reasons})
 
+        # W42: conflicting client information, also in "Teyit edin"
+        profile_checks = (check_run(r, self._config, self._profile_texts, self._lang)
+                          if self._profile_texts else [])
         to_confirm = [{"text": c, "question_id": None, "choices": []} for c in r.to_confirm]
+        to_confirm += [{"text": f["text"], "question_id": None, "choices": []} for f in profile_checks]
         to_confirm += [{"text": q.text, "question_id": q.question_id, "choices": list(q.choices)}
                        for q in r.questions if not q.blocking and q.answer is None]
         answers = {q.question_id: q.answer for q in r.questions if q.answer is not None}
@@ -345,6 +352,7 @@ class ViewBuilder:
             "options": {oid: option_view(by_id[oid]) for oid in sorted(shown_ids)},
             "talking_points": [_to_json(tp) for tp in r.talking_points],
             "to_confirm": to_confirm,
+            "profile_checks": profile_checks,                              # W42
             "assumptions": list(r.assumptions),
             "data_notes": [_to_json(n) for n in r.data_quality],
             "client_warnings": [_to_json(w) for w in r.warnings if w.audience == "client"],

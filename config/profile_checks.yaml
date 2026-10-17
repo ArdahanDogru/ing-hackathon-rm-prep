@@ -1,0 +1,47 @@
+# Conflicting client information (W42, 2026-10-17; lead-owned; docs/web-ui.md W42).
+# The rules are fixed in rmprep.api.profile_checks (over the engine's reading of the
+# profile); this file has their kind, the profile fields they name and the texts.
+# kind: conflict = two fields contradict each other; confirm = a tension to ask about.
+# Fields in {} are filled by the rule. The findings also go into "Teyit edin".
+version: 1
+rules:
+  risk_vs_growth:
+    kind: conflict
+    fields: [risk_profili, oncelikler]
+    TR: "Risk profili {risk} (fon riski en fazla {ceiling} / 7), ama öncelikler büyüme istiyor ({items}). Büyüme daha yüksek risk ister: müşteriyle hangisinin geçerli olduğunu teyit edin."
+    EN: "The risk profile is {risk} (fund risk at most {ceiling} / 7), but the priorities ask for growth ({items}). Growth needs more risk: confirm with the client which one holds."
+  aggressive_vs_protection:
+    kind: conflict
+    fields: [risk_profili, anapara_koruma_tercihi, oncelikler, acik_kisitlar]
+    TR: "Risk profili {risk}, ama müşteri anaparayı korumak istiyor ({items}). İkisi birlikte olmaz: müşteriyle teyit edin."
+    EN: "The risk profile is {risk}, but the client wants to protect the principal ({items}). Both cannot hold: confirm with the client."
+  liquidity_low_vs_need:
+    kind: conflict
+    fields: [likidite_ihtiyaci, oncelikler, acik_kisitlar]
+    TR: "Likidite ihtiyacı {level}, ama öncelik veya kısıt likidite istiyor ({items}). Paraya ne kadar hızlı erişim gerektiğini teyit edin."
+    EN: "The liquidity need is {level}, but a priority or constraint asks for liquidity ({items}). Confirm how fast the client needs access to the money."
+  liquidity_high_vs_no_need:
+    kind: conflict
+    fields: [likidite_ihtiyaci, acik_kisitlar]
+    TR: "Likidite ihtiyacı {level}, ama kısıt kısa vadeli nakit ihtiyacı olmadığını söylüyor ({items}). Hangisinin geçerli olduğunu teyit edin."
+    EN: "The liquidity need is {level}, but a constraint says there is no short-term cash need ({items}). Confirm which one holds."
+  income_low_vs_priority:
+    kind: conflict
+    fields: [gelir_nakit_akisi_ihtiyaci, oncelikler]
+    TR: "Gelir / nakit akışı ihtiyacı {level}, ama öncelikler arasında {items} var. Düzenli gelir beklentisini teyit edin."
+    EN: "The income / cash-flow need is {level}, but the priorities include {items}. Confirm the expectation of a regular income."
+  fx_open_vs_limit:
+    kind: conflict
+    fields: [doviz_maruz_kalma_tercihi, acik_kisitlar]
+    TR: "Döviz tercihi “{fx}”, ama kısıt döviz maruziyetini sınırlıyor ({items}). Döviz payı için sınırı teyit edin."
+    EN: "The FX preference is “{fx}”, but a constraint limits the FX exposure ({items}). Confirm the limit for the FX share."
+  long_horizon_high_liquidity:
+    kind: confirm
+    fields: [yatirim_ufku, likidite_ihtiyaci]
+    TR: "Yatırım ufku {horizon}, ama likidite ihtiyacı {level}. Paranın ne kadarının kısa sürede gerekebileceğini sorun."
+    EN: "The horizon is {horizon}, but the liquidity need is {level}. Ask how much of the money may be needed soon."
+  short_horizon_growth:
+    kind: confirm
+    fields: [yatirim_ufku, oncelikler]
+    TR: "Yatırım ufku {horizon}, ama öncelikler büyüme istiyor ({items}). Kısa sürede büyüme beklentisini sorun."
+    EN: "The horizon is {horizon}, but the priorities ask for growth ({items}). Ask about the expectation of growth in a short time."

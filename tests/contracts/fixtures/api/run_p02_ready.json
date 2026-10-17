@@ -54725,6 +54725,7 @@
    ]
   }
  ],
+ "profile_checks": [],
  "assumptions": [
   "Fon getirileri geçmiş getirilerdir; mevduat oranı bugünkü orandır.",
   "Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29.73, 2026-09-30) göre reel olarak hesaplandı.",
