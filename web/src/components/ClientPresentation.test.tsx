@@ -82,7 +82,7 @@ test("funds with different risk and access show the labels and the access list",
   const funds = await screen.findAllByTestId("pres-fund");
   expect(funds[1]).toHaveTextContent("risk 2/7");
   expect(funds[1]).toHaveTextContent("2 gün");
-  // W46: the access as text, one line per option, no bar chart
+  // W49: the access as text, one line per option, no bar chart
   const access = screen.getAllByTestId("pres-access");
   expect(access).toHaveLength(3);
   expect(access[1]).toHaveTextContent("2 gün");
@@ -237,7 +237,7 @@ test("helpers: figures, amounts and roles", () => {
   expect(fundRoles(funds, {})["fund:PPN"]).toBe(v.options["fund:PPN"].category_label);
 });
 
-describe("W47: deleting a whole section", () => {
+describe("W50: deleting a whole section", () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => localStorage.clear());
 

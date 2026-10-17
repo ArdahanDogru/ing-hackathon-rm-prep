@@ -25,7 +25,7 @@ import { withCode } from "../product";
 import { profileChanges } from "../profileChanges";
 
 const SAVE_DELAY_MS = 800;
-/** W47: the deleted sections of a run, kept in this browser (the API has no place for them). */
+/** W50: the deleted sections of a run, kept in this browser (the API has no place for them). */
 const sectionsKey = (runId: string) => `rmprep.hiddenSections.${runId}`;
 function readSections(runId: string): SectionId[] {
   try {

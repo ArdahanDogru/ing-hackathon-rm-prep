@@ -1155,7 +1155,7 @@ arrives at once, so the steps show only for a new text. Real progress (the
 attempt, a retry, the fallback) would need a progress endpoint: not in this
 step. Tests: `NarrativeProgress.test.tsx`.
 
-### Access as text, not a chart (W46, 2026-10-17)
+### Access as text, not a chart (W49, 2026-10-17)
 
 The user, 2026-10-17: in "Paranıza ne zaman ulaşırsınız?" give the days as
 text instead of the bar chart of the day counts. The 03 section is now a list,
@@ -1164,7 +1164,7 @@ label ("Aynı gün", "2 gün", "Vade sonunda (32 gün)"). Shown under the same r
 as before (at least two known, different values). The day scale (`DAYS_MIN`)
 and the "Talep günü" / "n. gün" axis labels are gone.
 
-### Deleting a whole section (W47, 2026-10-17)
+### Deleting a whole section (W50, 2026-10-17)
 
 The user, 2026-10-17: deleting the text inside a section is good, but the RM
 should be able to delete individual sections too. Next to the key figures, 01

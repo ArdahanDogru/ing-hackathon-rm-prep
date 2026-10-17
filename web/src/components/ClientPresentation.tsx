@@ -14,7 +14,7 @@ export interface BlockOpts {
   noDelete?: boolean;
 }
 
-/** W47: the sections the RM can delete; the funds (02) and the risks (04) always stay. */
+/** W50: the sections the RM can delete; the funds (02) and the risks (04) always stay. */
 export type SectionId = "figures" | "pres1" | "pres3" | "pres5";
 
 /** The RM's help next to a part of the page: the slots MeetingText fills. */
@@ -177,7 +177,7 @@ export function ClientPresentation({
   notes: RmNotes;
   optionNotes: Record<string, string>;
   onOptionNote: (id: string, v: string) => void;
-  /** W47: the sections the RM deleted; left out of the client view and the print */
+  /** W50: the sections the RM deleted; left out of the client view and the print */
   hidden?: SectionId[];
   /** delete (true) or bring back (false) a section */
   onSection?: (id: SectionId, hide: boolean) => void;
@@ -274,7 +274,7 @@ export function ClientPresentation({
 
   const card = "rounded-xl border border-[#ECE9E3] bg-[#FBFAF8] p-6";
 
-  // W47: a deleted section is gone from the client view and the print; the RM sees a line to
+  // W50: a deleted section is gone from the client view and the print; the RM sees a line to
   // bring it back while the text is editable. The numbers of the headings follow what is left.
   const gone = (id: SectionId) => hidden.includes(id);
   const canDelete = rm && editable && !!onSection;
@@ -464,7 +464,7 @@ export function ClientPresentation({
             <Heading n={num("pres3")} action={deleteButton("pres3", t("pres3Title"))}>
               {t("pres3Title")}
             </Heading>
-            {/* W46: the access as text, one line per option (was a bar chart of the days) */}
+            {/* W49: the access as text, one line per option (was a bar chart of the days) */}
             <ul className={`${card} m-0 flex list-none flex-col divide-y divide-[#ECE9E3] py-2`}>
               {known.map((o) => (
                 <li key={o.option_id} data-testid="pres-access" className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
