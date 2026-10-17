@@ -16,6 +16,7 @@ from rmprep.backend import RealBackend
 from rmprep.contracts import TR_TZ
 
 PROTO = Path(__file__).resolve().parents[2]
+PERSONAS = PROTO / "tests" / "contracts" / "fixtures" / "personas"   # also in a worktree
 NOW = datetime(2026, 10, 17, 12, 0, tzinfo=TR_TZ)
 
 
@@ -24,7 +25,7 @@ def setup(tmp_path):
     personas = tmp_path / "personas"
     personas.mkdir()
     for n in ("p01.json", "p02.json"):
-        shutil.copy(PROTO.parent / n, personas / n)
+        shutil.copy(PERSONAS / n, personas / n)
     root = tmp_path / "proto"
     (root / "config").mkdir(parents=True)
     shutil.copy(PROTO / "config" / "decision.yaml", root / "config" / "decision.yaml")
@@ -34,7 +35,7 @@ def setup(tmp_path):
 
 
 def client_json(pid="P06", **change):
-    d = json.loads((PROTO.parent / "p01.json").read_text(encoding="utf-8"))
+    d = json.loads((PERSONAS / "p01.json").read_text(encoding="utf-8"))
     return {**d, "persona_id": pid, "profil": "Yüklenen müşteri", **change}
 
 
