@@ -29,8 +29,6 @@ export interface RmNotes {
 const ACCENT = "#C2410C";
 /** The chart's scale ends at this real return (%) or at the largest value. */
 const SCALE_MIN = 8;
-/** The access timeline shows at least this many days (a 32-day term deposit). */
-const DAYS_MIN = 32;
 
 /** "+%4,9" / "−%1,2" (a talking point figure) → 4.9 / −1.2; null when it is no percent. */
 export function parseFigure(figure: string | undefined): number | null {
@@ -194,12 +192,11 @@ export function ClientPresentation({
 
   // 03: when the money is there
   const days = (o: OptionView) => o.access.days ?? o.access.lock_days;
-  const dayScale = Math.max(DAYS_MIN, ...funds.map((o) => days(o) ?? 0));
   // only the options with a known access count (a fund may have none in the snapshot)
   const known = funds.filter((o) => o.access.label);
   const sameAccess = new Set(known.map((o) => `${o.access.label}|${days(o)}`)).size === 1;
   // W31: the access labels only when the options differ (or only some have one); one value
-  // for all is in the key figures. W32: the timeline needs at least two known, different values
+  // for all is in the key figures. W32: the 03 access list needs at least two known, different values
   const accessDiffers = known.length > 0 && !(sameAccess && known.length === funds.length);
   const showTimeline = known.length > 1 && !sameAccess;
   const riskDiffers = new Set(funds.filter((o) => o.risk).map((o) => o.risk!.level)).size > 1;
@@ -418,31 +415,18 @@ export function ClientPresentation({
         {showTimeline && (
           <section className="flex flex-col gap-4">
             <Heading n="03">{t("pres3Title")}</Heading>
-            <div className={`${card} flex flex-col gap-3`}>
-              {known.map((o) => {
-                const d = days(o);
-                return (
-                  <div key={o.option_id} data-testid="pres-access" className="grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-4">
-                    <span className="text-sm font-semibold">
-                      <CodeBadge optionId={o.option_id} />
-                      {fundName(o)}
-                    </span>
-                    <div className="relative h-7 rounded-md bg-[#EFECE6]">
-                      {d !== null && (
-                        <div className="absolute inset-y-0 left-0 rounded-md" style={{ width: `max(12px, ${(d / dayScale) * 100}%)`, background: ACCENT }} />
-                      )}
-                      <span className="absolute top-1 text-[13px] font-semibold" style={{ left: d !== null ? `calc(max(12px, ${(d / dayScale) * 100}%) + 10px)` : "10px" }}>
-                        {o.access.label ?? "—"}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="flex justify-between pl-[calc(150px+12px)] text-xs text-[#5E5950] sm:pl-[calc(200px+16px)]">
-                <span>{t("pres3Day0")}</span>
-                <span>{fill(t("pres3DayN"), { n: dayScale })}</span>
-              </div>
-            </div>
+            {/* W46: the access as text, one line per option (was a bar chart of the days) */}
+            <ul className={`${card} m-0 flex list-none flex-col divide-y divide-[#ECE9E3] py-2`}>
+              {known.map((o) => (
+                <li key={o.option_id} data-testid="pres-access" className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
+                  <span className="text-sm font-semibold">
+                    <CodeBadge optionId={o.option_id} />
+                    {fundName(o)}
+                  </span>
+                  <span className="text-[15px] font-bold">{o.access.label}</span>
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 

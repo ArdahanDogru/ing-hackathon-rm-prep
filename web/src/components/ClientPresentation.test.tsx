@@ -59,7 +59,7 @@ test("each fund has its own role from the client's priorities and its narrator b
   expect(items[1]).toMatch(/^Getirisi faiz değişimine bağlıdır/);
 });
 
-test("labels: real and nominal; risk, access and the timeline only when the funds differ", async () => {
+test("labels: real and nominal; risk, access and the access list only when the funds differ", async () => {
   show();
   const funds = await screen.findAllByTestId("pres-fund");
   expect(funds[0]).toHaveTextContent("+%7,4 reel");
@@ -73,7 +73,7 @@ test("labels: real and nominal; risk, access and the timeline only when the fund
   expect(screen.queryByText("Paranıza ne zaman ulaşırsınız?")).toBeNull();
 });
 
-test("funds with different risk and access show the labels and the timeline", async () => {
+test("funds with different risk and access show the labels and the access list", async () => {
   const v = sample("run_p01_approved");
   const ist = v.options["fund:IST"];
   v.options["fund:IST"] = { ...ist, risk: { ...ist.risk!, level: 2 }, access: { ...ist.access, days: 2, label: "2 gün" } };
@@ -82,7 +82,12 @@ test("funds with different risk and access show the labels and the timeline", as
   const funds = await screen.findAllByTestId("pres-fund");
   expect(funds[1]).toHaveTextContent("risk 2/7");
   expect(funds[1]).toHaveTextContent("2 gün");
-  expect(screen.getAllByTestId("pres-access")).toHaveLength(3);
+  // W46: the access as text, one line per option, no bar chart
+  const access = screen.getAllByTestId("pres-access");
+  expect(access).toHaveLength(3);
+  expect(access[1]).toHaveTextContent("2 gün");
+  expect(access[0]).toHaveTextContent("Aynı gün");
+  expect(screen.queryByText("Talep günü")).toBeNull();
   // the key figures are ranges over the whole proposal (W33)
   const figures = screen.getAllByTestId("pres-figure");
   expect(figures[1]).toHaveTextContent("Aynı gün – 2 gün");
@@ -100,7 +105,7 @@ test("key figures sum up the proposal: a range when the options differ, one valu
   expect(who).toEqual(["Önerilen 3 seçenekte", "Önerilerin hepsinde", "Önerilerin hepsinde"]);
 });
 
-test("only one option with a known access: the figure names it, no timeline, its label on its card", async () => {
+test("only one option with a known access: the figure names it, no access list, its label on its card", async () => {
   const v = sample("run_p01_approved");
   const none = { days: null, lock_days: null, label: null, evidence_id: "" };
   v.options["fund:IST"] = { ...v.options["fund:IST"], access: { ...v.options["fund:IST"].access, ...none } };

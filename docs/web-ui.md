@@ -1155,6 +1155,15 @@ arrives at once, so the steps show only for a new text. Real progress (the
 attempt, a retry, the fallback) would need a progress endpoint: not in this
 step. Tests: `NarrativeProgress.test.tsx`.
 
+### Access as text, not a chart (W46, 2026-10-17)
+
+The user, 2026-10-17: in "Paranıza ne zaman ulaşırsınız?" give the days as
+text instead of the bar chart of the day counts. The 03 section is now a list,
+one line per option with a known access: its badge and name, and its access
+label ("Aynı gün", "2 gün", "Vade sonunda (32 gün)"). Shown under the same rule
+as before (at least two known, different values). The day scale (`DAYS_MIN`)
+and the "Talep günü" / "n. gün" axis labels are gone.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no
