@@ -115,20 +115,26 @@ view, each with a title of 2-4 words and a citation. Start from the engine's \
 talking_points (their title and figure); add from the client's priorities or \
 constraints when there are fewer than 2. Do not repeat profile facts (age, \
 situation, goal) that ozet gives.
-- oneriler: for each selected option exactly 3 sentences, and each sentence \
-must start with the option's name (its "name" or label): (a) its facts, the \
-real return first, then the nominal return and the risk level; (b) why it fits \
-this client, with a client fact (horizon, liquidity, income, principal \
-protection, a constraint or a note, in the client's own words) that you do not \
-use for the other options; (c) the main trade-off or risk for this client, \
-from its "risk" line. The options must not read alike.
+- oneriler: for each selected option 1-2 sentences, no facts sentence (the \
+client page shows its returns, risk and access): (b) why it fits this client, \
+with a client fact (horizon, liquidity, income, principal protection, a \
+constraint or a note, in the client's own words) that you do not use for the \
+other options; (c) only when the option has a trade-off of its own (such as a \
+small fund size, the lowest real return of the selected options, or a slow \
+access): that trade-off; else no (c). In oneriler, not the risk that the \
+selected funds share (dikkat has it). Do not start an oneriler sentence with \
+the option's name (the page and the heading name it); cite its option_id \
+first. The options must not read alike.
 - alternatifler: 1-2 sentences per group: the other options of the same kind.
-- dikkat: the warnings in the facts, in plain words; then at most one sentence per \
+- dikkat: the warnings in the facts, in plain words; then the risk that the \
+selected funds share (from their "risk" notes, such as: the return follows \
+interest rates, no principal guarantee) once, citing the funds it covers, never \
+per fund; then at most one sentence per \
 selected option, starting with its name and only with what oneriler does not say: \
 its access when "access_slow" is true, and its fees if any (nothing for an option \
 without these); each unmatched priority, named as not covered by the options; and \
 once, that past returns do not show future returns. In dikkat do not repeat a \
-sentence or a risk note of oneriler. The client can see this section: no notes \
+sentence of oneriler. The client can see this section: no notes \
 about data quality and no names of screens or panes.
 - sorular: questions for the RM to ask the client: the open questions, the \
 explicit constraints (acik_kisitlar) to confirm, and one question per \
@@ -136,7 +142,7 @@ unmatched priority. When an "allocation" row with a "source" has "active": false
 the client's current split is unknown: ask for it with the sentence "{split_unknown}"
 - teklif_metni: a short script the RM may say or adapt in the meeting, spoken \
 to the client and built on the client's own goal and situation (yatirim_amaci, \
-durum). It is not a letter. At most one short past-return reminder.
+durum). It is not a letter. No past-return reminder (dikkat has it).
 - varsayimlar: each assumption of the facts as its own sentence, verbatim.
 - need_tags: one entry for each selected option: 1-3 tags, each copied exactly \
 from the client's priorities (oncelikler) that the option serves (use its \
@@ -150,7 +156,7 @@ numbers (no differences, sums, or averages) and do not write ids in the text.
 talking_point_options, by their label or fund code. Never name or hint at a \
 rejected option or any other product.
 3. Never promise a result. Do not use these phrases or their forms: {forbidden}. \
-Write the past-return caveat only in dikkat and teklif_metni.
+Write the past-return caveat only in dikkat.
 4. Every sentence of talking_points, oneriler, alternatifler and dikkat has at \
 least one id in "cite"; cite only ids that exist in the facts.
 5. No internal values outside varsayimlar: no field, flag or source names \
@@ -167,7 +173,9 @@ The market deposit rate alone (as in a talking point) is fine.
 (in talking_points or dikkat, citing the selected options); never for a row with \
 "active": false, not even as an estimate.
 Length: aim for about 450 words in total for 3 selected options (fewer for fewer \
-options); ozet at most 3 sentences plus the disclaimer; teklif_metni at most 4 sentences.
+options); ozet at most 3 sentences plus the disclaimer; teklif_metni at most 4 sentences. \
+Short sentences: one idea per sentence, each at most about 100 characters; split \
+a longer one.
 This is decision support for the RM, not investment advice.
 """
 

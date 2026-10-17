@@ -254,34 +254,6 @@ def _has_form(text: str, form: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(form)}(?!\w)", text) is not None
 
 
-def _starts_with_name(text: str, label: str, name: str, option_id: str) -> bool:
-    """N13: the text starts with a name of the option: the label (with or without
-    its brackets), the screen's short name, a short form with the issuer
-    (name_forms) or the fund code."""
-    start = _norm(text)
-    names = {_norm(label), _norm(_BRACKET.sub("", label)), _norm(name),
-             _norm(_BRACKET.sub("", name)), *name_forms(label)}
-    if option_id.startswith("fund:"):
-        names.add(_norm(option_id.split(":", 1)[1]))
-    return any(n and re.match(rf"{re.escape(n)}(?!\w)", start) for n in names)
-
-
-def _check_shape(sections, f: Facts) -> list[str]:
-    """N13: every sentence of oneriler starts with the name of its option (the
-    first one it cites)."""
-    named = f.named_options()
-    out = []
-    for sec in sections:
-        if sec.key != "oneriler":
-            continue
-        for s in sec.sentences:
-            o = named.get(s.option_ids[0]) if s.option_ids else None
-            if o is not None and not _starts_with_name(s.text, o.label, o.name, o.option_id):
-                out.append(f"shape: oneriler: the sentence must start with the name of "
-                           f"{o.name or o.label}: \"{_short(s.text)}\"")
-    return out
-
-
 STEM = 5             # N13b: a word is compared by its first 5 letters (Turkish suffixes)
 REPEAT_SHARE = 0.8   # share of a dikkat sentence's stems found in one oneriler sentence
 MIN_STEMS = 3        # shorter remainders (a name, one fact) never count as a repeat
@@ -568,7 +540,6 @@ def validate(sections: Sequence[NarrativeSection], f: Facts, r: DecisionResult,
     out += _check_coverage(sections, f)
     out += _check_ing_labels(sections, f)
     out += _check_talking_points(sections)
-    out += _check_shape(sections, f)
     out += _check_repeat(sections, f)
     out += _check_compare(sections, f)
     if need_tags is not None:

@@ -67,17 +67,15 @@ def test_disclaimer_and_no_forbidden_phrase(make, lang, config):
         assert tr_lower(phrase) not in low, phrase
 
 
-def test_oneriler_one_block_per_selected_option_with_numbers(config):
+def test_oneriler_one_block_per_selected_option(config):
     _, f, d = _draft(p02, "TR", config)
     sents = _section(d, "oneriler").sentences
     for o in f.selected:
         mine = [s for s in sents if s.option_ids == (o.option_id,)]
-        assert mine and mine[0].text.startswith(o.name)            # N13: the short name
+        assert mine and not mine[0].text.startswith(o.name)        # N16: no name, no facts
     text = " ".join(s.text for s in sents)
-    assert "%52,51" in text                    # BBF 1-year return, Turkish format
+    assert "%52,51" not in text                # BBF 1-year return: the page shows it
     assert "Vade ufkuna uygun." in text        # the RM note of the option
-    _, _, en = _draft(p02, "EN", config)
-    assert "52.51%" in " ".join(s.text for s in _section(en, "oneriler").sentences)
 
 
 def test_alternatifler_names_the_group_alternatives(config):

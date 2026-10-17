@@ -74,22 +74,12 @@ def test_english_pack_has_the_english_risk_note(f02, r02, config):
 @pytest.mark.parametrize("lang", ["TR", "EN"])
 def test_system_prompt_n13(lang, config):
     s = system_prompt(lang, config)
-    for word in ("3 sentences", "start with", "unmatched_priorities", "real_return_1y",
-                 "market", "risk", "only in dikkat and teklif_metni"):
+    for word in ("unmatched_priorities", "real_return_1y", "market", "risk",
+                 "only in dikkat"):        # N16: 1-2 sentences, no name at the start
         assert word in s, word
 
 
-# --- validator: oneriler sentences start with their fund ------------------------------------
-
-def test_oneriler_sentence_must_start_with_its_fund(f02, r02, ev, config):
-    sections = list(template_sections(f02, "TR", config.disclaimer["TR"]))
-    oid = r02.rm_selected[0]
-    bad = [NarrativeSection("oneriler", (*_section(sections, "oneriler").sentences,
-                                         NarrativeSentence("Bu fon müşteriye uyar.", (oid,))))
-           if s.key == "oneriler" else s for s in sections]
-    findings = validate(bad, f02, r02, config, "TR")
-    assert {x.split(":", 1)[0] for x in findings} == {"shape"}
-
+# --- validator: a name at the start is still fine (N16 dropped the N13 name check) ----------
 
 @pytest.mark.parametrize("start", ["label", "short", "issuer_core", "code"])
 def test_any_name_of_the_fund_may_start_the_sentence(start, f02, r02, config):
@@ -110,29 +100,16 @@ def test_any_name_of_the_fund_may_start_the_sentence(start, f02, r02, config):
 
 # --- template ------------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("lang", ["TR", "EN"])
-def test_template_oneriler_three_sentences_per_option(f02, r02, config, lang):
-    sections = template_sections(f02, lang, config.disclaimer[lang])
-    for oid in r02.rm_selected:
-        mine = [s for s in _section(sections, "oneriler").sentences if s.option_ids[:1] == (oid,)]
-        assert len(mine) == 3, [s.text for s in mine]
-    assert validate(sections, f02, r02, config, lang) == ()
-
-
-def test_template_first_sentence_leads_with_the_real_return(f02, r02, config):
-    sections = template_sections(f02, "TR", config.disclaimer["TR"])
-    first = next(s for s in _section(sections, "oneriler").sentences
-                 if s.option_ids[:1] == (r02.rm_selected[0],))
-    assert first.text.index("reel") < first.text.index("1 yıllık getiri")
-
-
 def test_template_dikkat_watch_items_only_for_new_facts(f02, r02, config):
-    """N13b replaces "one watch item per option": only slow access or fees."""
+    """N13b replaces "one watch item per option": only slow access or fees (N16: the
+    risk notes are once each, not watch items)."""
     dikkat = _section(template_sections(f02, "TR", config.disclaimer["TR"]), "dikkat")
+    notes = {r.note["TR"] for r in f02.risks.values()}
+    watch = [s for s in dikkat.sentences if not any(n.rstrip(".") in s.text for n in notes)]
     for oid in r02.rm_selected:
         risk = f02.risks[oid]
         expected = bool(risk.fees or (risk.access_days or 0) > 0)
-        assert any(s.option_ids == (oid,) for s in dikkat.sentences) is expected
+        assert any(s.option_ids == (oid,) for s in watch) is expected
 
 
 def test_template_repetition(f02, r02, config):

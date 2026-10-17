@@ -128,7 +128,7 @@ def test_template_script_is_built_on_the_client(config):
     r, f, sections = _setup(config=config)
     script = " ".join(s.text for s in _section(sections, "teklif_metni").sentences)
     assert r.persona.yatirim_amaci in script and r.persona.durum in script
-    assert "geçmiş getiri" in script
+    assert "geçmiş getiri" not in script       # N16: the past-return caveat only in dikkat
 
 
 # --- prompt pack and system prompt -----------------------------------------------------
