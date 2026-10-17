@@ -283,3 +283,12 @@ describe("W47: deleting a whole section", () => {
     ]);
   });
 });
+
+test("the editor of the next step (white text on dark) has its own dark text", async () => {
+  show();
+  const next = await screen.findByTestId("pres-next");
+  await userEvent.click(within(next).getByRole("button", { name: /düzenle/i }));
+  const box = within(next).getByRole("textbox");
+  expect(box).toHaveClass("text-ink");
+  expect(box.parentElement).toHaveClass("text-ink");
+});

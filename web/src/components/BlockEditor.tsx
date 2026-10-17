@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useT } from "../i18n";
 
-/** One block of the meeting text as plain text, with "Kaydet" and "Vazgeç". */
+/** One block of the meeting text as plain text, with "Kaydet" and "Vazgeç". Its own dark
+ * text: a block on a dark section (05, white text) would else be white on the white editor. */
 export function BlockEditor({
   label,
   initial,
@@ -20,12 +21,12 @@ export function BlockEditor({
   const t = useT();
   const [text, setText] = useState(initial);
   return (
-    <div className="my-2 rounded-xl border border-cobalt bg-[#F7F9FC] p-3">
+    <div className="my-2 rounded-xl border border-cobalt bg-[#F7F9FC] p-3 text-ink">
       <textarea
         aria-label={label}
         autoFocus
         rows={Math.min(12, Math.max(3, Math.ceil(text.length / 70) + text.split("\n").length))}
-        className="w-full resize-y rounded-lg border border-gray-300 bg-white p-3 text-base leading-relaxed"
+        className="w-full resize-y rounded-lg border border-gray-300 bg-white p-3 text-base leading-relaxed text-ink"
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => e.key === "Escape" && onCancel()}
