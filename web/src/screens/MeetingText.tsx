@@ -18,7 +18,7 @@ import { TermsBox } from "../components/TermsBox";
 import { fmtDateTime, fmtPct } from "../format";
 import { LangContext, useT } from "../i18n";
 import { Markdown } from "../markdown";
-import { CodeBadge, withCode } from "../product";
+import { CodeBadge, ProductBadges, withCode } from "../product";
 import { profileChanges } from "../profileChanges";
 
 const SAVE_DELAY_MS = 800;
@@ -490,6 +490,7 @@ export function MeetingText({ view }: { view: RunView }) {
                               {`${i + 1} · `}
                               <CodeBadge optionId={id} />
                               {docName(o)}
+                              <ProductBadges badges={o.badges} />
                             </b>
                             <span className="text-muted">{facts.join(" · ")}</span>
                             {(draft.need_tags[id] ?? []).map((tag) => (

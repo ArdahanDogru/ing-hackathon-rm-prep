@@ -382,16 +382,16 @@ test("Elenen: one row per rule with its options", async () => {
   expect(note).toHaveTextContent("Bir fon birden fazla kurala takılabilir.");
 });
 
-test("Kategoriler: a category opens at most 3 funds; Ayrıntılar opens the fund card", async () => {
+test("Kategoriler: a class opens to its sub-types, a sub-type to at most 5 funds (W32; see Categories.test)", async () => {
   renderDashboard(sample("run_p01_ready"));
   const note = await openNote("Kategorileri gör");
   const first = within(note).getAllByTestId("category")[0];
-  await userEvent.click(within(first).getByRole("button", { expanded: false }));
-  const rows = within(first).getAllByTestId("fund-row");
+  await userEvent.click(within(first).getAllByRole("button")[0]);
+  const sub = within(first).getAllByTestId("subtype")[0];
+  await userEvent.click(within(sub).getAllByRole("button")[0]);
+  const rows = within(sub).getAllByTestId("fund-row");
   expect(rows.length).toBeGreaterThan(0);
-  expect(rows.length).toBeLessThanOrEqual(3);
-  await userEvent.click(within(note).getAllByRole("button", { name: "Ayrıntılar" })[0]);
-  expect(within(screen.getByRole("dialog")).getAllByTestId("fund-tile")).toHaveLength(3);
+  expect(rows.length).toBeLessThanOrEqual(5);
 });
 
 test("the note box: Piyasa notu, Uyarılar and RM notu, each with its own title", () => {

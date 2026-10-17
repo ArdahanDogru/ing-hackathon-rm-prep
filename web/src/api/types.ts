@@ -267,8 +267,11 @@ export interface OptionView {
   issuer: string; // "Nurol Portföy"; "" when the label has no "PORTFÖY"
   short_label: string; // "Para Piyasası (TL)"; the whole label when there is no issuer
   kind: OptionKind;
-  category_key: string;
+  category_key: string; // W32: the sub-type (the peer group of rank and category_avg)
   category_label: string;
+  class_key?: string; // W32: the asset class
+  class_label?: string;
+  badges?: ProductBadge[]; // W32: Katılım, Döviz
   fx: boolean;
   returns: { "3m": Fact; "6m": Fact; "1y": Fact; real_1y: Fact };
   category_avg: { "3m": number | null; "6m": number | null; "1y": number | null; real_1y: number | null } | null;
@@ -335,12 +338,27 @@ export interface FundDocuments {
   reason: string;
 }
 
-export interface Category {
+/** W32: a sub-type of an asset class (from the fund name): Para piyasası, Kira sertifikası, … */
+export interface SubType {
   key: string;
   label: string;
   count: number;
   best_return_1y: number | null;
-  option_ids: string[];
+  option_ids: string[]; // the engine's order
+}
+
+/** W32: an asset class of RunView.categories over every scored option; the counts add up to step 4. */
+export interface Category {
+  key: string;
+  label: string;
+  count: number;
+  subtypes: SubType[];
+}
+
+/** W32: a badge of an option (not a category): Katılım, Döviz. */
+export interface ProductBadge {
+  key: string;
+  label: string;
 }
 
 export interface ConfirmItem {

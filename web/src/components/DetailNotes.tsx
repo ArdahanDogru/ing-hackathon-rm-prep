@@ -44,15 +44,11 @@ const TITLE: Record<NoteKind, LabelKey> = {
 export function DetailNote({
   kind,
   view,
-  selected,
-  onToggle,
   onOpen,
   onClose,
 }: {
   kind: NoteKind;
   view: RunView;
-  selected: string[];
-  onToggle: (id: string) => void;
   onOpen: (id: string) => void;
   onClose: () => void;
 }) {
@@ -72,7 +68,7 @@ export function DetailNote({
   );
   const body =
     kind === "categories" ? (
-      <CategoryList categories={view.categories} options={view.options} selected={selected} onToggle={onToggle} onOpen={onOpen} />
+      <CategoryList view={view} onOpen={onOpen} />
     ) : kind === "assumptions" ? (
       list(view.assumptions)
     ) : kind === "dataNotes" ? (

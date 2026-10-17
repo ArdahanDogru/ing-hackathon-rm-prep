@@ -8,7 +8,7 @@ import { fmtScore } from "../format";
 import { fill, LangContext, useT, type LabelKey } from "../i18n";
 import { colors } from "../theme";
 import type { NoteKind } from "./DetailNotes";
-import { CodeBadge } from "../product";
+import { CodeBadge, ProductBadges } from "../product";
 
 /** The holdings status line of step 1 (W17b). */
 const HOLDINGS_LINE: Record<string, LabelKey> = {
@@ -18,7 +18,6 @@ const HOLDINGS_LINE: Record<string, LabelKey> = {
   rm_confirmed: "pipeHoldRmConfirmed",
 };
 
-const groupOf = (o: ScoredOption) => o.option.fund_kind || o.option.kind;
 const byScore = (a: ScoredOption, b: ScoredOption) =>
   b.score - a.score || a.option.option_id.localeCompare(b.option.option_id);
 
@@ -70,6 +69,8 @@ export function PipelinePanel({ view, onOpen, onDetails, agent = null }: {
   const rejected = r.rejected.length;
   const universe = scored + rejected;
   const ranked = [...r.options].sort(byScore);
+  // W32: "kendi grubunda" = the sub-type of the categories (category_key); the engine kind without a view
+  const groupOf = (o: ScoredOption) => view.options[o.option.option_id]?.category_key ?? (o.option.fund_kind || o.option.kind);
   const picks = r.recommended
     .map((id) => ranked.find((o) => o.option.option_id === id))
     .filter((o): o is ScoredOption => o !== undefined);
@@ -235,6 +236,7 @@ export function PipelinePanel({ view, onOpen, onDetails, agent = null }: {
                           <b>
                             <CodeBadge optionId={id} />
                             {nameOf(id, o)}
+                            <ProductBadges badges={v?.badges} />
                           </b>
                           {o && <span className="tabular-nums">{fmtScore(o.score, false)}</span>}
                         </span>
