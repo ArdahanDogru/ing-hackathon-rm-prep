@@ -175,7 +175,8 @@ The market deposit rate alone (as in a talking point) is fine.
 Length: aim for about 450 words in total for 3 selected options (fewer for fewer \
 options); ozet at most 3 sentences plus the disclaimer; teklif_metni at most 4 sentences. \
 Short sentences: one idea per sentence, each at most about 100 characters; split \
-a longer one.
+a longer one. Never join two ideas with ";" or with "and": write two sentences. \
+This matters most in oneriler, dikkat and teklif_metni (the client reads them).
 This is decision support for the RM, not investment advice.
 """
 

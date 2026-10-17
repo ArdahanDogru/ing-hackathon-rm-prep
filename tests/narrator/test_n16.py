@@ -20,7 +20,7 @@ from rmprep.narrator.template import (
 from rmprep.narrator.validator import name_forms, validate
 from tests.narrator.conftest import CREATED, engine_result_on, evidence_n13
 
-PROMPT_VERSION = "n11"      # config/narrator.yaml gets it from the lead at the merge
+PROMPT_VERSION = "n12"      # n11 = N16; n12 = the lead's no-";"-joins line after the live check
 
 
 @pytest.fixture(scope="module")
@@ -90,6 +90,7 @@ def test_prompt_past_returns_only_in_dikkat(lang, config):
 def test_prompt_short_sentences(lang, config):
     s = system_prompt(lang, config)
     assert "at most about 100 characters" in s and "one idea per sentence" in s
+    assert 'Never join two ideas with ";"' in s          # n12 (lead, 2026-10-17, after the live check)
 
 
 # --- validator -------------------------------------------------------------------------------

@@ -424,3 +424,23 @@ the sentence lengths, the five points by eye; then the eval narrator run.
   template writes no (c): it cannot judge an option-specific trade-off. Slow
   access and fees stay in the per-option `dikkat` sentence. `teklif_metni` has
   no past-return reminder (2 sentences).
+
+**N16 live check** (lead, 2026-10-17, paid $0.38; P01–P05 TR, the engine's top 3,
+nothing saved but the draft cache):
+
+- n11: every draft from the LLM, no validator finding; `oneriler` 1–2 sentences
+  per option, none starts with the name, no facts sentence, option-specific
+  trade-offs ("fon büyüklüğü küçük", "en düşük reel getiri"); the shared risk once
+  in `dikkat`; no past-return reminder in `teklif_metni`. Length: 29% of all
+  sentences over 100 characters (max 177); in the client parts `oneriler` 7/22,
+  often two ideas joined with ";".
+- **n12** (lead): the length line adds "Never join two ideas with ";" or with
+  "and": write two sentences. This matters most in oneriler, dikkat and
+  teklif_metni (the client reads them)." Result: the same five points hold;
+  `teklif_metni` 0/17 over 100 characters (was 2/16), `oneriler` 5/22, `dikkat`
+  3/25, one ";" left in the client parts; the shared risk is now two short
+  sentences ("…faiz değişimine bağlıdır." / "…anapara güvencesi yoktur.").
+  The long sentences left are mostly in RM-only parts (`varsayimlar` copied
+  verbatim by rule, `alternatifler`).
+- The eval narrator run is not done yet (optional; it re-reads the config, so no
+  config change during it).
