@@ -96,6 +96,17 @@ const tl = (n: number) => `${Math.round(n).toLocaleString("tr-TR")} TL`;
 
 /** "Nurol Para Piyasası (TL)" → the short name and the issuer apart. */
 const fundName = (o: OptionView) => o.short_label || o.label;
+/** "Allbatross Portföy Birinci Para Piyasası (TL)"; a deposit has no issuer. */
+const fullName = (o: OptionView) => [o.issuer, fundName(o)].filter(Boolean).join(" ");
+
+interface Figure {
+  label: string;
+  value: string;
+  /** the option the figure belongs to, or "all of them" */
+  who: string;
+  sub: string;
+  accent: boolean;
+}
 
 function Heading({ n, children }: { n: string; children: ReactNode }) {
   return (
@@ -184,11 +195,14 @@ export function ClientPresentation({
   // 03: when the money is there
   const days = (o: OptionView) => o.access.days ?? o.access.lock_days;
   const dayScale = Math.max(DAYS_MIN, ...funds.map((o) => days(o) ?? 0));
-  const accessLabels = [...new Set(funds.map((o) => o.access.label).filter(Boolean))];
-  // W31: the access timeline and the access and risk labels only when the funds differ;
-  // one value for all is in the key figures (and the risk scale)
-  const accessDiffers = new Set(funds.map((o) => `${o.access.label}|${days(o)}`)).size > 1;
-  const riskDiffers = new Set(funds.map((o) => o.risk?.level)).size > 1;
+  // only the options with a known access count (a fund may have none in the snapshot)
+  const known = funds.filter((o) => o.access.label);
+  const sameAccess = new Set(known.map((o) => `${o.access.label}|${days(o)}`)).size === 1;
+  // W31: the access labels only when the options differ (or only some have one); one value
+  // for all is in the key figures. W32: the timeline needs at least two known, different values
+  const accessDiffers = known.length > 0 && !(sameAccess && known.length === funds.length);
+  const showTimeline = known.length > 1 && !sameAccess;
+  const riskDiffers = new Set(funds.filter((o) => o.risk).map((o) => o.risk!.level)).size > 1;
 
   // 04: the risk scale
   const levels = [...new Set(funds.map((o) => o.risk?.level).filter((x): x is number => x != null))].sort();
@@ -198,16 +212,38 @@ export function ClientPresentation({
   const snapshot = /^(\d{4})(\d{2})(\d{2})/.exec(r.snapshot_id);
   const dataDate = snapshot ? fmtDate(`${snapshot[1]}-${snapshot[2]}-${snapshot[3]}`) : "";
 
-  const figures = [
+  // W32: each key figure names the option it belongs to (or says it holds for all)
+  const fastest = known.reduce<OptionView | null>((b, o) => (b === null || (days(o) ?? Infinity) < (days(b) ?? Infinity) ? o : b), null);
+  const riskiest = funds.find((o) => o.risk?.level === maxLevel) ?? null;
+  const withRisk = funds.filter((o) => o.risk);
+  const figures: Figure[] = [
     best && {
       label: t("presFigReal"),
       value: fmtPct(real(best)!).replace(/^%/, "+%"),
-      sub: [t("presFigRealSub"), deposit ? fill(t("presFigDeposit"), { figure: deposit.figure }) : null].filter(Boolean).join("; "),
+      who: fullName(best),
+      sub: deposit ? fill(t("presFigDeposit"), { figure: deposit.figure }) : "",
       accent: true,
     },
-    accessLabels.length > 0 && { label: t("presFigAccess"), value: accessLabels.join(" / "), sub: t("presFigAccessSub"), accent: false },
-    maxLevel !== null && { label: t("presFigRisk"), value: `${maxLevel} / 7`, sub: ceiling !== null ? fill(t("presFigRiskSub"), { ceiling }) : "", accent: false },
-  ].filter((x): x is { label: string; value: string; sub: string; accent: boolean } => !!x);
+    fastest && {
+      label: t("presFigAccess"),
+      value: fastest.access.label!,
+      who: sameAccess && known.length === funds.length && funds.length > 1 ? t("presFigAll") : fullName(fastest),
+      sub: sameAccess || known.length === 1 ? "" : t("presFigFastest"),
+      accent: false,
+    },
+    maxLevel !== null && riskiest && {
+      label: t("presFigRisk"),
+      value: `${maxLevel} / 7`,
+      who:
+        riskDiffers || withRisk.length === 1
+          ? fullName(riskiest)
+          : withRisk.length === funds.length
+            ? t("presFigAll")
+            : t("presFigFunds"),
+      sub: ceiling !== null ? fill(t("presFigRiskSub"), { ceiling }) : "",
+      accent: false,
+    },
+  ].filter((x): x is Figure => !!x);
 
   const card = "rounded-xl border border-[#ECE9E3] bg-[#FBFAF8] p-6";
 
@@ -245,7 +281,10 @@ export function ClientPresentation({
                 <span className="font-serif text-[34px] font-bold leading-tight" style={f.accent ? { color: ACCENT } : undefined}>
                   {f.value}
                 </span>
-                <span className="text-sm text-[#3A362F]">{f.sub}</span>
+                <span data-testid="pres-figure-who" className="text-sm font-semibold text-[#1D1B18]">
+                  {f.who}
+                </span>
+                {f.sub && <span className="text-sm text-[#3A362F]">{f.sub}</span>}
               </div>
             ))}
           </div>
@@ -349,11 +388,11 @@ export function ClientPresentation({
         </section>
 
         {/* 03 access */}
-        {accessDiffers && funds.some((o) => o.access.label) && (
+        {showTimeline && (
           <section className="flex flex-col gap-4">
             <Heading n="03">{t("pres3Title")}</Heading>
             <div className={`${card} flex flex-col gap-3`}>
-              {funds.map((o) => {
+              {known.map((o) => {
                 const d = days(o);
                 return (
                   <div key={o.option_id} data-testid="pres-access" className="grid grid-cols-[minmax(0,150px)_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-4">

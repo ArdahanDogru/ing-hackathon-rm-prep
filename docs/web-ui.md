@@ -697,6 +697,19 @@ The user, 2026-10-17, from a ranked list of the repeats on the P01 page:
   under the chart); the fund blocks without the fund's name in front and
   without the facts sentence; shorter sentences.
 
+### Key figures name their option (W32, 2026-10-17)
+
+The user, 2026-10-17: "Paranıza erişim: Vade sonunda (32 gün), önerilen
+fonlarda" was the term deposit alone (the two funds had no access in the
+snapshot). Each key figure now names the option it belongs to, under the value:
+the best real return (that fund); the access (the fastest option with a known
+access, "en hızlı erişim" when the known values differ; "Önerilerin hepsinde"
+when all options share it); the risk (the riskiest fund; "Önerilerin hepsinde"
+or "Fonların hepsinde" when one level holds for all, e.g. with a deposit
+without a risk level). Options without a known access do not count: the access
+labels show when only some have one, and the 03 timeline needs at least two
+known, different values (only those rows).
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

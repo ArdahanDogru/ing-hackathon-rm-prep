@@ -83,6 +83,34 @@ test("funds with different risk and access show the labels and the timeline", as
   expect(funds[1]).toHaveTextContent("risk 2/7");
   expect(funds[1]).toHaveTextContent("2 gün");
   expect(screen.getAllByTestId("pres-access")).toHaveLength(3);
+  // the key figures name the fastest and the riskiest option
+  const who = screen.getAllByTestId("pres-figure-who").map((x) => x.textContent);
+  expect(who).toEqual(["Nurol Portföy Para Piyasası (TL)", "Nurol Portföy Para Piyasası (TL)", "İstanbul Portföy KV Borçlanma (TL)"]);
+  expect(screen.getAllByTestId("pres-figure")[1]).toHaveTextContent("en hızlı erişim");
+});
+
+test("key figures: the best fund by name; one value for all says so", async () => {
+  show();
+  const who = (await screen.findAllByTestId("pres-figure-who")).map((x) => x.textContent);
+  expect(who).toEqual(["Nurol Portföy Para Piyasası (TL)", "Önerilerin hepsinde", "Önerilerin hepsinde"]);
+});
+
+test("only one option with a known access: the figure names it, no timeline, its label on its card", async () => {
+  const v = sample("run_p01_approved");
+  const none = { days: null, lock_days: null, label: null, evidence_id: "" };
+  v.options["fund:IST"] = { ...v.options["fund:IST"], access: { ...v.options["fund:IST"].access, ...none } };
+  v.options["fund:AIS"] = { ...v.options["fund:AIS"], access: { ...v.options["fund:AIS"].access, ...none } };
+  v.options["fund:PPN"] = { ...v.options["fund:PPN"], access: { ...v.options["fund:PPN"].access, days: null, lock_days: 32, label: "Vade sonunda (32 gün)" } };
+  vi.spyOn(api, "narrative").mockResolvedValue(narrative());
+  renderWith(<MeetingText view={v} />);
+  const figures = await screen.findAllByTestId("pres-figure");
+  expect(figures[1]).toHaveTextContent("Vade sonunda (32 gün)");
+  expect(within(figures[1]).getByTestId("pres-figure-who")).toHaveTextContent("Nurol Portföy Para Piyasası (TL)");
+  expect(figures[1]).not.toHaveTextContent("en hızlı");
+  expect(screen.queryAllByTestId("pres-access")).toHaveLength(0);
+  const funds = screen.getAllByTestId("pres-fund");
+  expect(funds[0]).toHaveTextContent("Vade sonunda (32 gün)");
+  expect(funds[1]).not.toHaveTextContent("Vade sonunda");
 });
 
 test("restatesFacts: both the real and the nominal figure", () => {
