@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { ConfirmItem, Lang, Persona, ProfileAIFinding, ProfileAIView, ProfileCheck } from "../api/types";
 import { useT, type LabelKey } from "../i18n";
+import { Resolve, type ResolveProps } from "./Resolve";
 
 const POLL_MS = 2000;
 const POLL_MAX = 45; // 90 s
@@ -52,11 +53,14 @@ export function useProfileAI(runId: string, lang: Lang, enabled: boolean): Profi
   return view;
 }
 
+/** "ai:<hash>" from the API (W44); a list place without it. */
+const aiId = (f: ProfileAIFinding, i: number) => f.id ?? `ai-${i}`;
+
 const findings = (v: ProfileAIView | null | undefined): ProfileAIFinding[] => (v?.state === "done" ? v.findings : []);
 
 /** The AI findings as profile checks (the marks of the edit panel). */
 export function aiChecks(v: ProfileAIView | null | undefined): ProfileCheck[] {
-  return findings(v).map((f, i) => ({ id: `ai-${i}`, kind: f.kind, fields: f.fields, text: f.text }));
+  return findings(v).map((f, i) => ({ id: aiId(f, i), kind: f.kind, fields: f.fields, text: f.text }));
 }
 
 /** The AI findings as "Teyit edin" items (after the API's items). */
@@ -65,13 +69,13 @@ export function aiConfirms(v: ProfileAIView | null | undefined): ConfirmItem[] {
 }
 
 /** The AI findings in the profile block: the label, the text, the quotes side by side. */
-export function AIFindings({ view }: { view: ProfileAIView | null | undefined }) {
+export function AIFindings({ view, resolve }: { view: ProfileAIView | null | undefined; resolve?: ResolveProps }) {
   const t = useT();
   return (
     <>
       {findings(view).map((f, i) => (
         <li
-          key={`ai-${i}`}
+          key={aiId(f, i)}
           data-testid="profile-check"
           data-kind={f.kind}
           className={f.kind === "conflict" ? "font-medium" : "font-normal text-[#475467]"}
@@ -89,6 +93,7 @@ export function AIFindings({ view }: { view: ProfileAIView | null | undefined })
               </span>
             )}
           </span>
+          {f.kind === "conflict" && <Resolve id={aiId(f, i)} resolve={resolve} />}
         </li>
       ))}
     </>

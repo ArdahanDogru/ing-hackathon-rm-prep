@@ -68,6 +68,15 @@ export function Dashboard({
   const ready = r.state === "ready";
   const ai = useProfileAI(runId, lang, ready); // W43: the AI check of the profile
   const toConfirm = [...view.to_confirm, ...aiConfirms(ai)];
+  const checks = [...(view.profile_checks ?? []), ...aiChecks(ai)];
+  // W44: each conflict needs a reason ("Müşteriyle teyit edildi") before the approval
+  const [resNotes, setResNotes] = useState<{ run: string; notes: Record<string, string> }>({ run: runId, notes: {} });
+  const notes = resNotes.run === runId ? resNotes.notes : {};
+  const setResolution = (id: string, note: string) =>
+    setResNotes((s) => ({ run: runId, notes: { ...(s.run === runId ? s.notes : {}), [id]: note } }));
+  const conflicts = pending ? checks.filter((c) => c.kind === "conflict") : [];
+  const resolutions = conflicts.filter((c) => notes[c.id]?.trim()).map((c) => ({ finding_id: c.id, note: notes[c.id].trim() }));
+  const unresolved = conflicts.length - resolutions.length;
   const openConfirms = toConfirm.filter((_, i) => !confirmed[i]).length;
 
   // W20: the agent's top 3 replaces the engine's when it is done; the meeting chips follow it
@@ -120,6 +129,7 @@ export function Dashboard({
         view={view}
         confirmOpen={openConfirms}
         ai={ai}
+        resolve={{ notes, onNote: setResolution, onFix: onPersona && (() => setEditing(true)), decided: !pending, recorded: view.resolutions }}
         onEdit={onPersona && (() => setEditing(true))}
         onEvidence={setEvidenceId}
         refresh={agentChanged ? agent.picks.map((p) => p.option_id).join("|") : ""}
@@ -195,12 +205,12 @@ export function Dashboard({
       )}
       {ready && <ResearchPanel view={view} refresh={researchRefresh} agentRunning={agent?.state === "running"} />}
 
-      {ready && <ApprovalBar view={view} selected={selected} openConfirms={openConfirms} onRemove={toggle} onView={onView} />}
+      {ready && <ApprovalBar view={view} selected={selected} openConfirms={openConfirms} unresolved={unresolved} resolutions={resolutions} onRemove={toggle} onView={onView} />}
 
       {editing && onPersona && (
         <PersonaPanel
           persona={r.persona}
-          checks={[...(view.profile_checks ?? []), ...aiChecks(ai)]}
+          checks={checks}
           onClose={() => setEditing(false)}
           onApply={(p) => {
             setEditing(false);

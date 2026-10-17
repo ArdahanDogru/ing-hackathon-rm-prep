@@ -3,6 +3,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { Lang, NarrativeBrief, Persona, ProfileAIView, ProfileCheck, RunView } from "../api/types";
 import { AIFindings, AIStatus, aiChecks } from "./ProfileAI";
+import { Resolve, type ResolveProps } from "./Resolve";
 import { fill, LangContext, useT } from "../i18n";
 import { withCode } from "../product";
 
@@ -48,7 +49,7 @@ export function useLlmBrief(runId: string, lang: Lang, enabled: boolean, refresh
 
 /** W42: "Profilde çelişki (n)": the findings of the profile checks; a "confirm" finding is softer
  * and titled "Sorulacak". Nothing for an empty list. */
-function ProfileChecks({ checks = [], ai }: { checks?: ProfileCheck[]; ai?: ProfileAIView | null }) {
+function ProfileChecks({ checks = [], ai, resolve }: { checks?: ProfileCheck[]; ai?: ProfileAIView | null; resolve?: ResolveProps }) {
   const t = useT();
   // W43: the AI findings after the rule findings; the title counts all of them
   const all = [...checks, ...aiChecks(ai)];
@@ -72,11 +73,17 @@ function ProfileChecks({ checks = [], ai }: { checks?: ProfileCheck[]; ai?: Prof
           >
             {c.kind === "confirm" && <span className="mr-1.5 rounded bg-white px-1.5 text-[11px] font-semibold text-[#475467]">{t("pcConfirm")}</span>}
             {c.text}
+            {c.kind === "conflict" && <Resolve id={c.id} resolve={resolve} />}
           </li>
         ))}
-        <AIFindings view={ai} />
+        <AIFindings view={ai} resolve={resolve} />
       </ul>
       <AIStatus view={ai} />
+      {resolve?.decided && resolve.recorded && resolve.recorded.ai_check !== "done" && (
+        <p data-testid="ai-not-done" className="mt-2 text-xs text-muted">
+          {fill(t("aiNotDone"), { state: resolve.recorded.ai_check })}
+        </p>
+      )}
     </div>
   );
 }
@@ -100,10 +107,13 @@ export function BriefCard({
   onEvidence,
   refresh = 0,
   ai,
+  resolve,
 }: {
   view: RunView;
   /** W43: the AI check of the profile (useProfileAI) */
   ai?: ProfileAIView | null;
+  /** W44: the RM's reasons for the conflicts (Dashboard) */
+  resolve?: ResolveProps;
   confirmOpen: number;
   onEdit?: () => void;
   onEvidence?: (id: string) => void;
@@ -143,7 +153,7 @@ export function BriefCard({
               </span>
             ))}
           </p>
-          <ProfileChecks checks={view.profile_checks} ai={ai} />
+          <ProfileChecks checks={view.profile_checks} ai={ai} resolve={resolve} />
           <p data-testid="brief-text" className="mb-1.5 mt-3.5 max-w-[70ch] text-[17px] leading-relaxed">
             {llm ? llm.text : plainBrief(p)}
             {llm && (

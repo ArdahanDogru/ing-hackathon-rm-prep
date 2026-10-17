@@ -111,6 +111,33 @@ function startAgent(load: Loader, runId: string, req: Record<string, unknown>): 
 const PROFILE_AI_MS = 6_000;
 const profileAsked = new Map<string, number>();
 
+const MOCK_AI_CONFLICT = "ai:0c0ffee001";
+const MOCK_AI_TEXT = "Gelir ihtiyacı yüksek, ama likidite ihtiyacı orta: düzenli gelir düzenli nakit ister. Hangisinin geçerli olduğunu teyit edin.";
+
+/** W44: an approval needs a reason for each conflict (the rules', and the AI's once it is done);
+ * an open one → 422; else the approved run with the record (stateless: GET shows no record). */
+function approvalAnswer(load: Loader, runId: string, req: Record<string, unknown>): MockAnswer {
+  const found = runOf(load, runId);
+  if (req.status !== "approved") return sample(load, "run_p01_approved");
+  if (!found) return notFound(`unknown run ${runId}`);
+  const checks = (found.run as { profile_checks?: { id: string; kind: string; text: string }[] }).profile_checks ?? [];
+  const rules = checks.filter((c) => c.kind === "conflict")
+    .map((c) => ({ id: c.id, source: "rule", text: c.text }));
+  const asked = profileAsked.get(runId);
+  const aiDone = asked !== undefined && Date.now() - asked >= PROFILE_AI_MS && found.name !== "run_p02_ready";
+  const ai = aiDone ? [{ id: MOCK_AI_CONFLICT, source: "ai", text: MOCK_AI_TEXT }] : [];
+  const notes = new Map(((req.resolutions ?? []) as { finding_id: string; note: string }[])
+    .filter((r) => String(r.note ?? "").trim()).map((r) => [r.finding_id, String(r.note).trim()]));
+  const conflicts = [...rules, ...ai];
+  const open = conflicts.filter((c) => !notes.has(c.id));
+  if (open.length) return { status: 422, body: { detail: "Çözülmemiş çelişki var: " + open.map((c) => c.text).join(" · ") } };
+  const state = found.name === "run_p02_ready" ? "failed" : aiDone ? "done" : asked === undefined ? "off" : "running";
+  const resolutions = { resolutions: conflicts.map((c) => ({ ...c, note: notes.get(c.id) })), ai_check: state, at: new Date().toISOString() };
+  const base = found.run; // P01: the approved sample (the first of RUN_SAMPLES with its id)
+  const decided_at = new Date().toISOString();
+  return { status: 200, body: { ...base, result: { ...base.result, rm_status: "approved", rm_decided_at: decided_at }, resolutions } };
+}
+
 function profileCheckAnswer(load: Loader, runId: string, lang: string): MockAnswer {
   const found = runOf(load, runId);
   if (!found) return notFound(`unknown run ${runId}`);
@@ -121,6 +148,7 @@ function profileCheckAnswer(load: Loader, runId: string, lang: string): MockAnsw
   const en = lang === "EN";
   const findings = [
     {
+      id: MOCK_AI_CONFLICT,
       kind: "conflict",
       fields: ["gelir_nakit_akisi_ihtiyaci", "likidite_ihtiyaci"],
       quotes: [
@@ -129,9 +157,10 @@ function profileCheckAnswer(load: Loader, runId: string, lang: string): MockAnsw
       ],
       text: en
         ? "The income need is high, but the liquidity need is medium: a regular income needs regular cash. Confirm which one holds."
-        : "Gelir ihtiyacı yüksek, ama likidite ihtiyacı orta: düzenli gelir düzenli nakit ister. Hangisinin geçerli olduğunu teyit edin.",
+        : MOCK_AI_TEXT,
     },
     {
+      id: "ai:0c0ffee002",
       kind: "confirm",
       fields: ["rm_notu"],
       quotes: [{ field: "rm_notu", text: "mevduat yoğunluğunu azaltabilecek alternatifleri" }],
@@ -299,7 +328,7 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
       return notFound(`unknown run ${b} (the server may have restarted)`);
     }
     if (method === "POST" && c === "answers") return sample(load, "run_p01_ready");
-    if (method === "POST" && c === "approval") return sample(load, "run_p01_approved");
+    if (method === "POST" && c === "approval") return approvalAnswer(load, b ?? "", req);
     if (method === "PUT" && c === "notes") return sample(load, "run_p01_approved");
     if (method === "GET" && c === "research" && !d) return researchAnswer(load, b ?? "");
     if (method === "GET" && c === "agent" && !d) return agentAnswer(load, b ?? "");

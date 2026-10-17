@@ -315,8 +315,22 @@ export interface ProfileCheck {
   text: string;
 }
 
+/** W44: one conflict the RM confirmed with the client before the approval. */
+export interface Resolution {
+  finding_id: string;
+  note: string;
+}
+
+/** W44: RunView.resolutions: the record of an approval. */
+export interface ResolutionRecord {
+  resolutions: { id: string; source: "rule" | "ai"; text: string; note: string }[];
+  ai_check: string; // the AI check's state at the approval
+  at: string;
+}
+
 /** W43: a finding of the AI check of the profile; every quote is in its named field (the server checks it). */
 export interface ProfileAIFinding {
+  id?: string; // W44: "ai:<hash>", the finding id of a resolution
   kind: "conflict" | "confirm";
   fields: string[]; // persona field names
   quotes: { field: string; text: string }[];
@@ -425,6 +439,8 @@ export interface RunView {
   priority_criteria: Record<string, string[]>;
   /** W42: conflicting client information over the engine's reading of the profile; [] when none. */
   profile_checks?: ProfileCheck[];
+  /** W44: the RM's recorded reasons for the profile conflicts; null before an approval. */
+  resolutions?: ResolutionRecord | null;
   /** W25b: other banks' rates once per run (empty without the config); optional for older samples. */
   bank_context?: MarketBankEntry[];
   /** W18: the current split's status and sources. Optional until the API fixtures have it. */
