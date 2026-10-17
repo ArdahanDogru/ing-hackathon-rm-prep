@@ -27,8 +27,11 @@ test("fmtUnit: every unit in TR", () => {
   expect(fmtUnit(34.5, "pct", "TR")).toBe("%34,5");
   expect(fmtUnit(47.6037, "pct", "TR")).toBe("%47,6");
   expect(fmtUnit(-8.25, "pct", "TR")).toBe("−%8,25");
-  expect(fmtUnit(49.1267, "TRY", "TR")).toBe("49,13 TL");
-  expect(fmtUnit(4123.5, "TRY/kg", "TR")).toBe("4.123,5 TL/kg");
+  expect(fmtUnit(49.1267, "TRY", "TR")).toBe("49,1267 TL"); // a source value as it is
+  expect(fmtUnit(23.5, "TRY", "TR")).toBe("23,50 TL");
+  expect(fmtUnit(12.345678, "TRY", "TR")).toBe("12,3457 TL");
+  expect(fmtUnit(12.3456, "pct", "TR")).toBe("%12,35");
+  expect(fmtUnit(4123.5, "TRY/kg", "TR")).toBe("4.123,50 TL/kg");
   expect(fmtUnit(3, "days", "TR")).toBe("3 gün");
   expect(fmtUnit(1250, "count", "TR")).toBe("1.250");
   expect(fmtUnit(1, "flag", "TR")).toBe("evet");
@@ -40,8 +43,8 @@ test("fmtUnit: every unit in TR", () => {
 
 test("fmtUnit: every unit in EN", () => {
   expect(fmtUnit(34.5, "pct", "EN")).toBe("34.5 %");
-  expect(fmtUnit(49.1267, "TRY", "EN")).toBe("49.13 TL");
-  expect(fmtUnit(4123.5, "TRY/kg", "EN")).toBe("4,123.5 TL/kg");
+  expect(fmtUnit(49.1267, "TRY", "EN")).toBe("49.1267 TL");
+  expect(fmtUnit(4123.5, "TRY/kg", "EN")).toBe("4,123.50 TL/kg");
   expect(fmtUnit(1, "days", "EN")).toBe("1 day");
   expect(fmtUnit(3, "days", "EN")).toBe("3 days");
   expect(fmtUnit(1, "flag", "EN")).toBe("yes");
