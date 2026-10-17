@@ -23,11 +23,8 @@ from rmprep.contracts import (
 from rmprep.narrator.config import AllocationTexts, NarratorConfig, load_config
 from rmprep.narrator.facts import (
     INTERNAL_PARTS,
-    MARKET_NAMES,
     Facts,
-    KeyNumber,
     OptionFacts,
-    number_rank,
 )
 
 MAIN_REASONS = 3        # largest score parts quoted per selected option
@@ -116,13 +113,10 @@ TEXTS = {
                   "risk profili: {risk}).",
         "notes_file": "Dosyadaki not: {note}",
         "notes_rm": "RM onay notu: {note}",
-        "o_facts": "{name} ({kind}{fx}): {items}.",
-        "o_bare": "{name} ({kind}{fx}).",
-        "o_fit": "{name}: müşterinin {need} (\"{value}\") açısından {part} ile öne çıktığını "
+        "o_fit": "Müşterinin {need} (\"{value}\") açısından {part} ile öne çıktığını "
                  "anlatın.",
-        "o_fit_none": "{name}: müşterinin önceliklerine nasıl uyduğunu birlikte değerlendirin.",
-        "o_risk": "{name}: {note}",
-        "o_risk_none": "{name}: başlıca riskini müşteriyle konuşun.",
+        "o_fit_none": "Müşterinin önceliklerine nasıl uyduğunu birlikte değerlendirin.",
+        "shared_risk": "{names}: {note}",
         "watch_access": "{name}: paraya erişim {access}{fees}.",
         "watch_fees": "{name}: {fees}.",
         "unmatched": "\"{p}\" önceliği seçeneklerin hiçbir ölçütüyle karşılanmıyor.",
@@ -145,7 +139,6 @@ TEXTS = {
         "tp_priorities": ("Müşterinin öncelikleri", "Öncelikleri teyit edin: {items}."),
         "fx": ", döviz içerir",
         "numbers": "Ana rakamlar: {items}.",
-        "number": "{name} {value} ({source}, {as_of})",
         "watch": "İzlenecek nokta: {message}",
         "option_note": "RM notu: {note}",
         "group": "{kind} grubunda diğer seçenekler: {labels}.",
@@ -158,8 +151,6 @@ TEXTS = {
         "pitch_goal": "Bugün \"{durum}\" durumunuzu ve \"{amac}\" hedefinizi dikkate "
                       "alarak birkaç seçeneği birlikte değerlendirmek istiyorum.",
         "pitch_options": "Sizin için öne çıkan seçenekler: {labels}.",
-        "pitch_past": "Konuştuğumuz getiriler geçmiş getirilerdir; kararı sizin "
-                      "önceliklerinize göre birlikte verelim.",
         "no_assumptions": "Varsayım yok.",
     },
     "EN": {
@@ -168,13 +159,10 @@ TEXTS = {
                   "{ufuk}, risk profile: {risk}).",
         "notes_file": "Note in the file: {note}",
         "notes_rm": "RM approval note: {note}",
-        "o_facts": "{name} ({kind}{fx}): {items}.",
-        "o_bare": "{name} ({kind}{fx}).",
-        "o_fit": "{name}: explain that it stands out on {part} for the client's {need} "
+        "o_fit": "Explain that it stands out on {part} for the client's {need} "
                  "(\"{value}\").",
-        "o_fit_none": "{name}: discuss with the client how it fits their priorities.",
-        "o_risk": "{name}: {note}",
-        "o_risk_none": "{name}: discuss its main risk with the client.",
+        "o_fit_none": "Discuss with the client how it fits their priorities.",
+        "shared_risk": "{names}: {note}",
         "watch_access": "{name}: access to the money {access}{fees}.",
         "watch_fees": "{name}: {fees}.",
         "unmatched": "No criterion of the options covers the priority \"{p}\".",
@@ -199,7 +187,6 @@ TEXTS = {
         "tp_priorities": ("Client's priorities", "Confirm the priorities: {items}."),
         "fx": ", FX exposure",
         "numbers": "Key numbers: {items}.",
-        "number": "{name} {value} ({source}, {as_of})",
         "watch": "Point to watch: {message}",
         "option_note": "RM note: {note}",
         "group": "Other options in the {kind} group: {labels}.",
@@ -212,8 +199,6 @@ TEXTS = {
         "pitch_goal": "Today I would like to look at a few options with you, based on your "
                       "situation (\"{durum}\") and your goal (\"{amac}\").",
         "pitch_options": "The options that stand out for you: {labels}.",
-        "pitch_past": "The returns we talk about are past returns; we will decide "
-                      "together, based on your priorities.",
         "no_assumptions": "No assumptions.",
     },
 }
@@ -310,12 +295,6 @@ def source_name(source: str, lang: str) -> str:
     return name[lang] if isinstance(name, dict) else name
 
 
-def _number(n: KeyNumber, tx: dict, lang: str) -> str:
-    return tx["number"].format(name=quantity_name(n.key, lang),
-                               value=fmt_number(n.value, n.unit, lang),
-                               source=source_name(n.source, lang), as_of=fmt_date(n.as_of, lang))
-
-
 def _link(o: OptionFacts, used: set[str], f: Facts, tx: dict, lang: str) -> str | None:
     """One sentence that ties the option to a named client need: its largest
     positive score part with a need, one not used by an earlier option if possible."""
@@ -329,48 +308,38 @@ def _link(o: OptionFacts, used: set[str], f: Facts, tx: dict, lang: str) -> str 
                               value=f.client[need], part=PART_NAMES[part][lang])
 
 
-OPTION_NUMBERS = 4      # numbers in the facts sentence of an option
-_NOT_OPTION_NUMBERS = {"fund_buyable", "fund_sell_valor_days", "fund_entry_fee", "fund_exit_fee"}
-
-
 def _name(o: OptionFacts) -> str:
     return o.name or o.label
 
 
-def _own_numbers(o: OptionFacts) -> list[KeyNumber]:
-    """The option's numbers for the text: real return first; no market facts and
-    no risk-line rows (N13)."""
-    own = [n for n in o.numbers if n.name not in MARKET_NAMES
-           and n.quantity not in _NOT_OPTION_NUMBERS]
-    return sorted(own, key=number_rank)[:OPTION_NUMBERS]
-
-
 def _oneriler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
-    """N13: per selected option 3 sentences that start with its name: (a) facts,
-    real return first; (b) the fit with a client need (+ the RM's option note);
-    (c) the risk of its asset class. Its warnings go to dikkat only (N13b: no
-    repetition)."""
+    """N16: per selected option one sentence, without its name (the page card and
+    the ### heading name it) and without a facts sentence (the page shows the
+    numbers): the fit with a client need (+ the RM's option note). The risk note
+    of its asset class goes to dikkat once (_shared_risks); its warnings go to
+    dikkat only (N13b: no repetition)."""
     out, used = [], set()
     for o in f.selected:
-        oid, name = [o.option_id], _name(o)
-        head = dict(name=name, kind=kind_name(o.kind, lang), fx=tx["fx"] if o.fx else "")
-        nums = _own_numbers(o)
-        if nums:
-            items = "; ".join(_number(n, tx, lang) for n in nums)
-            out.append(_sentence(tx["o_facts"].format(**head, items=items), oid,
-                                 [n.evidence_id for n in nums]))
-        else:
-            out.append(_sentence(tx["o_bare"].format(**head), oid, o.evidence_ids))
-        fit = _link(o, used, f, tx, lang) or tx["o_fit_none"].format(name=name)
+        fit = _link(o, used, f, tx, lang) or tx["o_fit_none"]
         if o.rm_note:
             fit += " " + tx["option_note"].format(note=_end(o.rm_note))
-        out.append(_sentence(fit, oid))
-        risk = f.risks.get(o.option_id)
-        note = risk.note.get(lang, "") if risk else ""
-        text = tx["o_risk"].format(name=name, note=_end(note)) if note else \
-            tx["o_risk_none"].format(name=name)
-        out.append(_sentence(text, oid, risk.evidence_ids if risk else ()))
+        out.append(_sentence(fit, [o.option_id]))
     return out
+
+
+def _shared_risks(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
+    """N16: each risk note of the selected options once, with the names of the
+    options it covers, citing them (never repeated per option)."""
+    by_note: dict[str, list[OptionFacts]] = {}
+    for o in f.selected:
+        risk = f.risks.get(o.option_id)
+        if risk is not None and risk.note.get(lang):
+            by_note.setdefault(risk.note[lang], []).append(o)
+    return [_sentence(tx["shared_risk"].format(names=", ".join(_name(o) for o in opts),
+                                               note=_end(note)),
+                      [o.option_id for o in opts],
+                      list(dict.fromkeys(e for o in opts for e in f.risks[o.option_id].evidence_ids)))
+            for note, opts in by_note.items()]
 
 
 def _alternatifler(f: Facts, tx: dict, lang: str) -> list[NarrativeSentence]:
@@ -424,7 +393,8 @@ def _allocation_gaps(f: Facts, lang: str,
 
 def _dikkat(f: Facts, tx: dict, lang: str,
             alloc: AllocationTexts | None = None) -> list[NarrativeSentence]:
-    """N13b: the warnings; per selected option at most one sentence, only with
+    """N13b: the warnings; N16: each risk note of the selected options once;
+    per selected option at most one sentence, only with
     what oneriler does not say (slow access, fees), else nothing; N15: the gaps
     of active allocation rows; the unmatched priorities; the past-return caveat
     once."""
@@ -433,6 +403,7 @@ def _dikkat(f: Facts, tx: dict, lang: str,
     for w in f.warnings:
         out.append(_sentence(_end(w.message), w.option_ids or ([] if w.evidence_ids else whole),
                              w.evidence_ids))
+    out += _shared_risks(f, tx, lang)
     for o in f.selected:
         risk = f.risks.get(o.option_id)
         if risk is None:
@@ -475,8 +446,7 @@ def _teklif(f: Facts, tx: dict) -> list[NarrativeSentence]:
                                              amac=f.client["yatirim_amaci"]))]
     out.append(_sentence(tx["pitch_options"].format(labels=_labels(f.selected)),
                          [o.option_id for o in f.selected]))
-    out.append(_sentence(tx["pitch_past"]))      # N13b: at most 4 sentences
-    return out
+    return out      # N16: no past-return reminder (dikkat has it)
 
 
 MAX_TALKING_POINTS = 3

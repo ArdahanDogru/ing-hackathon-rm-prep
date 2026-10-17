@@ -64,7 +64,7 @@ def test_validator_finds_a_dikkat_copy_of_oneriler(f02, r02, config):
     sections = list(template_sections(f02, "TR", config.disclaimer["TR"]))
     oid = r02.rm_selected[0]
     copy = next(s for s in _section(sections, "oneriler").sentences
-                if s.option_ids[:1] == (oid,) and "Getirisi" in s.text)
+                if s.option_ids[:1] == (oid,))
     findings = validate(_with_dikkat(sections, NarrativeSentence(copy.text, (oid,))),
                         f02, r02, config, "TR")
     assert _codes(findings) == {"repeat"}, findings
@@ -72,11 +72,17 @@ def test_validator_finds_a_dikkat_copy_of_oneriler(f02, r02, config):
 
 # --- template: watch items only for slow access or fees -------------------------------------------
 
+def _watch(dikkat, f):
+    """The dikkat sentences without the risk notes (N16: once each, citing their options)."""
+    notes = {r.note["TR"] for r in f.risks.values()}
+    return [s for s in dikkat.sentences if not any(n.rstrip(".") in s.text for n in notes)]
+
+
 def test_no_watch_item_for_same_day_access_without_fees(f02, r02, config):
     dikkat = _section(template_sections(f02, "TR", config.disclaimer["TR"]), "dikkat")
     assert all(f02.risks[o].access == "Aynı gün" and not f02.risks[o].fees
                for o in r02.rm_selected)
-    assert not any(s.option_ids == (o,) for s in dikkat.sentences for o in r02.rm_selected)
+    assert not any(s.option_ids == (o,) for s in _watch(dikkat, f02) for o in r02.rm_selected)
 
 
 def test_watch_item_for_slow_access(f02, r02, config):
@@ -84,7 +90,7 @@ def test_watch_item_for_slow_access(f02, r02, config):
     slow = dataclasses.replace(f02.risks[oid], access="2 iş günü", access_days=2.0)
     f = dataclasses.replace(f02, risks={**f02.risks, oid: slow})
     sections = template_sections(f, "TR", config.disclaimer["TR"])
-    mine = [s for s in _section(sections, "dikkat").sentences if s.option_ids == (oid,)]
+    mine = [s for s in _watch(_section(sections, "dikkat"), f) if s.option_ids == (oid,)]
     assert len(mine) == 1 and "2 iş günü" in mine[0].text
     assert validate(sections, f, r02, config, "TR") == ()
 
