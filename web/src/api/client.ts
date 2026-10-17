@@ -83,6 +83,10 @@ async function agentStatus(runId: string): Promise<AgentDecision | null> {
 
 export const api = {
   personas: () => request<Persona[]>("GET", "/personas"),
+  /** POST /personas (W31): upload a client JSON; 422 with a Turkish text for a bad file. */
+  uploadPersona: (persona: Persona) => request<{ persona: Persona; replaced: boolean }>("POST", "/personas", { persona }),
+  /** GET /personas/uploaded (W31): the ids of the uploaded clients. */
+  uploadedPersonas: () => request<string[]>("GET", "/personas/uploaded"),
   snapshots: () => request<string[]>("GET", "/snapshots"),
   sources: (snapshotId: string) => request<Record<string, SourceStatus>>("GET", `/snapshots/${enc(snapshotId)}/sources`),
   run: (inputs: RunInputs) => request<RunView>("POST", "/runs", inputs),

@@ -93,6 +93,7 @@ export function App() {
   const [run, setRun] = useState<RunView | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploaded, setUploaded] = useState<string[]>([]); // W31: uploaded client ids
   const [resets, setResets] = useState(0); // W27: a reset loads the run again and remounts the dashboard
   const [resetDone, setResetDone] = useState<string | null>(null);
 
@@ -112,6 +113,21 @@ export function App() {
     });
   }, [printing]);
   useEffect(init, [init]);
+  useEffect(() => {
+    if (printing) return;
+    api.uploadedPersonas().then(setUploaded, () => setUploaded([])); // a server without uploads: no mark
+  }, [printing, resets]);
+
+  // W31: after an upload: the list again, the new client selected (its run follows)
+  const afterUpload = (p: Persona) => {
+    Promise.all([api.personas(), api.uploadedPersonas().catch(() => [] as string[])]).then(([ps, up]) => {
+      setPersonas(ps);
+      setUploaded(up);
+      setEdited(null);
+      setPersonaId(p.persona_id);
+      navigate("/");
+    }, setError);
+  };
 
   // "Yeni veriyle aç" (W14): the new snapshot list, and its newest snapshot
   const openNewest = useCallback(() => {
@@ -185,6 +201,8 @@ export function App() {
                 lang={lang}
                 onLang={setLang}
                 onReset={afterReset}
+                uploaded={uploaded}
+                onUploaded={afterUpload}
                 onResetError={setError}
               />
               <main className="mx-auto max-w-[1400px] p-6">

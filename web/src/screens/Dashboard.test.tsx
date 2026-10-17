@@ -211,10 +211,10 @@ test("an approved run: the meeting tab is active and the bar links to the text",
   expect(screen.queryByRole("button", { name: "Onayla ve metni hazırla" })).toBeNull();
 });
 
-test("test run disables approval", () => {
+test("a test run (an edited profile) can be approved (W30; see EditedProfile.test)", () => {
   renderDashboard(sample("run_test"));
-  expect(screen.getByRole("button", { name: "Onayla ve metni hazırla" })).toBeDisabled();
-  expect(screen.getByText(/Test:/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Onayla ve metni hazırla" })).toBeEnabled();
+  expect(screen.getByText(/Düzenlenmiş profil:/)).toBeInTheDocument();
 });
 
 test("an answer makes a new run", async () => {

@@ -19,6 +19,7 @@ import { fmtDateTime, fmtPct } from "../format";
 import { LangContext, useT } from "../i18n";
 import { Markdown } from "../markdown";
 import { CodeBadge, withCode } from "../product";
+import { profileChanges } from "../profileChanges";
 
 const SAVE_DELAY_MS = 800;
 const HIGHLIGHT_MS = 2000;
@@ -400,6 +401,11 @@ export function MeetingText({ view }: { view: RunView }) {
             <h1 className="mb-[18px] mt-1.5 text-[26px] font-bold leading-snug">
               {`${t("meetingText")} — ${r.persona.profil}, ${r.persona.yas}`}
             </h1>
+            {view.test_run && view.persona_changes.length > 0 && (
+              <p data-testid="edited-profile" className="-mt-2 mb-4 rounded-lg bg-[#FFFAEB] px-3 py-1.5 text-sm text-[#93370D]">
+                {`${t("editedLine")}: ${profileChanges(view.persona_changes, lang)}`}
+              </p>
+            )}
 
             {markdown ? (
               <>
