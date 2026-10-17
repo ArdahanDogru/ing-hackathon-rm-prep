@@ -14,6 +14,9 @@ export interface BlockOpts {
   noDelete?: boolean;
 }
 
+/** W47: the sections the RM can delete; the funds (02) and the risks (04) always stay. */
+export type SectionId = "figures" | "pres1" | "pres3" | "pres5";
+
 /** The RM's help next to a part of the page: the slots MeetingText fills. */
 export interface RmNotes {
   /** under the cover: the aim of the meeting, the market note */
@@ -107,13 +110,14 @@ interface Figure {
   accent: boolean;
 }
 
-function Heading({ n, children }: { n: string; children: ReactNode }) {
+function Heading({ n, action, children }: { n: string; action?: ReactNode; children: ReactNode }) {
   return (
     <div className="flex items-baseline gap-3">
       <span className="text-sm font-bold" style={{ color: ACCENT }}>
         {n}
       </span>
       <h2 className="m-0 font-serif text-[26px] font-semibold leading-tight">{children}</h2>
+      {action && <span className="ml-auto">{action}</span>}
     </div>
   );
 }
@@ -160,6 +164,8 @@ export function ClientPresentation({
   notes,
   optionNotes,
   onOptionNote,
+  hidden = [],
+  onSection,
 }: {
   view: RunView;
   draft: NarrativeView;
@@ -171,6 +177,10 @@ export function ClientPresentation({
   notes: RmNotes;
   optionNotes: Record<string, string>;
   onOptionNote: (id: string, v: string) => void;
+  /** W47: the sections the RM deleted; left out of the client view and the print */
+  hidden?: SectionId[];
+  /** delete (true) or bring back (false) a section */
+  onSection?: (id: SectionId, hide: boolean) => void;
 }) {
   const t = useT();
   const r = view.result;
@@ -264,6 +274,35 @@ export function ClientPresentation({
 
   const card = "rounded-xl border border-[#ECE9E3] bg-[#FBFAF8] p-6";
 
+  // W47: a deleted section is gone from the client view and the print; the RM sees a line to
+  // bring it back while the text is editable. The numbers of the headings follow what is left.
+  const gone = (id: SectionId) => hidden.includes(id);
+  const canDelete = rm && editable && !!onSection;
+  const deleteButton = (id: SectionId, title: string) =>
+    canDelete ? (
+      <button
+        type="button"
+        data-testid="section-delete"
+        aria-label={`${title}: ${t("deleteSection")}`}
+        className="text-[13px] text-[#5E5950] hover:text-[#B42318] print:hidden"
+        onClick={() => onSection!(id, true)}
+      >
+        {t("deleteSection")}
+      </button>
+    ) : null;
+  const deletedLine = (id: SectionId, title: string) =>
+    canDelete ? (
+      <div data-testid="deleted-section" data-section={id} className="border-t border-dashed border-gray-300 pt-2 text-[13px] text-[#5E5950] print:hidden">
+        {`${title} · ${t("sectionDeleted")} · `}
+        <button type="button" aria-label={`${title}: ${t("undoDelete")}`} className="text-[#355FA1] underline" onClick={() => onSection!(id, false)}>
+          {t("undoDelete")}
+        </button>
+      </div>
+    ) : null;
+  const has1 = rows.length > 0;
+  const order = [has1 && !gone("pres1") && "pres1", "pres2", showTimeline && !gone("pres3") && "pres3", "pres4", !gone("pres5") && "pres5"].filter(Boolean);
+  const num = (id: string) => String(order.indexOf(id) + 1).padStart(2, "0");
+
   return (
     <div data-testid="presentation" className="flex min-w-0 flex-col gap-4">
       {rm && (
@@ -290,28 +329,35 @@ export function ClientPresentation({
         </div>
 
         {/* key figures */}
-        {figures.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-3">
-            {figures.map((f) => (
-              <div key={f.label} data-testid="pres-figure" className="flex flex-col gap-1.5 rounded-xl bg-[#F7F5F1] p-5">
-                <span className="text-[13px] text-[#5E5950]">{f.label}</span>
-                <span className="font-serif text-[34px] font-bold leading-tight" style={f.accent ? { color: ACCENT } : undefined}>
-                  {f.value}
-                </span>
-                <span data-testid="pres-figure-who" className="text-sm font-semibold text-[#1D1B18]">
-                  {f.who}
-                </span>
-                {f.sub && <span className="text-sm text-[#3A362F]">{f.sub}</span>}
-              </div>
-            ))}
+        {figures.length > 0 && gone("figures") && deletedLine("figures", t("presFigTitle"))}
+        {figures.length > 0 && !gone("figures") && (
+          <div className="flex flex-col gap-2">
+            {canDelete && <div className="flex justify-end">{deleteButton("figures", t("presFigTitle"))}</div>}
+            <div className="grid gap-4 sm:grid-cols-3">
+              {figures.map((f) => (
+                <div key={f.label} data-testid="pres-figure" className="flex flex-col gap-1.5 rounded-xl bg-[#F7F5F1] p-5">
+                  <span className="text-[13px] text-[#5E5950]">{f.label}</span>
+                  <span className="font-serif text-[34px] font-bold leading-tight" style={f.accent ? { color: ACCENT } : undefined}>
+                    {f.value}
+                  </span>
+                  <span data-testid="pres-figure-who" className="text-sm font-semibold text-[#1D1B18]">
+                    {f.who}
+                  </span>
+                  {f.sub && <span className="text-sm text-[#3A362F]">{f.sub}</span>}
+                </div>
+              ))}
+            </div>
           </div>
         )}
         {rm && notes.figures}
 
         {/* 01 real return */}
-        {rows.length > 0 && (
+        {has1 && gone("pres1") && deletedLine("pres1", t("pres1Title"))}
+        {has1 && !gone("pres1") && (
           <section className="flex flex-col gap-4">
-            <Heading n="01">{t("pres1Title")}</Heading>
+            <Heading n={num("pres1")} action={deleteButton("pres1", t("pres1Title"))}>
+              {t("pres1Title")}
+            </Heading>
             <p className="m-0 max-w-[760px] text-base leading-relaxed text-[#3A362F]">{t("pres1Lead")}</p>
             <div className={`${card} flex flex-col gap-4`}>
               <div className="font-serif text-[22px] font-semibold leading-snug">{t("pres1Message")}</div>
@@ -362,7 +408,7 @@ export function ClientPresentation({
 
         {/* 02 the funds */}
         <section className="flex flex-col gap-4">
-          <Heading n="02">{t("pres2Title")}</Heading>
+          <Heading n={num("pres2")}>{t("pres2Title")}</Heading>
           <div className="grid gap-4 md:grid-cols-3">
             {funds.map((o) => {
               const id = `oneriler:${o.option_id}`;
@@ -412,9 +458,12 @@ export function ClientPresentation({
         </section>
 
         {/* 03 access */}
-        {showTimeline && (
+        {showTimeline && gone("pres3") && deletedLine("pres3", t("pres3Title"))}
+        {showTimeline && !gone("pres3") && (
           <section className="flex flex-col gap-4">
-            <Heading n="03">{t("pres3Title")}</Heading>
+            <Heading n={num("pres3")} action={deleteButton("pres3", t("pres3Title"))}>
+              {t("pres3Title")}
+            </Heading>
             {/* W46: the access as text, one line per option (was a bar chart of the days) */}
             <ul className={`${card} m-0 flex list-none flex-col divide-y divide-[#ECE9E3] py-2`}>
               {known.map((o) => (
@@ -432,7 +481,7 @@ export function ClientPresentation({
 
         {/* 04 risks */}
         <section className="flex flex-col gap-4">
-          <Heading n="04">{t("pres4Title")}</Heading>
+          <Heading n={num("pres4")}>{t("pres4Title")}</Heading>
           <div className="grid items-start gap-6 md:grid-cols-2">
             <div className={`${card} flex flex-col gap-3`}>
               <span className="text-[13px] text-[#5E5950]">{t("pres4Scale")}</span>
@@ -465,13 +514,27 @@ export function ClientPresentation({
         </section>
 
         {/* 05 next step */}
-        <section data-testid="pres-next" className="flex flex-col gap-3 rounded-2xl bg-[#1D1B18] p-7 text-[#F4F2EE]">
-          <div className="flex items-baseline gap-3">
-            <span className="text-sm font-bold text-[#F59E5B]">05</span>
-            <h2 className="m-0 font-serif text-[24px] font-semibold">{t("pres5Title")}</h2>
-          </div>
-          <div className="text-base leading-relaxed">{block("sorular", t("questionsToAsk"))}</div>
-        </section>
+        {gone("pres5") && deletedLine("pres5", t("pres5Title"))}
+        {!gone("pres5") && (
+          <section data-testid="pres-next" className="flex flex-col gap-3 rounded-2xl bg-[#1D1B18] p-7 text-[#F4F2EE]">
+            <div className="flex items-baseline gap-3">
+              <span className="text-sm font-bold text-[#F59E5B]">{num("pres5")}</span>
+              <h2 className="m-0 font-serif text-[24px] font-semibold">{t("pres5Title")}</h2>
+              {canDelete && (
+                <button
+                  type="button"
+                  data-testid="section-delete"
+                  aria-label={`${t("pres5Title")}: ${t("deleteSection")}`}
+                  className="ml-auto text-[13px] text-[#C9C4BA] hover:text-white print:hidden"
+                  onClick={() => onSection!("pres5", true)}
+                >
+                  {t("deleteSection")}
+                </button>
+              )}
+            </div>
+            <div className="text-base leading-relaxed">{block("sorular", t("questionsToAsk"))}</div>
+          </section>
+        )}
 
         <p className="m-0 border-t border-[#ECE9E3] pt-4 text-xs leading-normal text-[#5E5950]">
           {fill(t("presDisclaimer"), { date: dataDate })}

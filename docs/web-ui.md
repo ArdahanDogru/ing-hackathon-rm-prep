@@ -1164,6 +1164,20 @@ label ("Aynı gün", "2 gün", "Vade sonunda (32 gün)"). Shown under the same r
 as before (at least two known, different values). The day scale (`DAYS_MIN`)
 and the "Talep günü" / "n. gün" axis labels are gone.
 
+### Deleting a whole section (W47, 2026-10-17)
+
+The user, 2026-10-17: deleting the text inside a section is good, but the RM
+should be able to delete individual sections too. Next to the key figures, 01
+(real return), 03 (access) and 05 (next step): "Bölümü sil". A deleted section
+is left out of the Sunum görünümü and the print; the RM sees a line
+"<title> · bölüm silindi · Geri al" in its place while the text is editable.
+The heading numbers follow what is left. 02 (the funds: the proposal itself)
+and 04 (the risks, locked) cannot be deleted. The talking points box under the
+key figures stays. The deleted sections are kept in this browser per run
+(`localStorage` `rmprep.hiddenSections.<run_id>`): the block API accepts only
+the narrator's blocks, and the figures and charts are not blocks. Keeping them
+on the server (shared between machines) needs an API field: not in this step.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

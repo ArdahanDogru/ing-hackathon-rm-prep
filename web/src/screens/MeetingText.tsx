@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { NarrativeView, OptionKind, OptionView, RunView, SectionKey } from "../api/types";
 import { BlockEditor } from "../components/BlockEditor";
-import { ClientPresentation, RmNote, restatesFacts, withoutName, type BlockOpts } from "../components/ClientPresentation";
+import { ClientPresentation, RmNote, restatesFacts, withoutName, type BlockOpts, type SectionId } from "../components/ClientPresentation";
 import { snapshotDate } from "../components/BriefCard";
 import { SourceMark } from "../components/DocumentSection";
 import { ErrorBox } from "../components/ErrorBox";
@@ -25,6 +25,16 @@ import { withCode } from "../product";
 import { profileChanges } from "../profileChanges";
 
 const SAVE_DELAY_MS = 800;
+/** W47: the deleted sections of a run, kept in this browser (the API has no place for them). */
+const sectionsKey = (runId: string) => `rmprep.hiddenSections.${runId}`;
+function readSections(runId: string): SectionId[] {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(sectionsKey(runId)) ?? "[]");
+    return Array.isArray(v) ? (v.filter((x) => typeof x === "string") as SectionId[]) : [];
+  } catch {
+    return [];
+  }
+}
 const HIGHLIGHT_MS = 2000;
 
 /** A sentence of the document that may cite evidence (narrator sentence or decision talking point). */
@@ -76,6 +86,16 @@ export function MeetingText({ view }: { view: RunView }) {
   const [blockBusy, setBlockBusy] = useState(false);
   /** "Sunum görünümü": the page as the client sees it (and as it prints), without the RM's help */
   const [preview, setPreview] = useState(false);
+  const [hiddenSections, setHiddenSections] = useState<SectionId[]>(() => readSections(runId));
+  const toggleSection = (id: SectionId, hide: boolean) => {
+    const next = hide ? [...new Set([...hiddenSections, id])] : hiddenSections.filter((x) => x !== id);
+    setHiddenSections(next);
+    try {
+      localStorage.setItem(sectionsKey(runId), JSON.stringify(next));
+    } catch {
+      // no storage (a private window): the deletion holds until the page is left
+    }
+  };
 
   const load = useCallback(() => {
     let live = true;
@@ -467,6 +487,8 @@ export function MeetingText({ view }: { view: RunView }) {
               notes={notes}
               optionNotes={optionNotes}
               onOptionNote={editOptionNote}
+              hidden={hiddenSections}
+              onSection={toggleSection}
             />
           )}
 

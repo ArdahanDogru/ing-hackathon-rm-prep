@@ -236,3 +236,50 @@ test("helpers: figures, amounts and roles", () => {
   expect(fundRoles(funds, { "fund:PPN": ["a", "b"], "fund:IST": ["a", "b"] })).toEqual({ "fund:PPN": "a", "fund:IST": "b" });
   expect(fundRoles(funds, {})["fund:PPN"]).toBe(v.options["fund:PPN"].category_label);
 });
+
+describe("W47: deleting a whole section", () => {
+  beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
+
+  test("delete a section: gone from the client view, the numbers follow, undo brings it back", async () => {
+    show();
+    await screen.findByTestId("presentation");
+    await userEvent.click(screen.getByRole("button", { name: "Paranız bugün ne kazandırıyor?: Bölümü sil" }));
+    expect(screen.queryAllByTestId("pres-bar")).toHaveLength(0);
+    expect(screen.getByTestId("deleted-section")).toHaveTextContent("Paranız bugün ne kazandırıyor? · bölüm silindi");
+    // "Önerimiz" is now the first numbered section
+    expect(screen.getByRole("heading", { name: "Önerimiz" }).previousSibling).toHaveTextContent("01");
+    const runId = sample("run_p01_approved").result.run_id;
+    expect(JSON.parse(localStorage.getItem(`rmprep.hiddenSections.${runId}`)!)).toEqual(["pres1"]);
+    // the client view: no line, no button
+    await userEvent.click(screen.getByRole("button", { name: /Sunum görünümü/ }));
+    expect(screen.queryByTestId("deleted-section")).toBeNull();
+    expect(screen.queryAllByTestId("section-delete")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("button", { name: /Sunum görünümü/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Paranız bugün ne kazandırıyor?: Geri al" }));
+    expect(screen.getAllByTestId("pres-bar")).toHaveLength(4);
+    expect(screen.getByRole("heading", { name: "Önerimiz" }).previousSibling).toHaveTextContent("02");
+  });
+
+  test("the deleted sections of a run stay deleted when the page opens again", async () => {
+    const runId = sample("run_p01_approved").result.run_id;
+    localStorage.setItem(`rmprep.hiddenSections.${runId}`, JSON.stringify(["figures", "pres5"]));
+    show();
+    await screen.findByTestId("presentation");
+    expect(screen.queryAllByTestId("pres-figure")).toHaveLength(0);
+    expect(screen.queryByTestId("pres-next")).toBeNull();
+    expect(screen.getAllByTestId("deleted-section").map((x) => x.dataset.section)).toEqual(["figures", "pres5"]);
+  });
+
+  test("the funds and the risks cannot be deleted", async () => {
+    show();
+    await screen.findByTestId("presentation");
+    const labels = screen.getAllByTestId("section-delete").map((b) => b.getAttribute("aria-label"));
+    // P01 has no access list (the same access for all)
+    expect(labels).toEqual([
+      "Öne çıkan rakamlar: Bölümü sil",
+      "Paranız bugün ne kazandırıyor?: Bölümü sil",
+      "Sonraki adım: birlikte netleştirelim: Bölümü sil",
+    ]);
+  });
+});
