@@ -90,6 +90,9 @@ test("restatesFacts: both the real and the nominal figure", () => {
   expect(restatesFacts("X: enflasyon sonrası reel getirisi %7,36, nominal getirisi %47,60, risk düzeyi 1/7.", o)).toBe(true);
   expect(restatesFacts("X shows a real 1-year return of 7.36%, a nominal return of 47.60%.", o)).toBe(true);
   expect(restatesFacts("X son bir yılda %7,36 reel getiri sundu.", o)).toBe(false);
+  // the live narrator rounds to one decimal
+  expect(restatesFacts("X için reel getiri %7,4, nominal getiri %47,6 ve risk değeri 1/7'dir.", o)).toBe(true);
+  expect(restatesFacts("X için reel getiri %7,4 ve risk değeri 1/7'dir.", o)).toBe(false);
 });
 
 test("withoutName: the joins of TR and EN, and texts it leaves alone", () => {

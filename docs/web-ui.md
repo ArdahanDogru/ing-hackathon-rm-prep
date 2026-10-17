@@ -689,7 +689,7 @@ The user, 2026-10-17, from a ranked list of the repeats on the P01 page:
 - **Fund-card labels:** real and nominal 1-year return always; risk and access
   only when the funds differ (else the key figures and the 04 scale say it).
 - **The facts sentence** of each `oneriler:<id>` block (the one that gives both
-  the real and the nominal 1-year figure, `restatesFacts`) is left out of the
+  the real and the nominal 1-year figure at any rounding, `restatesFacts`) is left out of the
   card, its source numbers and the editor's text: the labels say it.
 - Asked of the narrator (docs/narrator.md, owner ing-lead): "no principal
   guarantee / follows interest rates" once in `dikkat` instead of in every

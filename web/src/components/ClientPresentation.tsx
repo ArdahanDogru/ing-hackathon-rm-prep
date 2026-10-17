@@ -80,10 +80,14 @@ export function withoutName(text: string, o: OptionView, lang: "TR" | "EN"): str
  * nominal 1-year return ("reel getirisi %7,36, nominal getirisi %47,60, risk düzeyi 1/7").
  */
 export function restatesFacts(text: string, o: OptionView): boolean {
-  const figs = (v: number | undefined) => (v === undefined ? [] : [v.toFixed(2).replace(".", ","), v.toFixed(2)]);
-  const real = figs(o.returns.real_1y?.value);
-  const nominal = figs(o.returns["1y"]?.value);
-  return real.some((x) => text.includes(x)) && nominal.some((x) => text.includes(x));
+  // the numbers of the text, each with its own rounding ("%9,7", "%7,36", "%35,0", "7.36%")
+  const nums = [...text.matchAll(/\d+(?:[.,]\d+)?/g)].map((m) => {
+    const [whole, frac = ""] = m[0].split(/[.,]/);
+    return { value: Number(`${whole}.${frac || "0"}`), places: frac.length };
+  });
+  const said = (v: number | undefined) =>
+    v !== undefined && nums.some((n) => Math.abs(Math.round(v * 10 ** n.places) / 10 ** n.places - n.value) < 1e-9);
+  return said(o.returns.real_1y?.value) && said(o.returns["1y"]?.value);
 }
 
 /** "1.000.000" → 1000000; anything without digits → 0. */
