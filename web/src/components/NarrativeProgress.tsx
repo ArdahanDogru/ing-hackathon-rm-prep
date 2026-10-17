@@ -1,4 +1,4 @@
-// W41: the wait for the meeting text as the steps the narrator goes through, each with the
+// W45: the wait for the meeting text as the steps the narrator goes through, each with the
 // inputs it uses (docs/narrator.md "draft"): the client, the approved options, the market
 // data, the rules, then the model writes and the validator checks. The server reports no
 // progress: the first four steps come in on a timer (they take well under a second on the

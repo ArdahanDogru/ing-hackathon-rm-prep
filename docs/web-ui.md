@@ -1086,7 +1086,7 @@ page taken; main's W28/W30/W32 parts added to it again):
   until the narrator change (N16, docs/narrator.md) removes the facts sentence
   and the name at the start.
 
-### The wait for the meeting text, step by step (W41, 2026-10-17)
+### The wait for the meeting text, step by step (W45, 2026-10-17; W41 by Öykü, renumbered at the merge)
 
 The user, 2026-10-17: while the meeting text is written, show what is happening
 and what it is made from, as a chain of steps. "Metin hazırlanıyor…" becomes
