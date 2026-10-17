@@ -182,3 +182,21 @@ test("research previous (W29): while the run's mock agent runs, then gone when i
   expect(read().previous).toBeUndefined();
   vi.useRealTimers();
 });
+
+test("client upload (W31): a valid upload is listed and marked; a missing field or a built-in id gives 422", () => {
+  resetAgentMock();
+  const p01 = { persona_id: "P01", profil: "Emekli", yas: 62, risk_profili: "Muhafazakâr", durum: "", yatirim_amaci: "", yatirim_ufku: "1-3 yıl", likidite_ihtiyaci: "Orta", doviz_maruz_kalma_tercihi: "", gelir_nakit_akisi_ihtiyaci: "", anapara_koruma_tercihi: "", oncelikler: [], acik_kisitlar: [] };
+  const loadP = (name: string) => (name === "personas" ? [p01] : undefined);
+  const demo = { ...p01, persona_id: "DEMO1", profil: "Demo" };
+  const ok = resolveMock("POST", "/api/personas", { persona: demo }, loadP);
+  expect(ok).toMatchObject({ status: 200, body: { persona: { persona_id: "DEMO1" }, replaced: false } });
+  expect(resolveMock("POST", "/api/personas", { persona: demo }, loadP).body).toMatchObject({ replaced: true });
+  const list = resolveMock("GET", "/api/personas", undefined, loadP).body as { persona_id: string }[];
+  expect(list.map((x) => x.persona_id)).toEqual(["P01", "DEMO1"]);
+  expect(resolveMock("GET", "/api/personas/uploaded", undefined, loadP).body).toEqual(["DEMO1"]);
+  const { risk_profili: _, ...missing } = { ...demo, persona_id: "DEMO2" };
+  expect(resolveMock("POST", "/api/personas", { persona: missing }, loadP)).toMatchObject({ status: 422, body: { detail: "Eksik alan: risk_profili" } });
+  expect(resolveMock("POST", "/api/personas", { persona: { ...demo, persona_id: "P02" } }, loadP).status).toBe(422);
+  resetAgentMock();
+  expect(resolveMock("GET", "/api/personas/uploaded", undefined, loadP).body).toEqual([]);
+});

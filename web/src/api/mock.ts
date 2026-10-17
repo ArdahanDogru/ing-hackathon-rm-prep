@@ -56,6 +56,26 @@ const marks = new Map<string, "ok" | "wrong">();
 export function resetAgentMock(): void {
   agentStarted.clear();
   marks.clear();
+  uploads.clear();
+}
+
+// Client upload (W31): kept in memory; the checks of the API in short (the required fields,
+// the id form, not a built-in id); the reset forgets the uploads too.
+const uploads = new Map<string, Record<string, unknown>>();
+const REQUIRED = ["persona_id", "profil", "yas", "risk_profili", "durum", "yatirim_amaci", "yatirim_ufku", "likidite_ihtiyaci",
+  "doviz_maruz_kalma_tercihi", "gelir_nakit_akisi_ihtiyaci", "anapara_koruma_tercihi", "oncelikler", "acik_kisitlar"];
+
+function uploadPersona(req: Record<string, unknown>): MockAnswer {
+  const p = req.persona as Record<string, unknown> | undefined;
+  if (!p || typeof p !== "object") return { status: 422, body: { detail: "Dosyada persona yok." } };
+  const missing = REQUIRED.find((k) => !(k in p));
+  if (missing) return { status: 422, body: { detail: `Eksik alan: ${missing}` } };
+  const id = String(p.persona_id);
+  if (!/^[A-Za-z0-9_-]{1,32}$/.test(id)) return { status: 422, body: { detail: "persona_id yalnızca harf, rakam, - ve _ içerebilir (1–32)." } };
+  if (/^P0[1-5]$/.test(id)) return { status: 422, body: { detail: `${id} hazır bir müşterinin kimliği; başka bir kimlik seçin.` } };
+  const replaced = uploads.has(id);
+  uploads.set(id, p);
+  return { status: 200, body: { persona: p, replaced } };
 }
 
 type MockRun = Parameters<typeof agentDecision>[0];
@@ -180,6 +200,7 @@ function resetAnswer(): MockAnswer {
   const moved = { runs: 0, texts: 0, cards: 0, agent: agentStarted.size, research_marks: marks.size };
   agentStarted.clear();
   marks.clear();
+  uploads.clear();
   return { status: 200, body: { archive: `data/reset-archive/${p.year}${p.month}${p.day}-${p.hour}${p.minute}${p.second}`, moved } };
 }
 
@@ -201,7 +222,12 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
   const [, a, b, c, d, e] = p;
   const req = (body ?? {}) as Record<string, unknown>;
 
-  if (method === "GET" && a === "personas" && !b) return sample(load, "personas");
+  if (method === "GET" && a === "personas" && !b) {
+    const builtIn = (load("personas") as unknown[] | undefined) ?? [];
+    return { status: 200, body: [...builtIn, ...uploads.values()] };
+  }
+  if (method === "GET" && a === "personas" && b === "uploaded") return { status: 200, body: [...uploads.keys()] };
+  if (method === "POST" && a === "personas" && !b) return uploadPersona(req);
   if (method === "GET" && a === "snapshots" && !b) return sample(load, "snapshots");
   if (method === "GET" && a === "snapshots" && c === "sources") return sample(load, "sources");
   if (method === "GET" && a === "evidence") return sample(load, "evidence_item");

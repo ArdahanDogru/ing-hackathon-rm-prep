@@ -3,6 +3,7 @@ import type { Lang, Persona, ResetResult, SourceStatus } from "../api/types";
 import { ResetButton } from "./ResetButton";
 import { snapshotLabel } from "../format";
 import { useT } from "../i18n";
+import { UploadButton } from "./UploadButton";
 
 export interface TopBarProps {
   personas: Persona[];
@@ -16,6 +17,9 @@ export interface TopBarProps {
   onExcluded: (excluded: string[]) => void;
   lang: Lang;
   onLang: (lang: Lang) => void;
+  /** W31: the ids of the uploaded clients (marked in the dropdown) and the upload */
+  uploaded?: string[];
+  onUploaded?: (p: Persona) => void;
   /** W27: "Sıfırla" done; another error than 409 */
   onReset?: (r: ResetResult) => void;
   onResetError?: (e: Error) => void;
@@ -69,11 +73,12 @@ export function TopBar(p: TopBarProps) {
           >
             {p.personas.map((x) => (
               <option key={x.persona_id} value={x.persona_id}>
-                {`${x.persona_id} · ${x.profil}`}
+                {`${x.persona_id} · ${x.profil}${p.uploaded?.includes(x.persona_id) ? ` ${t("uploadedMark")}` : ""}`}
               </option>
             ))}
           </select>
         </label>
+        {p.onUploaded && <UploadButton onUploaded={p.onUploaded} />}
 
         <div className="ml-auto flex items-center gap-3">
           <div className="relative" ref={menu}>
