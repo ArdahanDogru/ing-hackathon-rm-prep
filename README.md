@@ -14,7 +14,8 @@ Her sayı kaynağı, tarihi ve kanıt kimliğiyle izlenebilir.
 ![P02 panosu: önerilen ilk 3, mevduatla karşılaştırma, "Teyit edin" ve onay çubuğu](docs/img/readme/dashboard.png)
 *P02 (ihracatçı, Dengeli) panosu. Solda gündem ve "Teyit edin" maddeleri;
 sağda önerilen ilk 3; en altta RM'in onay çubuğu. (Ekran görüntüsü 14.10.2026
-sürümünden.)*
+sürümünden. Bugünkü sürümde gündem tam genişlikte, ajan kutusu onun altında;
+arayüz yalnızca Türkçe.)*
 
 Hızlı başlangıç (Windows, Python 3.11+, Node yalnızca web derlemesi için):
 
@@ -115,7 +116,8 @@ araştırmada da dışarıda tutulur.
 Evren: 815 TEFAS fonu, 37 BYF, 590 pay ve 2 ING mevduatı (Turuncu Hesap
 karşılaştırma tabanıdır). "Serbest" fonlar (yalnızca nitelikli yatırımcı),
 W ve S pazarlarındaki paylar, varant ve sertifikalar evrene girmez. Diğer
-bankaların mevduat oranları (İş Bankası, Ziraat) okunur ama puana girmez.
+bankaların mevduat oranları (İş Bankası, Ziraat) okunur, ama puana girmez ve
+ekranda gösterilmez.
 
 **Ürün sinyalleri:** stopaj ve TÜFE sonrası reel getiri · SPK risk değeri
 (paylarda oynaklık bandı; yoksa varlık sınıfından tahmin) · satış valörü
@@ -438,7 +440,7 @@ Dört katman:
 
 | Katman | Soru | Kapsam |
 |---|---|---|
-| Birim ve sözleşme testleri | Her kural tek başına doğru mu? | `pytest`: 150 dosyada 3.053 test; web: 51 dosyada 449 test; ağ erişimi yok, LLM yerine sahte model |
+| Birim ve sözleşme testleri | Her kural tek başına doğru mu? | `pytest`: 150 dosyada 3.053 test; web: 451 test; ağ erişimi yok, LLM yerine sahte model |
 | Senaryo değerlendirmesi | Sistem uçtan uca, jürinin değiştirebileceği girdilerle doğru mu? | 34 senaryo, 39 çalıştırma, dondurulmuş veri: temel personalar, persona değişiklikleri, kısıtlar, kaynak erişilemez, hatalı veri, regresyonlar |
 | Ajan değerlendirmesi | Ajan kurallara uyuyor mu, motordan iyi mi? | 8 karar: kod denetimi, yedek oranı, tekrar, kör A/B hakemi, RM işaretleri |
 | Canlı kontrol ve geri bildirim | RM için kullanışlı mı? | ekran incelemesi, ücretli canlı kontroller, RM işlem kaydı üzerinden F1 raporu |
