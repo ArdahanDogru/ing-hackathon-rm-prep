@@ -362,8 +362,13 @@ def _check_phrases(sections, f: Facts, config: NarratorConfig) -> list[str]:
     names and the short forms with the issuer."""
     phrases = list(dict.fromkeys(p for ps in config.forbidden_phrases.values() for p in ps))
     named = f.named_options().values()
+    # found and fixed (eval 20261017-160939): also the issuer with its issuer word
+    # ("garanti portföy"), as in "Garanti Portföy GZP"; "garanti" alone is still checked
+    issuers = {_norm(short_name(o.label)[0]) for o in named}
+    issuers = {i for i in issuers if any(i.endswith(" " + _norm(w)) for w in ISSUER_WORDS)}
     labels = sorted({*_named_labels(f), *(_norm(o.name) for o in named if o.name),
-                     *(x for o in named for x in name_forms(o.label))}, key=len, reverse=True)
+                     *(x for o in named for x in name_forms(o.label)), *issuers},
+                    key=len, reverse=True)
     out = []
     for sec in sections:
         for s in sec.sentences:

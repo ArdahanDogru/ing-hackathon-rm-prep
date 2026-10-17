@@ -245,6 +245,25 @@ def test_a_garanti_fund_label_in_any_case_passes(name, config):
     assert _check(ok, f, r, config) == ()
 
 
+@pytest.mark.parametrize("text", ["Garanti Portföy AAL likiditesi yüksek bir fondur.",
+                                  "Garanti Portföy fonu likiditesi yüksektir."])
+def test_the_issuer_with_its_code_passes(text, config):
+    """Eval 20261017-160939 (found and fixed): "Garanti Portföy GZP" (the issuer and
+    the code, the N16 short form) was read as the phrase "garanti"."""
+    r, f = _garanti()
+    sections = list(template_sections(f, "TR", config.disclaimer["TR"]))
+    ok = _with(sections, "oneriler", NarrativeSentence(text, ("fund:AAL",)))
+    assert _check(ok, f, r, config) == ()
+
+
+def test_a_real_garanti_next_to_the_issuer_still_fails(config):
+    r, f = _garanti()
+    sections = list(template_sections(f, "TR", config.disclaimer["TR"]))
+    bad = _with(sections, "oneriler", NarrativeSentence("Garanti Portföy AAL getiriyi garanti eder.",
+                                                        ("fund:AAL",)))
+    assert _codes(_check(bad, f, r, config)) == {"phrase"}
+
+
 def test_a_real_garanti_next_to_the_label_still_fails(config):
     r, f = _garanti()
     sections = list(template_sections(f, "TR", config.disclaimer["TR"]))
