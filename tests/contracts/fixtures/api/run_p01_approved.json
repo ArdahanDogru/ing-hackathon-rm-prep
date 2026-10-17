@@ -25734,7 +25734,6 @@
    }
   ],
   "to_confirm": [
-   "Yatırım tutarını sorun: 100.000-249.999 TL dilimi varsayıldı.",
    "Mevcut portföy dağılımını sorun."
   ],
   "recommended": [
@@ -36369,11 +36368,6 @@
   }
  ],
  "to_confirm": [
-  {
-   "text": "Yatırım tutarını sorun: 100.000-249.999 TL dilimi varsayıldı.",
-   "question_id": null,
-   "choices": []
-  },
   {
    "text": "Mevcut portföy dağılımını sorun.",
    "question_id": null,

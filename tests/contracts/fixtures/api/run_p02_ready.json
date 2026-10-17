@@ -34127,9 +34127,7 @@
     ]
    }
   ],
-  "to_confirm": [
-   "Yatırım tutarını sorun: 100.000-249.999 TL dilimi varsayıldı."
-  ],
+  "to_confirm": [],
   "recommended": [
    "fund:BVF",
    "fund:NJR",
@@ -54709,11 +54707,6 @@
   }
  ],
  "to_confirm": [
-  {
-   "text": "Yatırım tutarını sorun: 100.000-249.999 TL dilimi varsayıldı.",
-   "question_id": null,
-   "choices": []
-  },
   {
    "text": "Döviz fonları için uygulanacak düzeyi müşteriyle netleştirin.",
    "question_id": "q:doviz_maruz_kalma_tercihi",
