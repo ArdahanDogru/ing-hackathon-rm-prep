@@ -1,22 +1,19 @@
 # RM Görüşme Hazırlığı: kanıta dayalı yatırım karar desteği
 
-Agent 007 grubu olarak sunduğumuz bu ürün, Private Banking'deki RMler (Relationship Manager) için tasarlanmış bir yatırım karar destek çözümüdür. 
+Agent 007 grubu olarak sunduğumuz bu ürün, Private Banking'deki RM'ler (Relationship Manager) için tasarlanmış bir yatırım karar destek çözümüdür. 
 
 Ürünümüz, data science ve agentic mühendislik yardımıyla RM'lerin müşteri görüşmesi hazırlığına yardım eder. 
 
-Sistemimizde TEFAS, Borsa İstanbul, TCMB gibi kayaklardan topladığımız ve işlediğimiz toplam 1.444 yatırım seçeneği var. Bu yatırım seçenekleri öncelikle müşterinin profiline ve kısıtlarına göre incelenir, uygunsuz opsiyonlar elenir ve geriye kalan uygun ürünler müşteriye özel puanlama sistemimizle sıralanır. Bu sıralama sonucunda puanlama motorumuz RM'in önüne en yüksek puanlı  3 ürünü öneri olarak sunar. RM, isterse bu önerilerin üzerine tıklayarak detaylarını inceleyebilir, motorun hangi kategorilere göre, neden bu yatırım seçeneğini önerdiğini görebilir. RM, bu üç opsiyon hakkında tereddüt ederse ya da yüksek puanlı opsiyonlar hakkında daha detaylı bir karşılaştırma yapmak isterse *Ajan Araştırması* bölümünü kullanabilir. Ajan araştırması, puanlama motorunun sıraladığı en üst seçenekler hakkında detaylı bir şirket ve ürün araştırması yapar, bununla birlikte müşterinin portföy bilgisi, istek ve kısıtlarını göz önünde bulundurarak motorun yaptığı tercihleri değiştirebilir, RM'e yeni bir ürün sıralaması önerebilir. 
+Sistemimizde TEFAS, Borsa İstanbul, TCMB gibi kaynaklardan topladığımız ve işlediğimiz toplam 1.444 yatırım seçeneği var. Bu yatırım seçenekleri öncelikle müşterinin profiline ve kısıtlarına göre incelenir, uygunsuz opsiyonlar elenir ve geriye kalan uygun ürünler müşteriye özel puanlama sistemimizle sıralanır. Bu sıralama sonucunda puanlama motorumuz RM'in önüne en yüksek puanlı 3 ürünü öneri olarak sunar. RM, isterse bu önerilerin üzerine tıklayarak detaylarını inceleyebilir, motorun hangi kategorilere göre, neden bu yatırım seçeneğini önerdiğini görebilir. RM, bu üç opsiyon hakkında tereddüt ederse ya da yüksek puanlı opsiyonlar hakkında daha detaylı bir karşılaştırma yapmak isterse *Ajan Araştırması* bölümünü kullanabilir. Ajan araştırması, puanlama motorunun sıraladığı en üst seçenekler hakkında detaylı bir şirket ve ürün araştırması yapar, bununla birlikte müşterinin portföy bilgisi, istek ve kısıtlarını göz önünde bulundurarak motorun yaptığı tercihleri değiştirebilir, RM'e yeni bir ürün sıralaması önerebilir. 
 
 RM; bu süreç boyunca müşteri profilini düzenleyebilir; müşterinin portföy detaylarını değiştirebilir, yatırım seçenekleri hakkında detaylı web araştırması yaptırabilir. Web araştırması sonucunda çıkan bulguları onaylayabilir veya reddedebilir. Reddedilen bilgiler ajana girdi olarak verilmez, onaylanan bilgiler ajana daha güçlü bir şekilde önerilir. 
 
 RM hazırlık sayfasındaki önerilerden ve haberlerden, değiştirdiği bilgilerden memnun olduğu takdirde müşteri görüşme metnini hazırlatabilir. Metin; sayfada yer alan bilgiler ve RM'in verdiği kararlara göre hazırlanır. Bu süreçte ekrandaki her sayının kaynağı, tarihi ve kanıt kimliği vardır. Araç yatırım tavsiyesi vermez; kararı ve müşteri iletişimini RM yapar.
 
 ![P02 panosu: profil, AI ile bulunan teyit soruları, piyasa notu ve onay çubuğu](docs/img/readme/dashboard.png)
-*P02 (ihracatçı, Dengeli) panosu, 17.10.2026 verisi. Üstte profil ve AI
-kontrolünün alıntılı "Sorulacak" bulguları var. Ortada kodun yazdığı piyasa
-notu duruyor; her değer "K" ile kanıtına bağlı. En altta RM'in onay çubuğu
-var.*
+*Yukarıda P02 (ihracatçı şirket sahibi, Dengeli profil) müşterisinin hazırlık sayfasını görüyorsunuz; veriler 17.10.2026 tarihli. Sayfanın üstünde müşteri profili ve yapay zekânın profilde bulduğu, RM'in müşteriye sorması gereken noktalar yer alır. Ortada kodun yazdığı piyasa notu vardır ve her değerin yanındaki "K" işareti o değerin kanıtını açar. En altta ise RM'in önerileri onayladığı çubuk durur.*
 
-Hızlı başlangıç (Windows, Python 3.11+, Node yalnızca web derlemesi için):
+Sistemi kendi bilgisayarınızda çalıştırmak için (Windows, Python 3.11+, Node yalnızca web derlemesi için):
 
 ```powershell
 python -m venv .venv; .venv\Scripts\Activate.ps1
@@ -29,27 +26,26 @@ python -m rmprep eval --no-llm   # değerlendirme paketi, ücretsiz geçiş
 python -m rmprep feedback        # RM işlem kaydından geri bildirim raporu
 ```
 
-`.env` dosyasında `EVDS_API_KEY` (TCMB EVDS), `ANTHROPIC_API_KEY` (görüşme
-metni, ajan, profil kontrolü) ve `EXA_API_KEY` (web araştırması) gerekir. Bir
-anahtar yoksa ona bağlı parça kapanır, karar motoru yine çalışır.
+Bunun için `.env` dosyasında üç anahtar gerekir: TCMB verisi için `EVDS_API_KEY`, görüşme metni, ajan ve profil kontrolü için `ANTHROPIC_API_KEY`, web araştırması için `EXA_API_KEY`. Anahtarlardan biri eksikse yalnızca ona bağlı parça kapanır; puanlama motorumuz yine çalışır.
 
-| Brief teslimatı | Bu belgede | Ayrıntı |
+Bu README sekiz bölümden oluşur. Aşağıdaki tablo her bölümün yarışma brief'inin 8. maddesindeki hangi teslimata karşılık geldiğini ve ayrıntının hangi belgede olduğunu gösterir. Çalışan demo (teslimat 1) yukarıdaki komutlarla açılır.
+
+| README bölümü | Brief'teki teslimat | Ayrıntılı belge |
 |---|---|---|
-| 1 · Çalışan demo | Hızlı başlangıç, bölüm 4-6 | `python -m rmprep serve` |
-| 2 · Problem tanımı | bölüm 1 | [`docs/teslim/01-problem-tanimi.md`](docs/teslim/01-problem-tanimi.md) |
-| 3 · Analitik çözüm | bölüm 2-3, 6 | [`docs/decision.md`](docs/decision.md), [`config/decision.yaml`](config/decision.yaml) |
-| 4 · Çözüm tasarımı | bölüm 4-6 | [`docs/agent.md`](docs/agent.md), [`docs/narrator.md`](docs/narrator.md), [`docs/web-ui.md`](docs/web-ui.md) |
-| 5 · Test ve öğrenimler | bölüm 7 | [`docs/eval.md`](docs/eval.md), [`docs/found-and-fixed.md`](docs/found-and-fixed.md) |
-| 6 · Kanıt kaydı örneği | bölüm 8 | [`docs/teslim/06-kanit-kaydi-ornegi.md`](docs/teslim/06-kanit-kaydi-ornegi.md) |
+| 1 · Problem tanımı ve çözüm yaklaşımı | 2 · Problem tanımı | [`docs/teslim/01-problem-tanimi.md`](docs/teslim/01-problem-tanimi.md) |
+| 2 · Veri kaynakları ve temel sinyaller | 3 · Analitik çözüm | [`docs/ingest.md`](docs/ingest.md), [`docs/research.md`](docs/research.md) |
+| 3 · Karşılaştırma, sıralama ve karar mantığı | 3 · Analitik çözüm | [`docs/decision.md`](docs/decision.md), [`config/decision.yaml`](config/decision.yaml) |
+| 4 · Çözüm mimarisi ve veri akışı | 4 · Çözüm tasarımı | [`docs/ingest.md`](docs/ingest.md), [`docs/web-ui.md`](docs/web-ui.md) |
+| 5 · AI/Agentic bileşenler | 4 · Çözüm tasarımı | [`docs/agent.md`](docs/agent.md), [`docs/narrator.md`](docs/narrator.md), [`docs/research.md`](docs/research.md) |
+| 6 · Varsayımlar, belirsizlikler ve insan onay noktaları | 3 · Analitik çözüm, 4 · Çözüm tasarımı | [`docs/kararlilik-veri-guveni.md`](docs/kararlilik-veri-guveni.md), [`docs/web-ui.md`](docs/web-ui.md) |
+| 7 · Test, sonuçlar, hata analizi ve iyileştirmeler | 5 · Test ve öğrenimler | [`docs/eval.md`](docs/eval.md), [`docs/found-and-fixed.md`](docs/found-and-fixed.md) |
+| 8 · İzlenebilirlik | 6 · Kanıt kaydı örneği | [`docs/teslim/06-kanit-kaydi-ornegi.md`](docs/teslim/06-kanit-kaydi-ornegi.md) |
 
 ## 1. Problem tanımı ve çözüm yaklaşımı
 
-RM her görüşmeden önce yüzlerce ürünü dağınık kaynaklardan elle karşılaştırıyor.
-Bu iş yavaş ilerliyor ve metin müşteriye yeterince uyarlanmıyor. Açık bir
-kısıt gözden kaçabiliyor. Önerinin hangi veriye, varsayıma ve gerekçeye
-dayandığı da sonradan gösterilemiyor.
+Bir RM, her müşteri görüşmesinden önce yüzlerce yatırım ürününü farklı kaynaklardan toplayıp elle karşılaştırmak zorunda kalıyor. Faiz oranları TCMB'de, fon getirileri TEFAS'ta, mevduat oranları bankaların sayfalarında duruyor ve RM bunları kendisi bir araya getiriyor. Bu iş uzun sürdüğü için görüşme metni çoğu zaman müşteriye yeterince uyarlanamıyor, müşterinin açık bir kısıtı gözden kaçabiliyor ve önerinin hangi veriye, varsayıma ve gerekçeye dayandığı sonradan gösterilemiyor.
 
-Verimizden üç örnek (anlık görüntü `20261017-110343-d12a`, 17.10.2026):
+Problemin büyüklüğünü kendi verimizle ölçtük (anlık görüntü `20261017-110343-d12a`, 17.10.2026):
 
 | Gözlem | Sayı |
 |---|---|
@@ -57,9 +53,7 @@ Verimizden üç örnek (anlık görüntü `20261017-110343-d12a`, 17.10.2026):
 | ING Turuncu Hesap %23 faiz, stopaj ve yıllık TÜFE (%29,73) sonrası | reel −%8,3 |
 | P01'in risk sınırı içindeki 37 para piyasası fonu, son 1 yıl reel | medyan +%6,6, en iyisi +%9,6 |
 
-Nominal faiz tek başına yanıltır: müşteri mevduatta değer kaybettiğini
-görmeyebilir. Kalan 143 seçeneği elle reel getiriye, vergiye ve risk uyumuna
-göre sıralamak bir görüşme hazırlığının süresine sığmaz.
+Tablonun ikinci ve üçüncü satırı bize şunu gösterdi: %23 faiz kâğıt üzerinde iyi görünse de stopaj ve enflasyondan sonra müşteri mevduatta değer kaybediyor, aynı risk seviyesindeki para piyasası fonları ise enflasyonun üstünde kalıyor. RM'in bunu görebilmesi için 143 seçeneği reel getiriye, vergiye ve risk uyumuna göre sıralaması gerekir ve bu iş bir görüşme hazırlığının süresine sığmaz.
 
 ### Beklenen iş etkisi
 
@@ -71,11 +65,9 @@ göre sıralamak bir görüşme hazırlığının süresine sığmaz.
 | Uyarlama | genel metin | 5 personada 5 farklı öneri seti; gerekçe müşterinin önceliklerine bağlı |
 | İzlenebilirlik | dağınık | her sayı kaynak, değer tarihi, alınma zamanı ve kanıt kimliğiyle |
 
-### Yaklaşım
+### Yaklaşımımız
 
-Ürünleri kod eler ve sıralar. Ajan ve dil modeli (LLM) yalnızca bu kodun
-çizdiği sınırlar içinde öneri yapar ve metin yazar. Yazdıklarını yeniden kod
-denetler. Son kararı RM verir.
+Çözümümüzde işleri dört katmana ayırdık. Ürünleri eleyen ve sıralayan kısım koddur; aynı girdiyle her seferinde aynı sonucu verir ve her adımı açıklanabilir. Ajan ve dil modeli (LLM) yalnızca bu kodun çizdiği sınırlar içinde çalışır: ajan motorun önerilerini araştırıp yeni bir sıralama önerebilir, dil modeli de görüşme metnini yazar. Ajanın ve dil modelinin yazdığı her şeyi yeniden kod denetler. Son karar ise her zaman RM'indir.
 
 ```mermaid
 flowchart LR
@@ -91,11 +83,11 @@ flowchart LR
     class E,G human
 ```
 
-Araç yalnızca görüşmeden önceki hazırlığı kapsar. Getiri tahmini, otomatik
-işlem, müşteriyle doğrudan iletişim ve müşteriye açık bir sohbet botu kapsam
-dışıdır.
+Ürünümüz yalnızca görüşmeden önceki hazırlığı kapsar. Getiri tahmini, otomatik alım satım, müşteriyle doğrudan iletişim ve müşteriye açık bir sohbet botu kapsamımızın dışındadır.
 
 ## 2. Kullanılan veri kaynakları ve temel sinyaller
+
+Sistemimiz her sabah 07:30'da (ya da RM "Veriyi yenile" dediğinde) aşağıdaki kaynaklardan güncel veriyi çeker. Her kaynağın kullanım koşullarını ve robots.txt dosyasını kontrol ettik; bir kaynak bot engeli koyduysa o engeli aşmaya çalışmayız, bir önceki günün verisiyle devam ederiz.
 
 | Kaynak | Ne verir | Nasıl okunur |
 |---|---|---|
@@ -108,29 +100,17 @@ dışıdır.
 | Fon yöneticisi belgeleri | izahname ve yatırımcı bilgi formu bağlantıları | RM fon kartını açınca, yöneticinin kendi sitesinden; yalnızca bağlantı |
 | Web araştırması (Exa) | önerilen ürünler ve şirketleri için son 90 günün haberleri ve öne çıkanlar | yalnızca ürün ve şirket adı gider; etiket "web kaynağı, doğrulanmamış" |
 
-### KAP neden yok?
+### KAP'ı neden kullanmıyoruz?
 
-kap.org.tr botları engeller. Ayna siteler kendi kullanım koşullarında otomatik
-okumayı yasaklar ve KAP verisinin yeniden dağıtımı lisans ister (brief kuralı
-8). Bu yüzden fon belgeleri için yöneticinin kendi sayfasına bağlantı veririz,
-şirket haberlerini de web araştırmasından alırız. Araştırma kap.org.tr'yi de
-dışarıda tutar.
+Brief KAP'ı önerilen kaynaklar arasında sayıyor, ancak kap.org.tr botları engelliyor. KAP verisini yayınlayan ayna siteler de kendi kullanım koşullarında otomatik okumayı yasaklıyor ve KAP verisini yeniden dağıtmak lisans gerektiriyor (brief kuralı 8). Bu yüzden fon belgeleri için fon yöneticisinin kendi sitesindeki izahnameye ve yatırımcı bilgi formuna bağlantı veriyoruz, şirket haberlerini ise web araştırmasıyla topluyoruz. Web araştırması da kap.org.tr'yi dışarıda tutar.
 
-Evren 815 TEFAS fonu, 37 BYF, 590 pay ve 2 ING mevduatından oluşur; Turuncu
-Hesap karşılaştırma tabanıdır. "Serbest" fonlar (yalnızca nitelikli
-yatırımcıya açık), W ve S pazarlarındaki paylar, varant ve sertifikalar evrene
-girmez. Diğer bankaların mevduat oranları (İş Bankası, Ziraat) okunur, ama
-puana girmez ve ekranda gösterilmez.
+Sonuçta yatırım evrenimiz 815 TEFAS fonu, 37 BYF, 590 pay ve 2 ING mevduatından oluşur. ING Turuncu Hesap sıralamaya girmez; önerileri karşılaştırdığımız taban olarak durur. Yalnızca nitelikli yatırımcıya açık "Serbest" fonları, Borsa İstanbul'un W ve S pazarlarındaki payları, varant ve sertifikaları evrene almadık. İş Bankası ve Ziraat'in mevduat oranlarını da okuyoruz, ama bu oranlar puana girmez ve ekranda gösterilmez.
 
 ### Ürün ve müşteri sinyalleri
 
-Ürün tarafında motor şunlara bakar: stopaj ve TÜFE sonrası reel getiri; SPK
-risk değeri (paylarda oynaklık bandı, değer yoksa varlık sınıfından tahmin);
-satış valörü, yani paraya ne kadar sürede erişildiği; fon büyüklüğü ve
-yatırımcı sayısı (paylarda işlem hacmi); alım durumu; giriş ve çıkış ücreti;
-çok varlıklı fonlarda gerçek portföy dağılımı; piyasa mevduat ortalaması.
+Puanlama motorumuz bir ürünü değerlendirirken stopaj ve enflasyon sonrası reel getirisine, SPK risk değerine, satış valörüne (yani müşterinin parasına kaç günde ulaşacağına), fon büyüklüğüne ve yatırımcı sayısına, alım durumuna, giriş ve çıkış ücretine bakar. Çok varlıklı fonlarda fonun adına değil gerçek portföy dağılımına bakarak hangi varlık sınıfına girdiğini belirler. Paylarda SPK risk değeri olmadığı için riski oynaklıktan, büyüklüğü de işlem hacminden hesaplar. Bir ürünün risk değeri hiç yoksa aynı sınıftaki ürünlerden tahmin eder.
 
-Müşteri tarafında persona dosyasının alanları şöyle kullanılır:
+Müşteri tarafında ise persona dosyasındaki her alanın kararda bir karşılığı vardır:
 
 | Alan | Kararda nasıl kullanılır |
 |---|---|
@@ -143,31 +123,17 @@ Müşteri tarafında persona dosyasının alanları şöyle kullanılır:
 | Durum, amaç, RM notu | mevcut portföy dağılımının tahmini (D27) ve metindeki uyarlama |
 | Yaş | puana girmez; metinde ve profil tutarlılık kontrolünde kullanılır |
 
-Brief'in 6.1'de saydığı müşteri ve ürün özelliklerinin her biri bir ölçüte,
-bir cezaya veya bir katı kurala karşılık gelir. Getiriyi reel ve stopaj
-sonrası ölçeriz, çünkü %30 enflasyonda nominal getiri yanlış bir sıra verir.
+Brief'in 6.1 maddesinde sayılan müşteri ve ürün özelliklerinin her birini bir ölçüte, bir cezaya veya bir katı kurala bağladık. Getiriyi bilerek reel ve stopaj sonrası ölçüyoruz, çünkü %30 civarındaki enflasyonda nominal getiriye göre yapılan bir sıralama müşteriyi yanıltır.
 
-Yaşı puana katmadık. Uygunluğu risk profili zaten belirliyor; yaşı ayrıca
-puanlamak aynı bilgiyi iki kez saymak olur. Tek başına bir yaş-risk kuralının
-kamuya açık bir dayanağını da bulamadık. Yaş metinde kullanılır, profil
-kontrolü de yaşla çelişen bir notu (ör. `yas` 62, notta "45 yaşında") RM'e
-gösterir.
+Yaşı ise puana katmadık. Müşterinin hangi ürünlere uygun olduğunu risk profili zaten belirliyor; yaşı ayrıca puanlamak aynı bilgiyi iki kez saymak olurdu ve tek başına bir yaş-risk kuralının kamuya açık bir dayanağını bulamadık. Yaş, görüşme metninde ve profil kontrolünde kullanılır: örneğin dosyada `yas` 62 yazarken RM notunda "45 yaşında" geçiyorsa sistem bu çelişkiyi RM'e gösterir.
 
 ## 3. Karşılaştırma / sıralama veya karar mantığı
 
-Karar katmanı deterministik bir kural ve puanlama motorudur
-([`docs/decision.md`](docs/decision.md); tüm tablolar
-[`config/decision.yaml`](config/decision.yaml) içinde). Aynı girdi her zaman
-aynı sonucu ve aynı `run_id`'yi verir.
+Karar katmanımız deterministik bir kural ve puanlama motorudur. Aynı müşteri ve aynı veriyle her çalıştırıldığında aynı sonucu ve aynı `run_id`'yi verir. Motorun tüm tabloları ve ağırlıkları [`config/decision.yaml`](config/decision.yaml) dosyasında, tasarım kararları da [`docs/decision.md`](docs/decision.md) belgesinde durur.
 
 ### Neden kural ve şeffaf puan?
 
-Elimizde etiketli geçmiş öneri verisi yok, bu yüzden denetimli bir model
-eğitemeyiz. Kural 5'i (uygun olmayan ürün listeye girmez) de her seferinde
-kesin uygulamamız gerekir; olasılıkla çalışan bir model bunu garanti edemez.
-Puanın her parçası RM'e ve jüriye gösterilebilir ve yeniden üretilebilir. Dil
-modelini başka işlerde kullanırız: metin yazmak, araştırmayı özetlemek ve
-adayları nitel olarak karşılaştırmak (bölüm 5).
+Bu yaklaşımı üç nedenle seçtik. Birincisi, elimizde hangi müşteriye hangi ürünün önerildiğini gösteren etiketli bir geçmiş veri yok, dolayısıyla denetimli bir model eğitemeyiz. İkincisi, brief'in 5. kuralı (müşteriye uygun olmayan ürün öneri listesine girmez) her seferinde kesin olarak uygulanmalı ve olasılıkla çalışan bir model bunu garanti edemez. Üçüncüsü, kural ve puan yaklaşımında puanın her parçasını RM'e ve jüriye gösterebiliyor, aynı sonucu istediğimiz zaman yeniden üretebiliyoruz. Dil modelini ise metin yazmak, araştırmayı özetlemek ve adayları nitel olarak karşılaştırmak gibi kendi güçlü olduğu işlerde kullanıyoruz (bölüm 5).
 
 ```mermaid
 flowchart TB
@@ -183,21 +149,13 @@ flowchart TB
     R4 -.-> X
 ```
 
-Ekranda aynı huni "Bu öneriler nasıl seçildi?" bloğunda görünür. Blok
-müşterinin kriter ağırlıklarını, her kuralın kaç ürünü elediğini ve istikrar
-testinin sonucunu gösterir.
+Motor önce dört katı kuralı sırayla uygular: alıma kapalı fonları, müşterinin risk tavanını aşan ürünleri, müşterinin açık kısıtlarına uymayan ürünleri ve yeterli getiri geçmişi olmayan ürünleri eler. Elenen her ürün, hangi kurala takıldığı ve bu kararın dayandığı kanıtla birlikte *Elenenler* listesine yazılır. Kalan ürünler puanlanır. RM bu huniyi hazırlık sayfasındaki *Bu öneriler nasıl seçildi?* bölümünde görür: müşterinin kriter ağırlıkları, her kuralın kaç ürünü elediği ve önerilerin ne kadar kararlı olduğu burada yazar.
 
 ![Bu öneriler nasıl seçildi: profil ve ağırlıklar, 1.444 seçenek, 1.138 elendi, 306 aday, 3 öneri](docs/img/readme/pipeline.png)
 
-Risk değeri bilinmeyen bir ürün elenmez. Motor değeri aynı sınıftaki bilinen
-risklerin üst çeyreğiyle tahmin eder, ürünün güvenini düşürür ve RM'e uyarı
-verir.
+### Puan nasıl hesaplanır?
 
-### Puan
-
-Her ölçüt 0 ile 1 arasında bir değer alır. Motor değeri ağırlıkla çarpar,
-çarpımları toplar ve cezaları çıkarır. Ağırlıklar müşterinin profilinden gelir
-ve toplamları 1'dir.
+Kurallardan geçen her ürün sekiz ölçütün her birinden 0 ile 1 arasında bir değer alır. Motor bu değerleri müşterinin ağırlıklarıyla çarpıp toplar, sonra ürünün zayıf yönleri için cezaları çıkarır. Ağırlıkları müşterinin profili belirler ve toplamları her zaman 1'dir; örneğin likidite ihtiyacı yüksek bir müşteride likidite ölçütünün ağırlığı büyür.
 
 | Ölçüt | Ne ölçer | Ham ağırlık |
 |---|---|---|
@@ -210,31 +168,17 @@ ve toplamları 1'dir.
 | Kalite | fon büyüklüğü ve yatırımcı sayısı (pay: işlem hacmi) | 0,5 |
 | Portföy açığı | müşterinin mevcut dağılımının model banttan uzaklığı (D27) | 1 × kaynak katsayısı; yalnızca RM'in girdiği, RM'in onayladığı veya müşteri dosyasından gelen dağılımla |
 
-Cezaların üst sınırı anapara riski, yavaş erişim, döviz maruziyeti, bilinmeyen
-risk, reel kayıp ve piyasa altı getiri için 0,3; geçmiş eksikliği için 0,2;
-küçük fon için 0,1'dir. Ceza = üst sınır × müşterinin önem derecesi × ürünün
-ihlal derecesi.
+Cezalar ürünün müşteriye uymayan yanlarını puandan düşer. Anapara riski, yavaş erişim, döviz maruziyeti, bilinmeyen risk, reel kayıp ve piyasa altı getiri için ceza en çok 0,3, eksik getiri geçmişi için 0,2, küçük fon için 0,1 olabilir. Bir cezanın büyüklüğü üç şeyin çarpımıdır: cezanın üst sınırı, o konunun müşteri için ne kadar önemli olduğu ve ürünün o konuda ne kadar zayıf kaldığı.
 
-### Neden bu ağırlıklar?
+### Bu ağırlıkları neden seçtik?
 
-MiFID II ve SPK yerindelik kuralları sayısal bir ağırlık vermez. Ağırlıkları
-bu yüzden biz seçtik ve açıkça gösteriyoruz **[VARSAYIM]**. Bu seçimin etkisini
-iki yolla ölçüyoruz. İstikrar testi her ağırlığı ±%20 değiştirip sıralamayı
-yeniden hesaplar (bölüm 6). Değerlendirme paketi de persona değişikliklerinin
-sonucu beklenen yönde değiştirip değiştirmediğine bakar (bölüm 7).
+MiFID II ve SPK'nın yerindelik kuralları hangi kritere ne kadar ağırlık verileceğini sayıyla söylemez. Bu yüzden ağırlıkları kendimiz seçtik ve ekranda açıkça gösteriyoruz **[VARSAYIM]**. Seçimimizin sonucu ne kadar etkilediğini de iki yolla ölçüyoruz: istikrar testimiz her ağırlığı %20 artırıp azaltarak sıralamayı yeniden hesaplar (bölüm 6), değerlendirme paketimiz de persona değiştiğinde sonucun beklenen yönde değişip değişmediğine bakar (bölüm 7).
 
-### Önerilen ilk 3 (D19)
+### İlk 3 öneri nasıl seçilir? (D19)
 
-Muhafazakâr ve Temkinli müşteride ilk 3, puan sırasının ilk üçüdür. Dengeli ve
-Agresif müşteride, ayrıca çeşitlendirme isteyen her müşteride, motor listeyi
-puan sırasıyla dolaşır ve her varlık sınıfından en çok bir seçenek alır. Nakit
-benzeri ve pay için de sınır birdir. Son bir yılda reel getirisi negatif olan
-seçeneği almaz. Çok varlıklı bir fonun sınıfını fonun gerçek portföy dağılımı
-belirler: payı %50 veya üstü olan sınıf; böyle bir sınıf yoksa "dengeli".
+Muhafazakâr ve Temkinli müşterilerde ilk 3 öneri doğrudan puan sırasının ilk üç ürünüdür. Dengeli ve Agresif müşterilerde ya da çeşitlendirme isteyen her müşteride ise motor listeyi puan sırasıyla dolaşır ve her varlık sınıfından en çok bir ürün alır; böylece üç öneri aynı türden fonlar olmaz. Nakit benzeri ürünler ve paylar için de sınır birdir ve son bir yılda enflasyonun altında kalmış bir ürün bu yöntemle seçilmez. Çok varlıklı bir fonun sınıfını fonun gerçek portföy dağılımı belirler: portföyün %50 veya fazlasını oluşturan sınıf; böyle bir sınıf yoksa fon "dengeli" sayılır.
 
-Örnek P02 (Dengeli, 1-3 yıl, "erişilebilir likidite" önceliği; 17.10.2026):
-ağırlıklar getiri 0,339 · risk uyumu 0,203 · likidite 0,203 · gelir 0,102 ·
-anapara 0,102 · kalite 0,051.
+Örneğin P02, döviz geliri olan ve 1-3 yıllık ufku bulunan Dengeli profilli bir ihracatçı; önceliklerinden biri erişilebilir likidite. Motorumuz bu müşteri için ağırlıkları getiri 0,339, risk uyumu 0,203, likidite 0,203, gelir 0,102, anapara 0,102 ve kalite 0,051 olarak hesapladı (17.10.2026):
 
 | Seçenek | Sınıf | Reel getiri (1 yıl) | Puan | Neden |
 |---|---|---|---|---|
@@ -244,15 +188,13 @@ anapara 0,102 · kalite 0,051.
 | ING e-Vadeli Mevduat | nakit benzeri | +%2,1 | 0,434 | sıralanır, ama nakit benzeri yeri EIL'de |
 | ING Turuncu Hesap (karşılaştırma) | nakit benzeri | −%8,3 | 0,185 | reel kayıp ve piyasa altı cezaları |
 
-Fon kartı ("Neden bu öneri?") her puan parçasını gerekçesiyle gösterir. Fonun
-geçtiği katı kurallar kanıt kimlikleriyle, en yakın alternatif de aradaki
-farkla birlikte listelenir. Ekranda puanlar 100 ile çarpılmış olarak görünür:
+RPP adlı para piyasası fonu 0,775 puanla KDE'den yüksek puan aldı, ama nakit benzeri sınıfın tek yerini EIL doldurduğu için listeye girmedi. P02'nin "döviz maruziyetini gerekçesiz artırmama" kısıtı 15 döviz fonunu eledi; RM isterse bu kısıtı gerekçe yazarak kaldırabilir.
+
+RM bir önerinin üzerine tıkladığında fon kartı açılır. Kartın *Neden bu öneri?* bölümü puanın her parçasını gerekçesiyle, fonun geçtiği katı kuralları kanıt kimlikleriyle ve en yakın alternatifle arasındaki farkı gösterir. Ekranda puanlar 100 ile çarpılmış olarak yazar:
 
 <img src="docs/img/readme/fundcard.png" alt="EIL fon kartı: uygunluk, benzerleri arasında sıra, kategoriye göre getiri, belgeler, puan parçaları, geçtiği kurallar, en yakın alternatif" width="420">
 
-RPP (0,775) KDE'den yüksek puan alır, ama tek nakit benzeri yerini EIL
-doldurduğu için listeye girmez. P02'nin döviz kısıtı 15 döviz fonunu eler; RM
-bu kısıtı gerekçe yazarak kaldırabilir. Aynı gün beş personanın ilk 3'ü:
+Aynı gün beş personamız için motorun önerdiği ilk 3 şöyle oldu:
 
 | Persona | Kalan / evren | Motorun ilk 3'ü |
 |---|---|---|
@@ -262,15 +204,13 @@ bu kısıtı gerekçe yazarak kaldırabilir. Aynı gün beş personanın ilk 3'�
 | P04 Aile ofisi, Dengeli | 312 / 1.444 | OKT · RPP · TCF |
 | P05 Hekim, Temkinli | 180 / 1.444 | EIL · GBL · KSK |
 
-Dağılım görünümü risk profiline göre model bantları (Ata Yatırım, 28.04.2026),
-müşterinin mevcut dağılımını ve her sınıfın en iyi seçeneğini gösterir.
-P02'nin dosyasında mevcut dağılım yok. Bu yüzden ekrandaki değerler "tahmini
-senaryo"dur ve RM "Tahmini onayla" veya "Düzenle" diyene kadar sıralamayı
-etkilemez.
+Önerilerin yanında *Dağılım* görünümü de var. Bu görünüm müşterinin risk profiline göre her varlık sınıfı için model bir bandı (Ata Yatırım, 28.04.2026), müşterinin bugünkü dağılımını ve her sınıfın en iyi seçeneğini yan yana koyar. P02'nin dosyasında mevcut portföy dağılımı olmadığı için ekrandaki değerler "tahmini senaryo" olarak işaretlidir ve RM "Tahmini onayla" ya da "Düzenle" diyene kadar sıralamayı etkilemez.
 
 ![Dağılım görünümü: tahmini mevcut portföy, varlık sınıfı başına model bant ve sınıfın en iyi seçeneği](docs/img/readme/allocation.png)
 
 ## 4. Genel çözüm mimarisi ve veri akışı
+
+Aşağıdaki şema verinin kaynaktan RM'in ekranına kadar izlediği yolu gösterir. Veri önce değiştirilemeyen bir anlık görüntüye kaydedilir, kalite kontrollerinden geçer ve kanıt deposuna yazılır. Karar motoru bu depodan okur; web uygulaması, ajan, web araştırması ve görüşme metni de motorun sonucunu API üzerinden alır. RM'in yaptığı her işlem kayıtlara geçer ve değerlendirme paketimiz bu kayıtları tekrar okuyabilir.
 
 ```mermaid
 flowchart TB
@@ -320,6 +260,8 @@ flowchart TB
     REC -.-> EVAL
 ```
 
+Sistemi birbirinden bağımsız test edilebilen modüllere böldük:
+
 | Modül | Sorumluluk | Klasör |
 |---|---|---|
 | Ingest | kaynak adaptörleri, anlık görüntü, kalite kontrolleri, kanıt deposu, günlük görev ve kilit | `src/rmprep/ingest/`, `config/sources.yaml` |
@@ -331,18 +273,11 @@ flowchart TB
 | Web uygulaması | pano, öneriler, ajan kutusu, araştırma paneli, fon kartı, kanıt penceresi, görüşme metni, sunum görünümü | `web/` |
 | Değerlendirme | senaryolar, kural kontrolleri, LLM hakemi, ajan A/B, geri bildirim raporu | `src/rmprep/eval/`, `config/eval.yaml` |
 
-Sözleşmeler (veri tipleri) `src/rmprep/contracts.py` içindedir. Tasarım
-belgeleri: [`docs/ingest.md`](docs/ingest.md), [`docs/decision.md`](docs/decision.md),
-[`docs/agent.md`](docs/agent.md), [`docs/research.md`](docs/research.md),
-[`docs/narrator.md`](docs/narrator.md), [`docs/web-ui.md`](docs/web-ui.md),
-[`docs/eval.md`](docs/eval.md).
+Modüller arasındaki veri tipleri (sözleşmeler) `src/rmprep/contracts.py` dosyasındadır. Her modülün tasarım belgesi ayrı tutulur: [`docs/ingest.md`](docs/ingest.md), [`docs/decision.md`](docs/decision.md), [`docs/agent.md`](docs/agent.md), [`docs/research.md`](docs/research.md), [`docs/narrator.md`](docs/narrator.md), [`docs/web-ui.md`](docs/web-ui.md), [`docs/eval.md`](docs/eval.md).
 
 ## 5. AI/Agentic bileşenler ve görev/karar akışı
 
-LLM hiçbir ürünü elemez ve hiçbir katı kuralı aşamaz; eleme ve puan koddadır.
-LLM'i metin, araştırma ve nitel karşılaştırma için kullanırız. Her çıktısını
-kod denetler, denetimden geçmeyen bir çıktının yerine deterministik bir yedek
-gelir.
+Sistemimizde yapay zekâyı kullandığımız her yerde aynı ilkeye uyduk: dil modeli hiçbir ürünü elemez ve hiçbir katı kuralı aşamaz, çünkü eleme ve puan koddadır. Dil modelini metin yazmak, web araştırması yapmak ve adayları nitel olarak karşılaştırmak için kullanıyoruz. Modelin her çıktısını kod denetler ve denetimden geçmeyen bir çıktının yerine her zaman deterministik bir yedek gelir; bu yüzden model hata yapsa da RM boş bir ekranla karşılaşmaz.
 
 | Bileşen | Model | Görev | Güvence | Maliyet |
 |---|---|---|---|---|
@@ -355,39 +290,31 @@ gelir.
 
 ### Ajan nasıl çalışır?
 
-Ajan yalnızca RM "Ajanı çalıştır" deyince başlar. Girdisi tek bir JSON veri
-paketidir: müşteri, mevcut dağılım, adayların puan parçaları, olguları ve
-uyarıları, bir de araştırma bulguları. Sistem istemi modele araştırma
-bulgularının talimat değil veri olduğunu söyler. Ajanın üç aracı vardır:
+Ajan kendiliğinden başlamaz; RM hazırlık sayfasındaki *Ajan değerlendirmesi* kutusunda aday sayısını seçip "Ajanı çalıştır" dediğinde çalışır. Ajana tek bir veri paketi veririz: müşterinin profili ve mevcut dağılımı, motorun en iyi adaylarının puan parçaları, olguları ve uyarıları, bir de bu adaylar hakkındaki web araştırması bulguları. Sistem isteminde araştırma bulgularının talimat değil veri olduğunu açıkça belirtiriz; böylece bir web sayfasındaki yazının ajana talimat gibi etki etme riskini azaltırız. Ajanın kullanabileceği üç araç vardır:
 
 - `karsilastir(a, b, amac)`: iki adayı kodla karşılaştırır (en çok 4 kez).
 - `arastir(option_id, soru, amac)`: bir aday için tek bir web sorusu sorar (en çok 2 kez).
 - `karar_ver(secimler, cikanlar, ozet)`: kararı önerir.
 
-Kod ajanın kararında şunlara bakar:
+Ajan kararını verdiğinde kodumuz bu kararı şu sorularla denetler:
 
 - 3 farklı aday seçilmiş mi; en çok 1 pay var mı; varlık sınıfı kuralı tutuyor mu?
 - Her gerekçe bir kanıta (E…), bir bulguya (F…), bir puan parçasına veya bir portföy satırına atıf yapıyor mu?
 - Her sayı ve tarih atıf yapılan veride var mı; yasak ifade var mı?
 - Motorun listesinden çıkarılan her seçenek için bir gerekçe yazılmış mı?
 
-Denetim başarısız olursa ajan sorunların listesini alır ve kararını bir kez
-düzeltir. İkinci bir hata, 90 saniyelik süre aşımı veya günlük sınır motorun
-ilk 3'ünü geri getirir. RM ajanın beş adımını (Adaylar, Ajan araştırması, Ajan
-analizi, Kontrol, Karar) süre, maliyet ve notlarıyla görür. Modelin ham
-düşüncesi saklanmaz ve gösterilmez.
+Denetimden geçmeyen bir kararda ajan bulunan sorunların listesini alır ve kararını bir kez düzeltir. İkinci kez hata yaparsa, 90 saniyeyi aşarsa veya günlük bütçe dolarsa RM'in önüne motorun kendi ilk 3'ü gelir. RM ajanın beş adımını (Adaylar, Ajan araştırması, Ajan analizi, Kontrol, Karar) süresi, maliyeti ve notlarıyla izleyebilir; modelin ham düşüncesini ise saklamayız ve göstermeyiz.
 
 ![Ajanın beş adımı: Adaylar, Ajan araştırması, Ajan analizi, Kontrol, Karar; süre ve maliyetle](docs/img/readme/agent.png)
 
 ![Ajan önerisi (P01): seçilen 3 fon atıflı gerekçeleriyle, çıkarılan AIS ve nedeni, motor sıralamasına bağlantı](docs/img/readme/agent-picks.png)
-*P01 için ajan motorun önerdiği AIS'i çıkarıp yerine ZBJ'yi aldı. Her gerekçe
-bir puan parçasına veya kanıt kimliğine bağlı. Tahmini dağılıma dayanan cümleye
-"(tahmini dağılıma göre)" etiketini kod ekler.*
+*P01 için ajan, motorun önerdiği AIS fonunu çıkarıp yerine ZBJ'yi aldı ve nedenini yazdı. Her gerekçe bir puan parçasına veya kanıt kimliğine bağlı. Tahmini portföy dağılımına dayanan bir cümleye "(tahmini dağılıma göre)" etiketini kod ekler.*
 
-Aşağıda ajanın ve RM'in gördüğü web araştırması var. RM her bulguyu ✓ veya ✗
-ile işaretler; ✗ işaretli bulgu ajana verilmez:
+Ajanın kullandığı web araştırması *Ajan araştırması* bölümünde RM'in önünde de durur. RM her bulgunun yanındaki ✓ ve ✗ işaretleriyle bulguyu onaylayabilir ya da reddedebilir. Reddedilen bulgu ajana hiç verilmez, onaylanan bulgu ise ajana "(web, RM doğruladı)" etiketiyle gider:
 
 ![Ajan araştırması: her öneri için tarihli haberler ve öne çıkanlar, kaynak numaraları, ✓/✗ işaretleri](docs/img/readme/research.png)
+
+Aşağıdaki şema bir hazırlığın baştan sona akışını gösterir. RM müşteriyi seçtiğinde motor sonucu hazırlar; RM isterse ajan devreye girer; RM onay verdikten sonra anlatıcı görüşme metnini yazar ve doğrulayıcı bu metni kontrol eder.
 
 ```mermaid
 sequenceDiagram
@@ -422,56 +349,41 @@ sequenceDiagram
     RM->>UI: blokları düzenler, kartı indirir
 ```
 
-### Görüşme metni ve doğrulayıcı
+### Görüşme metni nasıl yazılır ve nasıl denetlenir?
 
-Doğrulayıcı şunları içeren bir metni reddeder: olgu paketinde olmayan bir sayı
-veya tarih; elenen ya da listede olmayan bir ürünün adı; "garanti", "risksiz",
-"kesin getiri" gibi yasak bir ifade; kaynağı olmayan bir öneri cümlesi; ING
-ürün adının yanında ING'ye ait olmayan bir oran; tahmini dağılımdan bir sayı.
-Eksik bir bölüm veya eksik "yatırım tavsiyesi değildir" cümlesi de ret
-sebebidir. Piyasa notunu (politika faizi, USD/TRY, fonlama maliyeti) LLM hiç
-yazmaz; kod yazar ve her değerin yanına kanıt kimliğini koyar.
-
-Metin yazılırken RM anlatıcının adımlarını ve her adımın girdisini görür:
+RM önerileri onayladığında anlatıcımız yalnızca onaylanan ürünlerin verilerinden bir olgu paketi hazırlar ve görüşme metnini bu paketten yazdırır. Metin hazırlanırken RM ekranda anlatıcının adımlarını ve her adımda hangi bilginin kullanıldığını görür:
 
 ![Metin hazırlanıyor: profil, onaylanan öneriler, piyasa verileri, yazım kuralları, yapay zekâ yazıyor, kontrol](docs/img/readme/text-wait.png)
 
-Görüşme metni tek bir sayfadır. Beyaz alan müşteriye gösterilecek sunumdur.
-Sarı kutular yalnızca RM içindir; "Sunum görünümü"nde ve çıktıda yer almaz.
-Metindeki her kaynak numarası sağdaki "Kaynaklar" listesinde bir kanıt
-kimliğine bağlanır:
+Metin RM'e ulaşmadan önce doğrulayıcımızdan geçer. Doğrulayıcı olgu paketinde olmayan bir sayı veya tarih, elenmiş ya da listede olmayan bir ürünün adı, "garanti", "risksiz", "kesin getiri" gibi yasak bir ifade, kaynağı gösterilmemiş bir öneri cümlesi, ING ürün adının yanında ING'ye ait olmayan bir oran veya tahmini dağılımdan alınmış bir sayı bulursa metni reddeder. Eksik bir bölüm ya da eksik "yatırım tavsiyesi değildir" cümlesi de ret sebebidir. Reddedilen metin bulunan sorunlarla birlikte bir kez yeniden yazdırılır; yine geçmezse RM'in önüne kurallı bir şablon metin ve bir uyarı bandı gelir. Piyasa notunu (politika faizi, USD/TRY, fonlama maliyeti) ise dil modeline hiç yazdırmayız; bu bölümü kod yazar ve her değerin yanına kanıt kimliğini koyar.
+
+Hazırlanan görüşme metni tek bir sayfadır. Sayfanın beyaz kısmı müşteriye gösterilecek sunumdur, sarı kutular ise yalnızca RM içindir ve *Sunum görünümü*nde ve çıktıda yer almaz. Metindeki her kaynak numarası sağdaki *Kaynaklar* listesinde bir kanıt kimliğine bağlanır:
 
 ![Görüşme metni (P01): müşterinin hedefi, RM'e özel kutular, piyasa notu, temel sayılar, reel getiri grafiği ve kaynaklar](docs/img/readme/text.png)
 
-### Neden ajan ile metin ayrı?
+### Ajanı ve metni neden ayrı tuttuk?
 
-Ajan, tek bir puanın gösteremediği şeyleri tartar: güncel haberleri, iki
-adayın nitel farkını ve müşterinin mevcut dağılımını. Kararını yine kodun
-sınırları içinde verir ve RM motorun ilk 3'ünü her zaman yan yana görür.
-Görüşme metni ise tek bir model çağrısıdır (en çok bir tekrar), bu yüzden
-maliyeti ve süresi öngörülebilir kalır.
+Ajan, tek bir puanın gösteremediği şeyleri tartmak için var: güncel haberler, iki adayın nitel farkı ve müşterinin mevcut dağılımı gibi. Yine de kararını kodun çizdiği sınırlar içinde verir ve RM motorun ilk 3'ünü her zaman ajanın önerisiyle yan yana görür. Görüşme metni ise tek bir model çağrısıyla (en çok bir tekrarla) yazılır; böylece maliyeti ve süresi her seferinde öngörülebilir kalır.
 
-Geliştirmede de çoklu ajan kullandık. Bir lider oturumu ve her modül için bir
-işçi Claude Code oturumu ayrı git çalışma ağaçlarında çalıştı. Sözleşmeler
-dondurulmuştu ve her adım yeşil testlerle bitti
-([`docs/workflow.md`](docs/workflow.md)).
+Ürünü geliştirirken de çoklu ajanla çalıştık. Bir lider Claude Code oturumu ve her modül için bir işçi oturumu ayrı git çalışma ağaçlarında çalıştı; modüller arasındaki sözleşmeleri dondurduk ve her adımı yeşil testlerle bitirdik ([`docs/workflow.md`](docs/workflow.md)).
 
 ## 6. Varsayımlar, belirsizlikler ve insan onay noktaları
 
-### Varsayımlar
+### Varsayımlarımız
 
-Varsayımlar ekranda ve kayıtta görünür. `[VARSAYIM]` ile işaretli olanları
-mentorlarla teyit edeceğiz.
+Bazı konularda veri olmadığı için bir varsayım yapmak zorunda kaldık. Bu varsayımların hepsi ekranda ve kayıtta görünür; `[VARSAYIM]` ile işaretlediklerimizi mentorlarla teyit edeceğiz.
 
-- Fon getirileri geçmiş getirilerdir, bir tahmin değildir. 1 yıldan kısa dönem getirileri yıllığa çevrilmez.
+- Fon getirileri geçmiş getirilerdir, bir tahmin değildir. 1 yıldan kısa dönem getirilerini yıllığa çevirmeyiz.
 - Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29,73) göre reeldir.
-- Yatırım tutarı bilinmiyor; mevduatta 100.000-249.999 TL diliminin standart oranı kullanılır.
+- Yatırım tutarını bilmiyoruz; mevduatta 100.000-249.999 TL diliminin standart oranını kullanıyoruz.
 - Risk bantları (Muhafazakâr 1-2, Temkinli 2-3, Dengeli 3-5, Agresif 4-7) ve ağırlıklar bizim yargımızdır **[VARSAYIM]**.
-- Payların risk değeri oynaklık bandından gelir ve en az 6'dır; BYF stopajı %17,5'tir **[VARSAYIM]**.
-- Dağılım bantları tek bir kamuya açık kaynaktan gelir; Temkinli bandını biz çıkardık **[VARSAYIM]**.
-- Mevcut dağılım müşteri dosyasında yoksa meslek tablosu veya ulusal ortalama (TCMB FİR 2026-I) ile tahmin edilir. Bu tahmin sıralamayı değiştirmez; RM onaylarsa değiştirir **[VARSAYIM]**.
+- Payların risk değerini oynaklık bandından hesaplıyoruz ve en az 6 alıyoruz; BYF stopajını %17,5 kabul ediyoruz **[VARSAYIM]**.
+- Dağılım bantları tek bir kamuya açık kaynaktan geliyor; Temkinli bandını o kaynaktan biz çıkardık **[VARSAYIM]**.
+- Müşteri dosyasında mevcut dağılım yoksa onu meslek tablosundan veya ulusal ortalamadan (TCMB FİR 2026-I) tahmin ediyoruz. Bu tahmin sıralamayı değiştirmez; RM onaylarsa değiştirir **[VARSAYIM]**.
 
-### Belirsizlik yönetimi
+### Belirsizliği nasıl yönetiyoruz?
+
+Verinin eksik, eski veya çelişkili olduğu durumlarda sistemimiz bunu saklamaz, RM'e gösterir. Bunun için beş araç kullanıyoruz:
 
 | Araç | Ne yapar |
 |---|---|
@@ -481,17 +393,13 @@ mentorlarla teyit edeceğiz.
 | Profil çelişkileri | 8 sabit kural ve AI kontrolü (ör. "Muhafazakâr" ile büyüme önceliği; `durum`'da gelecek yıl ev peşinatı ile likidite "Düşük") |
 | Uyarılar (yalnızca RM) | düşük istikrar, tahmini risk, döviz fonu, tek pay, payda sert düşüş, ING oranı piyasanın altında, süresi geçmiş stopaj veya eski TÜFE |
 
-Ekranda belirsizlik "Teyit edin" listesine dönüşür. Motor bir alanı
-okuyamazsa güvenli bir düzeyle devam eder ve RM'e yanıt seçenekleri olan bir
-soru açar:
+RM bu belirsizlikleri hazırlık sayfasında *Teyit edin* listesi olarak görür. Motor bir alanı okuyamadığında tahmin yürütmez; güvenli bir düzeyle devam eder ve RM'e yanıt seçenekleri olan bir soru açar. RM soruyu yanıtladığında sıralama yeniden hesaplanır:
 
 ![Gündem ve Teyit edin (P02): konuşulacak üç nokta, mevcut dağılım, döviz düzeyi, döviz kısıtı ve kur riski soruları](docs/img/readme/agenda.png)
 
 ### İnsan onay noktaları
 
-Sistem öneriyi hazırlar, ama müşteriye gidecek hiçbir şey RM görmeden ve
-onaylamadan çıkmaz. Aşağıdaki akış, bir RM'in bir müşteri için ekranda
-sırayla geçtiği adımları gösterir:
+Sistemimiz öneriyi hazırlar, ama müşteriye gidecek hiçbir şey RM görmeden ve onaylamadan çıkmaz. Aşağıdaki akış, bir RM'in bir müşteri için ekranda sırayla geçtiği adımları gösterir:
 
 - Turuncu altıgenler RM'in karar verdiği yerlerdir.
 - Gri kutular sistemin kendi başına yaptığı işlerdir.
@@ -531,20 +439,13 @@ flowchart TB
 | 5 · Metni gözden geçir | tek sayfalık görüşme metni; beyaz alan müşteri için, sarı kutular yalnızca RM için | blokları ✎ ile düzenler veya siler; "Riskler" bölümü silinemez, "yatırım tavsiyesi değildir" cümlesi her zaman kalır | RM metnin her cümlesinden sorumludur; düzenlenen blok yeniden denetlenir |
 | 6 · Kartı al ve sun | "Kart" kutusu (PDF veya Markdown), "Sunum görünümü" düğmesi | kartı indirir veya yazdırır; müşteriye sunum görünümünü gösterir | sunum görünümü sarı kutuları, notları ve kaynak numaralarını gizler; RM'e özel bilgi müşteriye gitmez |
 
-Bu akışın kuralları:
+Bu akışta birkaç kural geçerlidir. RM bir çelişkiyi çözmeden önerileri onaylayamaz; sistem onay isteğini "Çözülmemiş çelişki var" diye geri çevirir, ancak henüz bitmemiş bir AI kontrolü onayı engellemez. "Sorulacak" etiketli kartlar yalnızca öneridir ve onayı engellemez; önerileri reddetmek için de gerekçe gerekmez. Denetimde açık bir kural bulgusu varken kart indirilemez ve yazdırılamaz. RM ajanı bir kez çalıştırdıysa, sonradan girdiği bir dağılım veya verdiği bir yanıt sıralamayı yeniden hesaplattığında ajan da aynı aday sayısıyla kendiliğinden yeniden çalışır.
 
-- RM bir çelişkiyi çözmeden onay veremez: sistem onay isteğini "Çözülmemiş çelişki var" diye geri çevirir. Henüz bitmemiş bir AI kontrolü onayı engellemez.
-- RM'e sorulan sorular (kart etiketi "Sorulacak") öneridir, onayı engellemez. Bir reddetme için gerekçe gerekmez.
-- Açık bir kural bulgusu varken kart indirilemez ve yazdırılamaz.
-- RM ajanı bir kez başlattıysa, yeni bir dağılım veya yanıt yeni bir hesaplama yaptığında ajan aynı aday sayısıyla kendiliğinden yeniden çalışır.
-
-Sistemin müşteriye bir iletim kanalı yoktur; uygulama yalnızca yerel
-bilgisayarda (`127.0.0.1`) çalışır. Düzenlenmiş veya yüklenmiş bir profil
-açıkça işaretlenir ve kartta "Düzenlenmiş profil ile hazırlandı" yazar.
+Sistemimizin müşteriye bir şey gönderebileceği bir kanal yoktur; uygulama yalnızca RM'in bilgisayarında (`127.0.0.1`) çalışır. RM bir profili düzenlediyse veya yeni bir profil yüklediyse bu durum ekranda açıkça işaretlenir ve kartta "Düzenlenmiş profil ile hazırlandı" yazar.
 
 ## 7. Test yaklaşımı, sonuçlar, hata analizi ve yapılan iyileştirmeler
 
-Testler dört katmandan oluşur:
+Çözümümüzü dört katmanda test ettik:
 
 | Katman | Soru | Kapsam |
 |---|---|---|
@@ -553,15 +454,11 @@ Testler dört katmandan oluşur:
 | Ajan değerlendirmesi | Ajan kurallara uyuyor mu, motordan iyi mi? | 8 karar: kod denetimi, yedek oranı, tekrar, kör A/B hakemi, RM işaretleri |
 | Canlı kontrol ve geri bildirim | RM için kullanışlı mı? | ekran incelemesi, ücretli canlı kontroller, RM işlem kaydı üzerinden F1 raporu |
 
-### Neden bu göstergeler?
+### Hangi göstergelere bakıyoruz ve neden?
 
-Brief'in kesin kurallarında (kısıt ihlali yok, uydurma veri yok, kaynak atfı
-var, yasak ifade yok) hedefimiz %100'dür, çünkü tek bir ihlal bile kabul
-edilemez. Metin kalitesini yalnızca yön göstergesi olarak okuruz: hakem bir
-LLM'dir ve notu kod kontrolleri kadar güvenilir değildir.
+Brief'in kesin kurallarında, yani kısıt ihlali olmaması, uydurma veri olmaması, her bilginin kaynağının gösterilmesi ve yasak ifade kullanılmaması konularında hedefimiz %100'dür; bu kurallarda tek bir ihlal bile kabul edilemez. Metin kalitesini ise yalnızca yön gösterici olarak okuyoruz, çünkü metni puanlayan hakem de bir dil modeli ve verdiği not kod kontrolleri kadar güvenilir değil.
 
-Son tam değerlendirme (`data/eval/20261017-160939-n12-client-page`, dondurulmuş
-anlık görüntü `20261014-233110-1565`, istem n12):
+Son tam değerlendirmemizin sonuçları (`data/eval/20261017-160939-n12-client-page`, dondurulmuş anlık görüntü `20261014-233110-1565`, istem n12):
 
 | Gösterge | Sonuç | Hedef |
 |---|---|---|
@@ -577,20 +474,13 @@ anlık görüntü `20261014-233110-1565`, istem n12):
 | Maliyet | 0,866 $ paket · 0,034 $ metin başına | ≤ 5 $ |
 | LLM hakemi: uyarlanmış / açık / dengeli | %50 / %50 / %58 | yön göstergesi |
 
-Ajan değerlendirmesinde (`20261015-182316`, 8 karar) kod denetimi 8/8 geçti
-ve hiç yedeğe düşülmedi. Önbellekten tekrar 8/8, önbelleksiz tekrar 5/8 aynı
-sonucu verdi. Kör A/B hakemi (Claude Haiku, "Hangisi müşteriye daha uygun ve
-neden?") ilk turda ajan 5, motor 0, eşit 1 dedi. Ancak ajanın 3 kazancı
-P03'teydi ve orada motorun seçtiği IDY ile OKT ajanın aday listesinde yoktu;
-hakem bu iki fonun verisini göremedi. Aday listesini motorun ilk 3'üyle
-başlayacak biçimde düzelttik ve P03'ü yeniden çalıştırdık: motor 2, ajan 0.
-Adil karşılaştırmaların toplamı ajan 3 (P01, olumsuz haber senaryosu, RM
-işaretleri), motor 2, eşit 1. Bu sayılar ajanın daha iyi olduğunu göstermez;
-bu yüzden RM iki listeyi yan yana görür ve kararı kendisi verir.
+### Ajan motordan daha iyi mi?
 
-### Hata analizleri ve iyileştirmeler
+Ajan değerlendirmemizde (`20261015-182316`, 8 karar) ajanın kararları kod denetiminden 8/8 geçti ve hiçbir kararda yedeğe düşülmedi. Aynı karar önbellekten tekrarlandığında 8/8, önbellek olmadan tekrarlandığında 5/8 aynı sonucu verdi. Ajanın önerisini motorunkiyle karşılaştırmak için kör bir A/B hakemi kullandık (Claude Haiku, "Hangisi müşteriye daha uygun ve neden?"). İlk turda hakem 5 kez ajanı, hiç motoru seçmedi ve 1 kez eşit dedi. Ancak ajanın 3 kazancı P03'teydi ve orada motorun seçtiği IDY ile OKT ajanın aday listesinde yoktu, yani hakem bu iki fonun verisini göremiyordu. Aday listesini motorun ilk 3'üyle başlayacak şekilde düzelttik ve P03'ü yeniden çalıştırdık; bu kez hakem iki kez de motoru seçti. Adil karşılaştırmaların toplamı ajan 3 (P01, olumsuz haber senaryosu, RM işaretleri), motor 2, eşit 1. Bu sayılar ajanın daha iyi olduğunu göstermiyor; bu yüzden RM iki listeyi her zaman yan yana görür ve kararı kendisi verir.
 
-Tam liste: [`docs/found-and-fixed.md`](docs/found-and-fixed.md).
+### Bulduğumuz hatalar ve yaptığımız iyileştirmeler
+
+Geliştirme boyunca bulduğumuz her hatayı, nedenini nasıl bulduğumuzu ve düzeltmenin sonucunu kaydettik. Tam liste [`docs/found-and-fixed.md`](docs/found-and-fixed.md) belgesinde; en önemlileri şunlar:
 
 | Bulgu | Nasıl bulduk, kök neden | İyileştirme | Ölçülen sonuç |
 |---|---|---|---|
@@ -603,26 +493,15 @@ Tam liste: [`docs/found-and-fixed.md`](docs/found-and-fixed.md).
 | 5 yıllık geçmiş 15.02.2023'te kesiliyordu | 8-14.02.2023 "okunamaz" işaretlenmişti: deprem sonrası borsa kapalıydı | 0 kapanışlı geçerli bülten = işlem olmayan gün | tam 5 yıllık geçmiş |
 | Bir metin şablona düştü ("Garanti Portföy GZP" → yasak ifade "garanti") | değerlendirmenin hata listesi cümleyi ve bulguyu verdi | doğrulayıcı adlandırılmış fonun kurucu adını yasak ifade taramasından önce çıkarır; başka yerde "garanti" hâlâ bulgudur | testler iki yönde geçiyor; canlı yeniden çalıştırma önbellekteki eski metni okudu, açık iş |
 
-Açık işler de var. TEFAS bazı günlerde bir fon için fiyatı ve büyüklüğü 0
-yayımlıyor (son anlık görüntüde 45 fon) ve bu sıfırları henüz işaretlemiyoruz
-(I9). İki EVDS serisi (BIST 100 getiri endeksi, altın) doğrulanmadı ve
-"doğrulanmamış seri" bayrağı taşıyor. LLM hakemi neredeyse her metne "kısmen"
-veriyor; rubriği de müşteri sayfası için değil RM notu için yazılmıştı.
+Henüz çözmediğimiz konular da var. TEFAS bazı günlerde bir fonun fiyatını ve büyüklüğünü 0 olarak yayımlıyor (son anlık görüntüde 45 fon) ve bu sıfırları henüz işaretlemiyoruz (I9). İki EVDS serisini (BIST 100 getiri endeksi ve altın) doğrulamadık; bu seriler "doğrulanmamış seri" bayrağı taşıyor. Metinleri puanlayan LLM hakemi de neredeyse her metne "kısmen" diyor, çünkü rubriği müşteri sayfası için değil RM notu için yazılmıştı.
 
 ### Geri bildirim döngüsü
 
-Sistem her RM işlemini (onay, ret, düzenleme, silme, ✓/✗ işareti, dağılım,
-ajan başlatma) sürüm bilgileriyle `data/logs/rm-actions/` altına bir JSON
-satırı olarak yazar. `rmprep feedback` bu kayıttan beş ölçü hesaplar ve sabit
-eşiklerle öneriler verir; örneğin hangi bölümün sık silindiğini, ajanın
-önerisinin ne sıklıkla kabul edildiğini ve dağılım tahmininin ne kadar
-yanıldığını gösterir. Rapor hiçbir şeyi kendiliğinden değiştirmez ve LLM
-kullanmaz.
+Sistemimiz RM'in yaptığı her işlemi (onay, ret, düzenleme, silme, ✓/✗ işareti, dağılım girişi, ajan başlatma) sürüm bilgileriyle birlikte `data/logs/rm-actions/` altına bir JSON satırı olarak yazar. `rmprep feedback` komutu bu kayıtlardan beş ölçü hesaplar ve sabit eşiklere göre öneriler çıkarır: örneğin RM'lerin hangi metin bölümünü sık sildiğini, ajanın önerisinin ne sıklıkla kabul edildiğini ve dağılım tahminimizin ne kadar yanıldığını gösterir. Rapor hiçbir ayarı kendiliğinden değiştirmez ve dil modeli kullanmaz; değişiklik kararını yine biz veririz.
 
 ## 8. Veri kaynağı, zaman damgası ve karar gerekçesi gibi izlenebilirlik yaklaşımları
 
-Her öneriyi dayandığı verinin kaynağına, tarihine ve alınma zamanına kadar
-geri izleyebiliriz. Tüm zamanlar Türkiye saatindedir (`Europe/Istanbul`).
+Sistemimizdeki her öneriyi, dayandığı verinin kaynağına, değer tarihine ve verinin hangi saatte çekildiğine kadar geriye doğru izleyebiliriz. Tüm zamanlar Türkiye saatiyle (`Europe/Istanbul`) tutulur. Aşağıdaki şema bir sayının ham indirmeden görüşme metnindeki cümleye kadar izlediği yolu gösterir:
 
 ```mermaid
 flowchart LR
@@ -637,6 +516,8 @@ flowchart LR
     M --> A["RM onayı, çözümler, düzenlemeler<br/>Türkiye saatiyle"]
 ```
 
+Her katmanda neyi nasıl izlediğimiz:
+
 | Ne | Nasıl izlenir |
 |---|---|
 | Her değer | kanıt kimliği (kaynak, ölçü, varlık ve tarihin özeti), kaynak, kaynak adresi, değer tarihi (`as_of`), alınma zamanı (`fetched_at`), kalite bayrakları |
@@ -649,16 +530,15 @@ flowchart LR
 | Metin | her cümle seçenek ve kanıt kimliği taşır; model, istem sürümü, doğrulayıcı sonucu, RM düzenlemeleri ve maliyet kayda girer |
 | RM işlemleri | `data/logs/rm-actions/<gün>.jsonl`: her işlem zaman, çalıştırma, persona, anlık görüntü ve yapılandırma/istem sürümleriyle |
 
-Ekranda her sayının yanındaki "K" işareti kanıt penceresini açar:
+RM ekranda bir sayının yanındaki "K" işaretine tıkladığında o sayının kanıt penceresi açılır:
 
 <img src="docs/img/readme/evidence.png" alt="Kanıt penceresi: değer, kaynak, değer tarihi, alınma zamanı, kanıt kimliği ve bayraklar" width="448">
 
-*Örnek: EIL'in 1 yıllık getirisi %48,13; kaynak TEFAS getiri sayfası
-(`tefas_web`); değer tarihi 16.10.2026 (önceki iş günü); alınma zamanı
-17.10.2026 11:04; kanıt kimliği `Edede971a`; bayrak yok.* Tam bir karar kaydı
-örneği: [Teslimat 6](docs/teslim/06-kanit-kaydi-ornegi.md).
+*Bu örnekte EIL fonunun 1 yıllık getirisi %48,13. Değer TEFAS getiri sayfasından (`tefas_web`) geliyor, değer tarihi 16.10.2026 (bir önceki iş günü), veri 17.10.2026 saat 11:04'te çekilmiş, kanıt kimliği `Edede971a` ve değerin üzerinde hiçbir kalite bayrağı yok.* Bir önerinin tam karar kaydını [Teslimat 6](docs/teslim/06-kanit-kaydi-ornegi.md) belgesinde görebilirsiniz.
 
 ## Brief kurallarına uyum
+
+Brief'in 12. maddesindeki on kurala nasıl uyduğumuz:
 
 | Kural | Nasıl uyuyoruz |
 |---|---|
@@ -673,5 +553,4 @@ Ekranda her sayının yanındaki "K" işareti kanıt penceresini açar:
 | 9 · Skor tavsiye değildir | görüşme metni ve kart "yatırım tavsiyesi değildir" cümlesini taşır (doğrulayıcı kontrol eder); karar RM'in |
 | 10 · Açıklanabilir yöntem | puan parçaları, elenenler, varsayımlar, ajanın atıflı gerekçeleri |
 
-`.env` ve `data/` depoya girmez. Bu prototip ING Agentic AI Hackathon için
-geliştirilmiştir.
+`.env` ve `data/` klasörü depoya girmez. Bu prototipi ING Agentic AI Hackathon için geliştirdik.
