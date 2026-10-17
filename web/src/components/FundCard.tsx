@@ -12,7 +12,7 @@ import { ReturnBars, type ReturnRow } from "./ReturnBars";
 import { RiskBar, riskColor } from "./RiskBar";
 import { Stars } from "./Stars";
 import { WhyPanel } from "./WhyPanel";
-import { CodeBadge } from "../product";
+import { CodeBadge, ProductBadges } from "../product";
 
 function Tile({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -79,6 +79,7 @@ export function FundCard({
         <CodeBadge optionId={o.option_id} className="text-[13px]" />
         <h2 className="text-[22px] font-bold leading-tight">{o.short_label}</h2>
         <KindBadge kind={o.kind} />
+        <ProductBadges badges={o.badges} />
       </div>
       <div className="mt-1 text-[13px] text-muted">{o.label}</div>
 

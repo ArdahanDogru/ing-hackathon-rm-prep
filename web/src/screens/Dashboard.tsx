@@ -181,8 +181,6 @@ export function Dashboard({
         <DetailNote
           kind={note}
           view={view}
-          selected={selected}
-          onToggle={toggle}
           onOpen={(id) => {
             setNote(null); // the fund card opens in place of the note
             setOpenId(id);

@@ -8,7 +8,7 @@ import { api, ApiError } from "../api/client";
 import type { AgentDecision, AgentPick, ResearchFinding, ResearchView, RunView } from "../api/types";
 import { fill, LangContext, useT } from "../i18n";
 import { useLabelOf } from "./WhyPanel";
-import { CodeBadge } from "../product";
+import { CodeBadge, ProductBadges } from "../product";
 
 /** The ids of the agent's picks that have an option view (the cards and the meeting chips use them). */
 export function agentTop(view: RunView, d: AgentDecision | null): string[] | null {
@@ -251,6 +251,7 @@ export function AgentPicks({
               {`${i + 1} · `}
               <CodeBadge optionId={p.option_id} />
               {name(p.option_id)}
+              <ProductBadges badges={view.options[p.option_id]?.badges} />
             </button>
             {reasons(p)}
           </li>

@@ -69,12 +69,15 @@ test("the fund card of a deposit has no badge", () => {
   expect(badges(container)).toEqual([]);
 });
 
-test("the categories rows", async () => {
-  const cat = v.categories[0];
-  show(<CategoryList categories={[cat]} options={v.options} selected={[]} onToggle={vi.fn()} onOpen={vi.fn()} />);
-  await userEvent.click(screen.getByRole("button", { expanded: false }));
-  const rows = screen.getAllByTestId("fund-row");
-  rows.forEach((r, i) => expect(badges(r)).toEqual([productCode(cat.option_ids[i])].filter(Boolean)));
+test("the categories rows (W32: class → sub-type → funds)", async () => {
+  const sub = v.categories[0].subtypes.find((s) => s.count > 1)!;
+  show(<CategoryList view={v} onOpen={vi.fn()} />);
+  const cls = screen.getAllByTestId("category")[0];
+  await userEvent.click(within(cls).getAllByRole("button")[0]);
+  const subRow = within(cls).getAllByTestId("subtype")[v.categories[0].subtypes.indexOf(sub)];
+  await userEvent.click(within(subRow).getAllByRole("button")[0]);
+  const rows = within(subRow).getAllByTestId("fund-row");
+  rows.forEach((r, i) => expect(badges(r)).toEqual([productCode(sub.option_ids[i])].filter(Boolean)));
 });
 
 test("the Dağılım rows (the best option of a class)", () => {

@@ -8,7 +8,7 @@ import { KindBadge } from "./KindBadge";
 import { matchColor } from "./MatchRing";
 import { riskColor } from "./RiskBar";
 import { Stars } from "./Stars";
-import { CodeBadge, withCode } from "../product";
+import { CodeBadge, ProductBadges, withCode } from "../product";
 
 /** The small "K" next to a value: opens its evidence. */
 export function KMark({ id, onEvidence }: { id: string | undefined; onEvidence: (id: string) => void }) {
@@ -164,6 +164,7 @@ export function OptionsTable({
                     <CodeBadge optionId={o.option_id} />
                     <span className="font-bold">{o.short_label}</span>
                     <KindBadge kind={o.kind} />
+                    <ProductBadges badges={o.badges} />
                   </button>
                 </th>
               ),

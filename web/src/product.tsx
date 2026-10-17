@@ -1,6 +1,7 @@
 // Product codes (W28; docs/web-ui.md "Product codes everywhere a product is a title"): the TEFAS
 // code or the BIST ticker of a fund, an ETF or a share is the part of the option id after ":".
 // The two ING deposits have no code. The code is never translated.
+import type { ProductBadge } from "./api/types";
 
 const CODED = new Set(["fund", "etf", "stock"]);
 
@@ -27,5 +28,23 @@ export function CodeBadge({ optionId, className = "" }: { optionId: string; clas
     >
       {code}
     </span>
+  );
+}
+
+/** W32: the badges of an option next to its title (Katılım, Döviz); nothing without badges. */
+export function ProductBadges({ badges }: { badges?: ProductBadge[] }) {
+  if (!badges?.length) return null;
+  return (
+    <>
+      {badges.map((b) => (
+        <span
+          key={b.key}
+          data-testid="product-badge"
+          className="ml-1.5 inline-block rounded-md bg-[#F2F4F7] px-1.5 py-px align-[1px] text-[11px] font-semibold normal-case tracking-normal text-[#475467]"
+        >
+          {b.label}
+        </span>
+      ))}
+    </>
   );
 }

@@ -8,7 +8,7 @@ import { KindBadge } from "./KindBadge";
 import { KMark, fullName, realColor, signedPct, whyLine } from "./OptionsTable";
 import { RiskBar } from "./RiskBar";
 import { Stars } from "./Stars";
-import { CodeBadge } from "../product";
+import { CodeBadge, ProductBadges } from "../product";
 
 export function OptionsCards({
   options,
@@ -52,6 +52,7 @@ export function OptionsCards({
                     <CodeBadge optionId={o.option_id} />
                     {o.short_label}
                     <KindBadge kind={o.kind} />
+                    <ProductBadges badges={o.badges} />
                   </div>
                 </div>
                 {o.match !== null && <MatchRing value={o.match} size={46} label={t("match")} />}

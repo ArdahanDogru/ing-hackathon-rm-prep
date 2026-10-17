@@ -7,7 +7,7 @@ import { fmtPct } from "../format";
 import { LangContext, useT } from "../i18n";
 import { Markdown } from "../markdown";
 import "../print.css";
-import { CodeBadge } from "../product";
+import { CodeBadge, ProductBadges } from "../product";
 import { profileChanges } from "../profileChanges";
 
 function List({ title, items }: { title: string; items: string[] }) {
@@ -129,6 +129,7 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
                   <b>
                     <CodeBadge optionId={id} />
                     {o.label}
+                    <ProductBadges badges={o.badges} />
                   </b>
                   <span className="text-xs text-muted">{o.category_label}</span>
                 </div>
