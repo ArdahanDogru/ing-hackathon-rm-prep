@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import type { OptionView, RunView } from "../api/types";
+import type { OptionView, Resolution, RunView } from "../api/types";
 import { fmtDateTime } from "../format";
-import { useT } from "../i18n";
+import { fill, useT } from "../i18n";
 import { withCode } from "../product";
 
 /** "PPN · Nurol · Para Piyasası (TL)": the code (W28), the issuer's first word and the short name. */
@@ -19,12 +19,18 @@ export function ApprovalBar({
   view,
   selected,
   openConfirms = 0,
+  unresolved = 0,
+  resolutions = [],
   onRemove,
   onView,
 }: {
   view: RunView;
   selected: string[];
   openConfirms?: number;
+  /** W44: the profile conflicts without a reason; the approval waits for them */
+  unresolved?: number;
+  /** W44: the RM's reasons, sent with an approval */
+  resolutions?: Resolution[];
   onRemove: (id: string) => void;
   onView: (v: RunView) => void;
 }) {
@@ -40,7 +46,8 @@ export function ApprovalBar({
     setBusy(true);
     setError(null);
     try {
-      const next = await api.approve(runId, decision, note, decision === "approved" ? selected : []);
+      const approved = decision === "approved";
+      const next = await api.approve(runId, decision, note, approved ? selected : [], approved ? resolutions : []);
       onView(next);
       if (decision === "approved") navigate(`/meeting/${encodeURIComponent(next.result.run_id)}`);
     } catch (e) {
@@ -93,6 +100,11 @@ export function ApprovalBar({
                 className="w-56 rounded-lg bg-white/10 px-3 py-1.5 text-sm placeholder:text-white/60"
               />
               {openConfirms > 0 && <span className="text-[13px] opacity-80">{`${openConfirms} ${t("notConfirmed")}`}</span>}
+              {unresolved > 0 && (
+                <span data-testid="unresolved" title={t("unresolvedHint")} className="cursor-help text-[13px] font-semibold text-[#FEC84B]">
+                  {`⚠ ${fill(t("unresolved"), { n: unresolved })}`}
+                </span>
+              )}
               {(reason || error) && (
                 <span role={error ? "alert" : undefined} className="text-xs text-[#FEC84B]">
                   {error ?? reason}
@@ -108,7 +120,8 @@ export function ApprovalBar({
               </button>
               <button
                 type="button"
-                disabled={busy || reason !== null}
+                disabled={busy || reason !== null || unresolved > 0}
+                title={unresolved > 0 ? t("unresolvedHint") : undefined}
                 className="rounded-[10px] bg-brand px-4 py-1.5 font-semibold text-white disabled:opacity-50"
                 onClick={() => send("approved")}
               >

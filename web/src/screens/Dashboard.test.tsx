@@ -211,9 +211,10 @@ test("an approved run: the meeting tab is active and the bar links to the text",
   expect(screen.queryByRole("button", { name: "Onayla ve metni hazırla" })).toBeNull();
 });
 
-test("a test run (an edited profile) can be approved (W30; see EditedProfile.test)", () => {
+test("a test run (an edited profile) can be approved (W30; see EditedProfile.test) once its conflict is resolved (W44)", () => {
   renderDashboard(sample("run_test"));
-  expect(screen.getByRole("button", { name: "Onayla ve metni hazırla" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Onayla ve metni hazırla" })).toBeDisabled(); // risk_vs_growth has no reason yet
+  expect(screen.getByTestId("unresolved")).toHaveTextContent("1 çelişki çözülmedi");
   expect(screen.getByText(/Düzenlenmiş profil:/)).toBeInTheDocument();
 });
 

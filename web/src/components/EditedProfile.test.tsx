@@ -34,10 +34,15 @@ test("the banner of an edited profile and the approval works", async () => {
   expect(screen.getByText(BANNER)).toBeInTheDocument();
   expect(screen.queryByText(/Test çalıştırması onaylanamaz/)).toBeNull();
   const button = screen.getByRole("button", { name: "Onayla ve metni hazırla" });
+  // W44: run_test has one profile conflict; it needs a reason first
+  await userEvent.click(screen.getByRole("button", { name: "Müşteriyle teyit edildi" }));
+  await userEvent.type(screen.getByRole("textbox", { name: "Neden" }), "uzun vade");
+  await userEvent.click(screen.getByRole("button", { name: "Kaydet" }));
   expect(button).toBeEnabled();
   await userEvent.click(button);
   expect(approve).toHaveBeenCalled();
   expect(approve.mock.calls[0][1]).toBe("approved");
+  expect(approve.mock.calls[0][4]).toEqual([{ finding_id: "risk_vs_growth", note: "uzun vade" }]);
 });
 
 function meeting(v: RunView, lang: Lang = "TR") {

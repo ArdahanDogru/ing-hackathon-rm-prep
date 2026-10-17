@@ -42,7 +42,7 @@ test("requests use the right method, path and body", async () => {
   const [url, init] = fetch.mock.calls[0];
   expect(url).toBe("/api/runs/R1/approval");
   expect(init.method).toBe("POST");
-  expect(JSON.parse(init.body)).toEqual({ status: "approved", note: "not", selected: ["fund:A", "fund:B"] });
+  expect(JSON.parse(init.body)).toEqual({ status: "approved", note: "not", selected: ["fund:A", "fund:B"], resolutions: [] }); // W44
   expect(fetch.mock.calls[1][0]).toBe("/api/runs/R1/notes");
   expect(fetch.mock.calls[1][1].method).toBe("PUT");
   expect(fetch.mock.calls[2][0]).toBe("/api/runs/R1/narrative?lang=EN");

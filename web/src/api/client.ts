@@ -1,6 +1,7 @@
 // Typed client of the JSON API (docs/web-ui.md section 6). Prefix /api; the
 // Vite proxy (dev), the mock middleware (dev:mock) or `rmprep serve` answers.
 import type {
+  Resolution,
   ProfileAIView,
   AgentDecision,
   ResetResult,
@@ -103,8 +104,9 @@ export const api = {
   getRun: (runId: string) => request<RunView>("GET", `/runs/${enc(runId)}`),
   answer: (runId: string, question_id: string, answer: string) =>
     request<RunView>("POST", `/runs/${enc(runId)}/answers`, { question_id, answer }),
-  approve: (runId: string, status: "approved" | "rejected", note: string, selected: string[]) =>
-    request<RunView>("POST", `/runs/${enc(runId)}/approval`, { status, note, selected }),
+  /** W44: an approval sends the RM's reasons for the profile conflicts; an open conflict → 422. */
+  approve: (runId: string, status: "approved" | "rejected", note: string, selected: string[], resolutions: Resolution[] = []) =>
+    request<RunView>("POST", `/runs/${enc(runId)}/approval`, { status, note, selected, resolutions }),
   notes: (runId: string, note: string, option_notes: Record<string, string>) =>
     request<RunView>("PUT", `/runs/${enc(runId)}/notes`, { note, option_notes }),
   narrative: (runId: string, lang: Lang) => request<NarrativeView>("GET", `/runs/${enc(runId)}/narrative?lang=${lang}`),
