@@ -183,7 +183,7 @@ export function App() {
         <Route
           path="*"
           element={
-            <div className="min-h-screen bg-surface font-sans text-ink">
+            <div className="min-h-screen bg-surface font-sans text-ink print:bg-white">
               <TopBar
                 personas={personas}
                 personaId={personaId}
@@ -205,9 +205,9 @@ export function App() {
                 onUploaded={afterUpload}
                 onResetError={setError}
               />
-              <main className="mx-auto max-w-[1400px] p-6">
+              <main className="mx-auto max-w-[1400px] p-6 print:p-0">
                 {resetDone && (
-                  <p role="status" className="mb-4 flex items-center gap-3 rounded-xl border border-[#ABEFC6] bg-[#ECFDF3] px-4 py-2 text-sm text-[#067647]">
+                  <p role="status" className="mb-4 flex items-center gap-3 rounded-xl border border-[#ABEFC6] bg-[#ECFDF3] px-4 py-2 text-sm text-[#067647] print:hidden">
                     <span>{fill(labels[lang].resetDone, { archive: resetDone })}</span>
                     <button
                       type="button"

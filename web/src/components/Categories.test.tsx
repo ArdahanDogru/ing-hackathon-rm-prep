@@ -128,7 +128,7 @@ test("the badges in the meeting-text headings and the print card", async () => {
   vi.spyOn(api, "narrative").mockResolvedValue(sample("narrative_p01_tr"));
   vi.spyOn(api, "glossary").mockResolvedValue([]);
   const { unmount } = renderWith(<MeetingText view={a} />);
-  const heads = await screen.findAllByTestId("doc-option");
+  const heads = await screen.findAllByTestId("pres-fund");      // the fund cards of the client page
   expect(within(heads[a.result.rm_selected.indexOf(id)]).getAllByTestId("product-badge")[0]).toHaveTextContent(a.options[id].badges![0].label);
   unmount();
   render(<PrintCard view={a} narrative={sample("narrative_p01_tr")} />);

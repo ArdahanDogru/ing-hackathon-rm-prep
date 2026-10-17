@@ -53,7 +53,7 @@ test("screen 2 of an edited profile shows the line with the changes", async () =
 
 test("screen 2 of the original profile has no such line", async () => {
   meeting(sample("run_p01_approved"));
-  await screen.findByTestId("document");
+  await screen.findByTestId("presentation");      // the client page (Öykü's W27+)
   expect(screen.queryByTestId("edited-profile")).toBeNull();
 });
 

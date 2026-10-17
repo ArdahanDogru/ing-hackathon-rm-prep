@@ -762,6 +762,172 @@ the narrator, the meeting text or the card.
   attributes, the date and no-date labels, the retry, TR and EN; the samples
   of `web/src/test` or the mock).
 
+<!-- Öykü's branch web/client-presentation (merged 2026-10-17): her W27-W33 renumbered to W33-W39, since main already used W27-W32. -->
+### Client presentation: "Müşteri sunumu" (W33, 2026-10-16)
+
+Approved by the user 2026-10-16 (canvas "Müşteri Sunumu Mockup"). The meeting
+text read as generic and one-dimensional and was written to the RM, not to the
+client. The "Görüşme metni" tab now opens on **Müşteri sunumu**, a page the RM
+shows or prints for the client; the document of W9–W19 stays one click away as
+**RM hazırlık notu** (`MeetingText initialMode`, default `presentation`).
+Web only: no API, contract or narrator change.
+
+- **Code, locked:** every number and chart comes from the RunView, never from
+  the narrator: the client's goal (`persona.yatirim_amaci`) as the title; three
+  key figures (best real 1-year return of the selected options with the
+  `deposit_real` talking point figure, their access labels, the highest risk
+  level and `risk_ceiling`); **01** real-return bars of the deposit market
+  average (the `deposit_real` figure, not an ING rate: narrator rule 8) and each
+  selected option, with an approximate real gain in TL for an example amount
+  the RM types (default 1.000.000; display only, not saved, "örnek"); **03**
+  access timeline (`access.days` or `lock_days` on a scale of at least 32 days);
+  **04** the SPK scale 1–7 with the options' levels and the ceiling.
+- **Narrator blocks, editable as in the note:** `teklif_metni` under the title,
+  `oneriler:<id>` in each fund card, `dikkat` next to the risk scale,
+  `sorular` as **05** "Sonraki adım". Plain text, no source numbers (the RM note
+  keeps them). The same block edit, check and restore; a deleted block is gone
+  from the page. `dikkat` can be edited but not deleted.
+- **Fund roles:** each fund card is headed by one of its `need_tags` (the
+  client's priorities): the first tag no earlier fund has, else its first tag,
+  else its category label.
+- **Düzenle** (only for an editable draft) shows the ✎ and Sil controls, the
+  edit marks and findings, an edit hint, and the RM's comments: **Notlarım**
+  (`rm_note`) above the page and a yellow comment per fund (`rm_option_notes`),
+  saved as before. Comments are never in the page or its print. Without
+  Düzenle the RM sees exactly the client page.
+- **Yazdır / PDF:** `window.print()`; the top bar, tabs, toolbar, controls and
+  comments are `print:hidden`. Disabled while a rule finding is open (as the
+  card links, W19).
+- **Not in this step:** a client-visible RM note block and comments on a
+  section rather than a fund (both need a contract change: `rm_option_notes`
+  holds selected options only); narrator prompt changes for client-facing
+  speech in `oneriler` and `sorular` (they are still written as RM notes).
+- Tests: `ClientPresentation.test.tsx` (default view and switch, figures and
+  bars from the sample, the TL amounts, distinct roles, the risk scale, no
+  controls before Düzenle, the comment saved as an option note, the block edit,
+  dikkat not deletable, a deleted block, the print disabled by a finding, EN).
+
+### One page: the presentation with the RM's help (W34, 2026-10-17)
+
+The user, 2026-10-17: two tabs (Müşteri sunumu, RM hazırlık notu) are one too
+many; the step is the RM's preparation for the meeting with the client, so the
+page speaks to the client and the rest is there to make the RM's work easier.
+W34 replaces the switch, Düzenle and `MeetingText initialMode` of W33:
+
+- **One page:** the W33 client presentation, with the right column of the note
+  (card, Notlarım, RM notu, Kaynaklar, terms) next to it. The ✎ and Sil
+  controls, the edit marks and findings, and the source numbers are on the
+  page. The narrator blocks of the page show source numbers again.
+- **The RM's help, in yellow boxes** ("yalnızca siz · müşteriye gösterilmez",
+  `RmNote`) next to the part they belong to: under the cover, Görüşmenin amacı
+  (`ozet`) and Piyasa notu; under the key figures, Konuşulacaklar (the talking
+  points, with Bölümü sil); under the fund cards, Diğer seçenekler
+  (`alternatifler`), for "what about X?"; under the risks, Varsayımlar. Each
+  fund card has its yellow comment (`rm_option_notes`). The collapsed lines of
+  the note are gone (the boxes are open), and so is "Öneriler: Bölümü sil"
+  (each fund block has its own Sil).
+- **👁 Müşteri görünümü** hides everything for the RM: the boxes, comments,
+  controls, deleted-block lines, source numbers and the right column. It is
+  the page as the client sees it.
+- **Yazdır / PDF** switches to the client view first, then prints.
+- Source numbers follow the page order: teklif_metni, ozet, piyasa_notu,
+  talking points, oneriler, alternatifler, dikkat, varsayimlar, sorular.
+- Still not in this step: the W33 list (client-facing narrator speech, a
+  client-visible RM note).
+- Tests: `MeetingText.test.tsx` (the boxes inside the page, the client view
+  hides the RM's parts, the print is the client view; the W9–W19 tests on the
+  one page) and `ClientPresentation.test.tsx`.
+
+### Short points, no Terimler (W35, 2026-10-17)
+
+The user, 2026-10-17: the RM knows the terms, and long texts read better as
+bullets or shorter versions than as paragraphs.
+
+- **No Terimler box** on the meeting-text page (and no glossary call there).
+  `TermsBox` and the glossary API stay for the other screens.
+- **Bullets:** every narrator block (the script, the fund texts, the aim, the
+  market note, the risks, the questions, the RM boxes) shows one bullet per
+  sentence; a block of one sentence is one line. The editor opens one sentence
+  per line and an edit shows one bullet per line (the join is "\n" for every
+  block; before, only the list blocks).
+- Not in this step: shorter sentences from the narrator (a prompt change,
+  docs/narrator.md).
+
+### Fund sentences without the fund's name (W36, 2026-10-17)
+
+The user, 2026-10-17: in "Önerimiz", every bullet starts with the fund's name,
+the card's title. The page shows each `oneriler:<id>` sentence without the
+name in front (`withoutName`): one of "issuer short_label", `label` or
+`short_label`, case-insensitive, then a join (":", ",", "için", "de", "da",
+"ise" or a space), with the first letter capitalised. A sentence that does not
+start with the name, or would be empty, stays as it is. Display only: the
+narrator's sentences and their checks are unchanged; the block editor opens
+on the shortened text, so an edit saves it. Not in this step: the narrator
+writing the sentences without the name (a prompt change).
+
+### Fewer repeats on the page (W37, 2026-10-17)
+
+The user, 2026-10-17, from a ranked list of the repeats on the P01 page:
+
+- **03 "Paranıza ne zaman ulaşırsınız?"** only when the selected funds differ
+  in access (label or days); one value for all is the key figure.
+- **Fund-card labels:** real and nominal 1-year return always; risk and access
+  only when the funds differ (else the key figures and the 04 scale say it).
+- **The facts sentence** of each `oneriler:<id>` block (the one that gives both
+  the real and the nominal 1-year figure at any rounding, `restatesFacts`) is left out of the
+  card, its source numbers and the editor's text: the labels say it.
+- Asked of the narrator (docs/narrator.md, owner ing-lead): "no principal
+  guarantee / follows interest rates" once in `dikkat` instead of in every
+  fund block; no past-return warning in `teklif_metni` (it is in `dikkat` and
+  under the chart); the fund blocks without the fund's name in front and
+  without the facts sentence; shorter sentences.
+
+### Key figures name their option (W38, 2026-10-17)
+
+The user, 2026-10-17: "Paranıza erişim: Vade sonunda (32 gün), önerilen
+fonlarda" was the term deposit alone (the two funds had no access in the
+snapshot). Each key figure now names the option it belongs to, under the value:
+the best real return (that fund); the access (the fastest option with a known
+access, "en hızlı erişim" when the known values differ; "Önerilerin hepsinde"
+when all options share it); the risk (the riskiest fund; "Önerilerin hepsinde"
+or "Fonların hepsinde" when one level holds for all, e.g. with a deposit
+without a risk level). Options without a known access do not count: the access
+labels show when only some have one, and the 03 timeline needs at least two
+known, different values (only those rows).
+
+### Key figures as ranges over the proposal (W39, 2026-10-17)
+
+The user, 2026-10-17: with mixed options, naming the best option per figure
+(W38) put the best case of different options side by side (the return of one
+fund, the access of a deposit): a product that does not exist. Replaces the
+naming of W38. The key figures now sum up the whole proposal: a range (lowest –
+highest) when the options differ, one value when they agree: the real 1-year
+return ("+%2,5 – +%9,7", the deposit average under it), the access (the fastest
+label – the slowest in days, "Aynı gün – 32 gün"), the SPK risk ("1 – 2 / 7",
+the client's limit under it). Under each value, the options it covers:
+"Önerilerin hepsinde" (one value for all), "Önerilen 3 seçenekte" (a range over
+all), "Fonların hepsinde" / "Önerilen 2 fonda" (only the funds have it, e.g. a
+deposit has no SPK level), else the options by name (e.g. the only option with
+a known access).
+
+### Merge of the client page with main (lead, 2026-10-17)
+
+The user asked the lead to merge Öykü's branch `web/client-presentation`
+(e657ea0) into main. Two conflicts: `App.tsx` (her `print:p-0` and main's reset
+message: both kept; the message is `print:hidden`) and `MeetingText.tsx` (her
+page taken; main's W28/W30/W32 parts added to it again):
+
+- W28 / W32: the code badge and the Katılım / Döviz badges in the fund cards
+  (`pres-fund`), the code badge in the return chart rows and the access rows of
+  `ClientPresentation`; the source labels "PPN · …" (`withCode`).
+- W30: the line "Düzenlenmiş profil ile hazırlandı: …" as the first RM-only
+  yellow box of the cover (`edited-profile`, not printed for the client; the
+  card and the print card keep it).
+- Tests of main that looked for the old headings now use her page (`pres-fund`,
+  `presentation`). Her page workarounds `restatesFacts` and `withoutName` stay
+  until the narrator change (N16, docs/narrator.md) removes the facts sentence
+  and the name at the start.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

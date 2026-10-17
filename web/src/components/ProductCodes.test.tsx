@@ -145,7 +145,7 @@ test("the meeting-text screen: each recommendation heading", async () => {
   vi.spyOn(api, "glossary").mockResolvedValue([]);
   const a = sample("run_p01_approved");
   renderWith(<MeetingText view={a} />);
-  const options = await screen.findAllByTestId("doc-option");
+  const options = await screen.findAllByTestId("pres-fund");    // the fund cards of the client page
   options.forEach((o, i) => expect(badges(o)[0]).toBe(productCode(a.result.rm_selected[i])));
 });
 
