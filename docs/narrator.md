@@ -370,3 +370,40 @@ Task 6.
 - Config `config/narrator.yaml` `allocation`: `gap_under`, `gap_over`,
   `split_unknown`, `class_labels`, `source_labels` (TR/EN; persona_text =
   "müşteri dosyasına göre", because `dikkat` is for the client).
+
+## N16: text for the client page (approved by the user 2026-10-17)
+
+From Öykü's client page (web-ui.md W33–W39): the page shows each fund's real
+and nominal 1-year return, its risk and its access as labels, and each sentence
+as one bullet. Some narrator text repeats the labels. Prompt n10 → **n11**.
+
+1. `oneriler` per selected option: **1–2 sentences, no facts sentence**: (b)
+   why it fits this client, with a client fact not used for the other options;
+   (c) only when the option has a trade-off of its own (e.g. a small fund size,
+   the lowest real return of the selected ones, a slow access): that trade-off;
+   else no (c). Not the shared risk.
+2. The shared risk of the selected funds (the return follows interest rates,
+   no principal guarantee) goes **once** into `dikkat`, citing the funds it
+   covers; it is never repeated per fund.
+3. `teklif_metni`: no past-return reminder. Rule 3: the past-return caveat only
+   in `dikkat`.
+4. No option name at the start of an `oneriler` sentence (the page card and the
+   Markdown `###` heading per option name it; a sentence belongs to its option
+   by `option_ids[0]`). The validator drops the N13 name check
+   (`_starts_with_name`); the template fallback writes the sentences without the
+   name and without the facts sentence.
+5. Shorter sentences: every sentence at most about 100 characters (one idea per
+   sentence; split a long one). No hard validator limit (a failed text falls back
+   to the template); the lead measures the lengths in the live check.
+
+Unchanged: the numbers rule (1), the citations (4), the RM-only rules (5, 8, 9),
+`dikkat`'s per-option access and fee sentence (it still starts with the name:
+`dikkat` has no per-fund heading), the N13b repeat check between `dikkat` and
+`oneriler`, the need tags, the length aim of `ozet` and `teklif_metni`.
+The web workarounds `restatesFacts` and `withoutName` stay; they then find
+nothing. Tests (offline): the prompt text of each rule; the validator accepts an
+`oneriler` sentence without the name and a 1-sentence option; the template's
+`oneriler` has no name at the start and no facts sentence, and its `teklif_metni`
+no past-return reminder; `to_markdown` keeps the `###` heading per option.
+Live check (lead, paid, about $1–2): P01–P05 TR with n11: validator status,
+the sentence lengths, the five points by eye; then the eval narrator run.
