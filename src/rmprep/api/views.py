@@ -9,17 +9,17 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import date
 
+from rmprep.api import categories as cat
 from rmprep.api.names import short_name
 from rmprep.contracts import Backend, DecisionResult, Flag, ScoredOption, _to_json
 from rmprep.decision.config import DecisionConfig
 from rmprep.decision.display import DisplayFacts, access_text, display_facts
 from rmprep.decision.persona import read_persona
 from rmprep.decision.text import normalize
-from rmprep.grouping import group_key, groups, recommended
+from rmprep.grouping import recommended
 from rmprep.ui.i18n import LABELS, t
 
 PERIODS = ("3m", "6m", "1y")
-SHOWN_PER_CATEGORY = 3
 
 
 def stars(position: int, n: int) -> int:
@@ -256,8 +256,8 @@ class ViewBuilder:
         facts = display_facts(r, ev, self._config)
         members: dict[str, list[str]] = {}
         for o in (*r.options, *r.rejected):          # the category: ranked and eliminated funds
-            if o.option.kind == "fund":
-                members.setdefault(group_key(o), []).append(o.option.option_id)
+            if o.option.kind == "fund":           # W32: the peer group is the display sub-type
+                members.setdefault(cat.peer_key(o.option), []).append(o.option.option_id)
         ranks = {oid: rk for ids in members.values() for oid, rk in category_ranks(facts, ids).items()}
         averages = {key: category_average(facts, ids) for key, ids in members.items()}
         ranked = [o.option.option_id for o in r.options if o.option.kind != "deposit"]
@@ -265,7 +265,7 @@ class ViewBuilder:
 
         def option_view(o: ScoredOption) -> dict:
             oid, opt = o.option.option_id, o.option
-            f, key = facts[oid], group_key(o)
+            f, key = facts[oid], cat.peer_key(opt)
             rk = ranks.get(oid) if opt.kind == "fund" else None
             ev_ids = set(o.evidence_ids)
             valor = f.sell_valor_days
@@ -273,7 +273,10 @@ class ViewBuilder:
             return {
                 "option_id": oid, "label": opt.label, "kind": opt.kind,
                 "issuer": issuer, "short_label": short_label,
-                "category_key": key, "category_label": _label(f"kind.{key}", self._lang),
+                "category_key": key, "category_label": cat.SUBTYPE_LABELS[key][self._lang],
+                "class_key": cat.asset_class(opt),                                   # W32
+                "class_label": cat.CLASS_LABELS[cat.asset_class(opt)][self._lang],
+                "badges": [{"key": b, "label": cat.BADGE_LABELS[b][self._lang]} for b in cat.badges(opt)],
                 "fx": opt.fx,
                 "returns": {**{p: _fact(f.returns.get(p)) for p in PERIODS},
                             "real_1y": _fact(f.real_1y)},
@@ -300,15 +303,13 @@ class ViewBuilder:
 
         baseline = r.options[0] if r.options and r.options[0].option.kind == "deposit" else None
         top = recommended(r, 3)            # the engine's choice (v1.6), else the group heads
-        cats = []
-        for g in groups(r.options):
-            shown = (g.head, *g.alternatives)[:SHOWN_PER_CATEGORY]
-            one_year = facts[g.head.option.option_id].returns.get("1y")
-            cats.append({"key": g.key, "label": _label(f"kind.{g.key}", self._lang),
-                         "count": 1 + len(g.alternatives),
-                         "best_return_1y": one_year.value if one_year else None,
-                         "option_ids": [o.option.option_id for o in shown]})
-        shown_ids = {o.option.option_id for o in top} | {i for c in cats for i in c["option_ids"]}
+        # W32: the categories of every scored option (the step-4 count), by asset class and
+        # sub-type; every option is in `options`, so each row of the list opens its card
+        one_year = {o.option.option_id: (facts[o.option.option_id].returns.get("1y") or None)
+                    for o in r.options}
+        cats = cat.tree([o.option for o in r.options],
+                        {k: (v.value if v else None) for k, v in one_year.items()}, self._lang)
+        shown_ids = {o.option.option_id for o in top} | {o.option.option_id for o in r.options}
         if baseline is not None:
             shown_ids.add(baseline.option.option_id)
         # D20: the best option of each allocation class is shown in the "Dağılım" view

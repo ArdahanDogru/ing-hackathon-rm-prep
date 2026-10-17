@@ -53,9 +53,13 @@ def test_runview_shape(view):
     r, v = view
     assert v["baseline"]["kind"] == "deposit" and v["baseline"]["rank"] is None
     assert 1 <= len(v["top"]) <= 3 and set(v["top"]) <= set(v["options"])
-    assert all(1 <= len(c["option_ids"]) <= 3 for c in v["categories"])
-    assert {i for c in v["categories"] for i in c["option_ids"]} <= set(v["options"])
+    # W32: classes with sub-types over every scored option (the step-4 count), each once
+    ids = [i for c in v["categories"] for s in c["subtypes"] for i in s["option_ids"]]
+    assert sorted(ids) == sorted(o.option.option_id for o in r.options) and set(ids) <= set(v["options"])
+    assert all(c["count"] == sum(s["count"] for s in c["subtypes"]) for c in v["categories"])
+    assert sum(c["count"] for c in v["categories"]) == len(r.options)
     for o in v["options"].values():
+        assert o["category_key"] and o["class_key"] and isinstance(o["badges"], list)
         if o["kind"] == "fund":
             assert 0.0 <= o["match"] <= 10.0
         else:
@@ -248,3 +252,27 @@ def test_w28_rejected_items_have_the_option_id(view):
     rejected = {o.option.option_id for o in r.rejected}
     items = [i for row in v["rejected_by_rule"] for i in row["options"]]
     assert items and all(i["option_id"] in rejected for i in items)
+
+
+@pytest.mark.parametrize("label,kind,fund_kind,fx,sub,cls_,badges", [
+    ("AK PORTFÖY PARA PİYASASI KATILIM FONU", "fund", "participation", False, "para_piyasasi", None, ["katilim"]),
+    ("ALBARAKA PORTFÖY KİRA SERTİFİKALARI  KATILIM FONU", "fund", "participation", False, "kira_sertifikasi", None, ["katilim"]),
+    ("İSTANBUL PORTFÖY KISA VADELİ BORÇLANMA ARAÇLARI (TL) FONU", "fund", "debt", False, "kisa_vadeli", None, []),
+    ("AK PORTFÖY EUROBOND (AMERİKAN DOLARI) BORÇLANMA ARAÇLARI FONU", "fund", "debt", True, "eurobond_doviz", None, ["fx"]),
+    ("X PORTFÖY ALTIN KATILIM FONU", "fund", "participation", False, "altin", None, ["katilim"]),
+    ("İŞ PORTFÖY TEMKİNLİ FON SEPETİ FONU", "fund", "fund_of_funds", False, "fon_sepeti", None, []),
+    ("ASTRA PORTFÖY AGRESİF DEĞİŞKEN FON", "fund", "variable", False, "degisken", None, []),
+    ("OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU", "fund", "debt", False, "borclanma", None, []),
+    ("TÜRK HAVA YOLLARI", "stock", None, False, "hisse", "hisse", []),
+    ("ING Turuncu Hesap (standart)", "deposit", None, False, "mevduat", "nakit_benzeri", []),
+    ("KUVEYT TÜRK PORTFÖY ÇOKLU VARLIK KATILIM FONU", "fund", "participation", False, "degisken", None, ["katilim"]),
+    ("OSMANLI PORTFÖY BIST TLREF ENDEKSİ (TL) BORSA YATIRIM FONU", "etf", None, False, "para_piyasasi", None, []),
+    ("İŞ PORTFÖY YABANCI BORÇLANMA ARAÇLARI FONU", "fund", "debt", False, "eurobond_doviz", None, []),
+])
+def test_w32_display_categories(label, kind, fund_kind, fx, sub, cls_, badges):
+    from rmprep.api import categories as cat
+    from rmprep.contracts import ProductOption
+    o = ProductOption(option_id=f"{kind}:X", kind=kind, label=label, fund_kind=fund_kind, fx=fx,
+                      asset_class="borclanma")
+    assert cat.subtype(o) == sub and cat.badges(o) == badges
+    assert cat.asset_class(o) == (cls_ or "borclanma")

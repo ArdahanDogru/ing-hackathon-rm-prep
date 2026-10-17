@@ -592,6 +592,44 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### Categories by what a fund invests in (W32, 2026-10-17)
+
+Asked by the user 2026-10-17: the "Kategorileri gör" pop-up of step 4 did not
+match the step ("141 aday" vs 4 categories with 20 funds: it used the short-list
+rule `grouping.groups`, the best 20 options, at most 5 groups and 3 funds each),
+and the categories were misleading: they were the TEFAS legal types, e.g.
+"Katılım" (P01: 18 money market funds, 16 kira sertifikası, 1 gold, 3 other) or
+"Değişken". Approved by the user 2026-10-17. Display only: the engine, its
+kinds (`fund_kind`, `group_key`), the short-list rule and the scores do not change.
+(Öykü's branch `web/client-presentation` also uses W27–W33; her numbers change
+when it is merged.)
+
+- One grouping on the whole screen (`rmprep.api.categories`, lead): first the
+  asset class of the "Dağılım" view (Nakit benzeri, Borçlanma, Hisse, Altın /
+  döviz, Dengeli; an ING deposit is cash-like, a share is equity), then a
+  sub-type from the fund name, the first rule that matches: ING mevduat, Para
+  piyasası (also TLREF index ETFs), Kira sertifikası, Kısa vadeli borçlanma,
+  Eurobond / döviz (also "YABANCI BORÇLANMA"), Altın / kıymetli maden, Fon
+  sepeti, Hisse, Değişken / karma (also a Katılım fund without a type word),
+  Borçlanma (TL), Diğer. Badges, not categories: Katılım, Döviz (FX).
+- API (lead, done): the RunView `categories` is a list of classes `{key, label,
+  count, subtypes: [{key, label, count, best_return_1y, option_ids}]}` over every
+  scored option (the counts add up to the step-4 number; each option once, in
+  the engine's order). `options` now has every scored option, so each row opens
+  its card. Each option view has `category_key` / `category_label` = the
+  sub-type, `class_key` / `class_label`, `badges: [{key, label}]`; its `rank`
+  ("Kategorisinde 12. / 73") and `category_avg` use the sub-type as the peer
+  group (e.g. every money market fund, Katılım or not).
+- Web (ing-web): the pop-up lists the classes with their counts (the header
+  "143 aday, 5 sınıf"), each opens to its sub-types; a sub-type shows its best 5
+  funds (code badge, name, score, 1-year return, the badges) and "Tümünü göster";
+  a row opens the fund card. Step 5 "kendi grubunda n." uses `category_key`.
+  Every other place that showed `category_label` now shows the sub-type, with
+  the badges where a product title is shown.
+- Tests: API `test_runview_shape` (the tree, the counts, every id in `options`),
+  `test_w32_display_categories` (the rules); web (the classes and counts, the
+  sub-types, "Tümünü göster", a row opens the card, the badges, step 5, TR and EN).
+
 ### An edited profile can be approved (W30, 2026-10-17)
 
 Approved by the user 2026-10-17 (option A). Before, an edited persona was a
