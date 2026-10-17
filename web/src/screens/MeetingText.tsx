@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { NarrativeView, OptionKind, OptionView, RunView, SectionKey } from "../api/types";
 import { BlockEditor } from "../components/BlockEditor";
-import { ClientPresentation, RmNote, withoutName, type BlockOpts } from "../components/ClientPresentation";
+import { ClientPresentation, RmNote, restatesFacts, withoutName, type BlockOpts } from "../components/ClientPresentation";
 import { snapshotDate } from "../components/BriefCard";
 import { SourceMark } from "../components/DocumentSection";
 import { ErrorBox } from "../components/ErrorBox";
@@ -156,7 +156,11 @@ export function MeetingText({ view }: { view: RunView }) {
     : view.talking_points.map((p) => ({ text: p.text, title: p.label, evidence_ids: p.evidence_ids, option_ids: p.option_ids }));
   const selected = r.rm_selected.filter((id) => view.options[id]);
   // a recommendation sentence belongs to the block of its first option (oneriler:<option_ids[0]>)
-  const perOption = selected.map((id) => ({ id, sentences: sentences("oneriler").filter((s) => s.option_ids[0] === id) }));
+  // W31: without the sentence that only restates the card's labels (real, nominal, risk)
+  const perOption = selected.map((id) => ({
+    id,
+    sentences: sentences("oneriler").filter((s) => s.option_ids[0] === id && !restatesFacts(s.text, view.options[id])),
+  }));
   const approved = draft?.status === "approved";
   const editable = !!draft && !approved;
   /** rm_edits[block] === "": the block is deleted (v1.9). */

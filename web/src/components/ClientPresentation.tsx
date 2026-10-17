@@ -75,6 +75,17 @@ export function withoutName(text: string, o: OptionView, lang: "TR" | "EN"): str
   return text;
 }
 
+/**
+ * A fund sentence that only restates the card's labels (W31): it gives both the real and the
+ * nominal 1-year return ("reel getirisi %7,36, nominal getirisi %47,60, risk düzeyi 1/7").
+ */
+export function restatesFacts(text: string, o: OptionView): boolean {
+  const figs = (v: number | undefined) => (v === undefined ? [] : [v.toFixed(2).replace(".", ","), v.toFixed(2)]);
+  const real = figs(o.returns.real_1y?.value);
+  const nominal = figs(o.returns["1y"]?.value);
+  return real.some((x) => text.includes(x)) && nominal.some((x) => text.includes(x));
+}
+
 /** "1.000.000" → 1000000; anything without digits → 0. */
 export const parseAmount = (s: string) => Number(s.replace(/\D/g, "")) || 0;
 const tl = (n: number) => `${Math.round(n).toLocaleString("tr-TR")} TL`;
@@ -170,6 +181,10 @@ export function ClientPresentation({
   const days = (o: OptionView) => o.access.days ?? o.access.lock_days;
   const dayScale = Math.max(DAYS_MIN, ...funds.map((o) => days(o) ?? 0));
   const accessLabels = [...new Set(funds.map((o) => o.access.label).filter(Boolean))];
+  // W31: the access timeline and the access and risk labels only when the funds differ;
+  // one value for all is in the key figures (and the risk scale)
+  const accessDiffers = new Set(funds.map((o) => `${o.access.label}|${days(o)}`)).size > 1;
+  const riskDiffers = new Set(funds.map((o) => o.risk?.level)).size > 1;
 
   // 04: the risk scale
   const levels = [...new Set(funds.map((o) => o.risk?.level).filter((x): x is number => x != null))].sort();
@@ -305,8 +320,13 @@ export function ClientPresentation({
                         <b>{fmtPct(real(o)!).replace(/^%/, "+%")}</b> {t("presReal")}
                       </span>
                     )}
-                    {o.risk && <span className="rounded-md bg-[#F7F5F1] px-2 py-1">{`${t("riskShort")} ${o.risk.level}/7`}</span>}
-                    {o.access.label && <span className="rounded-md bg-[#F7F5F1] px-2 py-1">{o.access.label}</span>}
+                    {o.returns["1y"] && (
+                      <span className="rounded-md bg-[#F7F5F1] px-2 py-1">
+                        <b>{fmtPct(o.returns["1y"].value).replace(/^%/, "+%")}</b> {t("presNominal")}
+                      </span>
+                    )}
+                    {riskDiffers && o.risk && <span className="rounded-md bg-[#F7F5F1] px-2 py-1">{`${t("riskShort")} ${o.risk.level}/7`}</span>}
+                    {accessDiffers && o.access.label && <span className="rounded-md bg-[#F7F5F1] px-2 py-1">{o.access.label}</span>}
                   </div>
                   {content !== null && <div className="border-t border-[#ECE9E3] pt-3 text-[15px] leading-relaxed text-[#2C2924]">{content}</div>}
                   {rm && (
@@ -325,7 +345,7 @@ export function ClientPresentation({
         </section>
 
         {/* 03 access */}
-        {funds.some((o) => o.access.label) && (
+        {accessDiffers && funds.some((o) => o.access.label) && (
           <section className="flex flex-col gap-4">
             <Heading n="03">{t("pres3Title")}</Heading>
             <div className={`${card} flex flex-col gap-3`}>

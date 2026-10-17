@@ -5,7 +5,7 @@ import type { NarrativeView } from "../api/types";
 import { renderWith } from "../test/render";
 import { sample } from "../test/samples";
 import { MeetingText } from "../screens/MeetingText";
-import { fundRoles, parseAmount, parseFigure, withoutName } from "./ClientPresentation";
+import { fundRoles, parseAmount, parseFigure, restatesFacts, withoutName } from "./ClientPresentation";
 
 const narrative = () => sample("narrative_p01_tr");
 
@@ -52,10 +52,44 @@ test("each fund has its own role from the client's priorities and its narrator b
   expect(funds.map((f) => within(f).getAllByText(/./)[0].textContent)).toEqual(["DÜZENLİ GELİR", "SINIRLI DALGALANMA", "LİKİDİTEYİ KORUMA"]);
   // the sentences without the fund's name in front: the card's title is the name
   const items = within(funds[0]).getAllByRole("listitem").map((x) => x.textContent!);
-  expect(items).toHaveLength(3);
+  // the sentence that only restates the labels (real, nominal, risk) is left out (W31)
+  expect(items).toHaveLength(2);
   items.forEach((x) => expect(x).not.toMatch(/^Nurol/));
-  expect(items[0]).toMatch(/^Enflasyon sonrası reel getirisi %7,36/);
-  expect(items[2]).toMatch(/^Getirisi faiz değişimine bağlıdır/);
+  expect(items[0]).toMatch(/^Düzenli gelir ihtiyacınız/);
+  expect(items[1]).toMatch(/^Getirisi faiz değişimine bağlıdır/);
+});
+
+test("labels: real and nominal; risk, access and the timeline only when the funds differ", async () => {
+  show();
+  const funds = await screen.findAllByTestId("pres-fund");
+  expect(funds[0]).toHaveTextContent("+%7,4 reel");
+  expect(funds[0]).toHaveTextContent("+%47,6 nominal");
+  // P01: all three are risk 1 and same-day
+  funds.forEach((f) => {
+    expect(f).not.toHaveTextContent("risk 1/7");
+    expect(f).not.toHaveTextContent("Aynı gün");
+  });
+  expect(screen.queryAllByTestId("pres-access")).toHaveLength(0);
+  expect(screen.queryByText("Paranıza ne zaman ulaşırsınız?")).toBeNull();
+});
+
+test("funds with different risk and access show the labels and the timeline", async () => {
+  const v = sample("run_p01_approved");
+  const ist = v.options["fund:IST"];
+  v.options["fund:IST"] = { ...ist, risk: { ...ist.risk!, level: 2 }, access: { ...ist.access, days: 2, label: "2 gün" } };
+  vi.spyOn(api, "narrative").mockResolvedValue(narrative());
+  renderWith(<MeetingText view={v} />);
+  const funds = await screen.findAllByTestId("pres-fund");
+  expect(funds[1]).toHaveTextContent("risk 2/7");
+  expect(funds[1]).toHaveTextContent("2 gün");
+  expect(screen.getAllByTestId("pres-access")).toHaveLength(3);
+});
+
+test("restatesFacts: both the real and the nominal figure", () => {
+  const o = sample("run_p01_approved").options["fund:PPN"];
+  expect(restatesFacts("X: enflasyon sonrası reel getirisi %7,36, nominal getirisi %47,60, risk düzeyi 1/7.", o)).toBe(true);
+  expect(restatesFacts("X shows a real 1-year return of 7.36%, a nominal return of 47.60%.", o)).toBe(true);
+  expect(restatesFacts("X son bir yılda %7,36 reel getiri sundu.", o)).toBe(false);
 });
 
 test("withoutName: the joins of TR and EN, and texts it leaves alone", () => {

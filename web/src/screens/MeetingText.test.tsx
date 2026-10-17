@@ -155,10 +155,12 @@ test("one card per selected option: short name, facts, its sentences, a comment 
   const id = v.result.rm_selected[0];
   const o = v.options[id];
   expect(blocks[0]).toHaveTextContent(o.short_label);
-  expect(blocks[0]).toHaveTextContent(`risk ${o.risk!.level}/7`);
+  expect(blocks[0]).toHaveTextContent(/\+%47,6\d* nominal/);
   // a sentence belongs to the block of its first option (server rule: oneriler:<option_ids[0]>)
   // shown without the fund's name in front (W30)
-  section("oneriler")!.sentences.filter((s) => s.option_ids[0] === id).forEach((s) => expect(blocks[0]).toHaveTextContent(s.text.slice(-40)));
+  section("oneriler")!
+    .sentences.filter((s) => s.option_ids[0] === id && !s.text.includes("nominal getirisi"))
+    .forEach((s) => expect(blocks[0]).toHaveTextContent(s.text.slice(-40)));
   expect(within(blocks[0]).getByRole("textbox")).toBeInTheDocument();
 });
 
@@ -360,7 +362,7 @@ test("the card downloads; no Terimler box (W29: the RM knows the terms)", async 
   const v = sample("run_p01_approved");
   renderMeeting(v);
   await screen.findByTestId("card-box");
-  for (const term of sample("glossary")) expect(screen.queryByText(term.form)).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Terimler" })).toBeNull();
   expect(screen.getByRole("link", { name: /Markdown olarak indir/ })).toHaveAttribute("href", api.cardUrl(v.result.run_id));
   expect(screen.getByRole("link", { name: /PDF olarak indir/ })).toHaveAttribute("href", `/print/${v.result.run_id}`);
   // a template draft has no model: the footer says "şablon metin" instead

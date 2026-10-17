@@ -680,6 +680,23 @@ narrator's sentences and their checks are unchanged; the block editor opens
 on the shortened text, so an edit saves it. Not in this step: the narrator
 writing the sentences without the name (a prompt change).
 
+### Fewer repeats on the page (W31, 2026-10-17)
+
+The user, 2026-10-17, from a ranked list of the repeats on the P01 page:
+
+- **03 "Paranıza ne zaman ulaşırsınız?"** only when the selected funds differ
+  in access (label or days); one value for all is the key figure.
+- **Fund-card labels:** real and nominal 1-year return always; risk and access
+  only when the funds differ (else the key figures and the 04 scale say it).
+- **The facts sentence** of each `oneriler:<id>` block (the one that gives both
+  the real and the nominal 1-year figure, `restatesFacts`) is left out of the
+  card, its source numbers and the editor's text: the labels say it.
+- Asked of the narrator (docs/narrator.md, owner ing-lead): "no principal
+  guarantee / follows interest rates" once in `dikkat` instead of in every
+  fund block; no past-return warning in `teklif_metni` (it is in `dikkat` and
+  under the chart); the fund blocks without the fund's name in front and
+  without the facts sentence; shorter sentences.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no
