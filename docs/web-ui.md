@@ -958,6 +958,33 @@ page taken; main's W28/W30/W32 parts added to it again):
   until the narrator change (N16, docs/narrator.md) removes the facts sentence
   and the name at the start.
 
+### The wait for the meeting text, step by step (W41, 2026-10-17)
+
+The user, 2026-10-17: while the meeting text is written, show what is happening
+and what it is made from, as a chain of steps. "Metin hazırlanıyor…" becomes
+`NarrativeProgress`: the steps of `Narrator.draft` (docs/narrator.md), each with
+the inputs it uses as chips, all from the RunView:
+
+1. Müşteri profili okunuyor: profile and age, risk profile, goal, horizon,
+   priorities, constraints.
+2. Onaylanan n öneri: each selected option ("Nurol Para Piyasası (TL) · %7,4
+   reel").
+3. Piyasa verileri: TEFAS fund returns, TÜİK CPI, the TCMB EVDS deposit average
+   (the `deposit_real` figure), the data date.
+4. Yazım kuralları: every number from the data, every sentence with a source,
+   no promises, the not-investment-advice note.
+5. Yapay zekâ metni yazıyor: the sections it writes; "usually 20–60 seconds".
+6. Metin kontrol edilecek (shown as next): numbers, sources, forbidden phrases;
+   a failed check means one more writing, then the template text.
+
+The API reports no progress, so steps 1–4 come in on a timer (`STEP_MS` 1.1 s;
+on the server they take well under a second) and step 5 stays open until the
+text arrives; step 6 runs inside that wait. A seconds counter runs on top.
+Animations only with `motion-safe` (Tailwind keyframes `rise`). A cached text
+arrives at once, so the steps show only for a new text. Real progress (the
+attempt, a retry, the fallback) would need a progress endpoint: not in this
+step. Tests: `NarrativeProgress.test.tsx`.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no
