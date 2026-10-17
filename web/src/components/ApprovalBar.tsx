@@ -50,7 +50,8 @@ export function ApprovalBar({
     }
   };
 
-  const reason = view.test_run ? t("testRunNoApproval") : selected.length === 0 ? t("needOne") : null;
+  // W30: an edited profile (a test run) can be approved too
+  const reason = selected.length === 0 ? t("needOne") : null;
 
   return (
     <div className="sticky bottom-0 z-20 mt-6 border-t border-gray-200 bg-ink text-white">
@@ -99,7 +100,7 @@ export function ApprovalBar({
               )}
               <button
                 type="button"
-                disabled={busy || view.test_run}
+                disabled={busy}
                 className="rounded-[10px] border border-white/70 px-3 py-1.5 font-semibold disabled:opacity-50"
                 onClick={() => send("rejected")}
               >

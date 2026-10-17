@@ -1,6 +1,6 @@
 // Dashboard "B4" (docs/web-ui.md "Redesign v2"; mockup redesign-v4.html tab 3):
 // lifecycle tabs, brief card, agenda | Öneriler, Detaylar, approval bar.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import type { Persona, RunView } from "../api/types";
 import { AgentPanel, useAgentRun } from "../components/AgentPanel";
@@ -21,22 +21,17 @@ import { QuestionsPanel } from "../components/QuestionsPanel";
 import { ResearchPanel } from "../components/ResearchPanel";
 import { useChecks } from "../checks";
 import { explain } from "../explain";
-import { labels, useT, type LabelKey } from "../i18n";
+import { LangContext, useT } from "../i18n";
+import { profileChanges } from "../profileChanges";
 
-const show = (v: unknown) => (Array.isArray(v) ? v.join(", ") : String(v));
-
-/** "Test: P01 değiştirildi (yaş 62 → 45)" */
+/** W30: "Düzenlenmiş profil: onaylanırsa …" and the changes ("yaş: 62 → 45"). */
 function TestBanner({ view, onReset }: { view: RunView; onReset?: () => void }) {
   const t = useT();
-  const field = (f: string) => {
-    const key = `f_${f}` as LabelKey;
-    return key in labels.TR ? t(key) : f;
-  };
-  const changes = view.persona_changes.map((c) => `${field(c.field)} ${show(c.original)} → ${show(c.edited)}`).join("; ");
+  const lang = useContext(LangContext);
   return (
-    <div role="status" className="mb-4 flex items-center gap-3 rounded-xl border border-[#FEC84B] bg-[#FFFAEB] px-4 py-2.5 text-sm">
-      <b>{`${t("testBanner")}:`}</b>
-      <span>{`${view.result.persona.persona_id} ${t("changed")} (${changes})`}</span>
+    <div role="status" className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[#FEC84B] bg-[#FFFAEB] px-4 py-2.5 text-sm">
+      <b>{t("editedBanner")}</b>
+      <span className="text-[#93370D]">{`${view.result.persona.persona_id}: ${profileChanges(view.persona_changes, lang)}`}</span>
       {onReset && (
         <button type="button" className="ml-auto text-sm underline" onClick={onReset}>
           {t("resetPersona")}

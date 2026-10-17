@@ -8,6 +8,7 @@ import { LangContext, useT } from "../i18n";
 import { Markdown } from "../markdown";
 import "../print.css";
 import { CodeBadge } from "../product";
+import { profileChanges } from "../profileChanges";
 
 function List({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null;
@@ -62,6 +63,11 @@ export function PrintCard({ view, narrative }: { view: RunView; narrative: Narra
           <div className="text-muted">
             {`${p.risk_profili} · ${t("horizon")} ${p.yatirim_ufku} · ${t("liquidity")} ${p.likidite_ihtiyaci.toLocaleLowerCase("tr")}`}
           </div>
+          {view.test_run && view.persona_changes.length > 0 && (
+            <div data-testid="print-edited-profile" className="mt-1 text-xs">
+              {`${t("editedLine")}: ${profileChanges(view.persona_changes, lang)}`}
+            </div>
+          )}
         </div>
         <div className="text-right text-xs text-muted">
           <div>{r.run_id}</div>
