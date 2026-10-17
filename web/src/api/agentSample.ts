@@ -34,8 +34,11 @@ const NODES: [string, string][] = [
  * The five nodes; `finished` of them are done, the next one runs (running), or all are done.
  * The last node fails for a fallback.
  */
-function nodes(run: RunLike, finished: number, fallback: boolean): AgentNode[] {
+function nodes(run: RunLike, finished: number, fallback: boolean, choice: string[] = []): AgentNode[] {
   const cands = candidates(run);
+  // W40 (agent.md A4): the notes in the RM's words, with the product codes
+  const code = (id: string | undefined) => (id ? (id.split(":")[1] ?? id) : "");
+  const codes = (ids: string[]) => ids.map(code).filter(Boolean).join(", ");
   return NODES.map(([id, label], i) => {
     const state = i < finished ? "done" : i === finished ? "running" : "waiting";
     const failed = fallback && i === 3;
@@ -53,8 +56,14 @@ function nodes(run: RunLike, finished: number, fallback: boolean): AgentNode[] {
           }))
         : id === "analiz"
           ? [
-              { id: "analiz:1", label: `karşılaştır ${cands[1]}–${cands[6]}`, state: i < finished ? "done" : state, started_at: at(20), finished_at: i < finished ? at(24) : null, cost_usd: 0, notes: ["Borçlanma açığı için iki borçlanma fonunu karşılaştırmak."], children: [] },
-              { id: "analiz:2", label: `araştır ${cands[6]}: yönetim ücreti`, state: i < finished ? "done" : "waiting", started_at: i < finished ? at(25) : null, finished_at: i < finished ? at(31) : null, cost_usd: 0.01, notes: ["Ücret farkı sıralamayı değiştirir mi, görmek."], children: [] },
+              { id: "analiz:1", label: `Karşılaştırma: ${code(cands[1])} ile ${code(cands[6])}`, state: i < finished ? "done" : state, started_at: at(20), finished_at: i < finished ? at(24) : null, cost_usd: 0, notes: ["Amaç: Borçlanma açığı için iki borçlanma fonunu karşılaştırmak."], children: [] },
+              { id: "analiz:2", label: `Ek araştırma: ${code(cands[6])} — “yönetim ücreti ne kadar?”`, state: i < finished ? "done" : "waiting", started_at: i < finished ? at(25) : null, finished_at: i < finished ? at(31) : null, cost_usd: 0.01, notes: ["Amaç: Ücret farkı sıralamayı değiştirir mi, görmek."], children: [] },
+              ...(i < finished
+                ? [
+                    { id: "analiz:3", label: "Karar önerisi (1. deneme)", state: "failed" as const, started_at: at(32), finished_at: at(34), cost_usd: 0.01, notes: ["Amaç: Üç ürünlük öneriyi sunmak.", "Kontrolde 2 sorun bulundu; ajan düzeltip yeniden önerdi."], children: [] },
+                    { id: "analiz:4", label: "Karar önerisi (2. deneme)", state: (fallback ? "failed" : "done") as AgentNode["state"], started_at: at(35), finished_at: at(37), cost_usd: 0.01, notes: ["Amaç: Düzeltilmiş öneriyi sunmak.", fallback ? "Kontrolde 1 sorun bulundu; motorun ilk 3'ü kullanılıyor." : "Kontrollerden geçti."], children: [] },
+                  ]
+                : []),
             ]
           : [];
     const done = i < finished;
@@ -67,16 +76,27 @@ function nodes(run: RunLike, finished: number, fallback: boolean): AgentNode[] {
       cost_usd: id === "analiz" ? 0.042 : id === "arastirma" ? 0.04 : 0,
       notes:
         id === "adaylar"
-          ? [`Motorun kesin kurallar içindeki en iyi ${cands.length} seçeneği.`]
-          : id === "kontrol"
-            ? failed
-              ? ["Bir gerekçedeki sayı kaynakla uyuşmuyor (ikinci deneme de)."]
-              : done
-                ? ["3 farklı seçenek, hepsi adaylar içinde.", "Her gerekçe kaynak gösteriyor."]
+          ? [`Adaylar: ${codes(cands)}.`]
+          : id === "arastirma"
+            ? done
+              ? [`${cands.length} aday araştırıldı; ✗ işaretli 1 bulgu ajana verilmedi.`]
+              : []
+            : id === "kontrol"
+              ? done || failed
+                ? [
+                    "1. öneri: 2 sorun bulundu, ajana düzeltmesi için geri verildi:",
+                    `– ${code(cands[6])}: “75” sayısı gösterilen kaynaklarda yok`,
+                    `– ${code(cands[0])}: bir gerekçenin kaynağı yok`,
+                    failed ? `2. öneri: 1 sorun bulundu; motorun ilk 3'ü kullanılıyor.` : "2. öneri: tüm kontroller geçti.",
+                  ]
                 : []
-            : id === "karar" && fallback && done
-              ? ["Motor önerisi kullanıldı."]
-              : [],
+              : id === "karar" && done
+                ? fallback
+                  ? ["Motor önerisi kullanıldı: kontrol iki kez geçmedi."]
+                  : choice.length
+                    ? [`Ajanın seçimi: ${codes(choice)}.`]
+                    : []
+                : [],
       children,
     };
   });
@@ -157,7 +177,7 @@ export function agentDecision(run: RunLike, state: AgentState, step = 2): AgentD
       },
     ],
     summary: "Nakit payı yüksek; bir para piyasası fonu yerine borçlanma fonu öneriliyor.",
-    nodes: nodes(run, 5, false),
+    nodes: nodes(run, 5, false, picks.map((p) => p.option_id)),
     cost_usd: 0.096,
   };
 }
