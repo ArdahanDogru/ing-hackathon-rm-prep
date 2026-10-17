@@ -974,8 +974,8 @@ the inputs it uses as chips, all from the RunView:
 4. Yazım kuralları: every number from the data, every sentence with a source,
    no promises, the not-investment-advice note.
 5. Yapay zekâ metni yazıyor: the sections it writes; "usually 20–60 seconds".
-6. Metin kontrol edilecek (shown as next): numbers, sources, forbidden phrases;
-   a failed check means one more writing, then the template text.
+6. Metin kontrol edilecek (shown as next): numbers and sources;
+   a failed check means one more writing.
 
 The API reports no progress, so steps 1–4 come in on a timer (`STEP_MS` 1.1 s;
 on the server they take well under a second) and step 5 stays open until the

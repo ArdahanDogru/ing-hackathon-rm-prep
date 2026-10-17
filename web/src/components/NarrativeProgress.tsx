@@ -17,7 +17,7 @@ const WRITE = 4;
 
 const SECTIONS: Key[] = ["meetingAim", "tpDoc", "scriptShort", "recommendations", "attention", "questionsToAsk", "assumptions"];
 const RULES: Key[] = ["progRule1", "progRule2", "progRule3", "progRule4"];
-const CHECKS: Key[] = ["progCheck1", "progCheck2", "progCheck3"];
+const CHECKS: Key[] = ["progCheck1", "progCheck2"];
 
 function Dot({ state }: { state: "done" | "active" | "next" }) {
   if (state === "done")
