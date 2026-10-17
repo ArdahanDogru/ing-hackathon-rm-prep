@@ -11,11 +11,10 @@ araştırmasıyla karşılaştırıp kendi ilk 3'ünü önerir; her adımı kodl
 Her sayı kaynağı, tarihi ve kanıt kimliğiyle izlenebilir.
 **Araç yatırım tavsiyesi vermez; kararı ve müşteri iletişimini RM yapar.**
 
-![P02 panosu: önerilen ilk 3, mevduatla karşılaştırma, "Teyit edin" ve onay çubuğu](docs/img/readme/dashboard.png)
-*P02 (ihracatçı, Dengeli) panosu. Solda gündem ve "Teyit edin" maddeleri;
-sağda önerilen ilk 3; en altta RM'in onay çubuğu. (Ekran görüntüsü 14.10.2026
-sürümünden. Bugünkü sürümde gündem tam genişlikte, ajan kutusu onun altında;
-arayüz yalnızca Türkçe.)*
+![P02 panosu: profil, AI ile bulunan teyit soruları, piyasa notu ve onay çubuğu](docs/img/readme/dashboard.png)
+*P02 (ihracatçı, Dengeli) panosu, 17.10.2026 verisi. Üstte profil ve AI
+kontrolünün alıntılı "Sorulacak" bulguları; ortada kodun yazdığı piyasa notu
+(her değer "K" ile kanıta bağlı); en altta RM'in onay çubuğu.*
 
 Hızlı başlangıç (Windows, Python 3.11+, Node yalnızca web derlemesi için):
 
@@ -174,6 +173,11 @@ flowchart TB
     R4 -.-> X
 ```
 
+Ekranda aynı huni "Bu öneriler nasıl seçildi?" bloğundadır: müşterinin kriter
+ağırlıkları, kural başına elenen sayısı ve istikrar sonucu.
+
+![Bu öneriler nasıl seçildi: profil ve ağırlıklar, 1.444 seçenek, 1.138 elendi, 306 aday, 3 öneri](docs/img/readme/pipeline.png)
+
 Bilinmeyen risk değeri bir eleme nedeni değildir: aynı sınıftaki bilinen
 risklerin üst çeyreğiyle tahmin edilir, güveni düşürür ve RM'e uyarı verir.
 
@@ -220,6 +224,12 @@ anapara 0,102 · kalite 0,051.
 | ING e-Vadeli Mevduat | nakit benzeri | +%2,1 | 0,434 | sıralanır, ama nakit benzeri yeri EIL'de |
 | ING Turuncu Hesap (karşılaştırma) | nakit benzeri | −%8,3 | 0,185 | reel kayıp ve piyasa altı cezaları |
 
+Fon kartı ("Neden bu öneri?") her puan parçasını gerekçesiyle, geçtiği katı
+kuralları kanıt kimlikleriyle ve en yakın alternatifle farkını gösterir
+(ekranda puanlar ×100):
+
+<img src="docs/img/readme/fundcard.png" alt="EIL fon kartı: uygunluk, benzerleri arasında sıra, kategoriye göre getiri, belgeler, puan parçaları, geçtiği kurallar, en yakın alternatif" width="420">
+
 RPP (0,775) KDE'den yüksek puan alır, ama tek nakit benzeri yeri EIL doldurur.
 P02'nin döviz kısıtı 15 döviz fonunu eler; RM bu kısıtı gerekçe yazarak
 kaldırabilir. Aynı gün beş personanın ilk 3'ü:
@@ -234,9 +244,10 @@ kaldırabilir. Aynı gün beş personanın ilk 3'ü:
 
 **Dağılım görünümü** ayrıca risk profiline göre model bantları (Ata Yatırım,
 28.04.2026), müşterinin mevcut dağılımını ve her sınıfın en iyi seçeneğini
-gösterir.
+gösterir. P02'nin dosyasında dağılım yok: değerler "tahmini senaryo"dur ve RM
+"Tahmini onayla" veya "Düzenle" diyene kadar sıralamayı etkilemez.
 
-![Dağılım görünümü: varlık sınıfı başına model bant ve sınıfın en iyi seçeneği](docs/img/readme/allocation.png)
+![Dağılım görünümü: tahmini mevcut portföy, varlık sınıfı başına model bant ve sınıfın en iyi seçeneği](docs/img/readme/allocation.png)
 
 ## 4. Genel çözüm mimarisi ve veri akışı
 
@@ -339,6 +350,18 @@ olursa ajan sorunları alır ve bir kez düzeltir; ikinci hata, süre aşımı
 (Adaylar, Ajan araştırması, Ajan analizi, Kontrol, Karar) zaman, maliyet ve
 notlarıyla görür; ham model düşüncesi saklanmaz ve gösterilmez.
 
+![Ajanın beş adımı: Adaylar, Ajan araştırması, Ajan analizi, Kontrol, Karar; süre ve maliyetle](docs/img/readme/agent.png)
+
+![Ajan önerisi (P01): seçilen 3 fon atıflı gerekçeleriyle, çıkarılan AIS ve nedeni, motor sıralamasına bağlantı](docs/img/readme/agent-picks.png)
+*P01 için ajan motorun AIS'ini çıkarıp ZBJ'yi aldı. Her gerekçe bir puan
+parçasına veya kanıt kimliğine bağlıdır; tahmini dağılıma dayanan cümle
+"(tahmini dağılıma göre)" etiketini kodla alır.*
+
+Ajanın ve RM'in gördüğü web araştırması. RM her bulguyu ✓ veya ✗ ile
+işaretler; ✗ işaretli bulgu "ajana verilmez":
+
+![Ajan araştırması: her öneri için tarihli haberler ve öne çıkanlar, kaynak numaraları, ✓/✗ işaretleri](docs/img/readme/research.png)
+
 ```mermaid
 sequenceDiagram
     actor RM
@@ -379,6 +402,16 @@ olmayan oran; tahmini dağılımın sayısı; eksik bölüm veya eksik "yatırı
 tavsiyesi değildir" cümlesi. Piyasa notu (politika faizi, USD/TRY, fonlama
 maliyeti) LLM'e hiç yazdırılmaz: kod yazar, her değer kanıt kimliğiyle.
 
+Metin yazılırken RM anlatıcının adımlarını ve her adımın girdisini görür:
+
+![Metin hazırlanıyor: profil, onaylanan öneriler, piyasa verileri, yazım kuralları, yapay zekâ yazıyor, kontrol](docs/img/readme/text-wait.png)
+
+Görüşme metni tek sayfadır. Beyaz alan müşteriye gösterilecek sunumdur; sarı
+kutular yalnızca RM içindir ve "Sunum görünümü"nde ve çıktıda yer almaz. Her
+kaynak numarası sağdaki "Kaynaklar" listesinde kanıt kimliğine bağlanır:
+
+![Görüşme metni (P01): müşterinin hedefi, RM'e özel kutular, piyasa notu, temel sayılar, reel getiri grafiği ve kaynaklar](docs/img/readme/text.png)
+
 **Neden bu ayrım?** Ajan, tek bir puanın gösteremediği şeyleri tartar:
 güncel haberler, iki adayın nitel farkı, müşterinin mevcut dağılımı. Ama
 kararı kodun sınırları içinde verir ve RM motorun ilk 3'ünü her zaman yan
@@ -409,6 +442,11 @@ ağaçlarında, dondurulmuş sözleşmelerle ve her adımda yeşil testlerle
 | Tahmin yerine soru | risk profili veya kısıt tanınmazsa sıralama durur ve RM'e soru açılır; diğer bilinmeyenlerde güvenli düzey + "Teyit edin" maddesi |
 | Profil çelişkileri | 8 sabit kural ve AI kontrolü (ör. "Muhafazakâr" ile büyüme önceliği; `durum`'da gelecek yıl ev peşinatı ile likidite "Düşük") |
 | Uyarılar (yalnızca RM) | düşük istikrar, tahmini risk, döviz fonu, tek pay, payda sert düşüş, ING oranı piyasanın altında, süresi geçmiş stopaj veya eski TÜFE |
+
+Ekranda belirsizlik "Teyit edin" listesine dönüşür. Motorun okuyamadığı bir
+alan güvenli düzeyle devam eder ve RM'e yanıt seçenekleriyle bir soru açar:
+
+![Gündem ve Teyit edin (P02): konuşulacak üç nokta, mevcut dağılım, döviz düzeyi, döviz kısıtı ve kur riski soruları](docs/img/readme/agenda.png)
 
 **İnsan onay noktaları:**
 
@@ -468,10 +506,15 @@ anlık görüntü `20261014-233110-1565`, istem n12):
 | LLM hakemi: uyarlanmış / açık / dengeli | %50 / %50 / %58 | yön göstergesi |
 
 Ajan değerlendirmesi (`20261015-182316`, 8 karar): kod denetimi 8/8, yedek 0;
-önbellekten tekrar 8/8 aynı; önbelleksiz tekrar 5/8 aynı. Kör A/B hakemi:
-ajan 5, motor 0, eşit 1. Aday listesi düzeltildikten sonra P03 için yeniden
-çalıştırmada sonuç motor 2, ajan 0 oldu: ajanın üstünlüğü kanıtlanmış değildir.
-Bu yüzden RM iki listeyi yan yana görür ve kararı RM verir.
+önbellekten tekrar 8/8 aynı; önbelleksiz tekrar 5/8 aynı. Kör A/B hakemi
+(Claude Haiku, "Hangisi müşteriye daha uygun ve neden?") ilk turda ajan 5,
+motor 0, eşit 1 dedi. Ama ajanın 3 kazancı P03'teydi: motorun seçtiği IDY ve
+OKT ajanın aday listesinde yoktu, bu yüzden hakem onların verisini göremedi.
+Adaylar motorun ilk 3'üyle başlayacak biçimde düzeltildi; P03 yeniden
+çalıştırıldı: motor 2, ajan 0. Adil karşılaştırmalar toplamda ajan 3 (P01,
+olumsuz haber senaryosu, RM işaretleri), motor 2, eşit 1. Ajanın
+üstünlüğü kanıtlanmış değildir. Bu yüzden RM iki listeyi yan yana görür ve
+kararı RM verir.
 
 **Hata analizleri ve iyileştirmeler** (tam liste: [`docs/found-and-fixed.md`](docs/found-and-fixed.md)):
 
@@ -532,12 +575,12 @@ flowchart LR
 
 Ekranda her sayının yanındaki **"K"** işareti kanıt penceresini açar:
 
-![Kanıt penceresi: değer, kaynak, değer tarihi, alınma zamanı, kanıt kimliği ve bayraklar](docs/img/readme/evidence.png)
+<img src="docs/img/readme/evidence.png" alt="Kanıt penceresi: değer, kaynak, değer tarihi, alınma zamanı, kanıt kimliği ve bayraklar" width="448">
 
-*Örnek (14.10.2026): EIL'in 1 yıllık getirisi %48,2; kaynak TEFAS getiri
-sayfası; değer tarihi 13.10.2026 (önceki iş günü); alınma zamanı 14.10.2026
-10:23; kanıt kimliği `Ef0e41e81`; bayrak yok.* Tam bir karar kaydı örneği:
-[Teslimat 6](docs/teslim/06-kanit-kaydi-ornegi.md).
+*Örnek: EIL'in 1 yıllık getirisi %48,13; kaynak TEFAS getiri sayfası
+(`tefas_web`); değer tarihi 16.10.2026 (önceki iş günü); alınma zamanı
+17.10.2026 11:04; kanıt kimliği `Edede971a`; bayrak yok.* Tam bir karar kaydı
+örneği: [Teslimat 6](docs/teslim/06-kanit-kaydi-ornegi.md).
 
 ---
 
