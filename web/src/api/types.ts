@@ -315,6 +315,24 @@ export interface ProfileCheck {
   text: string;
 }
 
+/** W43: a finding of the AI check of the profile; every quote is in its named field (the server checks it). */
+export interface ProfileAIFinding {
+  kind: "conflict" | "confirm";
+  fields: string[]; // persona field names
+  quotes: { field: string; text: string }[];
+  text: string;
+}
+
+/** W43: GET /runs/{id}/profile-check: running (202), done, failed or off. */
+export interface ProfileAIView {
+  state: "running" | "done" | "failed" | "off";
+  findings: ProfileAIFinding[];
+  dropped?: number;
+  model?: string;
+  cost_usd?: number;
+  reason?: string;
+}
+
 /** W25b: RunView.bank_context, one entry per configured option, for the "Piyasa notu" panel. */
 export interface MarketBankEntry extends BankContext {
   option_id: string;

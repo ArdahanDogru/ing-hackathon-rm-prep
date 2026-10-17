@@ -16,6 +16,7 @@ import { LifecycleTabs } from "../components/LifecycleTabs";
 import { MarketNote } from "../components/MarketNote";
 import { OptionsCompare } from "../components/OptionsCompare";
 import { PersonaPanel } from "../components/PersonaPanel";
+import { aiChecks, aiConfirms, useProfileAI } from "../components/ProfileAI";
 import { PipelinePanel } from "../components/PipelinePanel";
 import { QuestionsPanel } from "../components/QuestionsPanel";
 import { ResearchPanel } from "../components/ResearchPanel";
@@ -52,6 +53,7 @@ export function Dashboard({
   onPersona?: (p: Persona | null) => void;
 }) {
   const t = useT();
+  const lang = useContext(LangContext);
   const r = view.result;
   const runId = r.run_id;
   const [selected, setSelected] = useState<string[]>(() => (r.rm_selected.length ? r.rm_selected : view.top));
@@ -64,7 +66,9 @@ export function Dashboard({
   const [confirmed, toggleConfirmed] = useChecks(`rmprep.confirm.${runId}`);
   const pending = r.rm_status === "pending";
   const ready = r.state === "ready";
-  const openConfirms = view.to_confirm.filter((_, i) => !confirmed[i]).length;
+  const ai = useProfileAI(runId, lang, ready); // W43: the AI check of the profile
+  const toConfirm = [...view.to_confirm, ...aiConfirms(ai)];
+  const openConfirms = toConfirm.filter((_, i) => !confirmed[i]).length;
 
   // W20: the agent's top 3 replaces the engine's when it is done; the meeting chips follow it
   // until the RM changes them
@@ -115,6 +119,7 @@ export function Dashboard({
       <BriefCard
         view={view}
         confirmOpen={openConfirms}
+        ai={ai}
         onEdit={onPersona && (() => setEditing(true))}
         onEvidence={setEvidenceId}
         refresh={agentChanged ? agent.picks.map((p) => p.option_id).join("|") : ""}
@@ -146,7 +151,7 @@ export function Dashboard({
       >
         <Agenda
           points={view.talking_points}
-          confirm={view.to_confirm}
+          confirm={toConfirm}
           discussed={discussed}
           onDiscussed={toggleDiscussed}
           confirmed={confirmed}
@@ -195,7 +200,7 @@ export function Dashboard({
       {editing && onPersona && (
         <PersonaPanel
           persona={r.persona}
-          checks={view.profile_checks}
+          checks={[...(view.profile_checks ?? []), ...aiChecks(ai)]}
           onClose={() => setEditing(false)}
           onApply={(p) => {
             setEditing(false);

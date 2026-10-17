@@ -1,6 +1,7 @@
 // Typed client of the JSON API (docs/web-ui.md section 6). Prefix /api; the
 // Vite proxy (dev), the mock middleware (dev:mock) or `rmprep serve` answers.
 import type {
+  ProfileAIView,
   AgentDecision,
   ResetResult,
   FundDocuments,
@@ -72,6 +73,15 @@ async function research(runId: string, lang: Lang): Promise<ResearchView> {
   return (await res.json()) as ResearchView;
 }
 
+/** GET /runs/{id}/profile-check (W43): the AI check of the profile; 202 = running, 404 = off. */
+async function profileCheck(runId: string, lang: Lang): Promise<ProfileAIView> {
+  const res = await fetch(`${BASE}/runs/${enc(runId)}/profile-check?lang=${lang}`);
+  if (res.status === 202) return { state: "running", findings: [] };
+  if (res.status === 404) return { state: "off", findings: [] };
+  if (!res.ok) throw await apiError(res);
+  return (await res.json()) as ProfileAIView;
+}
+
 /** GET /runs/{id}/agent (W20): the decision (202 while it runs, with the nodes; 200 when done,
  * fallback or off); null for a run or a server without an agent (404). */
 async function agentStatus(runId: string): Promise<AgentDecision | null> {
@@ -107,6 +117,7 @@ export const api = {
     request<NarrativeView>("PUT", `/runs/${enc(runId)}/narrative/${lang}/blocks/${enc(blockId)}`, { text }),
   brief,
   research,
+  profileCheck,
   agentStatus,
   /** POST /reset (W27): every client back to the first state; 409 while an agent runs. */
   reset: () => request<ResetResult>("POST", "/reset"),

@@ -57,6 +57,7 @@ export function resetAgentMock(): void {
   agentStarted.clear();
   marks.clear();
   uploads.clear();
+  profileAsked.clear();
 }
 
 // Client upload (W31): kept in memory; the checks of the API in short (the required fields,
@@ -103,6 +104,43 @@ function startAgent(load: Loader, runId: string, req: Record<string, unknown>): 
   if (!Number.isInteger(n) || n < 3 || n > 20) return { status: 422, body: { detail: `n must be 3–20, got ${String(req.n)}` } };
   agentStarted.set(runId, { at: Date.now(), n });
   return agentAnswer(load, runId);
+}
+
+// AI check of the profile (W43): running for PROFILE_AI_MS after the first ask, then done with a
+// conflict (two quotes) and a confirm; P02 fails (the daily limit). Quotes from the P01 profile.
+const PROFILE_AI_MS = 6_000;
+const profileAsked = new Map<string, number>();
+
+function profileCheckAnswer(load: Loader, runId: string, lang: string): MockAnswer {
+  const found = runOf(load, runId);
+  if (!found) return notFound(`unknown run ${runId}`);
+  const at = profileAsked.get(runId) ?? Date.now();
+  profileAsked.set(runId, at);
+  if (Date.now() - at < PROFILE_AI_MS) return { status: 202, body: { state: "running", findings: [], reason: "" } };
+  if (found.name === "run_p02_ready") return { status: 200, body: { state: "failed", findings: [], reason: "daily limit" } };
+  const en = lang === "EN";
+  const findings = [
+    {
+      kind: "conflict",
+      fields: ["gelir_nakit_akisi_ihtiyaci", "likidite_ihtiyaci"],
+      quotes: [
+        { field: "gelir_nakit_akisi_ihtiyaci", text: "Yüksek" },
+        { field: "likidite_ihtiyaci", text: "Orta" },
+      ],
+      text: en
+        ? "The income need is high, but the liquidity need is medium: a regular income needs regular cash. Confirm which one holds."
+        : "Gelir ihtiyacı yüksek, ama likidite ihtiyacı orta: düzenli gelir düzenli nakit ister. Hangisinin geçerli olduğunu teyit edin.",
+    },
+    {
+      kind: "confirm",
+      fields: ["rm_notu"],
+      quotes: [{ field: "rm_notu", text: "mevduat yoğunluğunu azaltabilecek alternatifleri" }],
+      text: en
+        ? "The note does not say how much of the deposits may move: ask for the share."
+        : "Notta mevduatın ne kadarının taşınabileceği yazmıyor: oranı sorun.",
+    },
+  ];
+  return { status: 200, body: { state: "done", findings, dropped: 0, model: "claude-opus-5-5", cost_usd: 0.014, reason: "" } };
 }
 
 type MockFinding = { id?: string; mark?: string | null };
@@ -201,6 +239,7 @@ function resetAnswer(): MockAnswer {
   agentStarted.clear();
   marks.clear();
   uploads.clear();
+  profileAsked.clear();
   return { status: 200, body: { archive: `data/reset-archive/${p.year}${p.month}${p.day}-${p.hour}${p.minute}${p.second}`, moved } };
 }
 
@@ -264,6 +303,7 @@ export function resolveMock(method: string, url: string, body: unknown, load: Lo
     if (method === "PUT" && c === "notes") return sample(load, "run_p01_approved");
     if (method === "GET" && c === "research" && !d) return researchAnswer(load, b ?? "");
     if (method === "GET" && c === "agent" && !d) return agentAnswer(load, b ?? "");
+    if (method === "GET" && c === "profile-check" && !d) return profileCheckAnswer(load, b ?? "", params.get("lang") ?? "TR");
     if (method === "POST" && c === "agent" && !d) return startAgent(load, b ?? "", req);
     if (method === "GET" && c === "options" && d && e === "documents") return documentsAnswer(load, b ?? "", d);
     if (method === "POST" && c === "research" && d === "questions") {
