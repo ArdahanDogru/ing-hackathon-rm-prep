@@ -856,7 +856,7 @@ W34 replaces the switch, Düzenle and `MeetingText initialMode` of W33:
   fund card has its yellow comment (`rm_option_notes`). The collapsed lines of
   the note are gone (the boxes are open), and so is "Öneriler: Bölümü sil"
   (each fund block has its own Sil).
-- **👁 Müşteri görünümü** hides everything for the RM: the boxes, comments,
+- **👁 Sunum görünümü** (W28: "Müşteri görünümü", renamed 2026-10-17) hides everything for the RM: the boxes, comments,
   controls, deleted-block lines, source numbers and the right column. It is
   the page as the client sees it.
 - **Yazdır / PDF** switches to the client view first, then prints.

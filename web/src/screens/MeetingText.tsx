@@ -73,7 +73,7 @@ export function MeetingText({ view }: { view: RunView }) {
   const [openBlock, setOpenBlock] = useState<string | null>(null);
   const [blockError, setBlockError] = useState<string | null>(null);
   const [blockBusy, setBlockBusy] = useState(false);
-  /** "Müşteri görünümü": the page as the client sees it (and as it prints), without the RM's help */
+  /** "Sunum görünümü": the page as the client sees it (and as it prints), without the RM's help */
   const [preview, setPreview] = useState(false);
 
   const load = useCallback(() => {

@@ -161,7 +161,7 @@ test("the RM sees ✎, a comment per fund, the hint and the general note; the cl
   expect(screen.getAllByTestId("pres-comment")).toHaveLength(3);
   expect(screen.getByTestId("pres-hint")).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "Notlarım" })).toHaveValue("Müşteri aylık nakit akışını sordu.");
-  await userEvent.click(screen.getByRole("button", { name: "👁 Müşteri görünümü" }));
+  await userEvent.click(screen.getByRole("button", { name: "👁 Sunum görünümü" }));
   expect(screen.queryAllByRole("button", { name: /düzenle$/i })).toHaveLength(0);
   expect(screen.queryAllByTestId("pres-comment")).toHaveLength(0);
   expect(screen.queryByRole("textbox", { name: "Notlarım" })).toBeNull();
@@ -202,7 +202,7 @@ test("the risks block can be edited but not deleted; other blocks can be deleted
 test("a deleted block is a Geri al line for the RM and gone in the client view", async () => {
   show({ ...narrative(), rm_edits: { teklif_metni: "" } });
   expect(await screen.findByTestId("deleted-block")).toHaveAttribute("data-block", "teklif_metni");
-  await userEvent.click(screen.getByRole("button", { name: "👁 Müşteri görünümü" }));
+  await userEvent.click(screen.getByRole("button", { name: "👁 Sunum görünümü" }));
   expect(screen.queryByTestId("deleted-block")).toBeNull();
 });
 
@@ -214,7 +214,7 @@ test("an open rule finding disables the print", async () => {
 
 test("EN labels", async () => {
   show(sample("narrative_p01_en"), "EN");
-  expect(await screen.findByRole("button", { name: "👁 Client view" })).toHaveAttribute("aria-pressed", "false");
+  expect(await screen.findByRole("button", { name: "👁 Presentation view" })).toHaveAttribute("aria-pressed", "false");
   expect(screen.getByText("What does your money earn today?")).toBeInTheDocument();
   expect(screen.getByText("Your limit: 2")).toBeInTheDocument();
 });
