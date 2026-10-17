@@ -592,6 +592,42 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### AI check of the client profile (W43, 2026-10-17)
+
+Approved by the user 2026-10-17 ("Layer 3 sounds good, an agentic check"). The
+fixed rules (W42) see only what the engine reads into fixed values; uploaded or
+edited profiles can also conflict in their free text.
+
+- API (lead, done; `rmprep.api.profile_ai`, config `profile_checks.yaml` `ai`):
+  one Claude call per profile content (Claude Opus 5.5, effort medium, structured
+  JSON output, server-side refusal fallback), started in the background when a run
+  opens, cached by the profile content, a daily cost limit ($1). The model gets
+  the profile and the engine's reading (levels, matched and unmatched priorities
+  and constraints, open questions, assumptions such as a safe level). Each finding
+  must quote both sides word for word; **the server keeps a finding only when every
+  quote is in its named field** (case and spacing aside); a repeat of a rule
+  finding (W42) is dropped. `GET /api/runs/{id}/profile-check?lang=` → 202
+  `{state: "running"}` while it runs, else `{state: "done"|"failed"|"off",
+  findings: [{kind, fields, quotes: [{field, text}], text}], dropped, model,
+  cost_usd, reason}`.
+- Live check (2026-10-17, $0.10 for 7 profiles, 2–13 s each, 0 quotes dropped):
+  P01, P03, P05 no finding; P02 "the engine could not read the FX text, it used
+  the safe level Sınırlı" (confirm); P04 "kuşaklar arası planlama has no effect"
+  (confirm); planted conflicts found that the fixed rules missed: a house down
+  payment next year in `durum` vs liquidity "Düşük", vs the constraint "kısa
+  vadeli nakit ihtiyacı varsayılmamalı" and vs the horizon "5+ yıl"; "45 yaşında"
+  in `rm_notu` vs `yas` 62; "yüksek getiri için hisse ağırlıklı" vs "Muhafazakâr".
+- Web (ing-web): the profile block of W42 also polls this route (every 2 s while
+  202, at most 90 s). While it runs: a muted line "AI kontrolü sürüyor…". Its
+  findings join the block, after the rule findings, each with the label "AI ile
+  bulundu · teyit edin" / "Found by AI · confirm", its text, and its quotes side
+  by side ("<field label>: “<quote>”"). They are also added at the end of the
+  "Teyit edin" list. In "Profili düzenle" their fields get the amber mark too.
+  `failed`: a small muted line "AI kontrolü yapılamadı" with the reason; `off`:
+  nothing. The block title counts all findings.
+- Tests: running, done with findings (quotes, label), failed, off, the Teyit
+  items, the field marks, TR and EN.
+
 ### Bigger codes, readable units, conflicting client information (W42, 2026-10-17)
 
 Asked by the user 2026-10-17.

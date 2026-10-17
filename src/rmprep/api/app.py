@@ -65,7 +65,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
                ingest: IngestControl | None = None,
                research=None, agent=None, action_log=None,
                fund_docs: Callable[[str, str], object] | None = None,
-               reset: Callable[[], dict] | None = None) -> FastAPI:
+               reset: Callable[[], dict] | None = None,
+               profile_check=None) -> FastAPI:
     """static_dir: the built web app (web/dist); its index.html answers every
     non-API path, so the client-side routes (/meeting/..., /print/...) work.
     ingest: the data age and refresh (W14); None = /api/ingest answers 404.
@@ -74,7 +75,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
     action_log: a rmprep.api.action_log.ActionLog (L1); None = no RM action log.
     fund_docs: (fund code, issuer) -> a FundDocs of rmprep.ingest.fund_docs (W26, I16);
     None = the documents route answers not_covered.
-    reset: rmprep.api.reset.make_reset(...) (W27); None = POST /api/reset answers 404."""
+    reset: rmprep.api.reset.make_reset(...) (W27); None = POST /api/reset answers 404.
+    profile_check: rmprep.api.profile_ai.ProfileCheck (W43); None = the route answers off."""
     app = FastAPI(title="rmprep", docs_url="/api/docs", openapi_url="/api/openapi.json")
     runs: dict[str, DecisionResult] = {}
     followed: dict[str, str] = {}   # W29: new run id -> the run whose agent it followed
@@ -97,6 +99,8 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
         runs[result.run_id] = result
         if research is not None and result.state == DecisionState.READY:
             research.start(result, "TR")      # web research of the top 3 (docs/research.md)
+        if profile_check is not None:          # W43: the AI check of the profile, in the background
+            profile_check.start(result)
         changes = _changes(result.persona)
         out = {"result": result.to_dict(), "test_run": bool(changes), "persona_changes": changes}
         if views is not None:
@@ -403,6 +407,16 @@ def create_app(backend: Backend, *, views: ViewFn | None = None,
             return {}
         picks = tuple(p.option_id for p in d.picks)
         return {"top3": picks} if set(picks) != set(result.recommended) else {}
+
+    @app.get("/api/runs/{run_id}/profile-check")
+    def profile_check_route(run_id: str, lang: str = "TR"):
+        """W43: the AI check of the run's profile: 202 while it runs, else its state
+        (done, failed, off) with the verified findings."""
+        result = _run(run_id)
+        if profile_check is None:
+            return {"state": "off", "findings": [], "reason": "the AI check is not configured"}
+        out = profile_check.status(result, _lang(lang))
+        return JSONResponse(status_code=202, content=out) if out["state"] == "running" else out
 
     @app.post("/api/reset")
     def reset_all():

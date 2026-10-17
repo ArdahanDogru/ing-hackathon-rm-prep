@@ -70,7 +70,8 @@ def build_app(root: Path, personas_dir: Path | None = None):
     return create_app(backend, views=views, static_dir=dist,
                       ingest=IngestControl(Paths(Path(root).resolve())), research=research,
                       agent=agent, action_log=action_log, fund_docs=fund_docs_fn,
-                      reset=make_reset(root, backend, agent, research))   # W27
+                      reset=make_reset(root, backend, agent, research),   # W27
+                      profile_check=_profile_check(root))                # W43
 
 
 def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None) -> None:
@@ -79,6 +80,15 @@ def serve(root: Path, port: int = DEFAULT_PORT, personas_dir: Path | None = None
     app = build_app(root, personas_dir)
     print(f"rmprep: http://127.0.0.1:{port}", file=sys.stderr)
     uvicorn.run(app, host="127.0.0.1", port=port)       # local only, no login
+
+
+def _profile_check(root):
+    """W43: the AI check of the profile; None when config/profile_checks.yaml has no `ai`."""
+    from rmprep.api.profile_ai import ProfileCheck, profile_ai_from_root
+    from rmprep.decision import load_config
+    dc = load_config(Path(root) / "config" / "decision.yaml")
+    ai = profile_ai_from_root(root, dc)
+    return ProfileCheck(ai, dc, _profile_texts(root)) if ai is not None else None
 
 
 def _profile_texts(root):

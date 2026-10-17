@@ -45,3 +45,21 @@ rules:
     fields: [yatirim_ufku, oncelikler]
     TR: "Yatırım ufku {horizon}, ama öncelikler büyüme istiyor ({items}). Kısa sürede büyüme beklentisini sorun."
     EN: "The horizon is {horizon}, but the priorities ask for growth ({items}). Ask about the expectation of growth in a short time."
+
+# W43 layer 3 (the user, 2026-10-17): the AI check of the whole profile against the
+# engine's reading (rmprep.api.profile_ai). Each finding must quote both sides word
+# for word; the server drops a finding whose quote is not in the named field.
+# One call per profile content, cached under cache_dir; a daily cost limit.
+ai:
+  enabled: true
+  model: claude-opus-5-5          # the default model of the Claude API reference
+  effort: medium
+  max_tokens: 16000
+  prompt_version: p1              # bump on any prompt or schema change (part of the cache key)
+  max_cost_usd_per_day: 1.0
+  price_in_per_mtok: 4.0          # Claude Opus 5.5 list prices (USD per 1M tokens)
+  price_out_per_mtok: 20.0
+  timeout_s: 90
+  api_key_env: ANTHROPIC_API_KEY
+  workspace_id_env: ANTHROPIC_WORKSPACE_ID
+  cache_dir: data/cache/profile_ai
