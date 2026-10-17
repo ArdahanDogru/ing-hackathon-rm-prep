@@ -1,7 +1,8 @@
 // Brief card (B4 item 3): who the client is, the brief, the data line, readiness n / 3.
 import { useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
-import type { Lang, NarrativeBrief, Persona, ProfileCheck, RunView } from "../api/types";
+import type { Lang, NarrativeBrief, Persona, ProfileAIView, ProfileCheck, RunView } from "../api/types";
+import { AIFindings, AIStatus, aiChecks } from "./ProfileAI";
 import { fill, LangContext, useT } from "../i18n";
 import { withCode } from "../product";
 
@@ -47,10 +48,12 @@ export function useLlmBrief(runId: string, lang: Lang, enabled: boolean, refresh
 
 /** W42: "Profilde çelişki (n)": the findings of the profile checks; a "confirm" finding is softer
  * and titled "Sorulacak". Nothing for an empty list. */
-function ProfileChecks({ checks }: { checks?: ProfileCheck[] }) {
+function ProfileChecks({ checks = [], ai }: { checks?: ProfileCheck[]; ai?: ProfileAIView | null }) {
   const t = useT();
-  if (!checks?.length) return null;
-  const conflicts = checks.some((c) => c.kind === "conflict");
+  // W43: the AI findings after the rule findings; the title counts all of them
+  const all = [...checks, ...aiChecks(ai)];
+  if (!all.length) return <AIStatus view={ai} />;
+  const conflicts = all.some((c) => c.kind === "conflict");
   return (
     <div
       data-testid="profile-checks"
@@ -58,7 +61,7 @@ function ProfileChecks({ checks }: { checks?: ProfileCheck[] }) {
         conflicts ? "border-[#FEC84B] bg-[#FFFAEB] text-[#93370D]" : "border-gray-200 bg-[#F9FAFB] text-[#344054]"
       }`}
     >
-      <b>{fill(t(conflicts ? "pcTitle" : "pcConfirmTitle"), { n: checks.length })}</b>
+      <b>{fill(t(conflicts ? "pcTitle" : "pcConfirmTitle"), { n: all.length })}</b>
       <ul className="mt-1 space-y-1">
         {checks.map((c) => (
           <li
@@ -71,7 +74,9 @@ function ProfileChecks({ checks }: { checks?: ProfileCheck[] }) {
             {c.text}
           </li>
         ))}
+        <AIFindings view={ai} />
       </ul>
+      <AIStatus view={ai} />
     </div>
   );
 }
@@ -94,8 +99,11 @@ export function BriefCard({
   onEdit,
   onEvidence,
   refresh = 0,
+  ai,
 }: {
   view: RunView;
+  /** W43: the AI check of the profile (useProfileAI) */
+  ai?: ProfileAIView | null;
   confirmOpen: number;
   onEdit?: () => void;
   onEvidence?: (id: string) => void;
@@ -135,7 +143,7 @@ export function BriefCard({
               </span>
             ))}
           </p>
-          <ProfileChecks checks={view.profile_checks} />
+          <ProfileChecks checks={view.profile_checks} ai={ai} />
           <p data-testid="brief-text" className="mb-1.5 mt-3.5 max-w-[70ch] text-[17px] leading-relaxed">
             {llm ? llm.text : plainBrief(p)}
             {llm && (
