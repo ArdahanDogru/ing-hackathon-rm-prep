@@ -4,16 +4,14 @@
 // each with its own title. An empty warnings section says so; no market data: no market section.
 import type { MarketBankEntry, MarketNoteItem, Warning } from "../api/types";
 import { BankDate, BankDiff, fmtRate } from "./BankContext";
-import { fmtDate } from "../format";
-import { useT, type LabelKey } from "../i18n";
+import { fmtDate, fmtUnit } from "../format";
+import { LangContext, useT, type LabelKey } from "../i18n";
+import { useContext } from "react";
 import { KMark } from "./OptionsTable";
 
-const nf = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 4 });
-
-/** "%37" for a percent, "49,1267 TL" for a TRY price. */
-export function marketValue(item: MarketNoteItem): string {
-  const text = nf.format(item.value);
-  return item.unit === "pct" ? `%${text}` : `${text} TL`;
+/** "%37" for a percent, "49,13 TL" for a TRY price: the one unit formatter (W42). */
+export function marketValue(item: MarketNoteItem, lang: "TR" | "EN" = "TR"): string {
+  return fmtUnit(item.value, item.unit, lang);
 }
 
 const heading = "text-xs font-bold uppercase tracking-[0.06em] text-muted";
@@ -96,6 +94,7 @@ export function MarketNote({
   onEvidence: (id: string) => void;
 }) {
   const t = useT();
+  const lang = useContext(LangContext);
   const market = items.length > 0 || banks.length > 0;
   return (
     <section
@@ -111,7 +110,7 @@ export function MarketNote({
             {items.map((x) => (
               <li key={x.key} data-testid="market-item" className="flex items-baseline gap-2">
                 <span className="text-muted">{x.label}</span>
-                <b className="tabular-nums">{marketValue(x)}</b>
+                <b className="tabular-nums">{marketValue(x, lang)}</b>
                 <span className="text-xs text-muted">{fmtDate(x.as_of)}</span>
                 <KMark id={x.evidence_id} onEvidence={onEvidence} />
               </li>

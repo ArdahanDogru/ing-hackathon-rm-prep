@@ -1,8 +1,8 @@
 // Brief card (B4 item 3): who the client is, the brief, the data line, readiness n / 3.
 import { useContext, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
-import type { Lang, NarrativeBrief, Persona, RunView } from "../api/types";
-import { LangContext, useT } from "../i18n";
+import type { Lang, NarrativeBrief, Persona, ProfileCheck, RunView } from "../api/types";
+import { fill, LangContext, useT } from "../i18n";
 import { withCode } from "../product";
 
 const POLL_MS = 2000;
@@ -43,6 +43,37 @@ export function useLlmBrief(runId: string, lang: Lang, enabled: boolean, refresh
     return stop;
   }, [runId, lang, enabled, refresh]);
   return brief;
+}
+
+/** W42: "Profilde çelişki (n)": the findings of the profile checks; a "confirm" finding is softer
+ * and titled "Sorulacak". Nothing for an empty list. */
+function ProfileChecks({ checks }: { checks?: ProfileCheck[] }) {
+  const t = useT();
+  if (!checks?.length) return null;
+  const conflicts = checks.some((c) => c.kind === "conflict");
+  return (
+    <div
+      data-testid="profile-checks"
+      className={`mt-3 max-w-[70ch] rounded-xl border px-4 py-2.5 text-sm ${
+        conflicts ? "border-[#FEC84B] bg-[#FFFAEB] text-[#93370D]" : "border-gray-200 bg-[#F9FAFB] text-[#344054]"
+      }`}
+    >
+      <b>{fill(t(conflicts ? "pcTitle" : "pcConfirmTitle"), { n: checks.length })}</b>
+      <ul className="mt-1 space-y-1">
+        {checks.map((c) => (
+          <li
+            key={c.id}
+            data-testid="profile-check"
+            data-kind={c.kind}
+            className={c.kind === "conflict" ? "font-medium" : "font-normal text-[#475467]"}
+          >
+            {c.kind === "confirm" && <span className="mr-1.5 rounded bg-white px-1.5 text-[11px] font-semibold text-[#475467]">{t("pcConfirm")}</span>}
+            {c.text}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 /** The plain brief (the LLM brief's fallback): durum + yatirim_amaci. */
@@ -104,6 +135,7 @@ export function BriefCard({
               </span>
             ))}
           </p>
+          <ProfileChecks checks={view.profile_checks} />
           <p data-testid="brief-text" className="mb-1.5 mt-3.5 max-w-[70ch] text-[17px] leading-relaxed">
             {llm ? llm.text : plainBrief(p)}
             {llm && (

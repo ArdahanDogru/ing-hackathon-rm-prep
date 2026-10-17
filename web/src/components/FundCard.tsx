@@ -76,7 +76,7 @@ export function FundCard({
         {[o.issuer, o.category_label].filter(Boolean).join(" · ")}
       </div>
       <div className="mt-1 flex items-center">
-        <CodeBadge optionId={o.option_id} className="text-[13px]" />
+        <CodeBadge optionId={o.option_id} className="text-[19px]" />
         <h2 className="text-[22px] font-bold leading-tight">{o.short_label}</h2>
         <KindBadge kind={o.kind} />
         <ProductBadges badges={o.badges} />

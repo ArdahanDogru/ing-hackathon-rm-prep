@@ -195,6 +195,7 @@ export function Dashboard({
       {editing && onPersona && (
         <PersonaPanel
           persona={r.persona}
+          checks={view.profile_checks}
           onClose={() => setEditing(false)}
           onApply={(p) => {
             setEditing(false);

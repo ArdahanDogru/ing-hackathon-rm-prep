@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useContext, useEffect, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import type { EvidenceItem } from "../api/types";
-import { fmtDate, fmtDateTime, fmtNum } from "../format";
-import { useT } from "../i18n";
+import { fmtDate, fmtDateTime, fmtUnit } from "../format";
+import { LangContext, useT } from "../i18n";
 
 /** "Kanıt" pop-up: value, source, date, evidence id, flags of one DataPoint. */
 export function EvidencePopup({
@@ -17,6 +17,7 @@ export function EvidencePopup({
   onClose: () => void;
 }) {
   const t = useT();
+  const lang = useContext(LangContext);
   const [item, setItem] = useState<EvidenceItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,7 +74,7 @@ export function EvidencePopup({
           <>
             {item.entity_name && <p className="mb-2 font-medium">{item.entity_name}</p>}
             <dl className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5">
-              {row(t("value"), item.value === null ? "—" : `${fmtNum(item.value)} ${item.unit}`)}
+              {row(t("value"), item.value === null ? "—" : fmtUnit(item.value, item.unit, lang))}
               {row(t("source"), <span>{item.source}</span>)}
               {row(
                 t("asOf"),
