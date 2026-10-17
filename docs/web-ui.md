@@ -592,6 +592,31 @@ too).
   reset); web (the dialog, the cancel, the request, the storage keys removed and
   kept, the reload of the run, the 409 text, TR and EN).
 
+### Every rank says what it ranks by (W41, 2026-10-17)
+
+Asked by the user 2026-10-17: "Kategorisinde 26. / 92 ★★★★☆ Kategoride ilk %28"
+did not say how it was made. Two different rankings were on screen with no
+measure named: the engine's score for this client ("genel 1. sıra", "141 aday
+içinde 1. sıra") and the 1-year return among peers ("Kategorisinde 26. / 92").
+Display only; no API change.
+
+- The peer rank (FundCard / drawer box, `rank`, `stars`, `better_than_pct`):
+  title "Benzerleri arasında" / "Among similar funds", value "26. / 92", the
+  stars, and the sub-line "1 yıllık getiriye göre · ilk %28" / "by 1-year
+  return · top 28 %". An info mark opens a pop-up: "Bu fon, aynı türdeki
+  ({category_label}) {of} fon arasında 1 yıllık getirisine göre {position}.
+  sırada. Gruba, bu müşteri için elenen fonlar da girer. Yıldızlar: en iyi %10 =
+  5, sonraki %22,5 = 4, orta %35 = 3, sonraki %22,5 = 2, son %10 = 1. Bu sıra
+  motorun puanı değildir: puan, müşterinin profiline göre birçok ölçütü tartar."
+  (EN in the same sense.)
+- The score ranks name the score: the drawer "141 aday içinde 1. sıra" →
+  "Puana göre 141 aday içinde 1. sıra"; step 5 "genel 1. sıra, kendi grubunda n."
+  → "puana göre genel 1., kendi türünde n." (EN "by score: 1st overall, nth in
+  its type"). Any other place that shows `rank`, `stars` or a score place gets
+  the same words.
+- Tests: the title, the sub-line, the pop-up text with the numbers, the score
+  labels, TR and EN.
+
 ### The agent's stage boxes explain themselves (W40, 2026-10-17)
 
 Asked by the user 2026-10-17 (the boxes "are not so intuitive"). The notes of
