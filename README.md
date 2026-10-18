@@ -60,7 +60,7 @@ Tablonun ikinci satırı bize şunu gösterdi: faizler kâğıt üzerinde iyi g�
 | Gösterge | Bugün | Agent 007 ile |
 |---|---|---|
 | Hazırlık süresi | **[VARSAYIM]** görüşme başına ~60 dk, daha fazla da olabilir | analiz ~1,18 sn, görüşme metni ~24,9 sn; geri kalan RM'in okuması ve onayı |
-| Kısıt ihlali | elle kontrol | 34 senaryo, 39 çalıştırmada 0 |
+| Müşteri kısıtı/isteği ihlali | elle kontrol edilir | Testlerimizdeki 34 senaryo, 39 çalıştırmada 0 kısıt ihlali gözlemledik|
 | Tutarlılık | kişiye bağlı | deterministik; aynı girdi → aynı sonuç ve aynı metin (yaptığımız 5 testte 5/5 aynı sonuçları aldık) |
 | Müşteriye özel uyarlama | Zaman kısıtına göre bazen genel metin | 5 müşteri profilinde 5 farklı öneri seti; ; gerekçeler ve öneriler müşterinin önceliklerine ve kısıtlarına bağlı olarak hazırlanır |
 | İzlenebilirlik | dağınık; önerinin hangi veriye, varsayıma ve gerekçeye dayandığı geriye dönük gösterilemeyebilir | ekrandaki her sayının kaynağı, tarihi, alınma zamanı ve kanıt kimliği sunulur |
