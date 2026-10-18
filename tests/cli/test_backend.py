@@ -82,16 +82,20 @@ def test_approve_saves_the_run_and_the_card(backend, tmp_path):
     assert backend.decide(ok.persona, snap).rm_status == RmStatus.APPROVED
 
 
-def test_reject_needs_a_note_and_a_test_run_cannot_be_approved(backend):
+def test_reject_needs_a_note_and_an_edited_profile_can_be_approved(backend):
     snap = backend.list_snapshots()[0]
     p = persona(backend, "P02")
     r = backend.decide(p, snap)
     with pytest.raises(ValueError):
         backend.approve(r.run_id, RmStatus.REJECTED, " ")
+    # W30 (2026-10-17): an edited profile is approved like any run; the API layer marks it
+    # (test_run, persona_changes). Found 2026-10-18: this backend still refused it.
     edited = dataclasses.replace(p, yas=p.yas + 1)
     t = backend.decide(edited, snap)
-    with pytest.raises(ValueError, match="test run"):
-        backend.approve(t.run_id, RmStatus.REJECTED, "no")
+    ok = backend.approve(t.run_id, RmStatus.APPROVED, "ok", (t.options[0].option.option_id,))
+    assert ok.rm_status == RmStatus.APPROVED and ok.persona.yas == p.yas + 1
+    u = backend.decide(dataclasses.replace(p, yas=p.yas + 2), snap)
+    assert backend.approve(u.run_id, RmStatus.REJECTED, "no").rm_status == RmStatus.REJECTED
 
 
 class FakeNarrator:

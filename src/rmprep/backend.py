@@ -148,8 +148,7 @@ class RealBackend:
             raise ValueError("approve needs approved or rejected")
         if status == RmStatus.REJECTED and not note.strip():
             raise ValueError("a rejection needs a note")
-        if self._is_test_run(inputs.persona):
-            raise ValueError("a test run (edited persona) cannot be approved or rejected")
+        # W30: an edited profile (a "test run") is approved like any run; the API marks it
         selected = tuple(selected_option_ids) if status == RmStatus.APPROVED else ()
         new = dataclasses.replace(result, rm_status=status, rm_note=note, rm_selected=selected,
                                   rm_option_notes={}, rm_decided_at=self._now())
@@ -394,7 +393,3 @@ class RealBackend:
         path.write_text(json.dumps(result.to_dict(), ensure_ascii=False, indent=1) + "\n",
                         encoding="utf-8", newline="\n")
         return result
-
-    def _is_test_run(self, persona: Persona) -> bool:
-        original = next((p for p in self.list_personas() if p.persona_id == persona.persona_id), None)
-        return original != persona
