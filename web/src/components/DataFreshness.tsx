@@ -1,6 +1,6 @@
 // The data freshness line above the dashboard (docs/web-ui.md W14): stale data
 // and "Veriyi yenile", a running ingest, newer data and "Yeni veriyle aç", an
-// error and "Tekrar dene". Fresh data and no job: no line.
+// error and "Tekrar dene". Fresh data (W53): "Veri güncel (…)" and "Veriyi yenile".
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api } from "../api/client";
 import type { IngestStatus } from "../api/types";
@@ -66,7 +66,11 @@ export function DataFreshness({ known, onOpenNewest }: DataFreshnessProps) {
     button = { label: t("ingestRefresh"), onClick: start };
     hint = t("ingestHint");
   } else {
-    return null;
+    // W53 (the user, 2026-10-18): "Veriyi yenile" is always there, also with fresh data
+    const at = status.created_at ? `${fmtDay(status.created_at)} ${fmtTime(status.created_at)}` : (latest ?? "");
+    text = fill(t("ingestFresh"), { date: at });
+    button = { label: t("ingestRefresh"), onClick: start };
+    hint = t("ingestHint");
   }
 
   return (

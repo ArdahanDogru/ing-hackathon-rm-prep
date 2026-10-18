@@ -1199,6 +1199,17 @@ the colors kept (`print.css`, now loaded by the app for the toolbar print too).
 The Markdown download is still the summary card. `PrintCard` is no longer on a
 route; its tests stay until the lead decides to remove it.
 
+### "Veriyi yenile" is always there (W53, 2026-10-18)
+
+The user, 2026-10-18: Öykü had the button and the user did not; "it should be
+there regardless". Before, the data freshness line (W14, `DataFreshness`) showed
+only for stale data (newest snapshot ≥ 24 h, `STALE_AFTER_HOURS`), a running
+ingest, newer data or an error, so with the daily task the line was almost never
+on screen. Now fresh data and no job show a neutral line "Veri güncel (dd.mm.yyyy
+hh:mm)." (key `ingestFresh`) with "Veriyi yenile" and its hint "yaklaşık 15
+dakika sürer". The other states are unchanged; an older API without the route
+still shows nothing. No API change.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

@@ -19,11 +19,14 @@ function show(onOpenNewest = () => {}, lang: Lang = "TR") {
   );
 }
 
-test("fresh data and no job: no line", async () => {
-  const get = vi.spyOn(api, "ingestStatus").mockResolvedValue(ingestSample("fresh"));
-  const { container } = show();
-  await waitFor(() => expect(get).toHaveBeenCalled());
-  expect(container).toBeEmptyDOMElement();
+test("W53: fresh data and no job: Veri güncel with its date and time, and Veriyi yenile", async () => {
+  vi.spyOn(api, "ingestStatus").mockResolvedValue(ingestSample("fresh"));
+  const start = vi.spyOn(api, "startIngest").mockResolvedValue(ingestSample("running"));
+  show();
+  expect(await screen.findByText("Veri güncel (10.10.2026 18:38).")).toBeInTheDocument();
+  expect(screen.getByText("yaklaşık 15 dakika sürer")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Veriyi yenile" }));
+  expect(start).toHaveBeenCalledTimes(1);
 });
 
 test("no ingest endpoint (an older API): no line", async () => {
@@ -94,13 +97,12 @@ test("a newer snapshot: Yeni veriyle aç asks the app to open it, no automatic s
   expect(open).toHaveBeenCalledTimes(1);
 });
 
-test("the newest snapshot is on the list already: no line", async () => {
-  const get = vi.spyOn(api, "ingestStatus").mockResolvedValue(ingestSample("finished_newer"));
-  const { container } = render(
-    <DataFreshness known={["20261014-074512-a1b2", ...sample("snapshots")]} onOpenNewest={() => {}} />,
-  );
-  await waitFor(() => expect(get).toHaveBeenCalled());
-  expect(container).toBeEmptyDOMElement();
+test("the newest snapshot is on the list already: no Yeni veriyle aç, the fresh line with Veriyi yenile", async () => {
+  vi.spyOn(api, "ingestStatus").mockResolvedValue(ingestSample("finished_newer"));
+  render(<DataFreshness known={["20261014-074512-a1b2", ...sample("snapshots")]} onOpenNewest={() => {}} />);
+  expect(await screen.findByText("Veri güncel (14.10.2026 07:45).")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Veriyi yenile" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Yeni veriyle aç" })).toBeNull();
 });
 
 test("error: the error text and Tekrar dene starts the ingest again", async () => {
