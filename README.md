@@ -1,5 +1,16 @@
 # RM Görüşme Hazırlığı: kanıta dayalı yatırım karar desteği
 
+## Demo videosu
+
+**[Demo videosunu Google Drive'da izleyin](https://drive.google.com/file/d/14HOPVmSbkWEehzfOacpNvrGbWBKZHnN-/view?usp=sharing)** (8:36, sessiz, Türkçe altyazılı).
+
+Videonun bir kopyası ve kısa bir sürümü depoda da duruyor:
+
+- **Tam demo:** [`docs/demo/agent007-demo-v2-P01-P02-P03.mp4`](docs/demo/agent007-demo-v2-P01-P02-P03.mp4) (8:36, Drive'daki videonun aynısı). Üç müşteri için veriden görüşme metnine uçtan uca akış. P01'de iki sayfa yukarıdan aşağıya gezilir: üst çubuk ve veri menüsü, müşteri kartı, piyasa notu ve kanıt penceresi, "Bu öneriler nasıl seçildi?" ve dört penceresi, Gündem ve Teyit edin, ajan ve adımları, tablo, dağılım ve fon kartı, ajan araştırması ve RM'in kendi sorusu, onay, metin hazırlanırken bekleme ekranı, metin düzenleme, bölüm silme ve geri alma, sunum görünümü. P02'de yapay zekânın bulduğu sorular, döviz kısıtının gerekçeyle kaldırılması ve tahmini dağılımın onaylanması; P03'te profil düzenleme, yapay zekânın bulduğu çelişkiler, onay kilidi ve RM gerekçeleri gösterilir.
+- **Kısa demo:** [`docs/demo/agent007-demo-P01-P03.mp4`](docs/demo/agent007-demo-P01-P03.mp4) (3:50). P01 ve P03 için aynı akışın kısa hâli.
+
+---
+
 Agent 007 grubu (Yusuf Ardahan Doğru, Öykü Irmak Hatipoğlu) olarak sunduğumuz bu ürün, Private Banking'deki RM'ler (Relationship Manager) için tasarlanmış bir yatırım karar destek çözümüdür.
 
 Agentic mühendislik ve data science tabanlı ürünümüz, RM'lerin müşteri görüşmesi hazırlığına yardım eder.
@@ -16,15 +27,6 @@ RM hazırlık sayfasındaki önerilerden ve haberlerden, değiştirdiği bilgile
 *Yukarıda ING Hubs tarafından sağlanan yapay P02 (ihracatçı şirket sahibi, Dengeli profil) müşterisinin hazırlık sayfasını görüyorsunuz; veriler 17.10.2026 tarihli. Sayfanın üstünde müşteri profili ve yapay zekânın profilde bulduğu, RM'in müşteriye sorması gereken noktalar yer alır. Ortada kodun yazdığı piyasa notu vardır ve her değerin yanındaki "K" işareti o değerin kanıtını açar. En altta ise RM'in önerileri onayladığı çubuk durur.*
 
 ## 0. Hızlı başlangıç ve README rehberi
-
-### Demo videosu
-
-**[Demo videosunu Google Drive'da izleyin](https://drive.google.com/file/d/14HOPVmSbkWEehzfOacpNvrGbWBKZHnN-/view?usp=sharing)** (8:36, sessiz, Türkçe altyazılı).
-
-Videonun bir kopyası ve kısa bir sürümü depoda da duruyor:
-
-- **Tam demo:** [`docs/demo/agent007-demo-v2-P01-P02-P03.mp4`](docs/demo/agent007-demo-v2-P01-P02-P03.mp4) (8:36, Drive'daki videonun aynısı). Üç müşteri için veriden görüşme metnine uçtan uca akış. P01'de iki sayfa yukarıdan aşağıya gezilir: üst çubuk ve veri menüsü, müşteri kartı, piyasa notu ve kanıt penceresi, "Bu öneriler nasıl seçildi?" ve dört penceresi, Gündem ve Teyit edin, ajan ve adımları, tablo, dağılım ve fon kartı, ajan araştırması ve RM'in kendi sorusu, onay, metin hazırlanırken bekleme ekranı, metin düzenleme, bölüm silme ve geri alma, sunum görünümü. P02'de yapay zekânın bulduğu sorular, döviz kısıtının gerekçeyle kaldırılması ve tahmini dağılımın onaylanması; P03'te profil düzenleme, yapay zekânın bulduğu çelişkiler, onay kilidi ve RM gerekçeleri gösterilir.
-- **Kısa demo:** [`docs/demo/agent007-demo-P01-P03.mp4`](docs/demo/agent007-demo-P01-P03.mp4) (3:50). P01 ve P03 için aynı akışın kısa hâli.
 
 ### Sistemi çalıştırmak
 
