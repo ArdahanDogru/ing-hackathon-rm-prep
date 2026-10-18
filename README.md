@@ -543,22 +543,33 @@ Sistemde RM'in ürün üzerinde yaptığı her işlem (onay, ret, düzenleme, si
 Sistemdeki her öneriyi, dayandığı verinin kaynağına, değer tarihine ve verinin hangi saatte çekildiğine kadar geriye doğru izleyebiliyoruz. Tüm zamanları Türkiye saatiyle (`Europe/Istanbul`) tutuyoruz. Aşağıdaki şema bir sayının ham indirmeden görüşme metnindeki cümleye kadar izlediği yolu gösteriyor:
 
 ```mermaid
-flowchart LR
-    P["Ham indirme<br/>snapshot'ta, SHA-256"] --> D["Değer<br/>kanıt kimliği E…"]
-    W["Web bulgusu<br/>kaynak alanı, tarih"] --> F["Bulgu kimliği F…"]
-    D --> O["Puan parçası ve gerekçe<br/>kanıt kimlikleriyle"]
-    O --> R["Karar<br/>run_id + config_hash"]
-    F --> AG["Ajan gerekçesi<br/>E…, F…, puan:…, portfoy:…"]
-    O --> AG
-    R --> M["Görüşme metni cümlesi<br/>kanıt kimlikleriyle"]
+flowchart TB
+    subgraph L1["1 · Veri"]
+        direction LR
+        P["📥 Ham indirme<br/>snapshot + SHA-256"] --> D["🔢 Değer<br/>kanıt kimliği<br/>ör. Edede971a<br/>kaynak, değer tarihi, alınma zamanı"]
+        W["🌐 Web bulgusu<br/>bulgu kimliği<br/>ör. F5737d1fc<br/>kaynak alanı, tarih<br/>RM işareti ✓ / ✗"]
+    end
+    subgraph L2["2 · Karar"]
+        direction LR
+        O["⚖️ Puan parçası ve gerekçe<br/>kanıt kimlikleriyle"] --> R["🗂️ Karar kaydı<br/>run_id + yapılandırma özeti"]
+        AG["🤖 Ajan gerekçesi<br/>kanıt, bulgu, puan<br/>ve portföy atıflarıyla"]
+    end
+    M["📝 Görüşme metni<br/>her cümle kanıt kimliklerini taşır"]
+    A{{"✅ RM onayı ve düzenlemeleri<br/>Türkiye saatiyle kayıtta"}}
+    D --> O
+    D --> AG
+    W --> AG
+    R --> M
     AG --> M
-    M --> A["RM onayı, çözümler, düzenlemeler<br/>Türkiye saatiyle"]
+    M --> A
     classDef code fill:#EEF2F9,stroke:#525199,color:#101828
     classDef ai fill:#F4F3FF,stroke:#6941C6,color:#101828
     classDef human fill:#FF6200,stroke:#B34400,color:#fff
     class P,D,O,R code
-    class W,F,AG,M ai
+    class W,AG,M ai
     class A human
+    style L1 fill:#FCFCFD,stroke:#98A2B3
+    style L2 fill:#FCFCFD,stroke:#98A2B3
 ```
 
 Hangi katmanda neyi nasıl izlediğimiz:
