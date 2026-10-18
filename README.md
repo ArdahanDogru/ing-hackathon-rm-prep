@@ -271,7 +271,7 @@ flowchart TB
     end
     WEB["Web uygulaması · web/ (React)<br/>RM inceler, onaylar, düzenler"]
     REC[("Kayıtlar<br/>data/runs · narratives · agent · research<br/>logs/rm-actions")]
-    EVAL["Değerlendirme ve geri bildirim<br/>src/rmprep/eval · 34 senaryo · F1 raporu"]
+    EVAL["Değerlendirme ve geri bildirim<br/>src/rmprep/eval · 34 senaryo · geri bildirim raporu"]
     JOB --> SRC --> SNAP
     DB --> RULES
     TOP --> API
@@ -336,7 +336,7 @@ Ajan kendiliğinden başlamaz. RM hazırlık sayfasındaki *Ajan değerlendirmes
 Ajan kararını verdiğinde kodumuz bu kararı şu sorularla denetler:
 
 - 3 farklı aday seçilmiş mi; en çok 1 pay var mı; varlık sınıfı kuralı tutuyor mu?
-- Her gerekçe bir kanıta (E…), bir web bulgusuna (F…), bir puan parçasına veya bir portföy satırına atıf yapıyor mu?
+- Her gerekçe bir kanıt kimliğine, bir web bulgusu kimliğine, bir puan parçasına veya bir portföy satırına atıf yapıyor mu?
 - Gerekçedeki her sayı ve tarih atıf yapılan veride gerçekten var mı; yasak bir ifade var mı?
 - Motorun listesinden çıkarılan her seçenek için bir gerekçe yazılmış mı?
 
@@ -489,7 +489,7 @@ Sistemimizin müşteriye bir şey gönderebileceği bir kanal yoktur; uygulama y
 | Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? | `pytest`: 150 dosyada 3.053 test; web: 455 test; ağ erişimi yok, dil modeli yerine sahte model |
 | Senaryo değerlendirmesi | Sistem uçtan uca, jürinin değiştirebileceği girdilerle doğru çalışıyor mu? | 34 senaryo, 39 çalıştırma, dondurulmuş veri: temel personalar, persona değişiklikleri, kısıtlar, erişilemeyen kaynak, hatalı veri, eski hataların tekrarı |
 | Ajan değerlendirmesi | Ajan kurallara uyuyor mu, motordan daha iyi mi? | 8 karar: kod denetimi, yedeğe düşme oranı, tekrar, kör A/B hakemi, RM işaretleri |
-| Canlı kontrol ve geri bildirim | Sistem RM için gerçekten kullanışlı mı? | ekran incelemesi, ücretli canlı kontroller, RM işlem kaydından F1 raporu |
+| Canlı kontrol ve geri bildirim | Sistem RM için gerçekten kullanışlı mı? | ekran incelemesi, ücretli canlı kontroller, RM işlem kaydından geri bildirim raporu (`rmprep feedback`) |
 
 ### Hangi göstergelere bakıyoruz ve neden?
 
@@ -508,7 +508,7 @@ Son tam değerlendirmemizin sonuçları (`data/eval/20261017-160939-n12-client-p
 | Yasak ifade | 0 | 0 |
 | Tekrar tutarlılığı | 5/5 | %100 |
 | Süre: karar · görüşme metni | 1,18 sn · 24,9 sn (ortalama) | rapor |
-| Maliyet | 0,866 $ paket · 0,034 $ metin başına | ≤ 5 $ |
+| Değerlendirme maliyeti | tam paket 0,866 $ · yeni görüşme metni başına 0,034 $ | ≤ 5 $ |
 | LLM hakemi: uyarlanmış / açık / dengeli | %50 / %50 / %58 | yön göstergesi |
 
 Kısıt ihlali satırında 39 değil 37 çalıştırma var, çünkü iki çalıştırmada motor sıralamayı durdurup RM'e soru sordu ve ortada bir öneri listesi yoktu. LLM hakemi her soruya "evet" (1), "kısmen" (0,5) veya "hayır" (0) der ve tabloda bu notların ortalaması yazar. Uyarlanmış ve açık için %50, hakemin her metne "kısmen" dediği anlamına gelir; hakem hiçbir metne "hayır" demedi.
