@@ -400,9 +400,9 @@ Hazırlanan görüşme metni tek bir sayfadır. Sayfanın beyaz kısmı müşter
 
 ### Ajanı ve metni neden ayrı tuttuk?
 
-Ajan, tek bir puanın gösteremediği şeyleri tartmak için var: güncel haberler, iki adayın nitel farkı ve müşterinin mevcut dağılımı gibi. Yine de kararını kodun çizdiği sınırlar içinde verir ve RM motorun ilk 3'ünü her zaman ajanın önerisiyle yan yana görür. Görüşme metni ise tek bir model çağrısıyla (en çok bir tekrarla) yazılır; böylece maliyeti ve süresi her seferinde öngörülebilir kalır.
+Ajan, bir puanın gösteremediği sinyaller için var: güncel haberler, iki adayın nitel farkı ve müşterinin mevcut dağılımı gibi. Yine de kararını kodun çizdiği sınırlar içinde verir ve RM motorun ilk 3'ünü her zaman ajanın önerisiyle yan yana görür. Görüşme metni ise tek bir model çağrısıyla yazılır. Böylece maliyeti ve süresi her seferinde öngörülebilir kalır.
 
-Ürünü geliştirirken de çoklu ajanla çalıştık. Bir lider Claude Code oturumu ve her modül için bir işçi oturumu ayrı git çalışma ağaçlarında çalıştı; modüller arasındaki sözleşmeleri dondurduk ve her adımı yeşil testlerle bitirdik ([`docs/workflow.md`](docs/workflow.md)).
+Ürünü geliştirirken de çoklu ajanla çalıştık. Bir lider Claude Code oturumu ve her modül için bir işçi oturumu ayrı git çalışma ağaçlarında çalıştı. Modüller arasındaki sözleşmeleri dondurduk ve her adımı testlerle bitirdik ([`docs/workflow.md`](docs/workflow.md)).
 
 ## 6. Varsayımlar, belirsizlikler ve insan onay noktaları
 
