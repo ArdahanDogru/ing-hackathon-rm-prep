@@ -31,3 +31,9 @@ test("Vazgeç closes without a run", async () => {
   expect(onClose).toHaveBeenCalled();
   expect(onApply).not.toHaveBeenCalled();
 });
+
+test("W30: the note says an edited profile can be approved (was: a test that cannot be approved)", () => {
+  render(<PersonaPanel persona={sample("personas")[0]} onApply={vi.fn()} onClose={() => {}} />);
+  expect(screen.getByText(/onaylanırsa metin ve kart bu profille hazırlanır/)).toBeInTheDocument();
+  expect(screen.queryByText(/onaylanamaz/)).toBeNull();
+});
