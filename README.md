@@ -482,11 +482,11 @@ Sistemimizin müşteriye bir şey gönderebileceği bir kanal yoktur; uygulama y
 
 ## 7. Test yaklaşımı, sonuçlar, hata analizi ve yapılan iyileştirmeler
 
-Çözümümüzü dört katmanda test ettik. Her katman farklı bir soruya yanıt arar:
+Çözümümüzü dört farklı açıdan test ettik. Her açı farklı bir soruya yanıt arar:
 
-| Katman | Hangi soruyu yanıtlar | Kapsam |
+| Açı | Yanıtladığı Soru | Kapsam |
 |---|---|---|
-| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? | `pytest`: 150 dosyada 3.053 test; web: 455 test; ağ erişimi yok, dil modeli yerine sahte model |
+| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? | `pytest`: 150 dosyada 3.053 test; web: 455 test; ağ erişimi yok ise dil modeli yerine sahte model |
 | Senaryo değerlendirmesi | Sistem uçtan uca, jürinin değiştirebileceği girdilerle doğru çalışıyor mu? | 34 senaryo, 39 çalıştırma, dondurulmuş veri: temel personalar, persona değişiklikleri, kısıtlar, erişilemeyen kaynak, hatalı veri, eski hataların tekrarı |
 | Ajan değerlendirmesi | Ajan kurallara uyuyor mu, motordan daha iyi mi? | 8 karar: kod denetimi, yedeğe düşme oranı, tekrar, kör A/B hakemi, RM işaretleri |
 | Canlı kontrol ve geri bildirim | Sistem RM için gerçekten kullanışlı mı? | ekran incelemesi, ücretli canlı kontroller, RM işlem kaydından geri bildirim raporu (`rmprep feedback`) |
