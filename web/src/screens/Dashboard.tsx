@@ -150,11 +150,10 @@ export function Dashboard({
         />
       )}
 
-      {ready && <AgentPanel decision={agent} />}
-
       {/* W47 (the user, 2026-10-17): Gündem over the full width; under it row 1 = the agent box
           (or Öneriler without it, or the questions before a ready run); row 2 = Öneriler under the
-          agent box. Was W23: Gündem and the agent box side by side. */}
+          agent box. Was W23: Gündem and the agent box side by side. W51: the agent's node row
+          ("Ajan değerlendirmesi") directly above row 1, next to its result. */}
       <div data-testid="dash-agenda" className="mb-6">
         <Agenda
           points={view.talking_points}
@@ -167,6 +166,7 @@ export function Dashboard({
           onEvidence={setEvidenceId}
         />
       </div>
+      {ready && <AgentPanel decision={agent} />}
       <div data-testid="dash-row1" className="mb-6">
         {!ready ? (
           <QuestionsPanel questions={r.questions} onAnswer={answer} />

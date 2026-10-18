@@ -196,6 +196,15 @@ test("W47: Gündem over the full width, then the agent box (row 1), then Öneril
   expect(within(agenda).getByTestId("agenda").querySelector("ul")).toHaveClass("lg:grid-cols-3"); // the points side by side
 });
 
+test("W51: the node row 'Ajan değerlendirmesi' sits between Gündem and the agent box", async () => {
+  await showWith(agentDecision(view(), "done"));
+  const agenda = await screen.findByTestId("dash-agenda");
+  const panel = screen.getByTestId("agent-panel");
+  const row1 = screen.getByTestId("dash-row1");
+  expect(agenda.compareDocumentPosition(panel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(panel.nextElementSibling).toBe(row1);
+});
+
 test("while the agent runs the box is in row 1 too", async () => {
   await showWith(agentDecision(view(), "running"));
   expect(within(await screen.findByTestId("dash-row1")).getByTestId("agent-picks")).toBeInTheDocument();

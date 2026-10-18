@@ -604,6 +604,13 @@ değerlendirmesi section comes under it", and "194 elendi", not "−194 elendi".
   items in two columns (`lg:grid-cols-2`); one column on narrow screens.
 - "3 · Kesin kurallar": the big number is the count without a sign.
 
+### The agent's node row next to its result (W51, 2026-10-18)
+
+The user, 2026-10-18: "Ajan değerlendirmesi" is too far from "Ajan önerisi", with
+Gündem between them. The node row (`AgentPanel`) now comes after `dash-agenda` and
+directly before `dash-row1`: Gündem → Ajan değerlendirmesi → the agent box → Öneriler.
+Nothing else changes.
+
 ### The profile findings as calm cards side by side (W48, 2026-10-17)
 
 The user, 2026-10-17: the conflict alerts are "not pretty"; make them easier on the
