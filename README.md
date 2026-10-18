@@ -23,7 +23,7 @@ Sistemi kendi bilgisayarınızda çalıştırmak için Powershell'de aşağıdak
 python -m venv .venv; .venv\Scripts\Activate.ps1
 pip install -e ".[dev,web,narrator]"
 cd web; npm ci; npm run build; cd ..
-python -m rmprep ingest          # veriyi çeker (yaklaşık 16 dk), yeni anlık görüntü
+python -m rmprep ingest          # veriyi çeker (yaklaşık 16 dk), yeni snapshot
 python -m rmprep serve           # http://127.0.0.1:8600
 pytest -q                        # 150 dosyada 3.053 test, ağ erişimi yok
 python -m rmprep eval --no-llm   # değerlendirme paketi, ücretsiz geçiş
@@ -52,7 +52,7 @@ Bu bölümden sonra README'miz sekiz bölümden oluşur. Aşağıdaki tablo READ
 Relationship Manager (RM), ilgilendiği her müşteri için görüşmelerden önce yüzlerce yatırım ürününü farklı kaynaklardan toplayıp karşılaştırmak durumunda. Faiz oranları TCMB'de, fon getirileri TEFAS'ta, mevduat oranları bankaların sayfalarında duruyor ve RM bunları kendisi bir araya getiriyor. Ayrıca bu veriler dinamik; RM her toplantıdan önce elindeki verileri güncel verilerle değiştirmekle uğraşıyor. Bu iş uzun sürdüğü için de görüşme metni çoğu zaman müşteriye yeterince uyarlanamayabiliyor, müşterinin açık bir kısıtı gözden kaçabiliyor, yatırım kararını etkileyen veriler tamamen güncel olmayabiliyor ve önerilerin hangi veriye, varsayıma ve gerekçeye dayandığı o sırada gösterilemeyebiliyor.
 
 
-Problemin büyüklüğünü kendi verimizle ölçtük (snaphot: `20261017-110343-d12a`, 17.10.2026):
+Problemin büyüklüğünü kendi verimizle ölçtük (snapshot: `20261017-110343-d12a`, 17.10.2026):
 
 | Gözlem | Sayı |
 |---|---|
@@ -66,14 +66,14 @@ Tablonun ikinci satırı bize şunu gösterdi: faizler kâğıt üzerinde iyi g�
 | Gösterge | Bugün | Agent 007 ile |
 |---|---|---|
 | Hazırlık süresi | **[VARSAYIM]** görüşme başına ~60 dk, daha fazla da olabilir | analiz ~1,18 sn, görüşme metni ~24,9 sn; geri kalan RM'in okuması ve onayı |
-| Müşteri kısıtı/isteği ihlali | elle kontrol edilir | Testlerimizdeki 34 senaryo, 39 çalıştırmada 0 kısıt ihlali gözlemledik|
+| Müşteri kısıtı/isteği ihlali | elle kontrol edilir | Testlerimizdeki 34 senaryo ve 39 çalıştırmada, öneri listesi çıkan 37 çalıştırmanın hiçbirinde kısıt ihlali gözlemlemedik |
 | Tutarlılık | kişiye bağlı | deterministik; aynı girdi → aynı sonuç ve aynı metin (yaptığımız 5 testte 5/5 aynı sonuçları aldık) |
-| Müşteriye özel uyarlama | Zaman kısıtına göre bazen genel metin | 5 müşteri profilinde 5 farklı öneri seti; ; gerekçeler ve öneriler müşterinin önceliklerine ve kısıtlarına bağlı olarak hazırlanır |
+| Müşteriye özel uyarlama | Zaman kısıtına göre bazen genel metin | 5 müşteri profilinde 5 farklı öneri seti; gerekçeler ve öneriler müşterinin önceliklerine ve kısıtlarına bağlı olarak hazırlanır |
 | İzlenebilirlik | dağınık; önerinin hangi veriye, varsayıma ve gerekçeye dayandığı geriye dönük gösterilemeyebilir | ekrandaki her sayının kaynağı, tarihi, alınma zamanı ve kanıt kimliği sunulur |
 
 ### Yaklaşımımız
 
-Çözümümüzde işleri dört katmana ayırdık. Ürünleri eleyen ve sıralayan kısım, puanlama motoru, koddur; aynı girdiyle her seferinde aynı sonucu verir ve her adımı açıklanabilir. Müşteri istek ve kısıtlarına göre yatırım seçeneklerini puanlar. Ajan puanlama motorunun çizdiği sınırlar içinde çalışır: motorun önerilerini araştırıp yeni bir sıralama önerebilir, görüşme metnini yazar. Ajanın yazdığı her şey yeniden denetlenir. Son karar ise her zaman RM'indir. RM hemen hemen her hazırlanan çıktıyı gözden geçirip geri bildirim verebilir.
+Çözümümüzde işleri dört katmana ayırdık. Ürünleri eleyen ve sıralayan kısım, puanlama motoru, koddur; aynı girdiyle her seferinde aynı sonucu verir ve her adımı açıklanabilir. Müşteri istek ve kısıtlarına göre yatırım seçeneklerini puanlar. Ajan puanlama motorunun çizdiği sınırlar içinde çalışır: motorun önerilerini araştırıp yeni bir sıralama önerebilir. Görüşme metnini ise ayrı bir yapay zekâ adımı olan anlatıcı yazar. Ajanın ve anlatıcının yazdığı her şey yeniden denetlenir. Son karar ise her zaman RM'indir. RM hemen hemen her hazırlanan çıktıyı gözden geçirip geri bildirim verebilir.
 
 
 ```mermaid
@@ -237,7 +237,7 @@ Aynı gün beş personamız için motorun önerdiği ilk 3 şöyle oldu. Her mü
 
 ## 4. Genel çözüm mimarisi ve veri akışı
 
-Aşağıdaki şema verinin kaynaktan RM'in ekranına kadar izlediği yolu gösterir. Veri önce değiştirilemeyen bir anlık görüntüye kaydedilir, kalite kontrollerinden geçer ve kanıt deposuna yazılır. Puanlama motoru bu depodan okur; web uygulaması, ajan, web araştırması ve görüşme metni de motorun sonucunu aynı API üzerinden alır. RM'in yaptığı her işlem kayda geçer ve değerlendirme paketimiz bu kayıtları daha sonra yeniden okuyabilir.
+Aşağıdaki şema verinin kaynaktan RM'in ekranına kadar izlediği yolu gösterir. Veri önce değiştirilemeyen bir snapshot'a kaydedilir, kalite kontrollerinden geçer ve kanıt deposuna yazılır. Puanlama motoru bu depodan okur; web uygulaması, ajan, web araştırması ve görüşme metni de motorun sonucunu aynı API üzerinden alır. RM'in yaptığı her işlem kayda geçer ve değerlendirme paketimiz bu kayıtları daha sonra yeniden okuyabilir.
 
 ```mermaid
 flowchart TB
@@ -251,7 +251,7 @@ flowchart TB
         MAN[/"Elle girilen CSV"/]
     end
     subgraph ING["Ingest · deterministik · src/rmprep/ingest"]
-        SNAP["Dondurulmuş anlık görüntü<br/>ham baytlar + SHA-256, salt okunur"]
+        SNAP["Dondurulmuş snapshot<br/>ham baytlar + SHA-256, salt okunur"]
         QC["Kalite kontrolleri<br/>bayrak ekler, değeri değiştirmez"]
         DB[("Kanıt deposu<br/>DuckDB + Parquet")]
         SNAP --> QC --> DB
@@ -299,7 +299,7 @@ Sistemi, her biri ayrı test edilebilen modüllere böldük. Böylece bir modül
 
 | Modül | Ne iş yapar | Klasör |
 |---|---|---|
-| Ingest | kaynak adaptörleri, anlık görüntü, kalite kontrolleri, kanıt deposu, günlük görev ve kilit | `src/rmprep/ingest/`, `config/sources.yaml` |
+| Ingest | kaynak adaptörleri, snapshot, kalite kontrolleri, kanıt deposu, günlük görev ve kilit | `src/rmprep/ingest/`, `config/sources.yaml` |
 | Puanlama motoru | evren, eleme kuralları, puan, güven, istikrar, ilk 3, dağılım bantları, mevcut dağılım, uyarılar | `src/rmprep/decision/`, `config/decision.yaml` |
 | Ajan | adaylar, veri paketi, araçlar, kod denetimi, yedek | `src/rmprep/agent/`, `config/agent.yaml` |
 | Web araştırması | Exa ve Claude sağlayıcıları, soru kontrolü, biçimlendirme, önbellek, günlük sınır | `src/rmprep/research/`, `config/research.yaml` |
@@ -493,7 +493,7 @@ Sistemimizin müşteriye bir şey gönderebileceği bir kanal yoktur; uygulama y
 
 Brief'in kesin kurallarında, yani kısıt ihlali olmaması, uydurma veri olmaması, her bilginin kaynağının gösterilmesi ve yasak ifade kullanılmaması konularında hedefimiz %100'dür; bu kurallarda tek bir ihlali bile kabul etmiyoruz. Metin kalitesini ise yalnızca yön gösterici olarak okuyoruz, çünkü metni puanlayan hakem de bir dil modeli ve verdiği not kod kontrolleri kadar güvenilir değil.
 
-Son tam değerlendirmemizin sonuçları (`data/eval/20261017-160939-n12-client-page`, dondurulmuş anlık görüntü `20261014-233110-1565`, istem n12):
+Son tam değerlendirmemizin sonuçları (`data/eval/20261017-160939-n12-client-page`, dondurulmuş snapshot: `20261014-233110-1565`, istem n12):
 
 | Gösterge | Sonuç | Hedef |
 |---|---|---|
@@ -530,7 +530,7 @@ Geliştirme boyunca bulduğumuz her hatayı, nedenini nasıl bulduğumuzu ve dü
 | 5 yıllık geçmiş 15.02.2023'te kesiliyordu | 8-14.02.2023 "okunamaz" işaretlenmişti: depremden sonra borsa kapalıydı | kapanışı 0 olan geçerli bülten = işlem olmayan gün | tam 5 yıllık geçmiş |
 | Bir metin şablona düştü ("Garanti Portföy GZP" → yasak ifade "garanti") | değerlendirmenin hata listesi cümleyi ve bulguyu verdi | doğrulayıcı, adı geçen fonun kurucu adını yasak ifade taramasından önce çıkarır; başka yerde "garanti" hâlâ bulgudur | testler iki yönde geçiyor; canlı yeniden çalıştırma önbellekteki eski metni okudu, açık iş |
 
-Henüz çözmediğimiz konular da var. TEFAS bazı günlerde bir fonun fiyatını ve büyüklüğünü 0 olarak yayımlıyor (son anlık görüntüde 45 fon) ve bu sıfırları henüz işaretlemiyoruz. İki EVDS serisini (BIST 100 getiri endeksi ve altın) doğrulamadık; bu seriler "doğrulanmamış seri" bayrağı taşıyor. Metinleri puanlayan LLM hakemi de neredeyse her metne "kısmen" diyor, çünkü rubriğini müşteri sayfası için değil RM notu için yazmıştık.
+Henüz çözmediğimiz konular da var. TEFAS bazı günlerde bir fonun fiyatını ve büyüklüğünü 0 olarak yayımlıyor (son snapshot'ta 45 fon) ve bu sıfırları henüz işaretlemiyoruz. İki EVDS serisini (BIST 100 getiri endeksi ve altın) doğrulamadık; bu seriler "doğrulanmamış seri" bayrağı taşıyor. Metinleri puanlayan LLM hakemi de neredeyse her metne "kısmen" diyor, çünkü rubriğini müşteri sayfası için değil RM notu için yazmıştık.
 
 ### Geri bildirim döngüsü
 
@@ -542,7 +542,7 @@ Sistemimizdeki her öneriyi, dayandığı verinin kaynağına, değer tarihine v
 
 ```mermaid
 flowchart LR
-    P["Ham indirme<br/>anlık görüntüde, SHA-256"] --> D["Değer<br/>kanıt kimliği E…"]
+    P["Ham indirme<br/>snapshot'ta, SHA-256"] --> D["Değer<br/>kanıt kimliği E…"]
     W["Web bulgusu<br/>kaynak alanı, tarih"] --> F["Bulgu kimliği F…"]
     D --> O["Puan parçası ve gerekçe<br/>kanıt kimlikleriyle"]
     O --> R["Karar<br/>run_id + config_hash"]
@@ -564,14 +564,14 @@ Her katmanda neyi nasıl izlediğimiz:
 | Ne | Nasıl izliyoruz |
 |---|---|
 | Her değer | kanıt kimliği (kaynak, ölçü, varlık ve tarihin özeti), kaynak, kaynak adresi, değer tarihi (`as_of`), alınma zamanı (`fetched_at`), kalite bayrakları |
-| Ham veri | anlık görüntüde bayt bayt; her dosyanın SHA-256 özeti; kullanılan yapılandırmanın kopyası; salt okunur. `rmprep replay` aynı çıktıyı ağa çıkmadan yeniden üretir |
-| Kalite | kontroller değeri değiştirmez, yalnızca bayrak ekler: eksik, eski, aralık dışı, çelişen, yedek anlık görüntü, doğrulanmamış seri, elle girilen. Kaynaklar arası çapraz kontrol de yaparız (ör. TÜFE: EVDS 29,7315, elle 29,73) |
-| Her karar | `run_id` (müşteri + anlık görüntü + yapılandırma özeti; aynı girdi → aynı kimlik), her puan parçası ve gerekçesi kanıt kimlikleriyle, elenenler gerekçeleriyle, varsayımlar, uyarılar |
+| Ham veri | snapshot'ta bayt bayt; her dosyanın SHA-256 özeti; kullanılan yapılandırmanın kopyası; salt okunur. `rmprep replay` aynı çıktıyı ağa çıkmadan yeniden üretir |
+| Kalite | kontroller değeri değiştirmez, yalnızca bayrak ekler: eksik, eski, aralık dışı, çelişen, yedek snapshot, doğrulanmamış seri, elle girilen. Kaynaklar arası çapraz kontrol de yaparız (ör. TÜFE: EVDS 29,7315, elle 29,73) |
+| Her karar | `run_id` (müşteri + snapshot + yapılandırma özeti; aynı girdi → aynı kimlik), her puan parçası ve gerekçesi kanıt kimlikleriyle, elenenler gerekçeleriyle, varsayımlar, uyarılar |
 | Ajan kararı | `data/agent/<run_id>.json`: adaylar, araçların `amac` notları, denetim sonuçları, her gerekçenin atıfları, istem sürümü, model, maliyet |
 | Web bulguları | bulgu kimliği, kaynak alanı, tarih, "doğrulanmamış" etiketi, RM'in ✓/✗ işareti; günlük önbellek ve maliyet defteri |
 | Onaylar | RM'in karar zamanı, seçim, notlar, profil çelişkilerinin çözümleri; `data/runs/`, `data/narratives/`, `data/cards/` |
 | Metin | her cümle seçenek ve kanıt kimliği taşır; model, istem sürümü, doğrulayıcı sonucu, RM düzenlemeleri ve maliyet kayda girer |
-| RM işlemleri | `data/logs/rm-actions/<gün>.jsonl`: her işlem zamanı, çalıştırması, personası, anlık görüntüsü ve yapılandırma/istem sürümleriyle |
+| RM işlemleri | `data/logs/rm-actions/<gün>.jsonl`: her işlem zamanı, çalıştırması, personası, snapshot'ı ve yapılandırma/istem sürümleriyle |
 
 RM ekranda bir sayının yanındaki "K" işaretine tıkladığında o sayının kanıt penceresi açılır:
 
