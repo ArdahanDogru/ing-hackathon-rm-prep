@@ -1,6 +1,6 @@
 # RM Görüşme Hazırlığı: kanıta dayalı yatırım karar desteği
 
-Agent 007 grubu olarak sunduğumuz bu ürün, Private Banking'deki RM'ler (Relationship Manager) için tasarlanmış bir yatırım karar destek çözümüdür. 
+Agent 007 grubu (Yusuf Ardahan Doğru, Öykü Irmak Hatipoğlu) olarak sunduğumuz bu ürün, Private Banking'deki RM'ler (Relationship Manager) için tasarlanmış bir yatırım karar destek çözümüdür. 
 
 Ürünümüz, data science ve agentic mühendislik yardımıyla RM'lerin müşteri görüşmesi hazırlığına yardım eder. 
 
