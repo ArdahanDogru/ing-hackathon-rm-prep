@@ -436,36 +436,51 @@ RM bu belirsizlikleri hazırlık sayfasında *Teyit edin* listesi olarak görür
 
 ### İnsan onay noktaları
 
-Sistemimiz öneriyi hazırlar, ama hiçbir şey RM görmeden ve onaylamadan sonraki aşamaya. Aşağıdaki akış, bir RM'in bir müşteri için ekranda sırayla geçtiği adımları gösterir:
+Sistemimiz öneriyi hazırlar, ama hiçbir şey RM görmeden ve onaylamadan sonraki aşamaya. Aşağıdaki akış, bir RM'in bir müşteri için ekranda geçtiği adımları gösterir:
 
 - Turuncu altıgenler RM'in karar verdiği yerlerdir.
-- Gri kutular sistemin kendi başına yaptığı işlerdir.
+- Mavi kutular sistemin kendi başına yaptığı işlerdir.
 - Kırmızı kutular kilitlerdir: RM bir şeyi tamamlamazsa sistem o noktadan ilerlemez.
 
 ```mermaid
 flowchart TB
-    S1["Sistem hazırlar<br/>müşteri profilini okur, 1.444 ürünü eler ve puanlar,<br/>ilk 3'ü, uyarıları ve RM'e soruları çıkarır,<br/>profildeki çelişkileri arar"]
-    H1{{"1 · Profili gözden geçir<br/>RM 'Teyit edin' sorularını yanıtlar,<br/>tahmini portföy dağılımını onaylar veya düzeltir"}}
-    H2{{"2 · Çelişkileri çöz<br/>ör. profil 'Muhafazakâr' ama öncelik büyüme;<br/>RM müşteriyle neyin geçerli olduğunu yazar"}}
-    H3{{"3 · İsteğe bağlı: ajanı çalıştır<br/>RM aday sayısını seçer, web bulgularını<br/>✓ doğru veya ✗ yanlış diye işaretler"}}
-    H4{{"4 · Önerileri onayla<br/>RM görüşmede konuşulacak ürünleri seçer,<br/>not yazar, Onayla veya Reddet der"}}
-    L1(["Kilit: çözülmemiş bir çelişki varsa<br/>onay düğmesi çalışmaz"])
-    S2["Sistem yazar<br/>yalnızca onaylanan ürünlerle görüşme metnini yazar,<br/>her sayıyı ve kaynağı kodla denetler"]
-    H5{{"5 · Metni gözden geçir<br/>RM blokları okur, düzenler veya siler;<br/>her düzenleme yeniden denetlenir"}}
-    H6{{"6 · Kartı al ve sun<br/>RM kartı PDF olarak indirir veya yazdırır,<br/>müşteriye Sunum görünümünü gösterir"}}
-    L2(["Kilit: denetimde açık bir kural bulgusu varsa<br/>kart indirilemez ve yazdırılamaz"])
-    S3["Sistem kaydeder<br/>onay zamanı, seçilen ürünler, notlar,<br/>çelişki gerekçeleri, düzenlemeler, her RM işlemi"]
-    S1 --> H1 --> H2 --> H3 --> H4 --> S2 --> H5 --> H6 --> S3
-    H1 -. "her yanıt veya düzeltme<br/>sıralamayı yeniden hesaplatır" .-> S1
-    L1 -.- H4
+    S1["⚙️ Sistem hazırlar<br/>eleme, puan, ilk 3, sorular, profil kontrolü"]
+    subgraph P1["Hazırlık sayfası · RM adımları istediği sırayla yapar"]
+        direction LR
+        H1{{"1 · Teyit edin<br/>soruları yanıtlar"}}
+        H2{{"2 · Çelişki varsa<br/>gerekçesini yazar"}}
+        H3{{"3 · İsteğe bağlı<br/>ajanı çalıştırır"}}
+    end
+    G{{"4 · Önerileri onaylar"}}
+    L1(["🔒 Onay için: en az 1 ürün seçili<br/>ve çözülmemiş çelişki yok"])
+    X["Metin yazılmaz<br/>RM'in kararı kayda geçer"]
+    S2["⚙️ Sistem metni yazar ve denetler<br/>yalnızca onaylanan ürünlerle"]
+    subgraph P2["Görüşme metni sayfası"]
+        direction LR
+        H5{{"5 · Metni gözden geçirir<br/>düzenler veya siler"}} --> H6{{"6 · Kartı alır ve sunar<br/>PDF, Sunum görünümü"}}
+    end
+    L2(["🔒 Açık bir kural bulgusu varsa<br/>kart indirilemez"])
+    S1 --> P1
+    P1 --> G
+    H1 -. "her yanıt sıralamayı<br/>yeniden hesaplatır" .-> S1
+    L1 -.- G
+    G -- "Onayla" --> S2
+    G -- "Reddet" --> X
+    S2 --> P2
     L2 -.- H6
     classDef human fill:#FF6200,color:#fff,stroke:#B34400
-    classDef sys fill:#F2F4F7,color:#101828,stroke:#98A2B3
+    classDef sys fill:#EEF2F9,color:#101828,stroke:#525199
     classDef lock fill:#FEE4E2,color:#7A271A,stroke:#D92D20
-    class H1,H2,H3,H4,H5,H6 human
-    class S1,S2,S3 sys
+    classDef end1 fill:#fff,color:#475467,stroke:#98A2B3
+    class H1,H2,H3,G,H5,H6 human
+    class S1,S2 sys
     class L1,L2 lock
+    class X end1
+    style P1 fill:#FCFCFD,stroke:#98A2B3
+    style P2 fill:#FCFCFD,stroke:#98A2B3
 ```
+
+Her adım (onay, ret, çelişki gerekçesi, ✓/✗ işareti, düzenleme) yapıldığı anda zamanıyla kayda geçer.
 
 | Adım | RM ekranda ne görür | RM ne yapar | Bu adım neden var |
 |---|---|---|---|
