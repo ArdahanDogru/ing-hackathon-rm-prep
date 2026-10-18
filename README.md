@@ -152,13 +152,13 @@ Brief'in 6. maddesinde sayılan müşteri ve ürün özelliklerinin her birini b
 
 Yaşı ise puana katmadık. Müşterinin hangi ürünlere uygun olduğunu risk profili belirliyor. Yaşı görüşme metninde ve profil kontrolünde kullanıyoruz: örneğin dosyada `yas` 62 yazarken RM notunda "45 yaşında" geçiyorsa sistem bu çelişkiyi RM'e gösteriyor.
 
-## 3. Karşılaştırma / sıralama veya karar mantığı
+## 3. Sıralama veya karar mantığı
 
-Agent 007'nin merkezinde puanlama motorumuz var. Motor, kurallar ve puanlardan oluşan deterministik bir koddur: aynı müşteri ve aynı veriyle her çalıştırıldığında aynı sonucu ve aynı çalıştırma kimliğini (`run_id`) verir. Motorun bütün tabloları ve ağırlıkları [`config/decision.yaml`](config/decision.yaml) dosyasında, tasarım kararlarımız da [`docs/decision.md`](docs/decision.md) belgesinde durur.
+Sıralama kriterlerine puanlama motorumuz karar veriyor. Motor, kurallar ve puanlardan oluşan deterministik hesaplamalar yapar, aynı müşteri ve aynı veriyle her çalıştırıldığında aynı sonucu ve aynı çalıştırma kimliğini (`run_id`) verir. Motorun bütün tabloları ve ağırlıkları [`config/decision.yaml`](config/decision.yaml) dosyasında, tasarım kararlarımız da [`docs/decision.md`](docs/decision.md) belgesindedir.
 
-### Neden kural ve şeffaf puan?
+### Neden kural ve deterministik puan?
 
-Bu yaklaşımı üç nedenle seçtik. Birincisi, elimizde hangi müşteriye hangi ürünün önerildiğini gösteren etiketli bir geçmiş veri yok; bu yüzden denetimli bir model eğitemezdik. İkincisi, brief'in 5. kuralı (müşteriye uygun olmayan ürün öneri listesine girmez) her seferinde kesin olarak uygulanmalı ve olasılıkla çalışan bir model bunu garanti edemez. Üçüncüsü, kural ve puan yaklaşımında puanın her parçasını RM'e ve jüriye gösterebiliyor, aynı sonucu istediğimiz zaman yeniden üretebiliyoruz. Dil modelini ise metin yazmak, araştırmayı özetlemek ve adayları nitel olarak karşılaştırmak gibi kendi güçlü olduğu işlerde kullanıyoruz (bölüm 5).
+Bu yaklaşımı seçmemizin üç nedeni var. Birincisi, elimizde hangi müşteriye hangi ürünün önerildiğini gösteren ya da ürünlere önceden belirlenmiş puanlar veren etiketli bir geçmiş veri yok. Bu yüzden denetimli bir machine learning modeli eğitmemiz mümkün değildi. İkincisi, brief'in 5. kuralı (müşteriye uygun olmayan ürün öneri listesine girmez) her seferinde kesin olarak uygulanmalı. Olasılıkla çalışan bir model bunu garanti edemez. Üçüncüsü, kural ve puan yaklaşımında puanın her parçasını gösterebiliyoruz ve aynı sonucu istediğimiz zaman yeniden üretebiliyoruz. Bu algoritmamızı açıklanabilirlik açısından güçlendiriyor. Dil modelini ise metin yazmak, araştırmayı özetlemek ve adayları nitel olarak karşılaştırmak gibi kendi güçlü olduğu işlerde kullanıyoruz (bölüm 5).
 
 ```mermaid
 flowchart TB
@@ -178,13 +178,13 @@ flowchart TB
     class U,X io
 ```
 
-Motor işe dört eleme kuralıyla başlar ve bunları sırayla uygular: alıma kapalı fonları, müşterinin risk tavanını aşan ürünleri, müşterinin açık kısıtlarına uymayan ürünleri ve yeterli getiri geçmişi olmayan ürünleri eler. Elenen her ürün, hangi kurala takıldığı ve bu kararın dayandığı kanıtla birlikte *Elenenler* listesine yazılır; RM bir ürünün neden listede olmadığını her zaman görebilir. Kalan ürünler puanlanır. RM bu süreci hazırlık sayfasındaki *Bu öneriler nasıl seçildi?* bölümünde adım adım izler: müşterinin ölçüt ağırlıkları, her kuralın kaç ürünü elediği ve önerilerin ne kadar kararlı olduğu burada yazar.
+Motor işe dört eleme kuralıyla başlar ve bunları sırayla uygular: alıma kapalı fonları, müşterinin risk tavanını aşan ürünleri, müşterinin açık kısıtlarına uymayan ürünleri ve yeterli getiri geçmişi olmayan ürünleri eler. Elenen her ürün, hangi kurala takıldığı ve bu kararın dayandığı kanıtla birlikte *Elenenler* listesine yazılır. Kalan ürünler puanlanır. RM bu süreci hazırlık sayfasındaki *Bu öneriler nasıl seçildi?* bölümünde adım adım izler. Müşterinin ölçüt ağırlıkları, her kuralın kaç ürünü elediği ve önerilerin ne kadar kararlı olduğu burada yazar.
 
 ![Bu öneriler nasıl seçildi: profil ve ağırlıklar, 1.444 seçenek, 1.138 elendi, 306 aday, 3 öneri](docs/img/readme/pipeline.png)
 
 ### Puan nasıl hesaplanır?
 
-Elemeden geçen her ürün sekiz ölçütün her birinden 0 ile 1 arasında bir değer alır. Motor bu değerleri müşterinin ağırlıklarıyla çarpıp toplar, sonra ürünün zayıf yönleri için cezaları çıkarır. Ağırlıkları müşterinin profili belirler ve toplamları her zaman 1'dir. Örneğin likidite ihtiyacı yüksek bir müşteride likidite ölçütünün ağırlığı büyür; likidite ihtiyacı "Düşük" olan bir müşteride ise bu ölçütün ağırlığı sıfırdır ve fon kartında hiç görünmez. Bu yüzden aynı ürünün puan parçaları müşteriden müşteriye değişir.
+Elemeden geçen her ürün sekiz ölçütün her birinden 0 ile 1 arasında bir değer alır. Motor bu değerleri müşterinin ağırlıklarıyla çarpıp toplar, sonra ürünün zayıf yönleri için cezaları çıkarır. Ağırlıkları müşterinin profili belirler ve toplamları 1'dir. Örneğin likidite ihtiyacı yüksek bir müşteride likidite ölçütünün ağırlığı büyür; likidite ihtiyacı "Düşük" olan bir müşteride ise bu ölçütün ağırlığı sıfırdır ve fon kartında hiç görünmez. Bu yüzden aynı ürünün puan parçaları müşteriden müşteriye değişir.
 
 | Ölçüt | Ne ölçer | Ham ağırlık |
 |---|---|---|
@@ -197,33 +197,33 @@ Elemeden geçen her ürün sekiz ölçütün her birinden 0 ile 1 arasında bir 
 | Kalite | fon büyüklüğü ve yatırımcı sayısı (payda işlem hacmi) | 0,5 |
 | Portföy açığı | müşterinin bugünkü dağılımının model banttan ne kadar uzak olduğu | 1 × kaynak katsayısı; yalnızca dağılımı RM girdiyse, onayladıysa veya müşteri dosyasında varsa |
 
-Cezalar ürünün müşteriye uymayan yanlarını puandan düşer. Anapara riski, paraya geç erişim, döviz maruziyeti, bilinmeyen risk, reel kayıp ve piyasanın altında kalan getiri için ceza en çok 0,3; eksik getiri geçmişi için 0,2; küçük fon için 0,1 olabilir. Bir cezanın büyüklüğü üç şeyin çarpımıdır: cezanın üst sınırı, o konunun müşteri için ne kadar önemli olduğu ve ürünün o konuda ne kadar zayıf kaldığı.
+Cezalar ürünün müşteriye uymayan yanlarını puandan düşer. Anapara riski, paraya geç erişim, döviz maruziyeti, bilinmeyen risk, reel kayıp ve piyasanın altında kalan getiri için ceza en çok 0,3; eksik getiri geçmişi için 0,2; küçük fon için 0,1 olabilir. Bir cezanın büyüklüğünü belirleyen çarpımı, cezanın üst sınırı, o konunun müşteri için ne kadar önemli olduğu ve ürünün o konuda ne kadar zayıf kaldığı oluşturur.
 
 ### Bu ağırlıkları neden seçtik?
 
-MiFID II ve SPK'nın yerindelik kuralları hangi kritere ne kadar ağırlık verileceğini sayıyla söylemez. Bu yüzden ağırlıkları kendimiz seçtik ve ekranda açıkça gösteriyoruz **[VARSAYIM]**. Seçimimizin sonucu ne kadar etkilediğini de iki yolla ölçüyoruz: istikrar testimiz her ağırlığı %20 artırıp azaltarak sıralamayı yeniden hesaplar (bölüm 6), değerlendirme paketimiz de persona değiştiğinde sonucun beklenen yönde değişip değişmediğine bakar (bölüm 7).
+MiFID II ve SPK'nın yerindelik kurallarında kriterlerin ağırlıkları yoktur. Bu yüzden ağırlıkları kendimiz seçtik ve ekranda açıkça gösteriyoruz **[VARSAYIM]**. Seçimimizin sonucu ne kadar etkilediğini de iki yolla ölçüyoruz: istikrar testimiz her ağırlığı %20 artırıp azaltarak sıralamayı yeniden hesaplar (bölüm 6), değerlendirme adımı da persona değiştiğinde sonucun beklenen yönde değişip değişmediğine bakar (bölüm 7).
 
 ### İlk 3 öneri nasıl seçilir?
 
-Muhafazakâr ve Temkinli müşterilerde ilk 3 öneri doğrudan puan sırasının ilk üç ürünüdür. Dengeli ve Agresif müşterilerde ya da çeşitlendirme isteyen her müşteride ise motor listeyi puan sırasıyla dolaşır ve her varlık sınıfından en çok bir ürün alır; böylece RM'in önüne aynı türden üç fon gelmez. Nakit benzeri ürünler ve paylar için de sınır birdir ve son bir yılda enflasyonun altında kalmış bir ürün bu yöntemle seçilmez. Çok varlıklı bir fonun sınıfını fonun gerçek portföy dağılımı belirler: portföyün %50 veya daha fazlasını oluşturan sınıf; böyle bir sınıf yoksa fon "dengeli" sayılır.
+Muhafazakâr ve Temkinli müşterilerde ilk 3 öneri doğrudan puan sırasının ilk üç ürünüdür. Dengeli ve Agresif müşterilerde ya da çeşitlendirme isteyen her müşteride ise motor listeyi puan sırasıyla dolaşır ve her varlık sınıfından en çok bir ürün alır, böylece RM'in önüne aynı türden üç fon gelmez. Nakit benzeri ürünler ve paylar için de en fazla bir ürün seçilir ve son bir yılda enflasyonun altında kalmış bir ürün bu yöntemle seçilmez. Çok varlıklı bir fonun sınıfını fonun gerçek portföy dağılımı belirler: portföyün %50 veya daha fazlasını oluşturan sınıf seçilir. Böyle bir sınıf yoksa fon "dengeli" sayılır.
 
-Bunu bir örnekle gösterelim. P02, döviz geliri olan ve 1-3 yıllık ufku bulunan Dengeli profilli bir ihracatçı; önceliklerinden biri erişilebilir likidite. Motorumuz bu müşteri için ağırlıkları getiri 0,339, risk uyumu 0,203, likidite 0,203, gelir 0,102, anapara 0,102 ve kalite 0,051 olarak hesapladı (17.10.2026):
+Bunu bir örnekle gösterelim. P02, döviz geliri olan ve 1-3 yıllık ufku bulunan Dengeli profilli bir ihracatçı, önceliklerinden biri erişilebilir likidite. Motorumuz bu müşteri için ağırlıkları getiri 0,339, risk uyumu 0,203, likidite 0,203, gelir 0,102, anapara 0,102 ve kalite 0,051 olarak hesapladı (17.10.2026):
 
 | Seçenek | Sınıf | Reel getiri (1 yıl) | Puan | Neden |
 |---|---|---|---|---|
-| EIL Astra Para Piyasası | nakit benzeri | +%7,7 | 0,783 | en iyi nakit benzeri; aynı gün erişim |
+| EIL Astra Para Piyasası | nakit benzeri | +%7,7 | 0,783 | en iyi nakit benzeri, aynı gün erişim |
 | NJR Nurol Borçlanma Araçları | borçlanma | +%8,1 | 0,743 | en iyi borçlanma fonu |
-| KDE Kuveyt Türk Dengeli Katılım | dengeli | +%9,5 | 0,741 | en iyi dengeli; risk bandın içinde |
+| KDE Kuveyt Türk Dengeli Katılım | dengeli | +%9,5 | 0,741 | en iyi dengeli, risk bandın içinde |
 | ING e-Vadeli Mevduat | nakit benzeri | +%2,1 | 0,434 | sıralanır, ama nakit benzeri yeri EIL'de |
 | ING Turuncu Hesap (karşılaştırma) | nakit benzeri | −%8,3 | 0,185 | reel kayıp ve piyasa altı cezaları |
 
-RPP adlı para piyasası fonu 0,775 puanla KDE'den yüksek puan aldı, ama nakit benzeri sınıfın tek yerini EIL doldurduğu için ilk 3'e girmedi. P02'nin "döviz maruziyetini gerekçesiz artırmama" kısıtı da 15 döviz fonunu eledi; RM isterse bu kısıtı gerekçe yazarak kaldırabilir.
+RPP adlı para piyasası fonu 0,775 puanla KDE'den yüksek puan aldı, ama nakit benzeri sınıfın tek yerini EIL doldurduğu için ilk 3'e girmedi. P02'nin "döviz maruziyetini gerekçesiz artırmama" kısıtı da 15 döviz fonunu eledi (RM isterse bu kısıtı gerekçe yazarak kaldırabilir).
 
 RM bir önerinin üzerine tıkladığında fon kartı açılır. Kartın *Neden bu öneri?* bölümü puanın her parçasını gerekçesiyle, fonun geçtiği eleme kurallarını kanıt kimlikleriyle ve en yakın alternatifle arasındaki farkı gösterir. Ekranda puanlar 100 ile çarpılmış olarak yazar:
 
 <img src="docs/img/readme/fundcard.png" alt="EIL fon kartı: uygunluk, benzerleri arasında sıra, kategoriye göre getiri, belgeler, puan parçaları, geçtiği kurallar, en yakın alternatif" width="420">
 
-Aynı gün beş personamız için motorun önerdiği ilk 3 şöyle oldu. Her müşteri farklı bir set aldı, çünkü elemeyi ve ağırlıkları müşterinin kendi profili belirliyor:
+Aynı gün beş personamız için motorun önerdiği ilk 3 opsiyon aşağıdaki gibidir:
 
 | Persona | Kalan / evren | Motorun ilk 3'ü |
 |---|---|---|
@@ -233,7 +233,7 @@ Aynı gün beş personamız için motorun önerdiği ilk 3 şöyle oldu. Her mü
 | P04 Aile ofisi, Dengeli | 312 / 1.444 | OKT · RPP · TCF |
 | P05 Hekim, Temkinli | 180 / 1.444 | EIL · GBL · KSK |
 
-Önerilerin yanında bir de *Dağılım* görünümü var. Bu görünüm müşterinin risk profiline göre her varlık sınıfı için model bir bandı (Ata Yatırım, 28.04.2026), müşterinin bugünkü dağılımını ve her sınıfın en iyi seçeneğini yan yana koyar. P02'nin dosyasında mevcut portföy dağılımı olmadığı için ekrandaki değerler "tahmini senaryo" olarak işaretlidir ve RM "Tahmini onayla" ya da "Düzenle" diyene kadar sıralamayı etkilemez.
+Önerilerin yanında bir de *Dağılım* görünümü var. Bu görünüm müşterinin risk profiline göre her varlık sınıfı için model bir bandı (Ata Yatırım, 28.04.2026), müşterinin bugünkü dağılımını ve her sınıfın en iyi seçeneğini yan yana koyar. P02'nin dosyasında mevcut portföy dağılımı olmadığı için ekrandaki değerler "tahmini senaryo" olarak işaretlidir ve RM "Tahmini onayla" ya da "Düzenle" diyene kadar puan sıralamasını etkilemez.
 
 ![Dağılım görünümü: tahmini mevcut portföy, varlık sınıfı başına model bant ve sınıfın en iyi seçeneği](docs/img/readme/allocation.png)
 
