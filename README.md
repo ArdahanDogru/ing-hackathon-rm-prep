@@ -2,12 +2,7 @@
 
 ## Demo videosu
 
-**[Demo videosunu Google Drive'da izleyin](https://drive.google.com/file/d/14HOPVmSbkWEehzfOacpNvrGbWBKZHnN-/view?usp=sharing)** (8:36, sessiz, Türkçe altyazılı).
-
-Videonun bir kopyası ve kısa bir sürümü depoda da duruyor:
-
-- **Tam demo:** [`docs/demo/agent007-demo-v2-P01-P02-P03.mp4`](docs/demo/agent007-demo-v2-P01-P02-P03.mp4) (8:36, Drive'daki videonun aynısı). Üç müşteri için veriden görüşme metnine uçtan uca akış. P01'de iki sayfa yukarıdan aşağıya gezilir: üst çubuk ve veri menüsü, müşteri kartı, piyasa notu ve kanıt penceresi, "Bu öneriler nasıl seçildi?" ve dört penceresi, Gündem ve Teyit edin, ajan ve adımları, tablo, dağılım ve fon kartı, ajan araştırması ve RM'in kendi sorusu, onay, metin hazırlanırken bekleme ekranı, metin düzenleme, bölüm silme ve geri alma, sunum görünümü. P02'de yapay zekânın bulduğu sorular, döviz kısıtının gerekçeyle kaldırılması ve tahmini dağılımın onaylanması; P03'te profil düzenleme, yapay zekânın bulduğu çelişkiler, onay kilidi ve RM gerekçeleri gösterilir.
-- **Kısa demo:** [`docs/demo/agent007-demo-P01-P03.mp4`](docs/demo/agent007-demo-P01-P03.mp4) (3:50). P01 ve P03 için aynı akışın kısa hâli.
+**[Demo videosunu Google Drive'da izleyebilirsiniz](https://drive.google.com/file/d/14HOPVmSbkWEehzfOacpNvrGbWBKZHnN-/view?usp=sharing)** 
 
 ---
 
