@@ -17,6 +17,10 @@ RM hazırlık sayfasındaki önerilerden ve haberlerden, değiştirdiği bilgile
 
 ## 0. Hızlı başlangıç ve README rehberi
 
+### Demo videosu
+
+[`docs/demo/agent007-demo-P01-P03.mp4`](docs/demo/agent007-demo-P01-P03.mp4) (3:50, sessiz, Türkçe altyazılı): iki müşteri için veriden görüşme metnine uçtan uca akış. P01'de kanıt penceresi, eleme ve puan, fon kartı, ajan ve araştırma işaretleri, onay ve görüşme metni; P03'te profil düzenleme, yapay zekânın bulduğu çelişkiler, onay kilidi, RM gerekçesi ve metin gösterilir.
+
 ### Sistemi çalıştırmak
 
 Sistemi kendi bilgisayarınızda çalıştırmak için Powershell'de aşağıdaki komutları sırayla girebilirsiniz (Windows, Python 3.11+, Node yalnızca web derlemesi için):
