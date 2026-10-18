@@ -239,7 +239,7 @@ Aynı gün beş personamız için motorun önerdiği ilk 3 opsiyon aşağıdaki 
 
 ## 4. Genel çözüm mimarisi ve veri akışı
 
-Aşağıdaki şema verinin kaynaktan RM'in ekranına kadar izlediği yolu gösterir. Veri önce değiştirilemeyen bir snapshot'a kaydedilir, kalite kontrollerinden geçer ve kanıt deposuna yazılır. Puanlama motoru bu depodan okur; web uygulaması, ajan, web araştırması ve görüşme metni de motorun sonucunu aynı API üzerinden alır. RM'in yaptığı her işlem kayda geçer ve değerlendirme paketimiz bu kayıtları daha sonra yeniden okuyabilir.
+Aşağıdaki şema verinin kaynaktan RM'in ekranına kadar izlediği yolu gösterir. Güncel veri önce bir snapshot'a kaydedilir, kontrollerden geçer ve kanıtlara yazılır. Puanlama motoru bu kanıtları okur. Web uygulaması, ajan, web araştırması ve görüşme metni de motorun sonucunu kullanır. RM'in yaptığı her işlem kayda geçer ve değerlendirme adımı bu kayıtları daha sonra yeniden okuyabilir.
 
 ```mermaid
 flowchart TB
@@ -297,15 +297,15 @@ flowchart TB
 
 *Renkler ilk şemadaki gibidir: mavi kod, mor yapay zekâ, turuncu RM'in çalıştığı ekran.*
 
-Sistemi, her biri ayrı test edilebilen modüllere böldük. Böylece bir modülü değiştirdiğimizde diğerlerinin bozulup bozulmadığını kendi testleriyle hemen görebiliyoruz:
+Sistemi, her biri ayrı bir şekilde test edilebilen modüllere böldük. Böylece bir modülü değiştirdiğimizde diğerlerinin bozulup bozulmadığını kendi testleriyle hemen görebiliyoruz:
 
 | Modül | Ne iş yapar | Klasör |
 |---|---|---|
-| Ingest | kaynak adaptörleri, snapshot, kalite kontrolleri, kanıt deposu, günlük görev ve kilit | `src/rmprep/ingest/`, `config/sources.yaml` |
-| Puanlama motoru | evren, eleme kuralları, puan, güven, istikrar, ilk 3, dağılım bantları, mevcut dağılım, uyarılar | `src/rmprep/decision/`, `config/decision.yaml` |
+| Ingest | kaynak adaptörleri, snapshot, kalite kontrolleri, kanıt deposu, günlük güncelleme ve kilitleme | `src/rmprep/ingest/`, `config/sources.yaml` |
+| Puanlama motoru | opsiyon evreni, eleme kuralları, puan, güven, istikrar, ilk 3, dağılım bantları, mevcut dağılım, uyarılar | `src/rmprep/decision/`, `config/decision.yaml` |
 | Ajan | adaylar, veri paketi, araçlar, kod denetimi, yedek | `src/rmprep/agent/`, `config/agent.yaml` |
 | Web araştırması | Exa ve Claude sağlayıcıları, soru kontrolü, biçimlendirme, önbellek, günlük sınır | `src/rmprep/research/`, `config/research.yaml` |
-| Anlatıcı | olgu paketi, dil modeli çağrısı, doğrulayıcı, tekrar, şablon metin, piyasa notu, maliyet defteri | `src/rmprep/narrator/`, `config/narrator.yaml` |
+| Narrator | olgu paketi, dil modeli çağrısı, doğrulayıcı, tekrar, şablon metin, piyasa notu, maliyet defteri | `src/rmprep/narrator/`, `config/narrator.yaml` |
 | API ve arka uç | çalıştırma, profil kontrolü, onay, kayıt, işlem kaydı, veri güncelliği | `src/rmprep/api/`, `src/rmprep/backend.py` |
 | Web uygulaması | pano, öneriler, ajan kutusu, araştırma paneli, fon kartı, kanıt penceresi, görüşme metni, sunum görünümü | `web/` |
 | Değerlendirme | senaryolar, kural kontrolleri, LLM hakemi, ajan A/B, geri bildirim raporu | `src/rmprep/eval/`, `config/eval.yaml` |
