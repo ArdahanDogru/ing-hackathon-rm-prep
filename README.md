@@ -408,25 +408,25 @@ Ajan, tek bir puanın gösteremediği şeyleri tartmak için var: güncel haberl
 
 ### Varsayımlarımız
 
-Bazı konularda veri olmadığı için varsayım yapmak zorunda kaldık. Bu varsayımların hepsi ekranda ve kayıtta görünür; `[VARSAYIM]` ile işaretlediklerimizi mentorlarla teyit edeceğiz.
+Bazı konularda veri olmadığı için varsayım yapmak zorunda kaldık. Bu varsayımların hepsi ekranda ve kayıtta görünür; `[VARSAYIM]` ile işaretlediklenen her veri ajana gönderilirken varsayım olduğu vurgulanarak sunulur.
 
-- Fon getirileri geçmiş getirilerdir, bir tahmin değildir. 1 yıldan kısa dönemlerin getirilerini yıllığa çevirmiyoruz.
-- Getirileri stopaj sonrası ve yıllık TÜFE'ye (%29,73) göre reel olarak hesaplıyoruz.
-- Müşterinin yatırım tutarını bilmiyoruz; mevduatta 100.000-249.999 TL diliminin standart oranını kullanıyoruz.
-- Risk bantları (Muhafazakâr 1-2, Temkinli 2-3, Dengeli 3-5, Agresif 4-7) ve ağırlıklar bizim yargımızdır **[VARSAYIM]**.
-- Payların risk değerini oynaklık bandından hesaplıyoruz ve en az 6 alıyoruz; BYF stopajını %17,5 kabul ediyoruz **[VARSAYIM]**.
-- Dağılım bantları tek bir kamuya açık kaynaktan geliyor; Temkinli bandını o kaynaktan biz çıkardık **[VARSAYIM]**.
-- Müşteri dosyasında mevcut dağılım yoksa onu meslek tablosundan veya ulusal ortalamadan (TCMB FİR 2026-I) tahmin ediyoruz. Bu tahmin sıralamayı değiştirmez; RM onaylarsa değiştirir **[VARSAYIM]**.
+- Fon getirileri geçmiş getirilerdir, sadece bu getiriler üzerinden geleceği yönelik bir öneri yapmak risklidir. 1 yıldan kısa dönemlerin getirilerini yıllığa çevirmiyoruz.
+- Getiriler stopaj sonrası ve yıllık TÜFE'ye (%29,73) göre reel olarak hesaplanır.
+- Müşterinin yatırım tutarını bilmiyoruz; ING mevduat oranı için 100.000-249.999 TL diliminin standart oranını kullanıyoruz.
+- Risk bantları (Muhafazakâr 1-2, Temkinli 2-3, Dengeli 3-5, Agresif 4-7) ve ağırlıklar bizim yargımız, kendi oluşturduğumuz gruplamalardır.
+- Hisse senedi risk değerlerini oynaklıklarına göre hesaplıyoruz ve en az 6 alıyoruz; BYF stopajını %17,5 kabul ediyoruz.
+- Risk seviyesine göre belirlediğimi portföy dağılım bantları tek bir kamuya açık kaynaktan geliyor; Temkinli bandını o kaynaktan biz çıkardık.
+- Müşteri dosyasında mevcut portföy dağılımı yoksa onu meslek tablosundan veya ulusal ortalamadan (TCMB FİR 2026-I) tahmin ediyoruz. RM bu tahmini dağılımı düzenleyebilir veya onaylabiliyor. Onaylamadan metin oluşursa onaylanmadığı ajana açıkça belirtiliyor. Onaylanırsa bu da ajana vuruglanıyor.
 
 ### Belirsizliği nasıl yönetiyoruz?
 
-Veri eksik, eski veya çelişkili olduğunda sistemimiz bunu saklamaz; RM'e gösterir. Bunun için beş araç kullanıyoruz:
+Veri eksik, eski veya çelişkili olduğunda sistemimiz bunu saklamıyor; RM'e gösteriyor. Bunun için beş araç kullanıyoruz:
 
 | Araç | Ne yapar |
 |---|---|
 | Veri güveni (0-1) | kullanılan en zayıf veri satırı × tahmin katsayıları (elle girilen 0,9 · doğrulanmamış seri 0,8 · eski 0,7 · çelişen 0,6 · tahmini risk × 0,7 · kısa geçmiş × 0,8 · reel getiri hesaplanamadı × 0,8) |
 | İstikrar (0-1) | her ağırlığı ve cezanın üst sınırını ×0,8 ve ×1,2 ile değiştirip sıralamayı 30-32 kez yeniden hesaplar; önerilen seçenek için "öneri yine çıkıyor mu" oranını verir ([ayrıntı](docs/kararlilik-veri-guveni.md)) |
-| Tahmin yerine soru | risk profili veya kısıt tanınmazsa sıralama durur ve RM'e soru açılır; diğer bilinmeyenlerde güvenli bir düzey seçilir ve "Teyit edin" maddesi açılır |
+| Tahmin yerine soru | risk profili veya kısıt algılanamazsa sıralama işlemi durdurulur ve RM'e soru sorulur; diğer bilinmeyenlerde güvenli bir düzey seçilir ve Gündem kısmında "Teyit edin" seçeneği açılır |
 | Profil çelişkileri | 8 sabit kural ve AI kontrolü (ör. "Muhafazakâr" profil ile büyüme önceliği; `durum`'da gelecek yıl ev peşinatı ile likidite "Düşük") |
 | Uyarılar (yalnızca RM) | düşük istikrar, tahmini risk, döviz fonu, tek pay, payda sert düşüş, ING oranı piyasanın altında, süresi geçmiş stopaj veya eski TÜFE |
 
@@ -436,7 +436,7 @@ RM bu belirsizlikleri hazırlık sayfasında *Teyit edin* listesi olarak görür
 
 ### İnsan onay noktaları
 
-Sistemimiz öneriyi hazırlar, ama müşteriye gidecek hiçbir şey RM görmeden ve onaylamadan çıkmaz. Aşağıdaki akış, bir RM'in bir müşteri için ekranda sırayla geçtiği adımları gösterir:
+Sistemimiz öneriyi hazırlar, ama hiçbir şey RM görmeden ve onaylamadan sonraki aşamaya. Aşağıdaki akış, bir RM'in bir müşteri için ekranda sırayla geçtiği adımları gösterir:
 
 - Turuncu altıgenler RM'in karar verdiği yerlerdir.
 - Gri kutular sistemin kendi başına yaptığı işlerdir.
