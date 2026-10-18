@@ -320,38 +320,38 @@ Yapay zekâyı kullandığımız her yerde aynı ilkeye uyduk: kullanılan dil m
 |---|---|---|---|---|
 | Ajan ilk 3 | Claude Sonnet 5.5 | motorun en iyi 10 adayı (RM 20'ye kadar seçebilir) arasından kendi ilk 3'ünü seçer | kod denetimi (1 tekrar), sonra motorun ilk 3'ü | karar başına ~0,05-0,10 $ (günde en çok 3 $ ile sınırlandırıldı) |
 | Web araştırması | Exa (yedek: Claude Haiku 5.5 web araması) | ilk 3 ve şirketleri için haberleri ve öne çıkanları toplar, RM'in sorularını yanıtlar | soru kontrolü (müşteri bilgisi dışarı gitmez), kaynağı olmayan bulgu atılır, "doğrulanmamış" etiketi eklenir | ürün başına ~0,02 $ (günde en çok 5 $ ile sınırlandırıldı) |
-| Profil kontrolü | Claude Opus 5.5 | müşteri profilinin tamamında çelişki arar | her bulgu çelişen iki tarafı kelimesi kelimesine alıntılar; sunucu alıntıyı ilgili alanda arar | profil başına ~0,015 $; sonuç kaydedilir, aynı profil için model yeniden çağrılmaz |
-| Görüşme metni | Claude Sonnet 5.5 | onaylanan seçimi bölümlü bir Türkçe metne çevirir | doğrulayıcı; 1 tekrar; sonra şablon metin | metin başına 0,034 $, ortalama 24,9 sn |
-| Pano özeti | Claude Haiku 5.5 | RM'e 1-2 cümlelik bir özet yazar | doğrulayıcı; hata olursa düz bir cümle | ~0,003 $ |
-| Değerlendirme hakemi | Claude Haiku 5.5 | metnin müşteriye uyarlanmış, açık ve dengeli olup olmadığını notlar; ajan ile motoru kör A/B ile karşılaştırır | yalnızca kodun ölçemediği şeyler için | paket başına < 0,01 $ |
+| Profil kontrolü | Claude Opus 5.5 | müşteri profilinin tamamında çelişki arar | var olan çelişkileri gösterir | profil başına ~0,015 $, sonuç kaydedilir, aynı profil için model yeniden çağrılmaz |
+| Görüşme metni | Claude Sonnet 5.5 | onaylanan seçimleri metne çevirir | doğrulayıcı, 1 tekrar, sonra şablon metin | metin başına 0,034 $, ortalama 24,9 sn |
+| Pano özeti | Claude Haiku 5.5 | RM'e 1-2 cümlelik bir özet yazar | doğrulayıcı, hata olursa düz bir cümle | ~0,003 $ |
+| Değerlendirme hakemi | Claude Haiku 5.5 | metnin müşteriye uyarlanmış, açık ve dengeli olup olmadığını kontrol eder, ajan ile motor sonucunu karşılaştırır | yalnızca kodun tek başına ölçemediği şeyler için | paket başına < 0,01 $ |
 
 ### Ajan nasıl çalışır?
 
-Ajan kendiliğinden başlamaz. RM hazırlık sayfasındaki *Ajan değerlendirmesi* kutusunda aday sayısını seçip "Ajanı çalıştır" dediğinde çalışır. Ajana tek bir veri paketi veririz: müşterinin profili ve mevcut dağılımı, motorun en iyi adaylarının puan parçaları, olguları ve uyarıları, bir de bu adaylar hakkındaki web araştırması bulguları. Sistem isteminde araştırma bulgularının talimat değil veri olduğunu açıkça yazıyoruz; böylece bir web sayfasındaki yazının ajana talimat gibi etki etme riskini azaltıyoruz. Ajanın kullanabileceği üç araç vardır:
+Ajan kendiliğinden başlamaz. RM hazırlık sayfasındaki *Ajan değerlendirmesi* kutusunda aday sayısını seçip "Ajanı çalıştır" dediğinde çalışır. Ajana veri paketi verilir: müşterinin profili ve mevcut dağılımı, motorun en iyi adaylarının puanları, olguları ve uyarıları ve web araştırması bulguları. Sistemde araştırma bulgularının talimat değil veri olduğunu açıkça yazıyoruz, böylece bir web sayfasındaki yazının ajana talimat gibi etki etme riskini azaltıyoruz. Ajanın kullanabileceği üç araç vardır:
 
-- `karsilastir(a, b, amac)`: iki adayı kodla karşılaştırır (en çok 4 kez).
-- `arastir(option_id, soru, amac)`: bir aday için tek bir web sorusu sorar (en çok 2 kez).
+- `karsilastir(a, b, amac)`: iki adayı kodla karşılaştırır.
+- `arastir(option_id, soru, amac)`: bir aday için tek bir web sorusu sorar.
 - `karar_ver(secimler, cikanlar, ozet)`: kararını önerir.
 
 Ajan kararını verdiğinde kodumuz bu kararı şu sorularla denetler:
 
-- 3 farklı aday seçilmiş mi; en çok 1 pay var mı; varlık sınıfı kuralı tutuyor mu?
+- 3 farklı aday seçilmiş mi, en çok 1 pay var mı, varlık sınıfı kuralı tutuyor mu?
 - Her gerekçe bir kanıt kimliğine, bir web bulgusu kimliğine, bir puan parçasına veya bir portföy satırına atıf yapıyor mu?
-- Gerekçedeki her sayı ve tarih atıf yapılan veride gerçekten var mı; yasak bir ifade var mı?
+- Gerekçedeki her sayı ve tarih atıf yapılan veride gerçekten var mı, yasak bir ifade var mı?
 - Motorun listesinden çıkarılan her seçenek için bir gerekçe yazılmış mı?
 
-Karar denetimden geçmezse ajan bulunan sorunların listesini alır ve kararını bir kez düzeltir. İkinci kez de hata yaparsa, 90 saniyeyi aşarsa veya günlük bütçe dolarsa RM'in önüne motorun kendi ilk 3'ü gelir. RM ajanın beş adımını (Adaylar, Ajan araştırması, Ajan analizi, Kontrol, Karar) süresi, maliyeti ve notlarıyla izleyebilir ve her adımın üzerine tıklayarak o adımda ne yapıldığını okuyabilir. Modelin ham düşüncesini ise saklamıyor ve göstermiyoruz.
+Karar denetimden geçmezse ajan bulunan sorunların listesini alır ve kararını bir kez düzeltir. İkinci kez de hata yaparsa, 90 saniyeyi aşarsa veya günlük bütçe dolarsa RM'in önüne motorun kendi ilk 3'ü gelir. RM ajanın beş adımını (Adaylar, Ajan araştırması, Ajan analizi, Kontrol, Karar) süresi, maliyeti ve notlarıyla izleyebilir ve her adımın üzerine tıklayarak o adımda ne yapıldığını okuyabilir.
 
 ![Ajanın beş adımı: Adaylar, Ajan araştırması, Ajan analizi, Kontrol, Karar; süre ve maliyetle](docs/img/readme/agent.png)
 
 ![Ajan önerisi (P01): seçilen 3 fon atıflı gerekçeleriyle, çıkarılan AIS ve nedeni, motor sıralamasına bağlantı](docs/img/readme/agent-picks.png)
 *P01 için ajan, motorun önerdiği AIS fonunu çıkarıp yerine ZBJ'yi aldı ve nedenini yazdı. Her gerekçe bir puan parçasına veya kanıt kimliğine bağlı. Tahmini portföy dağılımına dayanan bir cümleye "(tahmini dağılıma göre)" etiketini kod ekler.*
 
-Ajanın kullandığı web araştırması *Ajan araştırması* bölümünde RM'in önünde de durur. RM burada ürünler veya şirketler hakkında kendi sorusunu da sorabilir. Her bulgunun yanındaki ✓ ve ✗ işaretleriyle bulguyu onaylayabilir ya da reddedebilir: reddedilen bulgu ajana hiç verilmez, onaylanan bulgu ise ajana "(web, RM doğruladı)" etiketiyle gider.
+Ajanın kullandığı web araştırması *Ajan araştırması* bölümünde RM'in önünde de durur. RM burada ürünler veya şirketler hakkında kendi sorusunu da sorabilir. Her bulgunun yanındaki ✓ ve ✗ işaretleriyle bulguyu onaylayabilir ya da reddedebilir. Reddedilen bulgu ajana verilmez, onaylanan bulgu ise ajana "(web, RM doğruladı)" etiketiyle gider.
 
 ![Ajan araştırması: her öneri için tarihli haberler ve öne çıkanlar, kaynak numaraları, ✓/✗ işaretleri](docs/img/readme/research.png)
 
-Aşağıdaki şema bir hazırlığın baştan sona akışını gösterir. RM müşteriyi seçtiğinde motor sonucu hazırlar; RM isterse ajan devreye girer; RM onay verdikten sonra anlatıcı görüşme metnini yazar ve doğrulayıcı bu metni kontrol eder.
+Aşağıdaki şema baştan sona akışı gösterir. RM müşteriyi seçtiğinde motor sonucu hazırlar. RM isterse ajan devreye girer, RM onay verdikten sonra anlatıcı görüşme metnini yazar ve doğrulayıcı bu metni kontrol eder.
 
 ```mermaid
 sequenceDiagram
@@ -388,13 +388,13 @@ sequenceDiagram
 
 ### Görüşme metni nasıl yazılır ve nasıl denetlenir?
 
-RM önerileri onayladığında anlatıcımız yalnızca onaylanan ürünlerin verilerinden bir olgu paketi hazırlar ve görüşme metnini bu paketten yazdırır. Metin arka planda hemen başlar, bu yüzden RM görüşme metni sekmesini açtığında metin çoğu zaman hazırdır. Metin hâlâ yazılıyorsa RM ekranda anlatıcının adımlarını ve her adımda hangi bilginin kullanıldığını görür:
+RM önerileri onayladığında narrator yalnızca onaylanan ürünlerin verilerinden görüşme metnini hazırlar. Metin hazırlanırken RM ekranda narratorun adımlarını ve her adımda hangi bilginin kullanıldığını görür:
 
 ![Metin hazırlanıyor: profil, onaylanan öneriler, piyasa verileri, yazım kuralları, yapay zekâ yazıyor, kontrol](docs/img/readme/text-wait.png)
 
-Metin RM'e ulaşmadan önce doğrulayıcımızdan geçer. Doğrulayıcı şu durumlardan birini bulursa metni reddeder: olgu paketinde olmayan bir sayı veya tarih, elenmiş ya da listede olmayan bir ürünün adı, "garanti", "risksiz", "kesin getiri" gibi yasak bir ifade, kaynağı gösterilmemiş bir öneri cümlesi, ING ürün adının yanında ING'ye ait olmayan bir oran veya tahmini dağılımdan alınmış bir sayı. Eksik bir bölüm ya da eksik "yatırım tavsiyesi değildir" cümlesi de ret sebebidir. Reddedilen metin, bulunan sorunlarla birlikte bir kez yeniden yazdırılır; yine geçmezse RM'in önüne kurallı bir şablon metin ve bir uyarı bandı gelir. Piyasa notunu (politika faizi, USD/TRY, fonlama maliyeti) ise dil modeline hiç yazdırmıyoruz; bu bölümü kod yazar ve her değerin yanına kanıt kimliğini koyar.
+Metin RM'e ulaşmadan önce doğrulayıcımızdan geçer. Doğrulayıcı şu durumlardan birini bulursa metni reddeder: olgular içinde olmayan bir sayı veya tarih, elenmiş ya da listede olmayan bir ürünün adı, "garanti", "risksiz", "kesin getiri" gibi yasak bir ifade, kaynağı gösterilmemiş bir öneri cümlesi, ING ürün adının yanında ING'ye ait olmayan bir oran veya tahmini dağılımdan alınmış bir sayı. Eksik bir bölüm ya da eksik "yatırım tavsiyesi değildir" cümlesi de ret sebebidir. Reddedilen metin, bulunan sorunlarla birlikte bir kez yeniden yazdırılır, yine geçmezse RM'in önüne kurallı bir şablon metin ve bir uyarı notu getirilir. Piyasa notunu (politika faizi, USD/TRY, fonlama maliyeti) dil modeli yerine kod yazar ve her değerin yanına kanıt kimliğini koyar.
 
-Hazırlanan görüşme metni tek bir sayfadır. Sayfanın beyaz kısmı müşteriye gösterilecek sunumdur, sarı kutular ise yalnızca RM içindir ve *Sunum görünümü*nde ve çıktıda yer almaz. RM bir bloğu düzenleyebilir veya bir bölümü tamamen silebilir. Metindeki her kaynak numarası sağdaki *Kaynaklar* listesinde bir kanıt kimliğine bağlanır:
+Hazırlanan görüşme metninde beyaz kısımlar müşteriye anlatılacak bölümdür, sarı kutular ise yalnızca RM içindir ve *Sunum görünümü*nde ve çıktıda yer almaz. RM bir bloğu düzenleyebilir veya bir bölümü tamamen silebilir ve bu değişimleri geri alabilir. Metindeki her kaynak numarası sağdaki *Kaynaklar* listesinde bir kanıta bağlanır:
 
 ![Görüşme metni (P01): müşterinin hedefi, RM'e özel kutular, piyasa notu, temel sayılar, reel getiri grafiği ve kaynaklar](docs/img/readme/text.png)
 
