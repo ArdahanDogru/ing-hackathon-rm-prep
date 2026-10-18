@@ -43,31 +43,32 @@ Bunun için environment dosyanızda (.env) üç API key bilgisi gerekir: TCMB ve
 
 ## 1. Problem tanımı ve çözüm yaklaşımı
 
-Bir RM, her müşteri görüşmesinden önce yüzlerce yatırım ürününü farklı kaynaklardan toplayıp elle karşılaştırmak zorunda kalıyor. Faiz oranları TCMB'de, fon getirileri TEFAS'ta, mevduat oranları bankaların sayfalarında duruyor ve RM bunları kendisi bir araya getiriyor. Bu iş uzun sürdüğü için görüşme metni çoğu zaman müşteriye yeterince uyarlanamıyor, müşterinin açık bir kısıtı gözden kaçabiliyor ve önerinin hangi veriye, varsayıma ve gerekçeye dayandığı sonradan gösterilemiyor.
+Relationship Manager (RM), ilgilendiği her müşteri için görüşmelerden önce yüzlerce yatırım ürününü farklı kaynaklardan toplayıp karşılaştırmak durumunda. Faiz oranları TCMB'de, fon getirileri TEFAS'ta, mevduat oranları bankaların sayfalarında duruyor ve RM bunları kendisi bir araya getiriyor. Ayrıca bu veriler dinamik; RM her toplantıdan önce elindeki verileri güncel verilerle değiştirmekle uğraşıyor. Bu iş uzun sürdüğü için de görüşme metni çoğu zaman müşteriye yeterince uyarlanamayabiliyor, müşterinin açık bir kısıtı gözden kaçabiliyor, yatırım kararını etkileyen veriler tamamen güncel olmayabiliyor ve önerilerin hangi veriye, varsayıma ve gerekçeye dayandığı o sırada gösterilemeyebiliyor.
 
-Problemin büyüklüğünü kendi verimizle ölçtük (anlık görüntü `20261017-110343-d12a`, 17.10.2026):
+
+Problemin büyüklüğünü kendi verimizle ölçtük (snaphot: `20261017-110343-d12a`, 17.10.2026):
 
 | Gözlem | Sayı |
 |---|---|
 | Muhafazakâr bir müşteri (P01) için evren | 1.444 seçenek (815 fon, 37 BYF, 590 pay, 2 ING mevduatı); kurallar 1.301'ini eler, 143'ü kalır |
-| ING Turuncu Hesap %23 faiz, stopaj ve yıllık TÜFE (%29,73) sonrası | reel −%8,3 |
 | P01'in risk sınırı içindeki 37 para piyasası fonu, son 1 yıl reel | medyan +%6,6, en iyisi +%9,6 |
 
-Tablonun ikinci ve üçüncü satırı bize şunu gösterdi: %23 faiz kâğıt üzerinde iyi görünse de stopaj ve enflasyondan sonra müşteri mevduatta değer kaybediyor, aynı risk seviyesindeki para piyasası fonları ise enflasyonun üstünde kalıyor. RM'in bunu görebilmesi için 143 seçeneği reel getiriye, vergiye ve risk uyumuna göre sıralaması gerekir ve bu iş bir görüşme hazırlığının süresine sığmaz.
+Tablonun ikinci satırı bize şunu gösterdi: faizler kâğıt üzerinde iyi görünse de stopaj ve enflasyondan sonra müşteri mevduatta değer kaybediyor, aynı risk seviyesindeki para piyasası fonları ise enflasyonun üstünde kalıyor. RM'in bunu görebilmesi için 143 seçeneği reel getiriye, vergiye ve risk uyumuna göre sıralaması gerekir ve bu iş bir görüşme hazırlığının süresine sığmaz.
 
-### Beklenen iş etkisi
+### Neden Agent007? -> İş etkisi
 
-| Gösterge | Bugün | Çözümle (ölçüldü) |
+| Gösterge | Bugün | Agent 007 ile |
 |---|---|---|
-| Hazırlık süresi | **[VARSAYIM]** görüşme başına ~60 dk | analiz ort. 1,18 sn, görüşme metni ort. 24,9 sn; geri kalan RM'in okuması ve onayı |
+| Hazırlık süresi | **[VARSAYIM]** görüşme başına ~60 dk, daha fazla da olabilir | analiz ~1,18 sn, görüşme metni ~24,9 sn; geri kalan RM'in okuması ve onayı |
 | Kısıt ihlali | elle kontrol | 34 senaryo, 39 çalıştırmada 0 |
-| Tutarlılık | kişiye bağlı | aynı girdi → aynı sonuç ve aynı metin (5/5 tekrar) |
-| Uyarlama | genel metin | 5 personada 5 farklı öneri seti; gerekçe müşterinin önceliklerine bağlı |
-| İzlenebilirlik | dağınık | her sayı kaynak, değer tarihi, alınma zamanı ve kanıt kimliğiyle |
+| Tutarlılık | kişiye bağlı | deterministik; aynı girdi → aynı sonuç ve aynı metin (yaptığımız 5 testte 5/5 aynı sonuçları aldık) |
+| Müşteriye özel uyarlama | Zaman kısıtına göre bazen genel metin | 5 müşteri profilinde 5 farklı öneri seti; ; gerekçeler ve öneriler müşterinin önceliklerine ve kısıtlarına bağlı olarak hazırlanır |
+| İzlenebilirlik | dağınık; önerinin hangi veriye, varsayıma ve gerekçeye dayandığı geriye dönük gösterilemeyebilir | ekrandaki her sayının kaynağı, tarihi, alınma zamanı ve kanıt kimliği sunulur |
 
 ### Yaklaşımımız
 
-Çözümümüzde işleri dört katmana ayırdık. Ürünleri eleyen ve sıralayan kısım koddur; aynı girdiyle her seferinde aynı sonucu verir ve her adımı açıklanabilir. Ajan ve dil modeli (LLM) yalnızca bu kodun çizdiği sınırlar içinde çalışır: ajan motorun önerilerini araştırıp yeni bir sıralama önerebilir, dil modeli de görüşme metnini yazar. Ajanın ve dil modelinin yazdığı her şeyi yeniden kod denetler. Son karar ise her zaman RM'indir.
+Çözümümüzde işleri dört katmana ayırdık. Ürünleri eleyen ve sıralayan kısım, puanlama motoru, koddur; aynı girdiyle her seferinde aynı sonucu verir ve her adımı açıklanabilir. Müşteri istek ve kısıtlarına göre yatırım seçeneklerini puanlar. Ajan puanlama motorunun çizdiği sınırlar içinde çalışır: motorun önerilerini araştırıp yeni bir sıralama önerebilir, görüşme metnini yazar. Ajanın yazdığı her şey yeniden denetlenir. Son karar ise her zaman RM'indir. RM hemen hemen her hazırlanan çıktıyı gözden geçirip geri bildirim verebilir.
+
 
 ```mermaid
 flowchart LR
@@ -84,7 +85,6 @@ flowchart LR
 ```
 
 Ürünümüz yalnızca görüşmeden önceki hazırlığı kapsar. Getiri tahmini, otomatik alım satım, müşteriyle doğrudan iletişim ve müşteriye açık bir sohbet botu kapsamımızın dışındadır.
-
 ## 2. Kullanılan veri kaynakları ve temel sinyaller
 
 Sistemimiz her sabah 07:30'da (ya da RM "Veriyi yenile" dediğinde) aşağıdaki kaynaklardan güncel veriyi çeker. Her kaynağın kullanım koşullarını ve robots.txt dosyasını kontrol ettik; bir kaynak bot engeli koyduysa o engeli aşmaya çalışmayız, bir önceki günün verisiyle devam ederiz.
