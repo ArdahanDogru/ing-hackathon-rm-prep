@@ -26,9 +26,9 @@ python -m rmprep eval --no-llm   # değerlendirme paketi, ücretsiz geçiş
 python -m rmprep feedback        # RM işlem kaydından geri bildirim raporu
 ```
 
-Bunun için `.env` dosyasında üç anahtar gerekir: TCMB verisi için `EVDS_API_KEY`, görüşme metni, ajan ve profil kontrolü için `ANTHROPIC_API_KEY`, web araştırması için `EXA_API_KEY`. Anahtarlardan biri eksikse yalnızca ona bağlı parça kapanır; puanlama motorumuz yine çalışır.
+Bunun için environment dosyanızda (.env) üç API key bilgisi gerekir: TCMB verisi için EVDS_API_KEY, görüşme metni, ajan ve profil kontrolü için ANTHROPIC_API_KEY, web araştırması için EXA_API_KEY. Anahtarlardan biri eksikse uygulama çalışmaya devam eder; EXA_API_KEY eksikse web search claude üzerinden gerçekleştirilir. Diğer iki anahtar eksikse yalnızca bu anahtarlara bağlı parçalar kapanır; puanlama motorumuz yine çalışır.
 
-Bu README sekiz bölümden oluşur. Aşağıdaki tablo her bölümün yarışma brief'inin 8. maddesindeki hangi teslimata karşılık geldiğini ve ayrıntının hangi belgede olduğunu gösterir. Çalışan demo (teslimat 1) yukarıdaki komutlarla açılır.
+Ürünümüzün README'si sekiz bölümden oluşur. Aşağıdaki tablo README'deki bölümlerin yarışma brief'inin 8. maddesindeki hangi teslimata karşılık geldiğini ve ayrıntılarının repo içerisindeki hangi belgede olduğunu gösterir. Çalışan demomuz repoyu lokale klonladıktan sonra (teslimat 1) yukarıdaki Powershell komutlarla açılır ve kullanılabilir.
 
 | README bölümü | Brief'teki teslimat | Ayrıntılı belge |
 |---|---|---|
