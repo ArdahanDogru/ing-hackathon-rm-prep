@@ -314,12 +314,12 @@ Modüller birbirleriyle `src/rmprep/contracts.py` dosyasındaki ortak veri tiple
 
 ## 5. AI/Agentic bileşenler ve görev/karar akışı
 
-Yapay zekâyı kullandığımız her yerde aynı ilkeye uyduk: dil modeli hiçbir ürünü elemez ve hiçbir eleme kuralını aşamaz, çünkü eleme ve puan koddadır. Dil modelini metin yazmak, web araştırması yapmak ve adayları nitel olarak karşılaştırmak için kullanıyoruz. Modelin her çıktısını kod denetler ve denetimden geçmeyen bir çıktının yerine her zaman deterministik bir yedek gelir. Böylece model hata yapsa da RM boş bir ekranla karşılaşmaz.
+Yapay zekâyı kullandığımız her yerde aynı ilkeye uyduk: kullanılan dil modeli hiçbir ürünü elemez ve hiçbir eleme kuralını aşamaz, çünkü eleme ve puan kod ile belirlenir. Dil modelini metin yazmak, web araştırması yapmak ve adayları nitel olarak karşılaştırmak için kullanıyoruz. Modelin her çıktısını kod denetler ve denetimden geçmeyen bir çıktının yerine her zaman deterministik bir yedek gelir. Böylece model hata yapsa da RM boş bir ekranla veya uydurulmuş verilerle karşılaşmaz.
 
 | Bileşen | Model | Ne yapar | Nasıl güvence altına aldık | Maliyet |
 |---|---|---|---|---|
-| Ajan ilk 3 | Claude Sonnet 5.5 | motorun en iyi 10 adayı (RM 20'ye kadar seçebilir) arasından kendi ilk 3'ünü seçer | kod denetimi; 1 tekrar; sonra motorun ilk 3'ü | karar başına ~0,05-0,10 $, günde en çok 3 $ |
-| Web araştırması | Exa (yedek: Claude Haiku 5.5 web araması) | ilk 3 ve şirketleri için haberleri ve öne çıkanları toplar; RM'in kendi sorularını yanıtlar | soru kontrolü (müşteri bilgisi dışarı gitmez); kaynağı olmayan bulgu atılır; "doğrulanmamış" etiketi | ürün başına ~0,02 $, günde en çok 5 $ |
+| Ajan ilk 3 | Claude Sonnet 5.5 | motorun en iyi 10 adayı (RM 20'ye kadar seçebilir) arasından kendi ilk 3'ünü seçer | kod denetimi (1 tekrar), sonra motorun ilk 3'ü | karar başına ~0,05-0,10 $ (günde en çok 3 $ ile sınırlandırıldı) |
+| Web araştırması | Exa (yedek: Claude Haiku 5.5 web araması) | ilk 3 ve şirketleri için haberleri ve öne çıkanları toplar, RM'in sorularını yanıtlar | soru kontrolü (müşteri bilgisi dışarı gitmez), kaynağı olmayan bulgu atılır, "doğrulanmamış" etiketi eklenir | ürün başına ~0,02 $ (günde en çok 5 $ ile sınırlandırıldı) |
 | Profil kontrolü | Claude Opus 5.5 | müşteri profilinin tamamında çelişki arar | her bulgu çelişen iki tarafı kelimesi kelimesine alıntılar; sunucu alıntıyı ilgili alanda arar | profil başına ~0,015 $, önbellekte |
 | Görüşme metni | Claude Sonnet 5.5 | onaylanan seçimi bölümlü bir Türkçe metne çevirir | doğrulayıcı; 1 tekrar; sonra şablon metin | metin başına 0,034 $, ortalama 24,9 sn |
 | Pano özeti | Claude Haiku 5.5 | RM'e 1-2 cümlelik bir özet yazar | doğrulayıcı; hata olursa düz bir cümle | ~0,003 $ |
