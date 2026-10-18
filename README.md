@@ -536,11 +536,11 @@ Henüz çözmediğimiz konular da var. TEFAS bazı günlerde bir fonun fiyatın�
 
 ### Geri bildirim döngüsü
 
-Sistemimiz RM'in yaptığı her işlemi (onay, ret, düzenleme, silme, ✓/✗ işareti, dağılım girişi, ajan başlatma) sürüm bilgileriyle birlikte `data/logs/rm-actions/` altına bir JSON satırı olarak yazar. `rmprep feedback` komutu bu kayıtlardan beş ölçü hesaplar ve sabit eşiklere göre öneriler çıkarır: örneğin RM'lerin hangi metin bölümünü sık sildiğini, ajanın önerisinin ne sıklıkla kabul edildiğini ve dağılım tahminimizin ne kadar yanıldığını gösterir. Rapor hiçbir ayarı kendiliğinden değiştirmez ve dil modeli kullanmaz; değişiklik kararını yine biz veririz.
+Sistemde RM'in ürün üzerinde yaptığı her işlem (onay, ret, düzenleme, silme, ✓/✗ işareti, dağılım girişi, ajan başlatma) sürüm bilgileriyle birlikte `data/logs/rm-actions/` dosyasının altında bir JSON satırı olarak yazılır. `rmprep feedback` komutu bu kayıtlardan beş ölçü hesaplar ve belirlenmiş aksiyon eşiklerine göre (mesela web search'te 5 tane ✗ işareti koymuş olmak) öneriler çıkarır. Örneğin, RM'lerin hangi metin bölümünü sık sildiğini, ajanın önerisinin ne sıklıkla kabul edildiğini ve dağılım tahminimizin ne kadar yanıldığını gösterir. Rapor hiçbir ayarı kendiliğinden değiştirmez ve dil modeli kullanmaz; değişiklik kararını yine biz veririz. Şu anda sistemimizi olduğu kadar insan-destekli tutmaya çalıştık; gelecekte bu geri bildirim döngüsü, belirlediği geliştirmeleri/optimizasyonları otomatik olarak yapabilir. Böylece agentic mühendislikteki eval loops (Değerlendirme Döngüsü) efekte girmiş olur. Şu anda bilerek daha manuel gitmeyi tercih ettik, ne de olsa 5 müşteri örneğimiz var ve RM aksiyonları kendi tarafımızdan yaptığımız test işlemlerinden ibaret.
 
 ## 8. Veri kaynağı, zaman damgası ve karar gerekçesi gibi izlenebilirlik yaklaşımları
 
-Sistemimizdeki her öneriyi, dayandığı verinin kaynağına, değer tarihine ve verinin hangi saatte çekildiğine kadar geriye doğru izleyebiliyoruz. Tüm zamanları Türkiye saatiyle (`Europe/Istanbul`) tutuyoruz. Aşağıdaki şema bir sayının ham indirmeden görüşme metnindeki cümleye kadar izlediği yolu gösterir:
+Sistemdeki her öneriyi, dayandığı verinin kaynağına, değer tarihine ve verinin hangi saatte çekildiğine kadar geriye doğru izleyebiliyoruz. Tüm zamanları Türkiye saatiyle (`Europe/Istanbul`) tutuyoruz. Aşağıdaki şema bir sayının ham indirmeden görüşme metnindeki cümleye kadar izlediği yolu gösteriyor:
 
 ```mermaid
 flowchart LR
@@ -561,7 +561,7 @@ flowchart LR
     class A human
 ```
 
-Her katmanda neyi nasıl izlediğimiz:
+Hangi katmanda neyi nasıl izlediğimiz:
 
 | Ne | Nasıl izliyoruz |
 |---|---|
@@ -579,6 +579,6 @@ RM ekranda bir sayının yanındaki "K" işaretine tıkladığında o sayının 
 
 <img src="docs/img/readme/evidence.png" alt="Kanıt penceresi: değer, kaynak, değer tarihi, alınma zamanı, kanıt kimliği ve bayraklar" width="448">
 
-*Bu örnekte EIL fonunun 1 yıllık getirisi %48,13. Değer TEFAS getiri sayfasından (`tefas_web`) geliyor, değer tarihi 16.10.2026 (bir önceki iş günü), veri 17.10.2026 saat 11:04'te çekilmiş, kanıt kimliği `Edede971a` ve değerin üzerinde hiçbir kalite bayrağı yok.* Bir önerinin tam karar kaydını [Teslimat 6](docs/teslim/06-kanit-kaydi-ornegi.md) belgesinde görebilirsiniz.
+*Bu örnekte EIL fonunun 1 yıllık getirisi %48,13. Değer TEFAS getiri sayfasından (`tefas_web`) geliyor, değer tarihi 16.10.2026 (bir önceki iş günü), veri 17.10.2026 saat 11:04'te çekilmiş, kanıt kimliği `Edede971a` ve değerin üzerinde hiçbir kalite bayrağı yok. En alttaki "Kaynağı aç" linkine tıklayarak da verinin alındığı web sayfasını görüntüleyebiliyorsunuz. * Bir önerinin tam karar kaydını [Teslimat 6](docs/teslim/06-kanit-kaydi-ornegi.md) belgesinde görebilirsiniz.
 
 `.env` ve `data/` klasörü depoya girmez. Bu prototipi ING Agentic AI Hackathon için geliştirdik.
