@@ -32,7 +32,7 @@ from typing import Protocol, TypeVar
 from rmprep.contracts import TR_TZ, DecisionResult, DecisionState, Persona, ProductOption
 from rmprep.research.checks import check_question
 from rmprep.research.config import ResearchConfig, load_config
-from rmprep.research.shape import shape_answer, shape_product
+from rmprep.research.shape import repair, shape_answer, shape_product
 from rmprep.research.types import SHAPE_VERSION, ProductResearch, QuestionAnswer, ResearchError
 
 RESEARCHED_KINDS = ("fund", "etf", "stock")      # deposit, time_deposit: ING's own products
@@ -419,9 +419,11 @@ def _marked(research: ProductResearch, marks: Mapping[str, str]) -> dict:
 
 def _read(path: Path, cls):
     try:
-        return cls.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        obj = cls.from_dict(json.loads(path.read_text(encoding="utf-8")))
     except (OSError, ValueError, KeyError, TypeError):
         return None
+    # a result stored before the broken-output check is cut on read too (shape.repair)
+    return repair(obj) if isinstance(obj, (ProductResearch, QuestionAnswer)) else obj
 
 
 def _write(path: Path, obj) -> None:

@@ -112,3 +112,37 @@ def test_an_exa_product_without_a_news_check_keeps_the_window():
     p = dataclasses.replace(product([f("Strateji maddesi.")]), provider="exa", checks=("1 findings dropped",))
     assert shape_product(p, CFG, TODAY).news_days == 90
     assert shape_product(product([f("Strateji maddesi.")]), CFG, TODAY).news_days == 90
+
+
+# --- a broken model answer (found 2026-10-18 in the demo recording) -------------------------------
+
+BROKEN = ("Nurol Portföy'ün yönettiği yatırım fonları, OSTİM paylarında alım yaparak pay oranını yüzde "
+          "5,58274 seviyesine çıkarmıştır.\"}},{metin:{citations:[6],confidence:")
+
+
+def test_a_broken_json_tail_is_cut_and_counted():
+    from rmprep.research.shape import strip_broken
+    assert strip_broken(BROKEN).endswith("seviyesine çıkarmıştır.")
+    p = shape_product(product(news=[f(BROKEN, "haber", d="2026-10-08")]), CFG, TODAY)
+    assert p.news[0].text.endswith("seviyesine çıkarmıştır.") and "{" not in p.news[0].text
+    assert "1 bullets cut (broken model output)" in p.checks
+
+
+def test_a_bullet_that_is_only_a_broken_piece_is_dropped_and_normal_text_stays():
+    from rmprep.research.shape import strip_broken
+    assert strip_broken('"}},{metin:{citations:[2]') == ""
+    normal = "Fon, \"kısa vadeli\" araçlara yatırım yapar; getirisi faize bağlıdır."
+    assert strip_broken(normal) == normal
+    p = shape_product(product(news=[f('ok."}},{citations:[1]', "haber", d="2026-10-08"),
+                                    f(normal, "haber", d="2026-10-09")]), CFG, TODAY)
+    assert [x.text for x in p.news] == [normal] and "1 bullets dropped (broken model output)" in p.checks
+
+
+def test_a_stored_result_is_repaired_on_read(tmp_path):
+    import json
+    from rmprep.research.service import _read
+    stored = product(news=[f(BROKEN, "haber", d="2026-10-08")])
+    path = tmp_path / "p.json"
+    path.write_text(json.dumps(stored.to_dict(), ensure_ascii=False), encoding="utf-8")
+    got = _read(path, ProductResearch)
+    assert got.news[0].text.endswith("seviyesine çıkarmıştır.")

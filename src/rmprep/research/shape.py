@@ -16,6 +16,44 @@ from rmprep.research.types import SHAPE_VERSION, Finding, ProductResearch, Quest
 
 COMPANY_TOPICS = ("yonetici_sirket",)    # at most one bullet of these topics
 
+# A model answer can break its own JSON and leave a piece of it in a bullet (found 2026-10-18 in
+# the demo recording: '… seviyesine çıkarmıştır."}},{metin:{citations:[6],confidence:').
+_BROKEN = re.compile(r'"\s*\}\s*[\]},]|\}\s*\}|[{,]\s*"?(?:citations|confidence|metin|text|topic|sources|date)"?\s*:',
+                     re.IGNORECASE)
+
+
+def strip_broken(text: str) -> str:
+    """The text up to the first JSON piece of a broken model answer; "" if under 3 words are left."""
+    m = _BROKEN.search(text)
+    if not m:
+        return text
+    head = text[:m.start()].rstrip(" \"'\\,;:{[")
+    return head if len(head.split()) >= 3 else ""
+
+
+def strip_broken_items(items: Sequence[Finding]) -> tuple[list[Finding], int, int]:
+    """(the items with broken pieces cut, n cut, n dropped)."""
+    out, n_cut, n_drop = [], 0, 0
+    for f in items:
+        t = strip_broken(f.text)
+        if not t:
+            n_drop += 1
+        elif t != f.text:
+            n_cut += 1
+            out.append(dataclasses.replace(f, text=t))
+        else:
+            out.append(f)
+    return out, n_cut, n_drop
+
+
+def repair(p: ProductResearch | QuestionAnswer) -> ProductResearch | QuestionAnswer:
+    """A stored result with the broken pieces cut (results stored before this check)."""
+    findings, a, b = strip_broken_items(p.findings)
+    if isinstance(p, ProductResearch):
+        news, c, d = strip_broken_items(p.news)
+        return p if not (a or b or c or d) else dataclasses.replace(p, findings=tuple(findings), news=tuple(news))
+    return p if not (a or b) else dataclasses.replace(p, findings=tuple(findings))
+
 
 def cut_words(text: str, max_words: int) -> str:
     """The text, or its first max_words words and "…"."""
@@ -51,6 +89,7 @@ def _tidy(items: Sequence[Finding], cfg: ShapeConfig, cap: int, *,
     kept: list[Finding] = []
     n_known = n_repeat = n_company = 0
     company_seen = False
+    items, n_cut, n_broken = strip_broken_items(items)
     for f in items:
         if known and _has_known_term(f.text, cfg.known_terms):
             n_known += 1
@@ -65,6 +104,10 @@ def _tidy(items: Sequence[Finding], cfg: ShapeConfig, cap: int, *,
             company_seen = True
         kept.append(dataclasses.replace(f, text=cut_words(f.text, cfg.bullet_max_words)))
     checks = []
+    if n_cut:
+        checks.append(f"{n_cut} bullets cut (broken model output)")
+    if n_broken:
+        checks.append(f"{n_broken} bullets dropped (broken model output)")
     if n_known:
         checks.append(f"{n_known} bullets dropped (known facts)")
     if n_repeat:

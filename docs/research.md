@@ -411,6 +411,17 @@ One live run of the fund AIS ("AK PORTFÖY PARA PİYASASI KATILIM FONU"), $0.019
   fix: a sentence end followed by a closer (`kayıtlı.)`, `fon."`, `fon.**`) also
   ends a unit (test `test_a_closer_after_a_sentence_end_also_ends_the_finding`).
 
+## Broken model output in a bullet, fixed (lead, 2026-10-18)
+
+Seen in the demo recording: an Exa news bullet for NSP ended in a piece of the model's own JSON,
+`… seviyesine çıkarmıştır."}},{metin:{citations:[6],confidence:`, and the panel showed it. The
+shaping (`shape.py`) now cuts a bullet at the first such piece (`strip_broken`: `"}` before `]`, `}`
+or `,`; `}}`; `{` or `,` before a field name such as `citations:`); a bullet with under 3 words left
+is dropped. Check lines "n bullets cut (broken model output)" and "n bullets dropped (broken model
+output)". Results stored before the fix are cut when they are read (`service._read` → `repair`).
+Tests: `tests/research/test_shape.py` (the real example, a piece-only bullet, a normal quote stays,
+the repair on read).
+
 ## Open points
 
 - Claude fallback: in some findings the model writes its own sentence and then
