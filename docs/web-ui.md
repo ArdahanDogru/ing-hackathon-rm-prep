@@ -1210,6 +1210,17 @@ hh:mm)." (key `ingestFresh`) with "Veriyi yenile" and its hint "yaklaşık 15
 dakika sürer". The other states are unchanged; an older API without the route
 still shows nothing. No API change.
 
+### The team logo in the top bar and the browser tab (W54, 2026-10-18)
+
+The user, 2026-10-18: add the logo of the repo (`logo.png`, "007" with the
+subtitle "RM GÖRÜŞME HAZIRLIĞI") to the web app. Only the "007" mark is used: the
+subtitle cannot be read at the size of the top bar. `web/public/logo-mark.png`
+(cut from `logo.png` above the subtitle, 112 px high, shown 28 px high, alt "Agent
+007") stands before the ING badge in the top bar; `web/public/favicon.png` (the
+mark on a white 64 px square) is the tab icon (`index.html`). Not on the Sunum
+görünümü or the PDF: those pages are for the bank's client. The server already
+serves root files of `web/dist`. Test: `App.test.tsx` (the logo in the banner).
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

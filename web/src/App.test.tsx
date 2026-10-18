@@ -116,3 +116,16 @@ test("the Veri menu shows the snapshot date", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Veri ▾" }));
   expect(screen.getByRole("option", { name: "10.10.2026 18:38 · 6813" })).toBeInTheDocument();
 });
+
+test("W54: the team logo in the top bar, next to the ING badge", async () => {
+  vi.spyOn(api, "run").mockResolvedValue(sample("run_p01_ready"));
+  render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>,
+  );
+  await screen.findByTestId("brief-card");
+  const logo = screen.getByRole("img", { name: "Agent 007" });
+  expect(logo).toHaveAttribute("src", "/logo-mark.png");
+  expect(screen.getByRole("banner")).toContainElement(logo);
+});

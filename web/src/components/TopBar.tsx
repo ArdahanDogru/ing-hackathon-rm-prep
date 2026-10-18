@@ -58,6 +58,8 @@ export function TopBar(p: TopBarProps) {
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white print:hidden">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-4 px-6">
         <div className="flex items-center gap-2">
+          {/* W54: the team logo (the "007" mark of logo.png, web/public/logo-mark.png) */}
+          <img src="/logo-mark.png" alt="Agent 007" className="h-7 w-auto" />
           <span className="rounded-md bg-brand px-2 py-0.5 text-sm font-extrabold tracking-wide text-white">ING</span>
           <span className="text-sm font-semibold">{t("appTitle")}</span>
         </div>
