@@ -19,7 +19,10 @@ RM hazırlık sayfasındaki önerilerden ve haberlerden, değiştirdiği bilgile
 
 ### Demo videosu
 
-[`docs/demo/agent007-demo-P01-P03.mp4`](docs/demo/agent007-demo-P01-P03.mp4) (3:50, sessiz, Türkçe altyazılı): iki müşteri için veriden görüşme metnine uçtan uca akış. P01'de kanıt penceresi, eleme ve puan, fon kartı, ajan ve araştırma işaretleri, onay ve görüşme metni; P03'te profil düzenleme, yapay zekânın bulduğu çelişkiler, onay kilidi, RM gerekçesi ve metin gösterilir.
+İki demo videomuz var; ikisi de sessiz ve Türkçe altyazılı:
+
+- **Tam demo (önerilen):** [`docs/demo/agent007-demo-v2-P01-P02-P03.mp4`](docs/demo/agent007-demo-v2-P01-P02-P03.mp4) (8:36). Üç müşteri için veriden görüşme metnine uçtan uca akış. P01'de iki sayfa yukarıdan aşağıya gezilir: üst çubuk ve veri menüsü, müşteri kartı, piyasa notu ve kanıt penceresi, "Bu öneriler nasıl seçildi?" ve dört penceresi, Gündem ve Teyit edin, ajan ve adımları, tablo, dağılım ve fon kartı, ajan araştırması ve RM'in kendi sorusu, onay, metin hazırlanırken bekleme ekranı, metin düzenleme, bölüm silme ve geri alma, sunum görünümü. P02'de yapay zekânın bulduğu sorular, döviz kısıtının gerekçeyle kaldırılması ve tahmini dağılımın onaylanması; P03'te profil düzenleme, yapay zekânın bulduğu çelişkiler, onay kilidi ve RM gerekçeleri gösterilir.
+- **Kısa demo:** [`docs/demo/agent007-demo-P01-P03.mp4`](docs/demo/agent007-demo-P01-P03.mp4) (3:50). P01 ve P03 için aynı akışın kısa hâli.
 
 ### Sistemi çalıştırmak
 
