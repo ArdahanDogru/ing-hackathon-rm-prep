@@ -1,4 +1,4 @@
-/* Print layout of the meeting card (route /print/:runId). */
+/* Print layout: A4, colors kept (the Sunum görünümü, route /print/:runId and the toolbar print). */
 @page {
   size: A4;
   margin: 14mm;

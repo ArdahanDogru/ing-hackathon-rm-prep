@@ -272,7 +272,7 @@ export function ClientPresentation({
     },
   ].filter((x): x is Figure => !!x);
 
-  const card = "rounded-xl border border-[#ECE9E3] bg-[#FBFAF8] p-6";
+  const card = "rounded-xl border border-[#ECE9E3] bg-[#FBFAF8] p-6 print:break-inside-avoid";
 
   // W50: a deleted section is gone from the client view and the print; the RM sees a line to
   // bring it back while the text is editable. The numbers of the headings follow what is left.
@@ -311,7 +311,7 @@ export function ClientPresentation({
         </p>
       )}
 
-      <article className="flex flex-col gap-11 rounded-2xl bg-white px-6 py-10 text-[#1D1B18] shadow-sm sm:px-14 print:shadow-none">
+      <article className="flex flex-col gap-11 rounded-2xl bg-white px-6 py-10 text-[#1D1B18] shadow-sm sm:px-14 print:gap-8 print:px-0 print:py-0 print:shadow-none">
         {/* cover */}
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap justify-between gap-2 text-sm text-[#5E5950]">
@@ -335,7 +335,7 @@ export function ClientPresentation({
             {canDelete && <div className="flex justify-end">{deleteButton("figures", t("presFigTitle"))}</div>}
             <div className="grid gap-4 sm:grid-cols-3">
               {figures.map((f) => (
-                <div key={f.label} data-testid="pres-figure" className="flex flex-col gap-1.5 rounded-xl bg-[#F7F5F1] p-5">
+                <div key={f.label} data-testid="pres-figure" className="flex flex-col gap-1.5 rounded-xl bg-[#F7F5F1] p-5 print:break-inside-avoid">
                   <span className="text-[13px] text-[#5E5950]">{f.label}</span>
                   <span className="font-serif text-[34px] font-bold leading-tight" style={f.accent ? { color: ACCENT } : undefined}>
                     {f.value}
@@ -409,13 +409,13 @@ export function ClientPresentation({
         {/* 02 the funds */}
         <section className="flex flex-col gap-4">
           <Heading n={num("pres2")}>{t("pres2Title")}</Heading>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-3 print:grid-cols-3">
             {funds.map((o) => {
               const id = `oneriler:${o.option_id}`;
               const role = roles[o.option_id];
               const content = block(id, fundName(o));
               return (
-                <div key={o.option_id} data-testid="pres-fund" className="flex flex-col gap-3 rounded-xl border border-[#ECE9E3] p-5">
+                <div key={o.option_id} data-testid="pres-fund" className="flex flex-col gap-3 rounded-xl border border-[#ECE9E3] p-5 print:break-inside-avoid print:p-4">
                   <span className="self-start rounded-full bg-[#FBE3D3] px-2.5 py-1 text-xs font-bold tracking-[0.02em] text-[#8A3307]">
                     {role.toLocaleUpperCase("tr")}
                   </span>
@@ -482,7 +482,7 @@ export function ClientPresentation({
         {/* 04 risks */}
         <section className="flex flex-col gap-4">
           <Heading n={num("pres4")}>{t("pres4Title")}</Heading>
-          <div className="grid items-start gap-6 md:grid-cols-2">
+          <div className="grid items-start gap-6 md:grid-cols-2 print:grid-cols-2">
             <div className={`${card} flex flex-col gap-3`}>
               <span className="text-[13px] text-[#5E5950]">{t("pres4Scale")}</span>
               <div data-testid="pres-risk" className="grid grid-cols-7 gap-1">
@@ -516,7 +516,7 @@ export function ClientPresentation({
         {/* 05 next step */}
         {gone("pres5") && deletedLine("pres5", t("pres5Title"))}
         {!gone("pres5") && (
-          <section data-testid="pres-next" className="flex flex-col gap-3 rounded-2xl bg-[#1D1B18] p-7 text-[#F4F2EE]">
+          <section data-testid="pres-next" className="flex flex-col gap-3 rounded-2xl bg-[#1D1B18] p-7 text-[#F4F2EE] print:break-inside-avoid">
             <div className="flex items-baseline gap-3">
               <span className="text-sm font-bold text-[#F59E5B]">{num("pres5")}</span>
               <h2 className="m-0 font-serif text-[24px] font-semibold">{t("pres5Title")}</h2>

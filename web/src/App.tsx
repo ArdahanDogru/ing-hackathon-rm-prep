@@ -2,14 +2,14 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, clearRmState, getRunOrRerun, recallInputs, rememberInputs } from "./api/client";
-import type { Lang, NarrativeView, Persona, ResetResult, RunInputs, RunView, SourceStatus } from "./api/types";
+import type { Lang, Persona, ResetResult, RunInputs, RunView, SourceStatus } from "./api/types";
 import { DataFreshness } from "./components/DataFreshness";
 import { ErrorBox } from "./components/ErrorBox";
 import { DashboardSkeleton } from "./components/Skeleton";
 import { TopBar } from "./components/TopBar";
 import { Dashboard } from "./screens/Dashboard";
 import { MeetingText } from "./screens/MeetingText";
-import { PrintCard } from "./screens/PrintCard";
+import "./print.css";
 import { fill, LangContext, labels, useT } from "./i18n";
 
 function MeetingRoute() {
@@ -28,37 +28,30 @@ function MeetingRoute() {
   return <MeetingText view={run} />;
 }
 
+/** "PDF olarak indir" (W52): the Sunum görünümü in its own tab, printed when the text is there. */
 function PrintRoute() {
   const { runId = "" } = useParams();
   const lang = useContext(LangContext);
   const [run, setRun] = useState<RunView | null>(null);
-  const [text, setText] = useState<NarrativeView | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const load = useCallback(() => {
     setError(null);
     const inputs = recallInputs(runId);
-    (inputs ? getRunOrRerun(runId, inputs) : api.getRun(runId))
-      .then((v) => {
-        setRun(v);
-        return api.narrative(runId, lang);
-      })
-      .then(setText, setError);
-  }, [runId, lang]);
+    (inputs ? getRunOrRerun(runId, inputs) : api.getRun(runId)).then(setRun, setError);
+  }, [runId]);
   useEffect(load, [load]);
-  useEffect(() => {
-    if (run && text) {
-      const timer = setTimeout(() => window.print(), 400); // after the fonts and layout
-      return () => clearTimeout(timer);
-    }
-  }, [run, text]);
   if (error)
     return (
       <main className="p-8">
         <ErrorBox error={error} onRetry={load} />
       </main>
     );
-  if (!run || !text) return <p className="p-8 text-sm text-muted">{labels[lang].loading}</p>;
-  return <PrintCard view={run} narrative={text} />;
+  if (!run) return <p className="p-8 text-sm text-muted">{labels[lang].loading}</p>;
+  return (
+    <main className="min-h-screen bg-surface p-6 font-sans text-ink print:bg-white print:p-0">
+      <MeetingText view={run} printOnly />
+    </main>
+  );
 }
 
 /** W46: the app is Turkish only (the user, 2026-10-17); the EN labels stay in i18n but nothing selects them. */

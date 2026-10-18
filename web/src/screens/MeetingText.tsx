@@ -65,7 +65,11 @@ function EditedText({ text }: { text: string }) {
   return <Bullets items={text.split("\n").map((l) => l.trim()).filter(Boolean)} />;
 }
 
-export function MeetingText({ view }: { view: RunView }) {
+/** The print tab of "PDF olarak indir" waits this long for the fonts and layout, then prints. */
+const PRINT_DELAY_MS = 400;
+
+/** `printOnly` (route /print/:runId): the Sunum görünümü alone, printed once the text is there. */
+export function MeetingText({ view, printOnly = false }: { view: RunView; printOnly?: boolean }) {
   const t = useT();
   const lang = useContext(LangContext);
   const r = view.result;
@@ -85,7 +89,7 @@ export function MeetingText({ view }: { view: RunView }) {
   const [blockError, setBlockError] = useState<string | null>(null);
   const [blockBusy, setBlockBusy] = useState(false);
   /** "Sunum görünümü": the page as the client sees it (and as it prints), without the RM's help */
-  const [preview, setPreview] = useState(false);
+  const [preview, setPreview] = useState(printOnly);
   const [hiddenSections, setHiddenSections] = useState<SectionId[]>(() => readSections(runId));
   const toggleSection = (id: SectionId, hide: boolean) => {
     const next = hide ? [...new Set([...hiddenSections, id])] : hiddenSections.filter((x) => x !== id);
@@ -417,13 +421,23 @@ export function MeetingText({ view }: { view: RunView }) {
     window.print();
   };
 
+  // the print tab: print once, when the text is there
+  const loaded = !!draft;
+  useEffect(() => {
+    if (!printOnly || !loaded) return;
+    const timer = setTimeout(() => window.print(), PRINT_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [printOnly, loaded]);
+
   return (
     <div className="pb-10">
-      <div className="print:hidden">
-        <LifecycleTabs runId={runId} approved={r.rm_status === "approved"} active="text" />
-      </div>
+      {!printOnly && (
+        <div className="print:hidden">
+          <LifecycleTabs runId={runId} approved={r.rm_status === "approved"} active="text" />
+        </div>
+      )}
 
-      {draft && (
+      {draft && !printOnly && (
         <div data-testid="meeting-toolbar" className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
           <div data-testid="doc-status" className="text-[13px] text-muted">
             {[

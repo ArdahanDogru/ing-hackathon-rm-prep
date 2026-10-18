@@ -1185,6 +1185,20 @@ key figures stays. The deleted sections are kept in this browser per run
 the narrator's blocks, and the figures and charts are not blocks. Keeping them
 on the server (shared between machines) needs an API field: not in this step.
 
+### The PDF is the Sunum görünümü (W52, 2026-10-18)
+
+The user, 2026-10-18: the downloaded PDF looked different from the Sunum
+görünümü; it should look like it. "PDF olarak indir" (route /print/:runId) no
+longer prints the summary card (`PrintCard`): it renders `MeetingText` with
+`printOnly`, which is the Sunum görünümü alone (no tabs, toolbar, yellow boxes
+or buttons; the RM's edits and deleted sections as on screen, W50's deleted
+sections from this browser) and prints once the text is there. The print keeps
+the screen layout: the fund cards in three columns and the risks in two
+(`print:grid-cols-*`, A4 is narrower than `md`), no page break inside a card,
+the colors kept (`print.css`, now loaded by the app for the toolbar print too).
+The Markdown download is still the summary card. `PrintCard` is no longer on a
+route; its tests stay until the lead decides to remove it.
+
 ### Not in this redesign (later, with data)
 
 Life events and client goals (Microsoft, Salesforce): the personas have no

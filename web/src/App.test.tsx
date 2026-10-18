@@ -79,9 +79,12 @@ test("a print tab makes no default run", async () => {
       <App />
     </MemoryRouter>,
   );
-  expect(await screen.findByTestId("print-footer")).toBeInTheDocument();
-  await waitFor(() => expect(print).toHaveBeenCalled());
+  // W52: the print is the Sunum görünümü: no tabs, toolbar, yellow boxes or buttons
+  expect(await screen.findByTestId("presentation")).toBeInTheDocument();
+  await waitFor(() => expect(print).toHaveBeenCalledTimes(1));
   expect(run).not.toHaveBeenCalled();
+  expect(screen.queryByTestId("meeting-toolbar")).toBeNull();
+  expect(screen.queryAllByTestId("rm-note")).toHaveLength(0);
   expect(screen.queryAllByRole("button")).toHaveLength(0);
 });
 
