@@ -304,7 +304,7 @@ Sistemi, her biri ayrı bir şekilde test edilebilen modüllere böldük. Böyle
 | Ingest | kaynak adaptörleri, snapshot, kalite kontrolleri, kanıt deposu, günlük güncelleme ve kilitleme | `src/rmprep/ingest/`, `config/sources.yaml` |
 | Puanlama motoru | opsiyon evreni, eleme kuralları, puan, güven, istikrar, ilk 3, dağılım bantları, mevcut dağılım, uyarılar | `src/rmprep/decision/`, `config/decision.yaml` |
 | Ajan | adaylar, veri paketi, araçlar, kod denetimi, yedek | `src/rmprep/agent/`, `config/agent.yaml` |
-| Web araştırması | Exa ve Claude sağlayıcıları, soru kontrolü, biçimlendirme, önbellek, günlük sınır | `src/rmprep/research/`, `config/research.yaml` |
+| Web araştırması | Exa ve Claude sağlayıcıları, soru kontrolü, biçimlendirme, sonuçların kaydı, günlük sınır | `src/rmprep/research/`, `config/research.yaml` |
 | Narrator | olgu paketi, dil modeli çağrısı, doğrulayıcı, tekrar, şablon metin, piyasa notu, maliyet defteri | `src/rmprep/narrator/`, `config/narrator.yaml` |
 | API ve arka uç | çalıştırma, profil kontrolü, onay, kayıt, işlem kaydı, veri güncelliği | `src/rmprep/api/`, `src/rmprep/backend.py` |
 | Web uygulaması | pano, öneriler, ajan kutusu, araştırma paneli, fon kartı, kanıt penceresi, görüşme metni, sunum görünümü | `web/` |
@@ -320,7 +320,7 @@ Yapay zekâyı kullandığımız her yerde aynı ilkeye uyduk: kullanılan dil m
 |---|---|---|---|---|
 | Ajan ilk 3 | Claude Sonnet 5.5 | motorun en iyi 10 adayı (RM 20'ye kadar seçebilir) arasından kendi ilk 3'ünü seçer | kod denetimi (1 tekrar), sonra motorun ilk 3'ü | karar başına ~0,05-0,10 $ (günde en çok 3 $ ile sınırlandırıldı) |
 | Web araştırması | Exa (yedek: Claude Haiku 5.5 web araması) | ilk 3 ve şirketleri için haberleri ve öne çıkanları toplar, RM'in sorularını yanıtlar | soru kontrolü (müşteri bilgisi dışarı gitmez), kaynağı olmayan bulgu atılır, "doğrulanmamış" etiketi eklenir | ürün başına ~0,02 $ (günde en çok 5 $ ile sınırlandırıldı) |
-| Profil kontrolü | Claude Opus 5.5 | müşteri profilinin tamamında çelişki arar | her bulgu çelişen iki tarafı kelimesi kelimesine alıntılar; sunucu alıntıyı ilgili alanda arar | profil başına ~0,015 $, önbellekte |
+| Profil kontrolü | Claude Opus 5.5 | müşteri profilinin tamamında çelişki arar | her bulgu çelişen iki tarafı kelimesi kelimesine alıntılar; sunucu alıntıyı ilgili alanda arar | profil başına ~0,015 $; sonuç kaydedilir, aynı profil için model yeniden çağrılmaz |
 | Görüşme metni | Claude Sonnet 5.5 | onaylanan seçimi bölümlü bir Türkçe metne çevirir | doğrulayıcı; 1 tekrar; sonra şablon metin | metin başına 0,034 $, ortalama 24,9 sn |
 | Pano özeti | Claude Haiku 5.5 | RM'e 1-2 cümlelik bir özet yazar | doğrulayıcı; hata olursa düz bir cümle | ~0,003 $ |
 | Değerlendirme hakemi | Claude Haiku 5.5 | metnin müşteriye uyarlanmış, açık ve dengeli olup olmadığını notlar; ajan ile motoru kör A/B ile karşılaştırır | yalnızca kodun ölçemediği şeyler için | paket başına < 0,01 $ |
@@ -530,7 +530,7 @@ Geliştirme boyunca bulduğumuz her hatayı, nedenini nasıl bulduğumuzu ve dü
 | ING oranları elle kopyalanmıştı ve eskimişti | ING sayfasını elle girilen dosyayla karşılaştırdık: 28 e-Vadeli oranı değişmişti | ING'nin kamuya açık oran sayfası için adaptör; elle girilen dosya yedek | motor %35,00 yerine güncel %34,50'yi kullanıyor |
 | Pay geçmişinde ani sıçramalar vardı | bilinen bölünmelerin çevresindeki fiyatlara baktık; bültendeki önceki kapanış düzeltilmemişti | sıçrama tespiti ve günlük fiyat limitine kırpma | 5 yıllık düzeltilmiş pay getirileri |
 | 5 yıllık geçmiş 15.02.2023'te kesiliyordu | 8-14.02.2023 "okunamaz" işaretlenmişti: depremden sonra borsa kapalıydı | kapanışı 0 olan geçerli bülten = işlem olmayan gün | tam 5 yıllık geçmiş |
-| Bir metin şablona düştü ("Garanti Portföy GZP" → yasak ifade "garanti") | değerlendirmenin hata listesi cümleyi ve bulguyu verdi | doğrulayıcı, adı geçen fonun kurucu adını yasak ifade taramasından önce çıkarır; başka yerde "garanti" hâlâ bulgudur | testler iki yönde geçiyor; canlı yeniden çalıştırma önbellekteki eski metni okudu, açık iş |
+| Bir metin şablona düştü ("Garanti Portföy GZP" → yasak ifade "garanti") | değerlendirmenin hata listesi cümleyi ve bulguyu verdi | doğrulayıcı, adı geçen fonun kurucu adını yasak ifade taramasından önce çıkarır; başka yerde "garanti" hâlâ bulgudur | testler iki yönde geçiyor; canlı yeniden çalıştırmada kayıtlı eski metin geri geldi; yeni bir metinle kontrol açık iş |
 
 Henüz çözmediğimiz konular da var. TEFAS bazı günlerde bir fonun fiyatını ve büyüklüğünü 0 olarak yayımlıyor (son snapshot'ta 45 fon) ve bu sıfırları henüz işaretlemiyoruz. İki EVDS serisini (BIST 100 getiri endeksi ve altın) doğrulamadık; bu seriler "doğrulanmamış seri" bayrağı taşıyor. Metinleri puanlayan LLM hakemi de neredeyse her metne "kısmen" diyor, çünkü rubriğini müşteri sayfası için değil RM notu için yazmıştık.
 
@@ -581,7 +581,7 @@ Hangi katmanda neyi nasıl izlediğimiz:
 | Kalite | kontroller değeri değiştirmez, yalnızca bayrak ekler: eksik, eski, aralık dışı, çelişen, yedek snapshot, doğrulanmamış seri, elle girilen. Kaynaklar arası çapraz kontrol de yaparız (ör. TÜFE: EVDS 29,7315, elle 29,73) |
 | Her karar | `run_id` (müşteri + snapshot + yapılandırma özeti; aynı girdi → aynı kimlik), her puan parçası ve gerekçesi kanıt kimlikleriyle, elenenler gerekçeleriyle, varsayımlar, uyarılar |
 | Ajan kararı | `data/agent/<run_id>.json`: adaylar, araçların `amac` notları, denetim sonuçları, her gerekçenin atıfları, istem sürümü, model, maliyet |
-| Web bulguları | bulgu kimliği, kaynak alanı, tarih, "doğrulanmamış" etiketi, RM'in ✓/✗ işareti; günlük önbellek ve maliyet defteri |
+| Web bulguları | bulgu kimliği, kaynak alanı, tarih, "doğrulanmamış" etiketi, RM'in ✓/✗ işareti; aynı gün aynı ürün için kayıtlı sonuç ve maliyet defteri |
 | Onaylar | RM'in karar zamanı, seçim, notlar, profil çelişkilerinin çözümleri; `data/runs/`, `data/narratives/`, `data/cards/` |
 | Metin | her cümle seçenek ve kanıt kimliği taşır; model, istem sürümü, doğrulayıcı sonucu, RM düzenlemeleri ve maliyet kayda girer |
 | RM işlemleri | `data/logs/rm-actions/<gün>.jsonl`: her işlem zamanı, çalıştırması, personası, snapshot'ı ve yapılandırma/istem sürümleriyle |
