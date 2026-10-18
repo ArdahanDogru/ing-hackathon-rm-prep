@@ -112,45 +112,45 @@ flowchart TB
 
 ## 2. Kullanılan veri kaynakları ve temel sinyaller
 
-Bir öneri ancak dayandığı veri kadar iyi olabilir. Bu yüzden verimizi resmî ve kamuya açık kaynaklardan, her gün yeniden topluyoruz. Sistemimiz her sabah 07:30'da kendiliğinden çalışır; RM isterse ekrandaki *Veri* menüsünden "Veriyi yenile" diyerek veriyi o an da güncelleyebilir. Kaynakları seçerken her birinin kullanım koşullarını ve robots.txt dosyasını okuduk. Bir kaynak botları engelliyorsa bu engeli aşmaya çalışmıyoruz; o gün bir önceki günün verisiyle devam ediyoruz ve verinin hangi tarihten olduğu ekranda yazıyor.
+Önerilerimizde kullandığımız verileri resmi ve kamuya açık kaynaklardan, her gün yeniden topluyoruz. Sistemimiz otomatik olarak her sabah 07:30'da kendiliğinden çalışır. RM isterse ekrandaki *Veri* menüsünden "Veriyi yenile" tuşuna basarak veriyi o an da güncelleyebilir. Kullandığımız kaynakları seçerken kullanım koşullarını ve robots.txt dosyasını okuduk. Bir kaynak botları engelliyorsa bu engeli aşmaya çalışmıyoruz, o gün bir önceki günün verisiyle devam ediyoruz ve verinin hangi tarihten olduğunu belirtiyoruz.
 
 | Kaynak | Bize ne verir | Nasıl okuyoruz |
 |---|---|---|
-| TCMB EVDS (resmî API) | politika faizi, USD/TRY, TCMB fonlama maliyeti, 3 aya kadar mevduat faizi, TÜFE endeksi (→ yıllık TÜFE), BIST 100 | API anahtarıyla; 900 günden uzun dönemleri parça parça çekiyoruz |
-| TEFAS fon getirileri sayfası | ~2.100 fon ve BYF için 1 ay-5 yıl getiri ve SPK risk değeri (1-7) | kamuya açık tek bir HTML sayfası; robots.txt'nin yasakladığı `/api/` adresini hiç çağırmıyoruz |
-| TEFAS fon detay sayfaları | fiyat, büyüklük, yatırımcı sayısı, alış/satış valörü, ücretler, alım durumu, portföy dağılımı | her fon için bir sayfa, istekler arasında en az 1 sn |
-| Borsa İstanbul gün sonu bültenleri | 628 pay için kapanış, 1 ay-5 yıl getiri, 1 ve 5 yıllık oynaklık, işlem hacmi, BIST 100 üyeliği | ücretsiz günlük ZIP dosyaları, saniyede en çok 1 istek; indirilen dosyaları SHA-256 özetiyle saklıyoruz |
-| ING oran sayfası | Turuncu Hesap ve e-Vadeli Mevduat oranları (dört ürün okunur, ikisi kullanılır) | ING'nin kamuya açık oran formu, istekler arasında 2 sn; sayfa açılmazsa önceki gün, o da yoksa elle girilen CSV |
-| Elle girilen CSV | stopaj oranları (31.12.2026'ya kadar geçerli), yıllık TÜFE (çapraz kontrol için), ING oranları (yedek) | her satırın bir kaynak bağlantısı ve tarihi var; kaynağı olmayan satırı sistem kabul etmez |
+| TCMB EVDS (resmî API) | politika faizi, USD/TRY, TCMB fonlama maliyeti, 3 aya kadar mevduat faizi, TÜFE endeksi (→ yıllık TÜFE), BIST 100 | API anahtarıyla, 900 günden uzun dönemleri parça parça çekiyoruz |
+| TEFAS fon getirileri sayfası | ~2.100 fon ve BYF için 1 ay-5 yıl getiri ve SPK risk değeri (1-7) | kamuya açık HTML sayfası; robots.txt'nin yasakladığı `/api/` adresini çağırmıyoruz |
+| TEFAS fon detayları | fiyat, büyüklük, yatırımcı sayısı, alış/satış valörü, ücretler, alım durumu, portföy dağılımı | her fon için bir sayfa |
+| Borsa İstanbul gün sonu bültenleri | 628 pay için kapanış, 1 ay-5 yıl getiri, 1 ve 5 yıllık oynaklık, işlem hacmi, BIST 100 üyeliği | günlük ZIP dosyaları |
+| ING oran sayfası | Turuncu Hesap ve e-Vadeli Mevduat oranları | ING'nin kamuya açık oran formu; sayfa açılmazsa önceki gün, o da yoksa elle girilen backup CSV |
+| Elle girilen CSV | stopaj oranları (31.12.2026'ya kadar geçerli), yıllık TÜFE (çapraz kontrol için), ING oranları (yedek) | her satırın bir kaynak bağlantısı ve tarihi var |
 | Fon yöneticisi belgeleri | izahname ve yatırımcı bilgi formu bağlantıları | RM bir fon kartını açtığında, yöneticinin kendi sitesinden; yalnızca bağlantıyı gösteriyoruz |
 | Web araştırması (Exa) | önerilen ürünler ve şirketleri hakkında son 90 günün haberleri ve öne çıkanları | dışarıya yalnızca ürün ve şirket adı gider; her bulgu "web kaynağı, doğrulanmamış" etiketi taşır |
 
 ### KAP'ı neden kullanmıyoruz?
 
-Brief KAP'ı önerilen kaynaklar arasında sayıyor, ancak kap.org.tr botları engelliyor. KAP verisini yayınlayan ayna siteler de kendi kullanım koşullarında otomatik okumayı yasaklıyor ve KAP verisini yeniden dağıtmak lisans gerektiriyor (brief kuralı 8). Bu yüzden KAP'ın yerine iki yol kullandık: fon belgeleri için fon yöneticisinin kendi sitesindeki izahnameye ve yatırımcı bilgi formuna bağlantı veriyoruz, şirket haberlerini ise web araştırmasıyla topluyoruz. Web araştırmamız da kap.org.tr'yi bilerek dışarıda tutar.
+Brief KAP'ı önerilen kaynaklar arasında sayıyor, ancak kap.org.tr botları engelliyor. KAP verisini yayınlayan ayna siteler de kendi kullanım koşullarında otomatik okumayı yasaklıyor. Bu yüzden KAP yerine iki yol kullandık: fon belgeleri için fon yöneticisinin kendi sitesindeki izahnameye ve yatırımcı bilgi formuna bağlantı veriyoruz, şirket haberlerini ise web araştırmasıyla topluyoruz.
 
-Bu kaynaklardan sonra yatırım evrenimiz 815 TEFAS fonu, 37 BYF, 590 pay ve 2 ING mevduatından oluşur. ING Turuncu Hesap sıralamaya girmez; önerileri karşılaştırdığımız taban olarak durur, böylece RM her öneriyi müşterinin bugün mevduatta alacağı getiriyle kıyaslayabilir. Yalnızca nitelikli yatırımcıya açık "Serbest" fonları, Borsa İstanbul'un W ve S pazarlarındaki payları, varant ve sertifikaları evrene almadık. İş Bankası ve Ziraat'in mevduat oranlarını da okuyoruz, ama bu oranlar puana girmez ve ekranda gösterilmez.
+Bu kaynaklardan sonra yatırım evrenimiz 815 TEFAS fonu, 37 BYF, 590 hisse senedi ve 2 ING mevduatından oluşur. ING Turuncu Hesap sıralamaya girmez; önerileri karşılaştırdığımız taban olarak durur, böylece RM her öneriyi müşterinin bugün mevduatta alacağı getiriyle kıyaslayabilir. Yalnızca nitelikli yatırımcıya açık "Serbest" fonları, Borsa İstanbul'un W ve S pazarlarındaki payları, varant ve sertifikaları evrene almadık.
 
 ### Ürün ve müşteri sinyalleri
 
-Puanlama motorumuz bir ürünü değerlendirirken stopaj ve enflasyon sonrası reel getirisine, SPK risk değerine, satış valörüne (yani müşterinin parasına kaç günde ulaşacağına), fon büyüklüğüne ve yatırımcı sayısına, alım durumuna, giriş ve çıkış ücretine bakar. Çok varlıklı bir fonun hangi varlık sınıfına girdiğine fonun adına göre değil, gerçek portföy dağılımına göre karar verir. Paylarda SPK risk değeri olmadığı için riski fiyat oynaklığından, büyüklüğü de işlem hacminden hesaplar. Bir ürünün risk değeri hiç yoksa bunu aynı sınıftaki ürünlerden tahmin eder ve tahmin ettiğini ekranda yazar.
+Puanlama motorumuz bir ürünü değerlendirirken stopaj ve enflasyon sonrası reel getirisine, SPK risk değerine, müşterinin parasına kaç günde ulaşacağına, fon büyüklüğüne ve yatırımcı sayısına, alım durumuna, giriş ve çıkış ücretine bakar. Çok varlıklı bir fonun hangi varlık sınıfına girdiğine fonun adına göre değil, gerçek portföy dağılımına göre karar verir. Hisse senetlerinde SPK risk değeri olmadığı için riski fiyat oynaklığından, büyüklüğü de işlem hacminden hesaplar. Bir ürünün risk değeri hiç yoksa bunu aynı sınıftaki ürünlerden tahmin eder ve tahmin ettiğini ekranda yazar.
 
 Müşteri tarafında ise persona dosyasındaki her alanın kararda bir karşılığı vardır. RM bir alanı değiştirdiğinde sıralamanın neden değiştiğini bu tablodan izleyebilir:
 
 | Müşteri dosyasındaki alan | Motor bu alanı nasıl kullanır |
 |---|---|
 | Risk profili | risk tavanı (bu tavanın üstündeki ürün elenir), risk bandı ve risk iştahı (puan) |
-| Yatırım ufku | hangi dönemin getirisine bakılacağı; ufuk 3 yıl veya daha uzunsa getirinin ağırlığı artar |
+| Yatırım ufku | hangi dönemin getirisine bakılacağı, ufuk 3+ yılsa getirinin ağırlığı artar |
 | Likidite, gelir, anapara koruma | Düşük 0 · Orta 0,5 · Yüksek 1 → ilgili ölçütün ağırlığı ve cezanın şiddeti |
-| Döviz maruziyeti | döviz cezasının şiddeti; açık bir kısıtsa döviz ürünleri elenir |
+| Döviz maruziyeti | döviz cezasının şiddeti (açık bir kısıtsa döviz ürünleri elenir) |
 | Öncelikler | eşleşen her öncelik ilgili ölçütün ağırlığına +1 ekler |
-| Açık kısıtlar | eleme kuralı olur (ör. döviz sınırı, parayı uzun süre kilitleyen ürün) |
+| Açık kısıtlar | eleme kuralı (ör. döviz sınırı, parayı uzun süre kilitleyen ürün) |
 | Durum, amaç, RM notu | müşterinin mevcut portföy dağılımının tahmini ve görüşme metnindeki uyarlama |
-| Yaş | puana girmez; görüşme metninde ve profil tutarlılık kontrolünde kullanılır |
+| Yaş | puana girmez, görüşme metninde ve profil tutarlılık kontrolünde kullanılır |
 
-Brief'in 6.1 maddesinde sayılan müşteri ve ürün özelliklerinin her birini bir ölçüte, bir cezaya veya bir eleme kuralına bağladık. Getiriyi bilerek reel ve stopaj sonrası ölçüyoruz, çünkü %30 civarındaki bir enflasyonda nominal getiriye göre yapılan bir sıralama müşteriyi yanıltır.
+Brief'in 6. maddesinde sayılan müşteri ve ürün özelliklerinin her birini bir ölçüte, cezaya veya eleme kuralına bağladık. Getiriyi reel ve stopaj sonrası ölçüyoruz, çünkü %30 civarındaki bir enflasyonda nominal getiriye göre yapılan bir sıralama müşteriyi yanıltır.
 
-Yaşı ise puana katmadık. Müşterinin hangi ürünlere uygun olduğunu risk profili zaten belirliyor; yaşı ayrıca puanlamak aynı bilgiyi iki kez saymak olurdu ve tek başına bir yaş-risk kuralının kamuya açık bir dayanağını bulamadık. Yaşı görüşme metninde ve profil kontrolünde kullanıyoruz: örneğin dosyada `yas` 62 yazarken RM notunda "45 yaşında" geçiyorsa sistem bu çelişkiyi RM'e gösterir.
+Yaşı ise puana katmadık. Müşterinin hangi ürünlere uygun olduğunu risk profili belirliyor. Yaşı görüşme metninde ve profil kontrolünde kullanıyoruz: örneğin dosyada `yas` 62 yazarken RM notunda "45 yaşında" geçiyorsa sistem bu çelişkiyi RM'e gösteriyor.
 
 ## 3. Karşılaştırma / sıralama veya karar mantığı
 
