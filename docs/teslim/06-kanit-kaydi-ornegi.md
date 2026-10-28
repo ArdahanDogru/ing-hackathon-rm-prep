@@ -1,128 +1,179 @@
 # Kanıt kaydı örneği
 
-> Teslimat 6 · Taslak (2026-10-13) · Kaynak: kayıtlı P02 çalıştırması
-> `R2b9ee9ca01` (`data/runs/R2b9ee9ca01.json`), onaylı görüşme metni
-> (`data/narratives/R2b9ee9ca01-TR-approved.json`), kart
-> (`data/cards/R2b9ee9ca01.md`), veri anlık görüntüsü `20261010-183835-6813`,
-> kanıt deposu `data/evidence.duckdb`. Tüm değerler kayıttan aynen
-> kopyalanmıştır; kayıtta olmayan bilgi "kayıtta yok" olarak işaretlidir.
+> Teslimat 6 · Güncel sürüm (2026-10-28) · Kaynak: kayıtlı P01 çalıştırması
+> `Rb5470b4f25` (`data/runs/Rb5470b4f25.json`), profil kontrolü
+> (`data/runs/Rb5470b4f25.resolutions.json`), ajan kararı
+> (`data/agent/Rb5470b4f25.json`), web araştırması
+> (`data/research/products/fund_PPN-TR-20261018-v2.json`,
+> `data/research/questions/Rb5470b4f25-TR-v2-9d7706b089ca.json`,
+> `data/research/marks/20261018.json`), görüşme metni
+> (`data/narratives/Rb5470b4f25-TR-n12-claude-sonnet-5-5-75cd8496de.json`) ve RM
+> düzenlemeleri (`data/narratives/Rb5470b4f25-TR-edits.json`), kart
+> (`data/cards/Rb5470b4f25.md`), RM işlem kaydı
+> (`data/logs/rm-actions/2026-10-18.jsonl`), veri anlık görüntüsü
+> `20261018-132653-1991`, kanıt deposu `data/evidence.duckdb`. Tüm değerler
+> kayıttan aynen kopyalanmıştır; kayıtta olmayan bilgi "kayıtta yok" olarak
+> işaretlidir.
 >
-> **Not:** Bu örnek kayıt, uçtan uca akışı göstermek için bir betikle
-> oluşturuldu; RM onayı ve metin onayı arayüzdeki aynı API çağrılarıyla, ancak
-> otomatik verildi (onay zamanları birkaç saniye aralıklıdır). Gerçek kullanımda
-> ve demoda onayı RM ekrandan verir; kayıt yapısı aynıdır.
+> **Not:** Bu kayıt, demo videosu (v2, P01–P02–P03) çekilirken bir betikle
+> oluşturuldu. Depo dışındaki Playwright betiği (`demo-video/record2.mjs`)
+> arayüzde RM'in yerine tıkladı ve yazdı: iki web bulgusuna ✓/✗ işareti, RM
+> sorusu, "Onayla ve metni hazırla", bir metin bloğunun düzenlenmesi ve RM
+> notu. Bu nedenle adımlar arasında yalnızca birkaç saniye vardır. Arayüz bu
+> işlemler için gerçek kullanımdaki API çağrılarının aynısını yapar. Gerçek
+> kullanımda bu adımları RM ekrandan yapar; kayıt yapısı aynıdır.
 
 ## 1. Bu kayıt neyi gösteriyor
 
-Bu kayıt, P02 müşterisi için önerilen ilk ürünün (BV PORTFÖY PARA PİYASASI
-(TL) FON, `fund:BVF`) tam karar zincirini gösterir: **veri → kural → skor →
-öneri → model dağılım → görüşme metni → RM onayı → metin onayı**. Her veri
+Bu kayıt, P01 müşterisi için önerilen ilk ürünün (NUROL PORTFÖY PARA PİYASASI
+(TL) FONU, `fund:PPN`) tam karar zincirini gösterir: **veri → kural → skor →
+motor önerisi → ajan kararı (web bulguları ve RM'in ✓/✗ işaretleriyle) → RM
+onayı (profil kontrolüyle) → görüşme metni ve RM düzenlemesi → kart**. Her veri
 noktasının bir kanıt kimliği (`E…`), kaynağı, değer tarihi (`as_of`) ve alınma
-zamanı (`fetched_at`) vardır. Kurallar, skor parçaları ve metin cümleleri bu
-kimlikleri taşır. RM onayı ve metin onayı aynı `run_id` altında saklanır.
+zamanı (`fetched_at`) vardır. Her web bulgusunun bir bulgu kimliği (`F…`)
+vardır. Kurallar, skor parçaları, ajan gerekçeleri ve metin cümleleri bu
+kimlikleri taşır. RM'in her işlemi aynı `run_id` ile işlem kaydına yazılır.
+Tüm zamanlar Türkiye saatidir (`Europe/Istanbul`, +03:00).
+
+README bölüm 8'deki izlenebilirlik katmanları bu belgede şu bölümlerdedir:
+
+| README bölüm 8 katmanı | Bu belgedeki yeri |
+|---|---|
+| Her değer | bölüm 4 (kanıt satırları) |
+| Ham veri | bölüm 14 (`raw_ref`, SHA-256, manifest) |
+| Kalite | bölüm 4 (bayraklar), bölüm 5 (veri kalitesi notları) |
+| Her karar | bölüm 2, 3 ve 5 |
+| Ajan kararı | bölüm 7 |
+| Web bulguları | bölüm 8 |
+| Onaylar | bölüm 9 (karar, seçim, notlar, profil çelişkileri) |
+| Metin | bölüm 10 |
+| RM işlemleri | bölüm 12 |
 
 ## 2. Çalıştırma kimliği
 
 | Alan | Değer |
 |---|---|
-| `run_id` | `R2b9ee9ca01` |
-| `snapshot_id` | `20261010-183835-6813` |
-| `config_hash` | `9279d0a6c847` |
-| `created_at` (Europe/Istanbul) | `2026-10-13T01:03:39.784910+03:00` |
-| Persona | `P02` · İhracatçı şirket sahibi, 48 yaş, Dengeli, "Döviz geliri bulunuyor" |
-| Öncelikler / açık kısıt | kur riskini yönetme, çeşitlendirme, erişilebilir likidite / "döviz maruziyetini gerekçesiz artırmama" |
-| Durum | `state = ready`, `excluded_sources = []`; 307 puanlanan, 509 elenen seçenek |
+| `run_id` | `Rb5470b4f25` |
+| `snapshot_id` | `20261018-132653-1991` (manifest `created_at` = `2026-10-18T13:26:53.203068+03:00`) |
+| `config_hash` | `dda3ae095519` |
+| `created_at` | `2026-10-18T22:49:56.274809+03:00` |
+| Sürümler (işlem kaydındaki `versions`) | `decision_config = dda3ae095519`, `narrator_prompt = n12`, `agent_prompt = a3`, `research = 2` |
+| Persona | `P01` · Emekli girişimci, 62 yaş, Muhafazakâr, "Varlığı TL mevduat ağırlıklı" |
+| Yatırım amacı / ufku | "Düzenli gelir ve sermayenin korunmasını önceliklendirmek" / 1-3 yıl |
+| Öncelikler / açık kısıt | düzenli gelir, likiditeyi koruma, sınırlı dalgalanma / "yüksek riskli ürünlerden kaçınma" |
+| Persona RM notu | "Mevcut portföyün mevduat yoğunluğunu azaltabilecek alternatifleri anlamak istiyor." |
+| Durum | `state = ready`, `excluded_sources = []`, `questions = []`; 143 puanlanan, 1302 elenen seçenek |
 
 `config_hash`, `config/decision.yaml` dosyasının kanonik JSON'unun sha256
 özetinin ilk 12 karakteridir. `run_id`; `config_hash`, persona, `snapshot_id`,
 hariç tutulan kaynaklar ve RM cevaplarının sha1 özetidir (`docs/decision.md`
 bölüm 7). `created_at` bu özete girmez. Aynı girdiler her zaman aynı `run_id`
-değerini verir. Örnek: brief dosyası `2026-10-13T00:48:12.463226+03:00`
-zamanında aynı `run_id` için yazıldı; çalıştırma daha sonra aynı girdilerle
-tekrar kaydedildi ve aynı kimliği aldı.
+değerini verir. Bu kayıt bunu gösterir: pano özeti `2026-10-18T14:45:45` ve
+ajan kararı `2026-10-18T14:59:06` zamanında bu `run_id` için yazıldı. Demo
+provaları arasındaki sıfırlamalar çalıştırma dosyasını arşive taşıdı
+(`data/reset-archive/`). Son kayıtta çalıştırma `22:49:56` zamanında aynı
+girdilerle yeniden hesaplandı ve aynı kimliği aldı.
 
-## 3. Öneri ve gerekçe
+## 3. Öneri ve gerekçe (puanlama motoru)
 
-**Seçenek:** kısa ad "Para Piyasası (TL)", ihraççı "BV Portföy" · tam ad BV
-PORTFÖY PARA PİYASASI (TL) FON · fon kodu `BVF` · `option_id = fund:BVF` ·
-`fund_kind = money_market` · `fx = false` · varlık sınıfı `nakit_benzeri`.
-Önerilen ilk üç (`recommended`): `fund:BVF`, `fund:NJR`, `fund:IRF`.
+**Seçenek:** NUROL PORTFÖY PARA PİYASASI (TL) FONU · fon kodu `PPN` ·
+`option_id = fund:PPN` · `fund_kind = money_market` · `fx = false` · varlık
+sınıfı `nakit_benzeri`. Motorun önerdiği ilk üç (`recommended`): `fund:PPN`,
+`fund:OSD`, `fund:AIS`.
 
-**Skor:** `0.7751011131443154` (ağırlık × değer parçalarının toplamı; fark 0.0).
+**Skor:** `0.740384201231856` (karttaki gösterim "skor 74"). Skor, ağırlık ×
+değer parçalarının toplamıdır; aşağıdaki katkıların toplamı skorla aynıdır.
 
-| Parça | Değer | Gerekçe metni (kayıttaki gibi) |
-|---|---|---|
-| `return` | 0.3146117203985317 | Yıllık getiri %48.6, stopaj sonrası %40.1, enflasyon sonrası reel %+8.0 (1y); adayların %93'inden iyi. |
-| `risk_fit` | 0.10169491525354785 | Risk değeri 2/7; müşterinin risk aralığı 3-5. |
-| `liquidity` | 0.2033898305070957 | Satış valörü 0 gün; likidite 1.0. |
-| `income` | 0.061016949152128706 | Düzenli gelir uygunluğu (ürün türüne göre): 0.6. |
-| `principal` | 0.06610169491480611 | Anapara koruma: 0.65. |
-| `quality` | 0.02828600291820536 | Fon büyüklüğü ve yatırımcı sayısı: adayların %56'inden iyi. |
+| Parça | Ağırlık (`effective_weights`) | Değer | Katkı (`score_parts`) | Gerekçe metni (kayıttaki gibi) | Kanıt |
+|---|---|---|---|---|---|
+| `return` | 0.14678899082568808 | 0.9085 | 0.1333505620881251 | Yıllık getiri %47.4, stopaj sonrası %39.1, enflasyon sonrası reel %+7.2 (1y); adayların %91'inden iyi. | `E72d070ec`, `Ede9af545`, `Eb39e0ab5` |
+| `risk_fit` | 0.22018348623853212 | 1.0 | 0.22018348623853212 | Risk değeri 1/7; müşterinin risk aralığı 1-2. | `E0ae92a1e` |
+| `liquidity` | 0.14678899082568808 | 1.0 | 0.14678899082568808 | Satış valörü 0 gün; likidite 1.0. | `E178811c9` |
+| `income` | 0.22018348623853212 | 0.6 | 0.13211009174311927 | Düzenli gelir uygunluğu (ürün türüne göre): 0.6. | kanıt satırı yok (ürün türü `money_market`) |
+| `principal` | 0.14678899082568808 | 0.8 | 0.11743119266055047 | Anapara koruma: 0.80. | `E0ae92a1e` (fon için max(0, 0.8 − 0.15 × (risk − 1))) |
+| `quality` | 0.03669724770642202 | 0.8667 | 0.03180428134556575 | Fon büyüklüğü ve yatırımcı sayısı: adayların %87'inden iyi. | `Efeb58a01`, `E8a663bdb` |
+| `allocation_gap` | 0.08256880733944955 | −0.5 | −0.04128440366972477 | Nakit benzeri payı persona metnine göre %75; Muhafazakâr model bandı %10–20. | kanıt satırı yok (persona metni, bölüm 6) |
 
-`penalty:` ile başlayan parça yoktur; seçeneğe ceza uygulanmadı.
+`simplicity` ağırlığı 0.0'dır. "Değer" sütunu katkı / ağırlık olarak
+hesaplandı. Çalıştırma dosyası kanıt kimliklerini seçenek düzeyinde
+(`evidence_ids`, 10 kimlik) ve kısıt düzeyinde tutar. Parça ile kanıt
+arasındaki eşlemeyi, kanıtın büyüklüğüne (`quantity`) göre biz yaptık.
 
-**Reel getiri** (`docs/decision.md` 4.1b): net = 48.5786 × (1 − 0.175) =
-40.077345; reel = (1 + 0.40077345) / (1 + 0.2973) − 1. `real_1y` çalıştırma
-dosyasında kayıtta yok; `rmprep.decision.display.facts_of` ile salt okunur
-yeniden hesaplandı: `7.976061820704539` (gösterim "+%8,0"; kanıt `Eb8143c0e`,
-`Ede9af545`, `Eb39e0ab5`).
+`penalty:` ile başlayan parça yoktur; seçeneğe ceza uygulanmadı. Örnek:
+`underperformance` cezasının karşılaştırma değeri, stopaj sonrası piyasa
+mevduat oranıdır: 43.4 × (1 − 0.175) = 35.805 (`Ef6d8c9f2`, `E0382c2e7`). PPN
+net getirisi (39.098565) bu değerin üstündedir. Ayrıca Muhafazakâr profilin
+getiri iştahı 0.0'dır ve ceza bu iştahla çarpılır.
+
+**Reel getiri** (`docs/decision.md` 4.1b): net = 47.3922 × (1 − 0.175) =
+39.098565; reel = (1 + 0.39098565) / (1 + 0.2973) − 1 = %7.2216 (gösterim
+"+%7,2"; kanıt `E72d070ec`, `Ede9af545`, `Eb39e0ab5`). `real_1y` değeri
+çalıştırma dosyasında kayıtta yok; bu belge için kanıt değerlerinden yeniden
+hesaplandı.
 
 **Geçen kısıtlar:**
 
 | Kural | Sonuç | Gerekçe | Kanıt |
 |---|---|---|---|
-| `not_buyable` | geçti | TEFAS'ta alıma açık. | `E0dcd47b0` |
-| `risk_ceiling` | geçti | Risk değeri 2, müşterinin tavanı 5 içinde. | `Ea80b47f6` |
+| `not_buyable` | geçti | TEFAS'ta alıma açık. | `Eb1001265` |
+| `risk_ceiling` | geçti | Risk değeri 1, müşterinin tavanı 2 içinde. | `E0ae92a1e` |
 
-**Güven:** `confidence = 0.9` (en zayıf veri noktası `needs_check` veya
-`manual_entry`; çarpan 0.9). **Kararlılık:** `stability = 1.0` (ağırlıklar ve
-ceza üst sınırları ±%20 değiştirildiğinde seçenek her denemede ilk 20 içinde
-kaldı).
+**Güven:** `confidence = 0.9` (en zayıf veri noktası `manual_entry` bayraklı;
+çarpan 0.9). **Kararlılık:** `stability = 1.0` (`docs/decision.md` bölüm
+15: her ağırlık ve her ceza üst sınırı tek tek × 0.8 ve × 1.2 yapıldı; 30
+denemenin hepsinde öneri kuralı PPN'i yeniden önerdi).
 
-**Neden önerilen ilk üçte (D19, `docs/decision.md` bölüm 10).** Müşteri
-Dengeli'dir ve "çeşitlendirme" önceliği vardır. Bu nedenle sınıf kuralı
-uygulanır: her varlık sınıfından en fazla 1, `nakit_benzeri` sınıfından en
-fazla 1 seçenek, skor sırasıyla. `fund:BVF`, mevduat dışındaki tüm seçenekler
-içinde en yüksek skora sahiptir (sonraki `fund:EIL` 0.7743740815825517, o da
-nakit benzeri). Bu nedenle ilk seçimdir ve nakit benzeri payını kullanır;
-reel getirisi pozitif olduğu için `recommend.min_real_return` (0.0) koşulunu
-geçer. Sonraki seçimler başka sınıflardandır: `fund:NJR` (`borclanma`,
-0.7368726748391465) ve `fund:IRF` (`dengeli`, 0.7177267791927738; gerekçesinde
-"Çeşitlendirme: farklı varlık sınıfından en iyi seçenek." yazar). BVF
-gerekçesinde bu ifade yoktur, çünkü düz skor sırasında da birinci olur.
+**Neden önerilen ilk üçte (`docs/decision.md` bölüm 10).** Müşteri
+Muhafazakâr'dır ve "çeşitlendirme" önceliği yoktur. Bu nedenle sınıf kuralı
+uygulanmaz (`recommend.profiles = ["Dengeli", "Agresif"]`). Motor, mevduat
+dışındaki ilk 20 seçeneği ürün türüne göre gruplar ve skor sırasıyla ilk üç
+grubun başını önerir. Grup başları: `money_market` `fund:PPN`
+(0.740384201231856), `debt` `fund:OSD` (0.7162764114418075), `participation`
+`fund:AIS` (0.6817107196355162), `fund_of_funds` `fund:NBO`
+(0.634866716438625). PPN, mevduat dışındaki tüm seçenekler içinde en yüksek
+skora sahiptir. Aynı gruptaki `fund:ZBJ` (0.7374438270807311) ve `fund:GO6`
+(0.7370475657205209) alternatif olarak kalır. Karşılaştırma için ING mevduatı
+`deposit:ing_turuncu` skoru 0.4716038450429225'tir.
+
+**Konuşma noktaları (motor, `talking_points`), PPN ile ilgili olanlar:**
+
+- `best_alternative` "+%7,2": "NUROL PORTFÖY PARA PİYASASI (TL) FONU son bir yılda enflasyon sonrası +%7,2 getirdi; geçmiş getiri geleceği göstermez." (kanıt `E72d070ec`, `Eb39e0ab5`, `Ede9af545`)
+- `access` "1 iş günü": "İlk üç öneride paraya erişim: 1 iş günü." (kanıt `E178811c9`, `E8018cdd1`, `Ea7cf75b1`; seçenek `fund:PPN`, `fund:OSD`, `fund:AIS`)
 
 ## 4. Dayandığı veriler
 
 Seçeneğin `evidence_ids` listesindeki 10 kimliğin tümü, `snapshot_id =
-20261010-183835-6813` satırlarından okunmuştur. İki kısıtın kanıtları
-(`E0dcd47b0`, `Ea80b47f6`) bu listededir.
+20261018-132653-1991` satırlarından okunmuştur. İki kısıtın kanıtları
+(`Eb1001265`, `E0ae92a1e`) bu listededir.
 
 | Kanıt | Büyüklük | Değer + birim | as_of | Kaynak | source_url | fetched_at | Bayrak |
 |---|---|---|---|---|---|---|---|
-| `Eb8143c0e` | fund_return_1y (BVF) | 48.5786 pct | 2026-10-09 | tefas_web | https://www.tefas.gov.tr/tr/fon-getirileri | 2026-10-10T18:38:37.587166+03:00 | needs_check |
-| `Ea80b47f6` | fund_risk_level (BVF) | 2.0 level | 2026-10-09 | tefas_web | https://www.tefas.gov.tr/tr/fon-getirileri | 2026-10-10T18:38:37.587166+03:00 | needs_check |
-| `E0dcd47b0` | fund_buyable (BVF) | 1.0 flag | 2026-10-09 | tefas_detail | https://www.tefas.gov.tr/tr/fon-detayli-analiz/BVF | 2026-10-10T18:52:15.632710+03:00 | needs_check |
-| `Ee9dc76cc` | fund_sell_valor_days (BVF) | 0.0 days | 2026-10-09 | tefas_detail | https://www.tefas.gov.tr/tr/fon-detayli-analiz/BVF | 2026-10-10T18:52:15.632710+03:00 | needs_check |
-| `E4cd2b07b` | fund_investor_count (BVF) | 647.0 count | 2026-10-09 | tefas_detail | https://www.tefas.gov.tr/tr/fon-detayli-analiz/BVF | 2026-10-10T18:52:15.632710+03:00 | needs_check |
-| `E2f06fc68` | fund_total_value (BVF) | 1667959437.87 TRY | 2026-10-09 | tefas_detail | https://www.tefas.gov.tr/tr/fon-detayli-analiz/BVF | 2026-10-10T18:52:15.632710+03:00 | needs_check |
-| `Eb39e0ab5` | cpi_annual · TÜFE yıllık değişim (TÜİK) | 29.73 pct | 2026-09-30 | manual | https://www.sbb.gov.tr/enflasyon/ | 2026-10-10T18:38:36.881130+03:00 | manual_entry |
-| `Ede9af545` | withholding_tax_rate · Yatırım fonu, para piyasası fonu | 17.5 pct | 2026-03-27 | manual | https://www.ziraatportfoy.com.tr/Documents/Banner//ZFG_PORTFOY_yat%C4%B1r%C4%B1m-fonlar%C4%B1-stopaj-oranlar%C4%B1-hakk%C4%B1nda-27-03-2026-pdf_328.pdf | 2026-10-10T18:38:36.881130+03:00 | manual_entry |
-| `E9cb9f7ad` | deposit_rate · TRY savings deposit rate up to 3M, weighted average (new deposits) | 43.82 pct | 2026-10-02 | evds | https://evds3.tcmb.gov.tr/ | 2026-10-10T18:38:36.865736+03:00 | yok |
-| `E0382c2e7` | withholding_tax_rate · TL vadesiz mevduat ve günlük hesap (Turuncu Hesap türü) | 17.5 pct | 2026-06-20 | manual | https://www.yontemymm.com.tr/mali-aciklamalar/2026-041-tl-mevduat-hesaplarinda-uygulanan-stopaj-oranlarinin-suresi-uzatildi | 2026-10-10T18:38:36.881130+03:00 | manual_entry |
+| `E72d070ec` | fund_return_1y (PPN) | 47.3922 pct | 2026-10-16 | tefas_web | https://www.tefas.gov.tr/tr/fon-getirileri | 2026-10-18T13:27:36.891898+03:00 | yok |
+| `E0ae92a1e` | fund_risk_level (PPN) | 1.0 level | 2026-10-16 | tefas_web | https://www.tefas.gov.tr/tr/fon-getirileri | 2026-10-18T13:27:36.891898+03:00 | yok |
+| `Eb1001265` | fund_buyable (PPN) | 1.0 flag | 2026-10-16 | tefas_detail | https://www.tefas.gov.tr/tr/fon-detayli-analiz/PPN | 2026-10-18T13:41:59.366857+03:00 | yok |
+| `E178811c9` | fund_sell_valor_days (PPN) | 0.0 days | 2026-10-16 | tefas_detail | https://www.tefas.gov.tr/tr/fon-detayli-analiz/PPN | 2026-10-18T13:41:59.366857+03:00 | yok |
+| `E8a663bdb` | fund_investor_count (PPN) | 10308.0 count | 2026-10-16 | tefas_detail | https://www.tefas.gov.tr/tr/fon-detayli-analiz/PPN | 2026-10-18T13:41:59.366857+03:00 | yok |
+| `Efeb58a01` | fund_total_value (PPN) | 8867430816.95 TRY | 2026-10-16 | tefas_detail | https://www.tefas.gov.tr/tr/fon-detayli-analiz/PPN | 2026-10-18T13:41:59.366857+03:00 | yok |
+| `Eb39e0ab5` | cpi_annual · TÜFE yıllık değişim (TÜİK) | 29.73 pct | 2026-09-30 | manual | https://www.sbb.gov.tr/enflasyon/ | 2026-10-18T13:27:35.829845+03:00 | manual_entry |
+| `Ede9af545` | withholding_tax_rate · Yatırım fonu, para piyasası fonu | 17.5 pct | 2026-03-27 | manual | https://www.ziraatportfoy.com.tr/Documents/Banner//ZFG_PORTFOY_yat%C4%B1r%C4%B1m-fonlar%C4%B1-stopaj-oranlar%C4%B1-hakk%C4%B1nda-27-03-2026-pdf_328.pdf | 2026-10-18T13:27:35.829845+03:00 | manual_entry |
+| `Ef6d8c9f2` | deposit_rate · TRY savings deposit rate up to 3M, weighted average (new deposits) | 43.4 pct | 2026-10-09 | evds | https://evds3.tcmb.gov.tr/ | 2026-10-18T13:27:07.166596+03:00 | yok |
+| `E0382c2e7` | withholding_tax_rate · TL vadesiz mevduat ve günlük hesap (Turuncu Hesap türü) | 17.5 pct | 2026-06-20 | manual | https://www.yontemymm.com.tr/mali-aciklamalar/2026-041-tl-mevduat-hesaplarinda-uygulanan-stopaj-oranlarinin-suresi-uzatildi | 2026-10-18T13:27:35.829845+03:00 | manual_entry |
 
-TEFAS satırlarının notu: "as_of assumed = previous business day". `E9cb9f7ad`
-ve `E0382c2e7`, `underperformance` cezasının karşılaştırma değeri içindir; BVF
-net getirisi bu değerin üstünde olduğu için ceza sıfırdır.
+Veri 2026-10-18 Pazar günü çekildi. TEFAS satırlarının notu "as_of assumed =
+previous business day" şeklindedir (`tefas_detail` satırlarında ek olarak "the
+page shows no date"). Bu nedenle `as_of` önceki iş günüdür: 2026-10-16 Cuma.
+`Ef6d8c9f2` ve `E0382c2e7`, `underperformance` cezasının karşılaştırma değeri
+içindir (bölüm 3).
 
 **Stopaj oranı nereden geliyor (kural 7).** Kodda stopaj oranı yoktur.
-`config/decision.yaml` yalnızca hangi satırın kullanılacağını söyler
-(`fund_by_kind: {money_market: "Yatırım fonu, para piyasası fonu"}`). Oran,
+`config/decision.yaml` yalnızca hangi satırın kullanılacağını söyler. Oran,
 elle doldurulan `data/inbox/manual/withholding_tax.csv` tablosundan gelir; her
 satır kendi `source_url` ve `as_of` değerini taşır. `Ede9af545` notu:
 "Individuals, CK 10041 (09.07.2025). CK 11734 (04.09.2026) sets 10 % for capital
-companies (not individuals, unconfirmed). Secondary source". TÜFE notu: "TÜİK
-CPI September 2026, annual change, published 2026-10-05 (via SBB). EVDS has
-only 4 months of the index (2025=100), not enough for a 12-month change."
+companies (not individuals, unconfirmed). Secondary source". `E0382c2e7` notu:
+"Vadesiz = 6 aya kadar band (research report 2026-10-10). Secondary source".
+TÜFE notu: "TÜİK CPI September 2026, annual change, published 2026-10-05 (via
+SBB). Cross-check of the EVDS row (docs/ingest.md I5, 2026-10-14)."
 
 ## 5. Varsayımlar, uyarılar ve teyit edilecekler
 
@@ -134,107 +185,316 @@ Varsayımlar (kayıttaki gibi):
 4. Fonlarda likidite satış valöründen (valör yoksa ürün türünden), gelir uygunluğu ürün türünden türetildi.
 5. Hisse senedi yoğun fonlarda stopaj %0'dır; ihtiyatlı olmak için para piyasası dışındaki tüm fonlarda 'diğer fonlar' oranı kullanıldı.
 6. 32 günlük vade her ay yenilenir; oranlar değişebilir.
-7. "doviz_maruz_kalma_tercihi" için "Mevcut döviz gelirini dikkate alarak kontrollü" anlaşılamadı; güvenli düzey "Sınırlı" varsayıldı.
-8. "kur riskini yönetme" önceliği döviz düzeyi ile ele alındı.
-9. Risk değeri olmayan fonlarda aynı varlık sınıfındaki bilinen risk değerlerinin üst çeyreği (yukarı yuvarlanmış) kullanıldı.
-10. Öneriler varlık sınıflarına yayıldı: her sınıftan en fazla bir, nakit benzeri en fazla bir seçenek.
+7. Risk değeri olmayan fonlarda aynı varlık sınıfındaki bilinen risk değerlerinin üst çeyreği (yukarı yuvarlanmış) kullanıldı.
 
-Uyarılar (ikisi de yalnızca RM için, `audience = rm`):
+Uyarı (yalnızca RM için, `audience = rm`):
 
-- `deposit_vs_market`: "ING standart mevduat oranı (%23.00) piyasa ortalamasının (%43.82) 20.8 puan altında." (kanıt `E42b47116`, `E9cb9f7ad`)
-- `no_fx_deposit_data`: "Döviz mevduatı oranı kanıtlarda yok; döviz mevduatı karşılaştırılamadı." (kanıt yok)
+- `deposit_vs_market`: "ING standart mevduat oranı (%23.00) piyasa ortalamasının (%43.40) 20.4 puan altında." (kanıt `Edfb610c6`, `Ef6d8c9f2`; seçenek `deposit:ing_turuncu`). `Edfb610c6`: ING Turuncu Hesap standart, 100.000-249.999 TL, 23.0 pct, `as_of` 2026-10-18, kaynak `ing_web`, https://www.ing.com.tr/tr/bilgi-destek/mevduat/mevduat-faiz-oranlari, `fetched_at` 2026-10-18T13:27:35.024407+03:00.
 
-Teyit edilecek (`to_confirm`): "Yatırım tutarını sorun: 100.000-249.999 TL
-dilimi varsayıldı." Engelleyici olmayan iki soru cevapsızdır (`answer = null`):
-`q:doviz_maruz_kalma_tercihi` ve `q:override:fx_limit`.
+Teyit edilecek (`to_confirm`): "Müşterinin mevcut portföy dağılımını alın (şu
+an tahmini senaryo)." Cevap bekleyen soru yoktur (`questions = []`).
 
-Veri kalitesi notları: "manual: 7 değer "manual_entry" işaretli."; "tefas_detail:
-1398 değer "needs_check" işaretli."; "tefas_web: 962 değer "needs_check"
-işaretli."; "1 değer aralık dışında olduğu için kullanılmadı."; "6 fonun TEFAS
-alım durumu kanıtlarda yok; bu fonlar alıma açık sayıldı."; "1292 serbest fon
-çıkarıldı (yalnızca nitelikli yatırımcılar)."
+Veri kalitesi notları: "manual: 6 değer "manual_entry" işaretli."; "3 değer
+aralık dışında olduğu için kullanılmadı." (`E1107f15a`, `E5be1694d`,
+`Edb058537`); "3 fonun TEFAS alım durumu kanıtlarda yok; bu fonlar alıma açık
+sayıldı."; "Borsa ürünlerinden varant ve sertifikalar, borsada işlem gören
+gayrimenkul ve girişim sermayesi fonları, tahvil ve eurobondlar kapsam
+dışıdır."; "38 pay, yakın izleme veya nitelikli yatırımcı pazarında işlem
+gördüğü için çıkarıldı (pazar kodu: S, W)."; "1292 serbest fon çıkarıldı
+(yalnızca nitelikli yatırımcılar)."
 
-## 6. Model dağılım (D20, stratejik bantlar)
+## 6. Mevcut dağılım girdisi ve model bantlar
 
-Dengeli profilin stratejik bantlarıdır (`docs/decision.md` bölüm 11). Tutar ve
-mevcut pay yoktur, çünkü personalar müşterinin varlık dağılımını vermez.
+P01 dosyasında varlık dağılımı yoktur. RM bu kayıtta dağılım girmedi ve
+tahmini onaylamadı: `holdings_input = null`. Bu nedenle `to_confirm` maddesi
+açıktır. Mevcut payların kaynağı her satırda `current_source` alanındadır:
+`persona_text` satırı persona metninden ("Varlığı TL mevduat ağırlıklı")
+gelir. `profile` satırları meslek tablosunun `Emekli` satırından gelen
+tahminlerdir. Yalnızca `active = true` olan satır `allocation_gap` ölçütüyle
+puana girer.
 
-| Varlık sınıfı | Bant (%) | Kaynak (`inferred`) | Sınıfın en iyi seçeneği veya not |
-|---|---|---|---|
-| `nakit_benzeri` | 5–10 | Ata Yatırım, 28.04.2026 (false) | `fund:BVF` · BV PORTFÖY PARA PİYASASI (TL) FON |
-| `borclanma` | 30–40 | Ata Yatırım, 28.04.2026 (false) | `fund:NJR` · NUROL PORTFÖY BİRİNCİ BORÇLANMA ARAÇLARI FONU |
-| `hisse` | 40–50 | Ata Yatırım, 28.04.2026 (false) | `fund:CPU` · AKTİF PORTFÖY TEKNOLOJİ KATILIM FONU |
-| `altin_doviz` | 10–15 | Ata Yatırım, 28.04.2026 (false) | yok · not `ceiling`: "Risk tavanı nedeniyle uygun fon yok." |
-| `dengeli` | — (bant yok) | Ata Yatırım, 28.04.2026 (false) | `fund:IRF` · İSTANBUL PORTFÖY BİRİNCİ FON SEPETİ FONU |
+| Varlık sınıfı | Bant (%) | Mevcut (%) | Aralık | `current_source` / `current_ref` | Fark (`gap`) | `active` | Sınıfın en iyi seçeneği | Not |
+|---|---|---|---|---|---|---|---|---|
+| `nakit_benzeri` | 10–20 | 75.0 | 60–90 | `persona_text` / `mevduat_agirlikli` | −55.0 | true | `fund:PPN` | — |
+| `borclanma` | 60–70 | 8.1 | 3.1–13.1 | `profile` / `Emekli` | 51.9 | false | `fund:OSD` | — |
+| `hisse` | 10–20 | 3.7 | 0.0–8.7 | `profile` / `Emekli` | 6.3 | false | `fund:PGD` | — |
+| `altin_doviz` | 5–10 | 9.5 | 4.5–14.5 | `profile` / `Emekli` | 0.0 | false | `fund:AGC` | `negative_real` |
+| `dengeli` | — (bant yok) | 3.7 | 0.0–8.7 | `profile` / `Emekli` | yok | false | `fund:KCV` | — |
 
-`allocation_notes = []`: persona metninde varlık ipucu yoktur.
+Bantların kaynağı her satırda "Ata Yatırım, 28.04.2026" (`inferred = false`).
+`allocation_notes`: "Dosyaya göre varlık TL mevduat ağırlıklı: nakit benzeri
+bandı aşılıyor olabilir." PPN nakit benzeri sınıfındadır ve bu sınıf bandın
+üstündedir. Bu nedenle PPN'in `allocation_gap` katkısı eksidir (bölüm 3).
 
-## 7. Görüşme metni
+## 7. Ajan kararı
+
+Kaynak: `data/agent/Rb5470b4f25.json` (aynı içerik
+`data/agent/Rb5470b4f25.n10.nomarks.json` adıyla da saklıdır).
 
 | Alan | Değer |
 |---|---|
-| Model | `claude-sonnet-5-5` (`source = llm`) |
-| Prompt sürümü | `n9` |
-| Doğrulayıcı sonucu | `checks = []` (bulgu yok) |
-| Maliyet | `cost_usd = 0.073411` |
-| Taslak zamanı | `2026-10-13T01:04:21.833514+03:00` (`R2b9ee9ca01-TR-n9-claude-sonnet-5-5-dbef3f0b33.json`) |
-| Onay zamanı | `approved_at = 2026-10-13T01:04:22.065722+03:00` (`status = approved`) |
-| RM düzeltmeleri | `rm_edits = {}`; onaylı cümleler taslakla aynıdır |
+| `state` | `done` (`fallback_reason = ""`, yedek karara düşülmedi) |
+| Model / istem sürümü | `claude-sonnet-5-5` / `a3` |
+| Maliyet | `cost_usd = 0.073132` (maliyet defteri `data/agent/costs.jsonl`: `2026-10-18T14:59:06.331345+03:00`, 0.073132) |
+| `created_at` | `2026-10-18T14:59:06.335718+03:00` |
+| `n_candidates` | 10 |
+| `marks_hash` | `""` (karar, RM'in ✓/✗ işaretlerinden önce verildi) |
+| Motorun ilk üçü (`engine_top3`) | `fund:PPN`, `fund:OSD`, `fund:AIS` |
+| Ajanın seçimi | `fund:PPN`, `fund:OSD`, `fund:ZBJ` |
+| Çıkarılan | `fund:AIS` |
 
-Doğrulayıcı koddur, LLM değildir (`docs/narrator.md`): sayılar olgu paketiyle
-eşleşir; yalnızca seçilen seçenekler ve grup alternatifleri adlandırılır; yasak
-ifadeler yoktur; öneri, alternatif ve dikkat cümlelerinin her birinde geçerli
-bir kanıt atfı vardır; metin yatırım tavsiyesi olmadığını söyler.
+**Adımlar (`nodes`):**
 
-`fund:BVF` için cümleler:
+| Adım | Başlangıç → bitiş | Maliyet | Notlar (kayıttaki gibi) |
+|---|---|---|---|
+| `adaylar` · Adaylar | 14:58:39.370920 → 14:58:39.371922 | 0.0 | "Motorun en iyi 10 adayı (ING mevduatları hariç): PPN, OSD, AIS, ZBJ, GO6, YBS, IST, RBT, NSP, NBO." |
+| `arastirma` · Ajan araştırması | 14:58:39.371922 → 14:58:57.891738 | 0.19 | "10/10 ürün araştırıldı."; alt adım `arastirma:fund:PPN`: "4 bulgu, 0 haber." (0.019) |
+| `analiz` · Ajan analizi | 14:58:58.139758 → 14:59:06.335718 | 0.073132 | alt adım `analiz:1` "Karar önerisi (1. deneme)": "Amaç: Nihai karar", "Kontrollerden geçti." |
+| `kontrol` · Kontrol | 14:59:06.332187 → 14:59:06.335718 | 0.0 | "1. öneri: tüm kontroller geçti." |
+| `karar` · Karar | 14:59:06.335718 | 0.0 | "Ajanın seçimi: PPN, OSD, ZBJ." ve özet |
 
-| Cümle | Kanıt |
-|---|---|
-| "BV Portföy Para Piyasası (TL) için enflasyon sonrası reel getiri %7,98, nominal getiri %48,58 ve risk düzeyi 2'dir." | `Eb8143c0e`, `Ea80b47f6` |
-| "BV Portföy Para Piyasası (TL), aynı gün erişim sağladığı için müşterinin erişilebilir likidite önceliğine ve döviz gelirinin bir kısmını TL'de değerlendirme isteğine uyar." | `Ee9dc76cc` |
-| "BV Portföy Para Piyasası (TL)'nin getirisi faiz değişimine bağlıdır; mevduat gibi anapara güvencesi yoktur." | `Ee9dc76cc` |
+Ajanın araç çağrılarının `amac` notu "Amaç: …" satırlarıdır. Bu kararda ajan
+yalnızca bir araç çağırdı: nihai karar önerisi ("Amaç: Nihai karar").
+Karşılaştırma veya ek araştırma çağrısı yoktur. Kod denetimi ilk öneride
+sorun bulmadı.
 
-Pano özeti (brief): model `claude-haiku-5-5`, prompt `b1`, `checks = []`,
-`cost_usd = 0.000964355`; atıflar `fund:BVF`, `fund:NJR`, `fund:IRF`,
-`Ec7827ecf`, `Ee9dc76cc`, `Ef1ea9bbf`.
+**PPN için ajanın gerekçeleri ve atıfları:**
 
-## 8. RM onayı
+| Gerekçe (kayıttaki gibi) | Atıf | Atfın karşılığı |
+|---|---|---|
+| "Nurol Portföy Para Piyasası (TL) Fonu risk düzeyi 1 ile müşterinin risk aralığına uyuyor, satış valörü 0 gün; likidite ve sermayeyi koruma önceliğine uygun." | `puan:risk_fit`, `puan:liquidity` | skor parçaları 0.22018348623853212 (`E0ae92a1e`) ve 0.14678899082568808 (`E178811c9`) |
+| "Yıllık getirisi %47,4; enflasyon sonrası reel getiri %7,2. Geçmiş getiri gelecek için güvence değildir." | `E72d070ec` | fund_return_1y 47.3922 pct (bölüm 4) |
+
+PPN için `labels = []`, `uses_estimate = false`, `uses_web = false`: ajan PPN
+gerekçesinde web bulgusu veya tahmini dağılım kullanmadı. Karşılaştırma için
+OSD gerekçesi `portfoy:borclanma` atfını ve kodun eklediği "(tahmini dağılıma
+göre)" etiketini taşır.
+
+**Çıkarılan seçenek:** `fund:AIS` · "Ak Portföy Katılım Fonu düzenli gelir
+uygunluğu daha düşük (0,4) ve getirisi %46,2 ile Ziraat Başak'ın gerisinde
+kaldı; üçüncü sırayı ona bıraktı." (atıf `puan:income`, `puan:return`).
+
+**Özet:** "Üç düşük riskli fon seçildi: Nurol para piyasası, Osmanlı özel
+sektör borçlanma ve Ziraat Başak. Likidite ve sermaye koruma öncelikli;
+borçlanma fonu mevduat yoğunluğunu çeşitlendirmeye yardım edebilir. Getiri
+güvencesi yoktur."
+
+**Kayıtlı kararın tekrar kullanılması.** Son kayıtta ajan
+`2026-10-18T22:51:49.148207+03:00` zamanında başlatıldı (`agent_started`, `n =
+10`, `marks_ok = 0`, `marks_wrong = 0`). Aynı `run_id`, aday sayısı ve işaret
+özeti için kayıtlı karar vardı. Bu nedenle servis modeli yeniden çağırmadı ve
+14:59:06 kararını geri verdi. Maliyet defterinde bu çalıştırma için tek satır
+vardır.
+
+## 8. Web araştırması bulguları ve RM işaretleri
+
+**Ürün araştırması:** `data/research/products/fund_PPN-TR-20261018-v2.json` ·
+sağlayıcı `exa` · `version = 2` · `created_at =
+2026-10-18T13:33:24.736713+03:00` · `cost_usd = 0.019` · `news_days = 90`,
+`news = []` · denetimler: "3 news items without a valid source dropped", "1
+bullets dropped (known facts)". Aynı gün aynı ürün için kayıtlı sonuç
+kullanılır. Maliyet defterinde (`data/research/costs.jsonl`) PPN için
+2026-10-18 tarihli tek ürün satırı `13:33:29.731003` zamanlıdır (0.019).
+
+| Bulgu | Konu | Metin (kayıttaki gibi) | Kaynak | Tarih | RM işareti |
+|---|---|---|---|---|---|
+| `F8c751d04` | strateji | "Fon, kısa vadeli ve likit TL para-sermaye piyasası araçlarına yatırım yapar; ağırlıklı olarak mevduat, repo ve borçlanma araçlarını kullanır." | cdn.nurolportfoy.com.tr: `310-ppn-tl--izahnamesi-04-02-2025.pdf`, `FonTanitim/PPN_TMF.pdf` | kayıtta yok | ✓ `ok`, `2026-10-18T22:52:47.427410+03:00` |
+| `F38232286` | strateji | "Portföyün tamamı, vadesine en fazla 184 gün kalmış araçlara; ağırlıklı ortalama vade en fazla 45 gün olacak şekilde yatırılır." | cdn.nurolportfoy.com.tr: `310-ppn-tl--izahnamesi-04-02-2025.pdf` | kayıtta yok | ✗ `wrong`, `2026-10-18T22:52:49.932279+03:00` |
+| `F564b8ff4` | yonetici_sirket | "Şirket, kolektif portföy yöneticiliği ilkeleri ve ilgili portföy sınırlamaları çerçevesinde faaliyet gösterir." | cdn.nurolportfoy.com.tr: `310-ppn-tl--izahnamesi-04-02-2025.pdf` | kayıtta yok | işaret yok |
+| `F689fd35d` | dikkat | "Fonun unvanı, SPK izniyle 2022’de Nurol Portföy Para Piyasası (TL) Fonu olarak değiştirilmiştir." | cdn.nurolportfoy.com.tr: `310-ppn-tl--izahnamesi-04-02-2025.pdf` | kayıtta yok | işaret yok |
+
+Bulguların hepsinde `confidence = high` yazar. Kaynakların `published`
+alanı ve bulguların `date` alanı boştur. Ekran bu bulguları "Web kaynağı,
+doğrulanmamış" etiketiyle gösterir. İşaretler `data/research/marks/20261018.json`
+dosyasında `run_id` ve `option_id` ile saklanır. İşlem kaydı da her işareti
+`research_marked` olarak yazar (`section = highlight`, `topic = strateji`).
+Bir sonraki ajan çalıştırmasında ✗ işaretli bulgu ajana verilmez. Bu kayıttaki
+ajan kararı işaretlerden önce verildiği için (`marks_hash = ""`, bölüm 7)
+işaretler bu kararı değiştirmedi.
+
+**RM sorusu:** `data/research/questions/Rb5470b4f25-TR-v2-9d7706b089ca.json` ·
+soru "Nurol Portföy Para Piyasası fonunun son dönemdeki önemli gelişmeleri
+neler?" · sağlayıcı `exa` · `created_at = 2026-10-18T22:32:26.259961+03:00` ·
+`cost_usd = 0.007` · `checks = []`.
+
+| Bulgu | Metin (kayıttaki gibi) | Kaynak | RM işareti |
+|---|---|---|---|
+| `Fae98109a` | "16 Ekim 2026 itibarıyla fonun büyüklüğü 8,9 milyar TL, yatırımcı sayısı ise 10.308’dir." | https://fonalfa.com/fon/PPN/ | işaret yok |
+| `F1d9f4e53` | "Fondan son bir ayda 3,8 milyar TL net çıkış gerçekleşmiş olup, üst üste 22 işlem günü net çıkış yaşanmıştır." | https://fonalfa.com/fon/PPN/ | işaret yok |
+| `Ff9788495` | "Fonun 1 yıllık getirisi %47,39 seviyesinde gerçekleşmiştir." | https://fonalfa.com/fon/PPN/ | işaret yok |
+| `F937842c0` | "Fon yönetimi, portföy dağılım raporlarını düzenli olarak KAP üzerinden yayımlamaya devam etmektedir." | https://cdn.nurolportfoy.com.tr/FonBulteni/2026-10-16.pdf, https://fon.org.tr/spk-bulteni/kurum/nurol-portfoy | işaret yok |
+
+Soru bu gün iki kez soruldu (`research_question`, 22:32:26.265537 ve
+22:52:59.514644; ikisinde de `refused = false`, `findings = 4`). İkinci
+soruda kayıtlı cevap geri verildi. Maliyet defterinde bu soru için tek satır
+vardır (`2026-10-18T22:32:26.260962+03:00`, 0.007). Biz bu bulguları kanıtlarla
+elle karşılaştırdık: `Ff9788495` (%47,39) `E72d070ec` (47.3922) ile,
+`Fae98109a` (8,9 milyar TL; 10.308 yatırımcı) `Efeb58a01` (8867430816.95 TRY)
+ve `E8a663bdb` (10308) ile uyumludur. Bulgular yine de işaretsizdir; ekran
+onları "doğrulanmamış" gösterir.
+
+## 9. RM onayı
 
 | Alan | Değer |
 |---|---|
 | `rm_status` | `approved` |
-| `rm_selected` | `fund:BVF`, `fund:NJR`, `fund:IRF` (önerilen üçlü, değişiklik yok) |
-| `rm_note` | "Müşteri döviz gelirinin bir kısmını TL fonlarda değerlendirmek istiyor." |
+| `rm_selected` | `fund:PPN`, `fund:OSD`, `fund:ZBJ` (ajanın üçlüsü; motorun `fund:AIS` önerisi yerine `fund:ZBJ`) |
+| `rm_note` | "Düzenli gelir ve sermaye koruması odaklı üç seçenek konuşulacak.Aylık gelir ihtiyacını sor." (kayıttaki gibi) |
 | `rm_option_notes` | boş (`{}`) |
-| `rm_decided_at` | `2026-10-13T01:03:40.801286+03:00` |
-| Metin onayı | `2026-10-13T01:04:22.065722+03:00` |
+| `rm_decided_at` | `2026-10-18T22:53:18.116982+03:00` |
+| İşlem kaydı `decision_approved` | `2026-10-18T22:53:19.019858+03:00` · `engine_top3` PPN, OSD, AIS · `agent_top3` PPN, OSD, ZBJ · `agent_state = done` · `selected` PPN, OSD, ZBJ · `note` "Düzenli gelir ve sermaye koruması odaklı üç seçenek konuşulacak." · `test_run = false` · `persona_changes = []` · `resolutions = []` · `ai_check = done` |
+| Profil çelişkileri (`Rb5470b4f25.resolutions.json`) | `resolutions = []`, `ai_check = "done"`, `at = 2026-10-18T22:53:18.116982+03:00` |
+| Kim onayladı | kayıtta RM kimliği alanı yok; bu kayıtta onayı demo betiği verdi (üstteki not) |
 
-Kart satırları (`data/cards/R2b9ee9ca01.md`):
+Onay anında RM notu yalnızca ilk cümleydi. "Aylık gelir ihtiyacını sor."
+cümlesi onaydan sonra eklendi (`notes_saved`,
+`2026-10-18T22:54:37.793620+03:00`). Çalıştırma dosyası son notu tutar.
+
+Profil kontrolü: onay, her profil çelişkisi için RM'in gerekçeli teyidini ister
+(onay kilidi). Bu kayıtta yapay zekâ kontrolü tamamlandı (`ai_check = done`)
+ve çözülecek çelişki yoktu (`resolutions = []`). Persona düzenlenmedi
+(`persona_changes = []`).
+
+## 10. Görüşme metni
+
+| Alan | Değer |
+|---|---|
+| Dosya | `data/narratives/Rb5470b4f25-TR-n12-claude-sonnet-5-5-75cd8496de.json` |
+| Model / kaynak | `claude-sonnet-5-5` (`source = llm`) |
+| Prompt sürümü | `n12` |
+| Doğrulayıcı sonucu | `checks = []` (bulgu yok; maliyet defterinde `attempt = 1`, `findings = []`) |
+| Maliyet | `cost_usd = 0.0466015` (girdi 32, çıktı 2588, önbellek yazma 8263 token) |
+| Taslak zamanı | `created_at = 2026-10-18T22:53:40.008562+03:00` (RM onayından 22 saniye sonra) |
+| Durum | `status = draft`, `approved_at = null` |
+| RM düzenlemesi | blok `teklif_metni`, `2026-10-18T22:54:03.514172+03:00` (`text_block_edited`, `findings = []`); `Rb5470b4f25-TR-edits.json`: `rm_edits = {teklif_metni: …}`, `edit_checks = {}` |
+| İhtiyaç etiketleri (`need_tags`) | `fund:PPN`: "düzenli gelir", "likiditeyi koruma" |
+
+**Metin onayı yoktur; bu tasarım gereğidir.** 2026-10-15 tarihinden beri
+(`docs/web-ui.md` W19) ekranda "Metni onayla" düğmesi yoktur. RM'in onay
+noktası önerinin onayıdır ("Onayla ve metni hazırla"); metin yalnızca onaylı
+çalıştırma için yazılır. RM metni blok blok düzenler veya siler. Düzenlenen
+blok yeniden denetlenir (`edit_checks`). Kart, RM düzenlemeleriyle metnin o
+anki hâlini yazar. Engelleyici bir kural bulgusu açıksa kart metni almaz ve
+kart indirilemez. Bu nedenle `approved_at` alanı boştur.
+
+Doğrulayıcı koddur, LLM değildir (`docs/narrator.md`). Sayılar olgu paketiyle
+eşleşir. Yalnızca seçilen seçenekler ve grup alternatifleri adlandırılır.
+Yasak ifadeler yoktur. Öneri, alternatif ve dikkat cümlelerinin her birinde
+geçerli bir atıf vardır. Metin, yatırım tavsiyesi olmadığını söyler ("Bu metin
+RM'in görüşme hazırlığı içindir; yatırım tavsiyesi değildir.").
+
+**RM düzenlemesi (`teklif_metni`):**
+
+- Önce: "Düzenli gelir ve sermayenizin korunması sizin için önemli. Varlığınız ağırlıklı olarak TL mevduatta duruyor. Bu yoğunluğu azaltabilecek üç seçeneği birlikte değerlendirelim."
+- Sonra: "Düzenli gelir ve sermayenizin korunması sizin için önemli.↵Varlığınız ağırlıklı olarak TL mevduatta duruyor.↵Bu yoğunluğu azaltabilecek üç seçeneği birlikte değerlendirelim. Görüşmede bu hedefi birlikte netleştirebiliriz." (↵ = satır sonu)
+
+**`fund:PPN` için cümleler:**
+
+| Bölüm | Cümle | Seçenek | Kanıt |
+|---|---|---|---|
+| `oneriler` | "Düzenli gelir beklentisine uygun; paraya aynı gün erişim sağlar, orta düzeydeki likidite ihtiyacını karşılar." | `fund:PPN` | `E178811c9` |
+| `dikkat` | "Seçilen fonların getirisi faiz değişimine bağlıdır." | `fund:PPN`, `fund:ZBJ` | `E178811c9`, `Ed5d6ce54` |
+| `dikkat` | "Mevduat gibi anapara güvencesi yoktur." | `fund:PPN`, `fund:ZBJ` | `E178811c9`, `Ed5d6ce54` |
+| `dikkat` | "Geçmiş getiriler gelecekteki getirileri göstermez." | `fund:PPN`, `fund:OSD`, `fund:ZBJ` | yok (yalnızca seçenek atfı) |
+| `talking_points` · Nakit ağırlığı | "Müşterinin nakit benzeri payı %75; model bandı %10-20, yani band üstünde." | `fund:PPN`, `fund:ZBJ`, `fund:OSD` | yok (sayılar dağılım satırından, bölüm 6) |
+| `talking_points` · Reel getiri | "NUROL fonu son bir yılda enflasyon sonrası +%7,2 getirdi." | `fund:PPN` | `E72d070ec` |
+
+`Ed5d6ce54` ZBJ'nin satış valörüdür: 0.0 days, `as_of` 2026-10-16,
+`tefas_detail`, https://www.tefas.gov.tr/tr/fon-detayli-analiz/ZBJ,
+`fetched_at` 2026-10-18T13:41:59.366857+03:00, bayrak yok. "Reel getiri"
+cümlesi yalnızca getiri kanıtını atfeder. Hesap TÜFE (`Eb39e0ab5`) ve stopaj
+(`Ede9af545`) satırlarını da kullanır (bölüm 3).
+
+Pano özeti (brief, `Rb5470b4f25-TR-brief-b1-claude-haiku-5-5.json`): model
+`claude-haiku-5-5`, prompt `b1`, `checks = []`, `cost_usd = 0.000449375`,
+`created_at = 2026-10-18T14:45:45.814211+03:00`. Özet onaydan önce, motorun
+ilk üçü için yazıldı; atıfları `fund:PPN`, `fund:OSD`, `fund:AIS`,
+`E72d070ec`, `E47e314bf`, `E00c74385`, `E0ae92a1e`, `Eec53b88b`, `Eec4e10d1`.
+
+## 11. Kart
+
+`data/cards/Rb5470b4f25.md` yalnızca onaylı çalıştırma için yazılır. Bu kart en
+son RM notu kaydedildiğinde yazıldı (dosya zamanı 2026-10-18 22:54:37). Kartın
+üst satırları:
 
 ```
-RM onayı: 2026-10-13 01:03
-Metin onayı: 2026-10-13 01:04 · model claude-sonnet-5-5 · kontrol bulgusu 0
+Çalıştırma Rb5470b4f25 · veri 20261018-132653-1991 · 2026-10-18 22:49
+
+RM onayı: 2026-10-18 22:53
 ```
 
-Sistem şu kuralları uygular: onaylanmamış bir çalıştırma için görüşme metni
-yazılmaz; kart yalnızca onaylı çalıştırma için oluşturulur; metin onayı boş
-olmayan bir RM metni ister ve engelleyici bulgu varsa reddedilir. **Müşteriye
-hiçbir şey gitmedi.** Kart ve metin RM'in hazırlığı içindir ("Bu metin RM'in
-görüşme hazırlığı içindir; yatırım tavsiyesi değildir."). API'de müşteriye
+PPN satırları:
+
+```
+- **PPN · NUROL PORTFÖY PARA PİYASASI (TL) FONU · Para Piyasası**
+  - skor 74 · güven %90 · istikrar %100
+  - Risk uyumu (+22): Risk değeri 1/7; müşterinin risk aralığı 1-2.
+  - Likidite (+15): Satış valörü 0 gün; likidite 1.0.
+  - Getiri (+13): Yıllık getiri %47.4, stopaj sonrası %39.1, enflasyon sonrası reel %+7.2 (1y); adayların %91'inden iyi.
+```
+
+"Ajan kararı" bölümünün son satırları:
+
+```
+- RM seçimi: PPN · NUROL PORTFÖY PARA PİYASASI (TL) FONU, OSD · OSMANLI PORTFÖY ÖZEL SEKTÖR BORÇLANMA ARAÇLARI FONU, ZBJ · ZİRAAT PORTFÖY BAŞAK PARA PİYASASI (TL) FONU
+- Model claude-sonnet-5-5 · istem a3 · maliyet $0.073
+```
+
+Kart ayrıca müşteri profilini, veri kalitesi notlarını, varsayımları,
+kaynakları, RM notunu, ajanın gerekçelerini ve görüşme metnini RM
+düzenlemesiyle birlikte taşır. "Metin onayı" satırı yoktur, çünkü ayrı bir
+metin onayı yoktur (bölüm 10). **Müşteriye hiçbir şey gitmedi.** Uygulama
+yalnızca RM'in bilgisayarında (`127.0.0.1`) çalışır ve API'de müşteriye
 gönderim uç noktası yoktur.
 
-## 9. Nasıl doğrulanır
+## 12. RM işlem kaydı
+
+`data/logs/rm-actions/2026-10-18.jsonl` dosyasının her satırı `ts`, `action`,
+`run_id`, `persona_id`, `snapshot_id` ve `versions` alanlarını taşır. Son demo
+kaydının satırları (kayıttan önce `POST /api/reset` önceki kayıtları
+`data/reset-archive/20261018-224954/` altına taşıdı):
+
+| `ts` | `action` | Ayrıntı (`details`) |
+|---|---|---|
+| 22:49:58.394629 | `run_opened` | `test_run = false`, `state = ready` |
+| 22:51:49.148207 | `agent_started` | `n = 10`, `marks_ok = 0`, `marks_wrong = 0` |
+| 22:52:47.434409 | `research_marked` | `F8c751d04`, `fund:PPN`, `mark = ok` |
+| 22:52:49.941272 | `research_marked` | `F38232286`, `fund:PPN`, `mark = wrong` |
+| 22:52:59.514644 | `research_question` | `refused = false`, `findings = 4` |
+| 22:53:19.019858 | `decision_approved` | bölüm 9 |
+| 22:54:03.514172 | `text_block_edited` | `block_id = teklif_metni`, `before`/`after` (bölüm 10), `findings = []` |
+| 22:54:37.793620 | `notes_saved` | `note` = son RM notu, `option_notes = {}` |
+
+Aynı gün bu çalıştırma için 10 `decision_approved` satırı vardır (19:50:53 ile
+22:53:19 arasında). Hepsi demo provalarıdır ve aynı seçimi taşır. Bu belge son
+kaydı kullanır. `python -m rmprep feedback` komutu bu dosyalardan geri bildirim
+raporu üretir.
+
+## 13. Kayıttaki boşluklar
+
+- Onaylar ve düzenlemeler demo betiğiyle yapıldı, bir RM tarafından yapılmadı (üstteki not).
+- Kayıtta RM kimliği alanı yoktur.
+- Görüşme metninin `approved_at` alanı boştur. Bu durum W19 tasarımının sonucudur; RM onayı karar onayıdır (bölüm 10).
+- Ajan kararı RM'in işaretlerinden önce verildi (`marks_hash = ""`). ✓/✗ işaretleri bu kararı etkilemedi.
+- Skor parçaları kanıt kimliğini parça düzeyinde tutmaz. Bölüm 3'teki eşleme kanıtın büyüklüğüne göre yapıldı.
+- `real_1y` çalıştırma dosyasında yoktur; bölüm 3'te yeniden hesaplandı.
+- Mevcut dağılım RM tarafından girilmedi veya onaylanmadı (`holdings_input = null`); `to_confirm` maddesi açıktır.
+- Web bulgularının kaynak yayım tarihi ve bulgu tarihi boştur. RM sorusunun dört bulgusu işaretsizdir.
+
+## 14. Nasıl doğrulanır
 
 **Uygulamada:**
 
-1. P02 müşterisini `20261010-183835-6813` anlık görüntüsü ile açın (aynı config ile `run_id = R2b9ee9ca01` olur).
-2. "Para Piyasası (TL)" (BV Portföy) kartında "Kanıtları göster" düğmesine basın.
-3. Bir kimliğe (ör. `Eb8143c0e`) basın. "Kanıt" penceresi değeri, kaynağı, "Tarih" (`as_of`) ve altında "Alındı" (`fetched_at`) satırını, kanıt numarasını, işaretleri ve notu gösterir.
+1. P01 müşterisini `20261018-132653-1991` anlık görüntüsü ile açın (aynı config ile `run_id = Rb5470b4f25` olur).
+2. "NUROL PORTFÖY PARA PİYASASI (TL) FONU" satırında bir sayının yanındaki "K" işaretine basın.
+3. Kanıt penceresinde değeri, kaynağı, değer tarihini (`as_of`), alınma zamanını (`fetched_at`), kanıt kimliğini ve bayrakları okuyun.
 4. Kaynak sayfayı görmek için "Kaynağı aç" bağlantısına basın.
 
-**API'de:** `GET /api/evidence/20261010-183835-6813/Eb8143c0e` (tek kanıt,
-`fetched_at` dahil); `GET /api/runs/R2b9ee9ca01` (çalıştırma);
-`GET /api/runs/R2b9ee9ca01/card.md` (kart).
+**API'de** (sunucu açıkken): `GET /api/evidence/20261018-132653-1991/E72d070ec`
+(tek kanıt, `fetched_at` dahil); `GET /api/runs/Rb5470b4f25` (çalıştırma);
+`GET /api/runs/Rb5470b4f25/agent` (ajan kararı); `GET
+/api/runs/Rb5470b4f25/research` (web bulguları ve işaretler); `GET
+/api/runs/Rb5470b4f25/card.md` (kart).
 
 **Veritabanında** (yalnızca okuma):
 
@@ -244,17 +504,21 @@ con = duckdb.connect("data/evidence.duckdb", read_only=True)
 con.execute(
     "select id, quantity, entity, value, unit, as_of, source, source_url,"
     " cast(fetched_at as varchar), raw_ref, flags, note from datapoints"
-    " where snapshot_id = '20261010-183835-6813' and id = 'Eb8143c0e'"
+    " where snapshot_id = '20261018-132653-1991' and id = 'E72d070ec'"
 ).fetchall()
 ```
 
+Aynı satırlar `data/export/20261018-132653-1991.parquet` dosyasında da vardır.
+
 **Ham dosyada:** `raw_ref` yolundaki dosyayı açın ve sha256 özetini
-`manifest.json` ile karşılaştırın. Örnekler: `Eb8143c0e` →
-`…/payloads/tefas_web/fon-getirileri.html#fonKodu=BVF;field=getiri1y`
-(`75af158a680cf6ec4f39dc5847d396043f8682175e040ac2782d44e5077b71d4`);
-`Ee9dc76cc` → `…/payloads/tefas_detail/BVF.html.gz#fonKodu=BVF;field=profilData.fonSatisValor`
-(`35b7e1c4b34efc4fd23f116977c65fc083e47dc6e57ad866d255d1a25c012372`);
-`Ede9af545` → `…/payloads/manual/withholding_tax.csv#row=6`
-(`6757068d2fb8c9d7205b73cf3b578af8eed62c22943fa89628f6564c4fabe76a`). Manifestteki
-kaynak durumu: evds `ok`, manual `ok`, tefas_web `ok`, tefas_detail `ok`,
-tefas `skipped`.
+`data/snapshots/20261018-132653-1991/manifest.json` ile karşılaştırın.
+Örnekler:
+
+- `E72d070ec` → `…/payloads/tefas_web/fon-getirileri.html#fonKodu=PPN;field=getiri1y` (`598fa9bd5df8551bffedea16e70baa5500a49a4f5549de315ac2c023056a1ba7`)
+- `E178811c9` → `…/payloads/tefas_detail/PPN.html.gz#fonKodu=PPN;field=profilData.fonSatisValor` (`faf1edfb878857f9fc8eaf012f273843635bb873403a34a41756eb7747d07104`)
+- `Ede9af545` → `…/payloads/manual/withholding_tax.csv#row=6` (`c8f30b00895554c664d38756d4129d733e5c2f8acc3a51a5079ff4fd5fc0e3dd`)
+- `Eb39e0ab5` → `…/payloads/manual/cpi_annual.csv#row=2` (`7a2d2be81fe85ebbf4eba21bdf81cefb1cd799724aa131724379e9ed48af5704`)
+
+Manifestteki kaynak durumu: bist_bulletin `ok`, evds `ok`, ing_web `ok`,
+isbank_web `ok`, manual `ok`, tefas `skipped`, tefas_byf `ok`, tefas_detail
+`ok`, tefas_web `ok`, ziraat_web `ok`.

@@ -1,7 +1,7 @@
 # Web research — design (as built)
 
 Status: **built 2026-10-14 by ing-lead-2; approved by the user 2026-10-14**
-(daily limit $2; no limit per run). **v2 (2026-10-15)** changes the shape of the
+(daily limit $2, raised to $5 on 2026-10-15 for the agent; no limit per run). **v2 (2026-10-15)** changes the shape of the
 result: dated news, short highlights, no known facts, no repeats. See the section
 "v2 (2026-10-15)"; where a section below says "v1", v2 replaces it. Spec:
 `docs/superpowers/specs/2026-10-14-exa-research-design.md`. Plan:
@@ -36,7 +36,7 @@ meeting text. It is information for the RM, next to the deterministic evidence.
 5. `kap.org.tr` stays excluded (it blocks automated access; brief rule 8).
    Publishers that republish KAP notices are allowed: we never touch KAP.
 6. Cost: the Exa free tier ($10 credit per month) covers the demo. The key is
-   `EXA_API_KEY` in `.env` (never logged). The daily limit is $2 for both
+   `EXA_API_KEY` in `.env` (never logged). The daily limit is $5 for both
    providers together. There is no limit per run. Without `EXA_API_KEY` and
    `ANTHROPIC_API_KEY` the research panel is off; with only `ANTHROPIC_API_KEY`
    it uses Claude web search (paid).
@@ -334,7 +334,7 @@ ledger and the daily limit are the same as above.
 
 About $0.02 to $0.025 for each product: the deep highlights call ($0.012), the
 auto news call (about $0.007) and the contents. The live check of AIS cost $0.019.
-The daily limit of $2 is the same. The ledger gets one line for each product (the
+The daily limit is the same ($5 since 2026-10-15; it was $2). The ledger gets one line for each product (the
 cost of both calls), not one for each paid call.
 
 ### Live check (AIS, 2026-10-15)

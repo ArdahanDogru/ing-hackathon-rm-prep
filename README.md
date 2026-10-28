@@ -38,7 +38,7 @@ pip install -e ".[dev,web,narrator]"
 cd web; npm ci; npm run build; cd ..
 python -m rmprep ingest          # veriyi çeker (yaklaşık 16 dk), yeni snapshot
 python -m rmprep serve           # http://127.0.0.1:8600
-pytest -q                        # 150 dosyada 3.053 test, ağ erişimi yok
+pytest -q                        # 150 dosyada 3.056 test, ağ erişimi yok
 python -m rmprep eval --no-llm   # değerlendirme paketi, ücretsiz geçiş
 python -m rmprep feedback        # RM işlem kaydından geri bildirim raporu
 ```
@@ -512,7 +512,7 @@ Sistemimizin müşteriye bir şey gönderebileceği bir kanal yoktur; uygulama y
 
 | Açı | Yanıtladığı Soru | Kapsam |
 |---|---|---|
-| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? | `pytest`: 150 dosyada 3.053 test; web: 455 test; ağ erişimi yok ise dil modeli yerine sahte model |
+| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? | `pytest`: 150 dosyada 3.056 test; web: 458 test; ağ erişimi yok ise dil modeli yerine sahte model |
 | Senaryo değerlendirmesi | Sistem uçtan uca, jürinin değiştirebileceği girdilerle doğru çalışıyor mu? | 34 senaryo, 39 çalıştırma, dondurulmuş veri: temel personalar, persona değişiklikleri, kısıtlar, erişilemeyen kaynak, hatalı veri, eski hataların tekrarı |
 | Ajan değerlendirmesi | Ajan kurallara uyuyor mu, motordan daha iyi mi? | 8 karar: kod denetimi, yedeğe düşme oranı, tekrar, kör A/B hakemi, RM işaretleri |
 | Canlı kontrol ve geri bildirim | Sistem RM için gerçekten kullanışlı mı? | ekran incelemesi, ücretli canlı kontroller, RM işlem kaydından geri bildirim raporu (`rmprep feedback`) |

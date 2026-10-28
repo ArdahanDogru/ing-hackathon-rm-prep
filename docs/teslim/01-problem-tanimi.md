@@ -1,73 +1,61 @@
 # Problem tanımı
 
-> Teslimat 2 · Taslak (2026-10-14) · Sayılar: dondurulmuş veri anlık görüntüsü
-> `20261014-102329-8fca` (TEFAS, TCMB EVDS, ING kamuya açık oranlar) ve
-> değerlendirme `20261014-105720-full`.
-> **[VARSAYIM]** ile işaretli değerler mentorlarla teyit edilecek.
+> Teslimat 2 · Agent 007 (Yusuf Ardahan Doğru, Öykü Irmak Hatipoğlu) · 2026-10-28.
+> Problemin ölçüsü: snapshot `20261017-110343-d12a` (17.10.2026). Test sonuçları:
+> değerlendirme `20261017-160939-n12-client-page` (dondurulmuş snapshot
+> `20261014-233110-1565`). **[VARSAYIM]** ile işaretli değerler ölçülmedi.
 
 ## Problem cümlesi
 
 Private Banking RM'i her müşteri görüşmesinden önce yüzlerce yatırım ürününü
-dağınık kaynaklardan elle karşılaştırıyor; bu iş yavaş, müşteriye yeterince
-uyarlanmıyor, müşteri kısıtlarını kaçırma riski taşıyor ve önerinin hangi
-veriye dayandığı sonradan gösterilemiyor.
+dağınık ve her gün değişen kaynaklardan elle karşılaştırıyor; bu iş yavaş,
+müşteriye yeterince uyarlanmıyor, müşteri kısıtlarını kaçırma riski taşıyor ve
+önerinin hangi veriye, varsayıma ve gerekçeye dayandığı sonradan gösterilemiyor.
 
-## RM bugün ne yapıyor, nerede zorlanıyor?
+## RM bugün nerede zorlanıyor?
 
-| Hazırlık adımı | Bugünkü zorluk |
-|---|---|
-| Veri toplama | Faiz (TCMB), fon getirisi ve riski (TEFAS), mevduat oranları (banka sayfaları) ayrı yerlerde; RM bunları elle birleştiriyor. |
-| Karşılaştırma | Getiri, risk, likidite (valör), vergi (stopaj) ve enflasyon aynı anda değerlendirilmeli; nominal getiri tek başına yanıltıcı. |
-| Uygunluk | Müşterinin risk profili ve açık kısıtları (ör. "yüksek riskli ürünlerden kaçınma") her ürün için kontrol edilmeli; SPK yerindelik kuralı eksik bilgiyle tavsiyeye izin vermiyor. |
-| Görüşme metni | Metin çoğu zaman genel kalıyor; müşterinin hedefine, vadesine ve likidite ihtiyacına göre uyarlanmıyor. |
-| Kayıt | Önerinin dayandığı veri, tarih, varsayım ve gerekçe geriye dönük gösterilemiyor. |
+- **Veri toplama:** faiz (TCMB), fon getirisi ve riski (TEFAS), pay verisi
+  (Borsa İstanbul) ve mevduat oranları (banka sayfaları) ayrı yerlerde ve her
+  gün değişiyor.
+- **Karşılaştırma:** getiri, risk, likidite (valör), stopaj ve enflasyon aynı
+  anda değerlendirilmeli; nominal getiri tek başına yanıltıcı.
+- **Uygunluk:** risk profili ve açık kısıtlar (ör. "döviz maruziyetini
+  gerekçesiz artırmama") her ürün için kontrol edilmeli; SPK yerindelik kuralı
+  eksik bilgiyle tavsiyeye izin vermiyor.
+- **Metin ve kayıt:** görüşme metni çoğu zaman genel kalıyor; önerinin dayandığı
+  veri, tarih ve gerekçe geriye dönük gösterilemiyor.
+
+Sektör de bu adıma yatırım yapıyor: UBS, Salesforce ve Morgan Stanley
+danışmanlarına görüşme hazırlığı araçları sunuyor.
 
 ## Verimizden içgörüler
 
 1. **Elle karşılaştırma ölçeği aşıyor.** P01 (emekli girişimci, Muhafazakâr)
-   için evren 818 seçenek; kurallar 679'unu eliyor (573 risk tavanı, 195 alıma
-   kapalı, 69 yeterli geçmiş yok — 130 fon birden fazla kurala takılıyor).
-   Kalan 139 seçeneği elle sıralamak bir hazırlık süresine sığmaz.
+   için evren 1.444 seçenek (815 fon, 37 BYF, 590 pay, 2 ING mevduatı);
+   kurallar 1.301'ini eliyor. Kalan 143 seçeneği reel getiriye, vergiye ve risk
+   uyumuna göre elle sıralamak bir hazırlık süresine sığmaz.
 2. **Nominal getiri yanıltıcı.** ING Turuncu Hesap'ın %23 faizi, stopaj ve
-   yıllık TÜFE (%29,73; TÜİK, TCMB EVDS ile aynı) sonrası **reel −%8,3**; aynı müşteri için
-   aynı gün erişilebilen para piyasası fonları son bir yılda reel **+%6,6**
-   (medyan), en iyisi **+%9,7** getirdi. Reel karşılaştırma yapılmazsa müşteri
-   değer kaybettiğini görmeyebilir.
-3. **Yalnızca getiriye bakan bir sıralama herkese aynı ürünü önerir.** TL nakit
-   benzeri fonlar reel olarak hisse ve altın/döviz fonlarını geride bıraktı:
-   uzun vadeli dönemde (çoğunlukla 3 yıl, yıllık) reel getiri medyanı nakit
-   benzeri fonlarda +%7,3, hisse fonlarında −%5,4, altın/döviz fonlarında
-   −%2,9. İlk sürümümüzde 5 personanın 4'ü yalnızca SPK risk
-   değeri 1 olan nakit benzeri fonlar aldı (iki çift tamamen aynı listeyi aldı) —
-   Dengeli bir ihracatçı da, Muhafazakâr bir emekli de. Risk bütçesi ve
-   çeşitlendirme ayrı sinyaller olarak eklenince her personanın öneri seti
-   farklılaştı; bu anlık görüntüde 5 personada 5 farklı set var (bkz. Test ve
-   öğrenimler).
-4. **Sektör bu adıma yatırım yapıyor.** UBS her görüşme öncesi otomatik
-   "cheat sheet", Salesforce "Meeting Prep", Morgan Stanley "Next Best Action"
-   (danışmanların %90'ından fazlası kullanıyor) sunuyor; ING Türkiye'nin RM ve
-   yatırım ekipleri için geliştirdiği "Genel Yatırım Öneri Platformu" 2026'da
-   Stevie ödülü aldı. Görüşme hazırlığı, bankaların önem verdiği gerçek bir
-   ihtiyaç.
+   yıllık TÜFE (%29,73) sonrası **reel −%8,3**. Aynı gün P01'in risk sınırı
+   içindeki 37 para piyasası fonu son bir yılda reel **+%6,6** (medyan), en
+   iyisi **+%9,6** getirdi.
+3. **Yalnızca getiriye bakan bir sıralama herkese aynı ürünü önerir.** İlk
+   sürümümüzde kurallar %100 çalışırken 5 personanın 4'ü yalnızca SPK risk
+   değeri 1 olan nakit benzeri fonlar aldı. Risk uyumu ve varlık sınıfı
+   kuralıyla 5 personada 5 farklı öneri seti çıktı (Teslimat 5).
 
 ## Beklenen iş etkisi
 
-| Gösterge | Bugün | Çözümle | Nasıl ölçtük |
-|---|---|---|---|
-| Hazırlık süresi | **[VARSAYIM]** görüşme başına ~60 dk | analiz ortalama 1 sn (en çok 1,6 sn), görüşme metni ortalama 25 sn (en çok 48 sn); RM'in okuma ve onayı | sistem zamanı (ölçüldü: analiz 39, metin 25 çalışma) |
-| Kısıt ihlali | elle kontrol | 34 test senaryosunda (39 çalışma) **0** | değerlendirme paketi |
-| Tutarlılık | kişiye bağlı | aynı girdi → aynı sonuç ve aynı metin (%100) | tekrar testleri |
-| İzlenebilirlik | yok / dağınık | her sayı kaynak, tarih ve kanıt kimliğiyle | kanıt kaydı |
-| Veri güncelliği | elle, düzensiz | her gün 07:30'da otomatik veri alımı ve "Veriyi yenile" düğmesi; süresi geçen stopaj veya eski TÜFE RM'e uyarı verir | zamanlanmış görev, karar kuralı |
-| Uyarlama | genel metin | 5 personada 5 farklı öneri seti (önce: 4'ü yalnızca nakit benzeri, risk 1); müşteri önceliklerine bağlı gerekçe | değerlendirme paketi |
+| Gösterge | Bugün | Agent 007 ile (ölçüm) |
+|---|---|---|
+| Hazırlık süresi | **[VARSAYIM]** ~60 dk / görüşme | analiz ~1,18 sn, metin ~24,9 sn (ortalama, 39 analiz, 25 metin); kalan süre RM'in okuması ve onayı |
+| Kısıt ihlali | elle kontrol | 34 senaryo, öneri listesi çıkan 37 çalıştırmada **0** (2 çalıştırmada motor durup RM'e soru sordu) |
+| Tutarlılık | kişiye bağlı | aynı girdi → aynı sonuç ve aynı metin (5/5 tekrar) |
+| Uyarlama | genel metin | 5 personada 5 farklı öneri seti; gerekçe müşterinin önceliklerine bağlı |
+| İzlenebilirlik | dağınık | her sayı kaynak, değer tarihi, alınma zamanı ve kanıt kimliğiyle |
+| Veri güncelliği | elle, düzensiz | her sabah 07:30'da otomatik veri alımı ve "Veriyi yenile" |
 
-Daha az hazırlık süresi RM'e müşteri başına daha fazla zaman bırakır; reel ve
-vergi sonrası karşılaştırma müşteriye daha doğru bir tablo sunar; kayıt ise
-uyum denetimini kolaylaştırır.
+**Kapsam:** çözüm yalnızca görüşme öncesi hazırlığı destekler: önerir,
+gerekçelendirir, belirsizliği gösterir ve teyit sorularını üretir. Kararı RM verir;
+RM onayı olmadan hiçbir çıktı müşteriye iletilecek biçimde sunulmaz.
 
-## Kapsam
-
-Çözüm RM'in **görüşme öncesi** hazırlığını destekler: önerir, gerekçelendirir,
-belirsizliği gösterir ve teyit sorularını üretir. Kararı ve müşteri iletişimini
-RM yapar; RM onayı olmadan hiçbir çıktı müşteriye iletilecek biçimde sunulmaz.
-Getiri tahmini, otomatik işlem ve müşteriyle doğrudan etkileşim kapsam dışıdır.
+<!-- pdf: compact -->

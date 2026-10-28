@@ -44,6 +44,20 @@ pre { background: #F5F7FA; padding: 8px; font-size: 8.5pt; white-space: pre-wrap
 .footer { margin-top: 24px; font-size: 8pt; color: #98A2B3; border-top: 1px solid #E4E7EC; padding-top: 6px; }
 """
 
+# A file with this mark gets a smaller font and margins (deliverable 2 must fit one page).
+COMPACT_MARK = "<!-- pdf: compact -->"
+COMPACT_CSS = """
+@page { margin: 12mm 13mm 12mm 13mm; }
+body { font-size: 9.6pt; line-height: 1.38; }
+h1 { font-size: 17pt; margin: 0 0 8px; }
+h2 { font-size: 12pt; margin: 12px 0 5px; }
+blockquote { margin: 0 0 8px; padding: 5px 10px; font-size: 8.6pt; }
+table { margin: 5px 0 8px; font-size: 8.6pt; }
+th, td { padding: 3px 5px; }
+ul, ol { margin: 4px 0; }
+.footer { margin-top: 10px; }
+"""
+
 FENCE = re.compile(r"```mermaid\n(.*?)```", re.S)
 
 
@@ -58,7 +72,7 @@ def to_html(md_text: str, title: str) -> str:
     for i, code in enumerate(diagrams):
         body = body.replace(f"<p>MERMAID_{i}</p>", f'<pre class="mermaid">{html.escape(code)}</pre>')
     return f"""<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8"><title>{html.escape(title)}</title>
-<style>{CSS}</style><script src="{MERMAID}"></script></head><body>{body}
+<style>{CSS}{COMPACT_CSS if COMPACT_MARK in md_text else ""}</style><script src="{MERMAID}"></script></head><body>{body}
 <div class="footer">ING Agentic AI Hackathon · RM görüşme hazırlığı · {html.escape(title)}</div>
 <script>mermaid.initialize({{startOnLoad: true, theme: "neutral", flowchart: {{useMaxWidth: true}}}});</script>
 </body></html>"""
