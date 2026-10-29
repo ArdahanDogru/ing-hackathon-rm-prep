@@ -87,7 +87,7 @@ verdiğini** söyleyin.
 |---|---|---|
 | Neden makine öğrenmesi yok? | Etiketli geçmiş RM kararı yok; uygunluk kuralı kesin uygulanmalı; her puan parçası gösterilebilmeli. RM onayları biriktiğinde ağırlıklar bir modelle ayarlanabilir. | E9 |
 | Ağırlıkları nasıl seçtiniz? | MiFID II ve SPK yerindeliğinde ağırlık yok. Ağırlıklar bizim seçimimiz, ekranda açık; istikrar testi her ağırlığı ±%20 oynatır ve önerinin yine çıkıp çıkmadığını ölçer. | E3 |
-| Ajan motordan iyi değilse neden var? | Puanın göremediği sinyaller için: güncel haber, iki adayın nitel farkı, mevcut dağılım. Kurallara 8/8 uydu; A/B'de 3–2–1. Bu yüzden isteğe bağlı ve RM iki listeyi görür. | E7 |
+| Ajan motordan iyi değilse neden var? | Puanın göremediği sinyaller için: güncel haber, iki adayın nitel farkı, mevcut dağılım. Kurallara 8/8 uydu. Farklı 5 A/B sorusunda Haiku: ajan 3, motor 1, eşit 1; ikinci hakem Gemini: ajan 4, motor 1; iki hakem 4 soruda aynı. Bu yüzden isteğe bağlı ve RM iki listeyi görür. | E7 |
 | Dil modeli bir sayı uydurursa? | Doğrulayıcı olgu paketinde olmayan her sayıyı ve tarihi reddeder; bir tekrar, sonra şablon metin. Son değerlendirmede yasak ifade 0, uydurma veri 0. | E6 |
 | Web sayfasındaki bir yazı ajanı yönlendirirse? | Bulgular "veri, talimat değil" olarak verilir; dışarıya yalnızca ürün ve şirket adı gider; RM'in reddettiği bulgu ajana gitmez. | 7 |
 | Bir kaynak çökerse? | Engeli aşmıyoruz; önceki snapshot ve tarihi kullanılır, eksik kaynak notta görünür; uydurma yok. | E1 |
@@ -96,6 +96,7 @@ verdiğini** söyleyin.
 | Müşterinin portföyünü nereden biliyorsunuz? | Dosyada yoksa meslek tablosundan veya TCMB FİR ortalamasından tahmin; "tahmini senaryo" etiketi; RM onaylamadan puana girmez. | E10 |
 | Bu bir yatırım tavsiyesi mi? | Hayır. Karar desteği: kararı ve müşteri iletişimini RM yapar; müşteriye giden bir kanal yok. | 8 |
 | Maliyet ne kadar? | Metin başına ~0,034 $, ajan kararı ~0,05–0,10 $, ürün başına araştırma ~0,02 $; günlük sınırlar var. Motor ücretsiz ve çevrimdışı çalışır. | E6 |
+| Neden ikinci bir hakem? Hakem de bir dil modeli. | Evet; bu yüzden farklı firmanın modelini (Gemini) ekledik ve aynı soruları sorduk. Uyum 5'te 4. Tekrar bir sayım hatamızı da buldu (aynı soru iki kez sayılmıştı). | E7 |
 | Hata analiziniz neydi? | Kurallar %100 geçerken 5 personanın 4'ü aynı tür öneriyi aldı; risk uyumu ve sınıf kuralı ile 5 farklı set. Ayrıca profil çelişkileri: sabit kurallar 0/5, AI 5/5. | 11 |
 
 ## 6. Slaytları yeniden üretmek

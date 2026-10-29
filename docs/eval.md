@@ -180,6 +180,37 @@ Config: `config/eval.yaml` (lead-owned). Scenario files:
   rule checks 100 %; ✗ OSD `Fa4f2a072` removed, ✓ PPN `Fdb2a3e1e` confirmed (not
   cited); agent top 3 PPN, OSD, ZBJ (engine PPN, OSD, AIS).
 
+## E13: a second A/B judge from another vendor (2026-10-29, ing-lead)
+
+Asked by the user (2026-10-28): a second, independent judge for the blind agent vs
+engine comparison, from another vendor than the agent and the first judge.
+
+- `GeminiAbJudge` (judge.py): one Gemini `generateContent` call over REST (httpx, no
+  SDK) with the same system text, question ("Hangisi müşteriye daha uygun ve neden?")
+  and JSON schema as `HaikuAbJudge`; thought parts are not read; 500/503 and timeouts
+  are tried again (2 times, 20 s and 40 s); errors are not cached. Config
+  `second_ab_judge` in config/eval.yaml (optional): `gemini-3.8-flash`, thinking
+  level low, key `GEMINI_API_KEY`, at least 8 s between new calls (free tier). The
+  key is on the free tier (no charge); the report shows the paid list price.
+- `rmprep eval-ab-replay --report <name> ...` (ab_replay.py): builds the stored A/B
+  questions of agent eval reports again (client profile from the report, pack from
+  `data/eval/agent/<scenario>/<run>.pack.json`, the same blind order) and asks the
+  second judge only a question whose text the first judge answered (its cached
+  answer must exist for exactly that text: a later run can overwrite a pack). The same
+  text is asked once. No agent call, no research call. Report
+  `data/eval/<time>-ab-replay/` with both tallies, the agreement and the reasons.
+- Result 2026-10-29 (`data/eval/20261029-150826-ab-replay`, reports
+  `20261015-182316-20261015-agent`, `20261015-183949-20261015-agent-p03`,
+  `20261015-235705-20261015-marks`): 5 distinct questions. Haiku: agent 3, engine 1,
+  equal 1. Gemini: agent 4, engine 1. The judges agree on 4 of 5; P05: Haiku "esit",
+  Gemini the agent. Gemini's reasons name the client facts (cash-heavy split, the
+  SPK news of the injected scenario, the negative real return of KDE).
+- **Found by the replay:** in the P03 re-run, `base-p03` and `agent-crash` sent the
+  first judge the same question (same profile, same pack, same run id). The judge
+  answered once (cache) and the tally of the README counted the answer twice ("fair
+  total: agent 3, engine 2, equal 1"). Over distinct questions the first judge's
+  tally is agent 3, engine 1, equal 1. `docs/found-and-fixed.md` #21.
+
 ## F1: the manual feedback report (2026-10-16, ing-eval; eval@286b272)
 
 Spec `docs/superpowers/specs/2026-10-16-feedback-report-design.md`. The manual feedback

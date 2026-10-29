@@ -38,12 +38,12 @@ pip install -e ".[dev,web,narrator]"
 cd web; npm ci; npm run build; cd ..
 python -m rmprep ingest          # veriyi çeker (yaklaşık 16 dk), yeni snapshot
 python -m rmprep serve           # http://127.0.0.1:8600
-pytest -q                        # 150 dosyada 3.056 test, ağ erişimi yok
+pytest -q                        # 151 dosyada 3.078 test, ağ erişimi yok
 python -m rmprep eval --no-llm   # değerlendirme paketi, ücretsiz geçiş
 python -m rmprep feedback        # RM işlem kaydından geri bildirim raporu
 ```
 
-Bunun için environment dosyanızda (.env) üç API key bilgisi gerekir: TCMB verisi için EVDS_API_KEY, görüşme metni, ajan ve profil kontrolü için ANTHROPIC_API_KEY, web araştırması için EXA_API_KEY. Anahtarlardan biri eksikse uygulama çalışmaya devam eder; EXA_API_KEY eksikse web search claude üzerinden gerçekleştirilir. Diğer iki anahtar eksikse yalnızca bu anahtarlara bağlı parçalar kapanır; puanlama motorumuz yine çalışır.
+Bunun için environment dosyanızda (.env) üç API key bilgisi gerekir: TCMB verisi için EVDS_API_KEY, görüşme metni, ajan ve profil kontrolü için ANTHROPIC_API_KEY, web araştırması için EXA_API_KEY. İkinci A/B hakemi için isteğe bağlı bir dördüncü anahtar da kullanılabilir: GEMINI_API_KEY. Anahtarlardan biri eksikse uygulama çalışmaya devam eder; EXA_API_KEY eksikse web search claude üzerinden gerçekleştirilir. Diğer iki anahtar eksikse yalnızca bu anahtarlara bağlı parçalar kapanır; puanlama motorumuz yine çalışır.
 
 ### Bu README nasıl okunur?
 
@@ -335,6 +335,7 @@ Yapay zekâyı kullandığımız her yerde aynı ilkeye uyduk: kullanılan dil m
 | Görüşme metni | Claude Sonnet 5.5 | onaylanan seçimleri metne çevirir | doğrulayıcı, 1 tekrar, sonra şablon metin | metin başına 0,034 $, ortalama 24,9 sn |
 | Pano özeti | Claude Haiku 5.5 | RM'e 1-2 cümlelik bir özet yazar | doğrulayıcı, hata olursa düz bir cümle | ~0,003 $ |
 | Değerlendirme hakemi | Claude Haiku 5.5 | metnin müşteriye uyarlanmış, açık ve dengeli olup olmadığını kontrol eder, ajan ile motor sonucunu karşılaştırır | yalnızca kodun tek başına ölçemediği şeyler için | paket başına < 0,01 $ |
+| İkinci A/B hakemi | Gemini 3.8 Flash | ajan ile motor sonucunu ilk hakemden bağımsız olarak karşılaştırır | ilk hakemin gördüğü soru metninin birebir aynısını alır | ücretsiz katman (liste fiyatıyla soru başına ~0,002 $) |
 
 ### Ajan nasıl çalışır?
 
@@ -512,7 +513,7 @@ Sistemimizin müşteriye bir şey gönderebileceği bir kanal yoktur; uygulama y
 
 | Açı | Yanıtladığı Soru | Kapsam |
 |---|---|---|
-| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? | `pytest`: 150 dosyada 3.056 test; web: 458 test; ağ erişimi yok ise dil modeli yerine sahte model |
+| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? | `pytest`: 151 dosyada 3.078 test; web: 458 test; ağ erişimi yok ise dil modeli yerine sahte model |
 | Senaryo değerlendirmesi | Sistem uçtan uca, jürinin değiştirebileceği girdilerle doğru çalışıyor mu? | 34 senaryo, 39 çalıştırma, dondurulmuş veri: temel personalar, persona değişiklikleri, kısıtlar, erişilemeyen kaynak, hatalı veri, eski hataların tekrarı |
 | Ajan değerlendirmesi | Ajan kurallara uyuyor mu, motordan daha iyi mi? | 8 karar: kod denetimi, yedeğe düşme oranı, tekrar, kör A/B hakemi, RM işaretleri |
 | Canlı kontrol ve geri bildirim | Sistem RM için gerçekten kullanışlı mı? | ekran incelemesi, ücretli canlı kontroller, RM işlem kaydından geri bildirim raporu (`rmprep feedback`) |
@@ -543,7 +544,16 @@ Kısıt ihlali satırında 39 değil 37 çalıştırma var, çünkü iki çalı�
 
 Ajan değerlendirmemizde (`20261015-182316`, 8 karar) ajanın tüm kararları (8/8) kod denetiminden geçti ve hiçbir kararda yedeklenmiş kararlara (fallback) düşülmedi. Sistemimiz, ajanın verdiği kararları kaydeder ve aynı istek tekrar geldiğinde model yeniden çağrılmadan kayıtlı karar geri getirilir; aslında bu yüzden aynı istekler aynı kararları verdi. 
 
-Asıl tutarlılık testimizde, sistemi sıfırlayıp aynı girdiyle modeli yeniden çağırdık: bu sefer 8 kararın 5'inde ilk 3 aynı kaldı, diğer 3'ünde yalnızca bir ürün değişti (yani 24 önerinin 21'i korundu). Ajanın önerisini motorunkiyle kıyaslamak için sistem hakkında bilgisi olmayan, yalnızca hazırlanmış toplantı metnini gören bir A/B hakemi kullandık (Claude Haiku/Gemini, "Hangisi müşteriye daha uygun ve neden?"). Hakem ilk turda hakem 5 kez ajanı daha iyi buldu, puanlama motorunu hiç seçmedi ve 1 kere de çıktılara eşit seviyede dedi. Ancak ajanın kazancı bu 5 seferin 3'ü P03'teydi ve orada motorun seçtiği IDY ile OKT ajanın aday listesinde yoktu; yani hakem bu iki fonun verisini göremiyordu. Aday listesini motorun ilk 3'üyle başlayacak şekilde düzelttik ve P03'ü yeniden çalıştırdık; bu kez hakem iki kez de motoru seçti. Adil karşılaştırmaların toplamında ajan 3 (P01, olumsuz haber senaryosu, RM işaretleri), motor 2 kez kazandı, 1 kere de berabere kaldılar. Bu sayılar ajanın daha iyi olduğunu göstermiyor, sonuçta ne de olsa hakem de bir büyük dil modeli (LLM). Bu yüzden sistemimiz RM'in ilk puanlama motorunun önerilerini göreceği, sonradan isterse ajan araştırması ve önerilerini aktive edebileceği şekilde tasarlandı. Böylece RM iki listeyi de görür ve kararı kendisi verir.
+Asıl tutarlılık testimizde, sistemi sıfırlayıp aynı girdiyle modeli yeniden çağırdık: bu sefer 8 kararın 5'inde ilk 3 aynı kaldı, diğer 3'ünde yalnızca bir ürün değişti (yani 24 önerinin 21'i korundu). Ajanın önerisini motorunkiyle kıyaslamak için kör bir A/B hakemi kullandık. Hakem kimin hangi seti seçtiğini bilmez; yalnızca müşteri profilini ve iki ürün setinin olgularını görür ve "Hangisi müşteriye daha uygun ve neden?" sorusunu yanıtlar. İlk hakemimiz Claude Haiku 5.5 ilk turda 5 kez ajanı daha iyi buldu, puanlama motorunu hiç seçmedi ve 1 kere eşit dedi. Ancak ajanın kazancının 3'ü P03'teydi ve orada motorun seçtiği IDY ile OKT ajanın aday listesinde yoktu; yani hakem bu iki fonun verisini göremiyordu. Aday listesini motorun ilk 3'üyle başlayacak şekilde düzelttik ve P03'ü yeniden çalıştırdık; bu kez hakem motoru seçti.
+
+Sonra farklı bir firmanın modelini ikinci, bağımsız hakem olarak ekledik (Gemini 3.8 Flash) ve aynı soruları ona da sorduk (`rmprep eval-ab-replay`). Soruları kayıtlı verilerden yeniden kurduk ve yalnızca ilk hakemin gördüğü metinle birebir aynı olanları gönderdik. Bu tekrar bir hatamızı da gösterdi: P03'ün yeniden çalıştırmasında iki senaryo hakeme aynı soruyu sormuştu ve biz o tek yanıtı iki kez saymıştık. Farklı 5 soruda sonuçlar şöyle:
+
+| Hakem | Ajan | Motor | Eşit |
+|---|---|---|---|
+| Claude Haiku 5.5 | 3 | 1 | 1 |
+| Gemini 3.8 Flash | 4 | 1 | 0 |
+
+İki hakem 5 sorunun 4'ünde aynı kazananı seçti; P05'te Haiku "eşit", Gemini ajan dedi. Bu sayılar ajanın daha iyi olduğunu kanıtlamıyor: soru sayısı az ve iki hakem de birer dil modeli. Bu yüzden sistemimiz RM'in önce puanlama motorunun önerilerini göreceği, sonradan isterse ajan araştırmasını ve önerilerini çalıştırabileceği şekilde tasarlandı. Böylece RM iki listeyi de görür ve kararı kendisi verir.
 
 ### Bulduğumuz hatalar ve yaptığımız iyileştirmeler
 

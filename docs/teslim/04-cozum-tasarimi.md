@@ -378,7 +378,7 @@ işlem kaydı (`data/logs/rm-actions/`). Zamanlar Türkiye saatiyledir
   sorgusunu varlığa göre dizdik, yapay zekâ kütüphanesini ilk kullanımda
   yükledik ve anlık görüntüyü arka planda okuduk. Karar süresi 2,86 sn'den
   1,18 sn'ye, sunucu açılışı 8,7 sn'den 2,3 sn'ye indi; ilk 3 aynı kaldı.
-- **Testler.** `pytest` 150 dosyada 3.056 test toplar; web uygulamasının 458
+- **Testler.** `pytest` 151 dosyada 3.078 test toplar; web uygulamasının 458
   testi vardır. Hiçbir test ağa çıkmaz; dil modeli testleri sahte istemciyle
   çalışır.
 - **Değerlendirme paketi.** 34 senaryo, 39 çalıştırma: temel personalar,
@@ -409,7 +409,8 @@ işlem kaydı (`data/logs/rm-actions/`). Zamanlar Türkiye saatiyledir
    için vardır: güncel haberler, nitel karşılaştırma ve mevcut dağılım. Ajan
    motorun adayları içinde, üç araçla, araç ve süre sınırlarıyla ve kod
    denetimiyle çalışır. Kör A/B hakemi ajanın motordan daha iyi olduğunu
-   göstermedi (adil karşılaştırmalarda ajan 3, motor 2, beraberlik 1); bu
+   göstermedi (farklı 5 soruda Claude Haiku: ajan 3, motor 1, eşit 1; ikinci
+   hakem Gemini: ajan 4, motor 1; iki hakem 4 soruda aynı); bu
    yüzden RM önce motorun önerisini görür, ajanı isterse çalıştırır ve iki
    listeyi yan yana karşılaştırır. Ajan sayısı bir hedef değildir.
 4. **Görüşme metni tek çağrı.** Her metin tek çağrıdır (en çok bir tekrar).

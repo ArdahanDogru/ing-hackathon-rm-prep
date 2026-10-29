@@ -21,6 +21,21 @@ judge:
     - id: balanced
       question: "States risks and uncertainty fairly next to the benefits (no sales pressure)?"
 
+# E13: a second, independent A/B judge from another vendor (the user, 2026-10-28/29).
+# Used by `rmprep eval-ab-replay`. The key is on the Gemini free tier (no charge; Google may
+# use free-tier inputs, which here are synthetic personas and public fund data); the prices
+# are the paid list prices (ai.google.dev pricing, 2026-10-29, valid to 2026-12-31), so the
+# report shows what the same calls would cost on the paid tier.
+second_ab_judge:
+  provider: gemini
+  model: gemini-3.8-flash
+  max_tokens: 4000             # thinking tokens count here too
+  thinking_level: low
+  price_input_per_mtok: 0.75
+  price_output_per_mtok: 3.75
+  api_key_env: GEMINI_API_KEY
+  min_interval_s: 8            # free-tier rate limit: at most ~7 calls a minute
+
 targets:                       # docs/eval.md table
   rule_checks: 1.0
   narrator_pass_rate: 0.95

@@ -169,6 +169,27 @@ def _eval(paths: Paths, args: argparse.Namespace) -> int:
     return 0
 
 
+def _eval_ab_replay(paths: Paths, args: argparse.Namespace) -> int:
+    """E13: the stored A/B questions of agent eval reports, asked to the second judge."""
+    from rmprep.eval.ab_replay import CacheOnly, replay_ab, write_replay
+    from rmprep.eval.config import load_config as load_eval_config
+    from rmprep.eval.judge import CachedAbJudge, second_ab_judge_from_env
+    from rmprep.eval.suite import load_env
+
+    config = load_eval_config(paths.root / "config" / "eval.yaml")
+    inner = second_ab_judge_from_env(config.second_ab_judge, load_env(paths.root))
+    if inner is None:
+        raise ValueError("second_ab_judge: not configured in config/eval.yaml or its API key is not in .env")
+    cache = paths.root / config.report_dir / "judge-ab"
+    first = CachedAbJudge(CacheOnly(config.judge.model), cache)
+    r = replay_ab(paths.root, args.report, first, CachedAbJudge(inner, cache),
+                  report_dir=config.report_dir)
+    out = write_replay(paths.root, r, args.report, report_dir=config.report_dir)
+    print((out / "report.md").read_text(encoding="utf-8"))
+    print(f"report: {out}")
+    return 0
+
+
 def _feedback(paths: Paths, args: argparse.Namespace) -> int:
     """F1: the manual feedback report over the RM action log (no LLM, no cost)."""
     from rmprep.eval.feedback import run_feedback
@@ -214,6 +235,10 @@ def main(argv: list[str] | None = None) -> int:
                         help="no narrator LLM and no judge: template texts, no cost")
     p_eval.add_argument("--agent", action="store_true",
                         help="also run the agentic top-3 decision (E11): about $2")
+    p_abr = sub.add_parser("eval-ab-replay",
+                           help="ask the second A/B judge the stored questions of agent eval reports (E13)")
+    p_abr.add_argument("--report", action="append", required=True, metavar="NAME",
+                       help="report folder name under data/eval (repeatable)")
     p_fb = sub.add_parser("feedback", help="manual feedback report over the RM action log (F1)")
     p_fb.add_argument("--since", help="first day YYYY-MM-DD (default: all)")
     p_fb.add_argument("--until", help="last day YYYY-MM-DD (default: all)")
@@ -246,6 +271,8 @@ def main(argv: list[str] | None = None) -> int:
             return _decide(paths, args)
         elif args.command == "eval":
             return _eval(paths, args)
+        elif args.command == "eval-ab-replay":
+            return _eval_ab_replay(paths, args)
         elif args.command == "feedback":
             return _feedback(paths, args)
         elif args.command == "serve":

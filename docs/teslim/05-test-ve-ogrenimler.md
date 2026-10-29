@@ -17,7 +17,7 @@
 
 | Açı | Ne test eder | Kapsam |
 |---|---|---|
-| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? (veri alma, karar motoru, anlatıcı doğrulayıcısı, ajan, API) | `pytest`: 150 dosyada **3.056** test; web: 51 dosyada **458** test (2026-10-28); ağ erişimi yok, dil modeli yerine sahte model |
+| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? (veri alma, karar motoru, anlatıcı doğrulayıcısı, ajan, API) | `pytest`: 151 dosyada **3.078** test; web: 51 dosyada **458** test (2026-10-28); ağ erişimi yok, dil modeli yerine sahte model |
 | Senaryo değerlendirmesi | Sistem uçtan uca, jürinin değiştirebileceği girdilerle doğru çalışıyor mu? | 34 senaryo, 39 çalıştırma; dondurulmuş snapshot; tek komut `python -m rmprep eval` |
 | Ajan değerlendirmesi | Ajan kurallara uyuyor mu, motordan daha iyi mi? | 8 karar: kod denetimi, yedeğe düşme oranı, tekrar, kör A/B hakemi, RM işaretleri (`rmprep eval --agent`) |
 | Canlı kontrol ve geri bildirim | Sistem RM için gerçekten kullanışlı mı? | Ekran incelemesi, ücretli canlı kontroller (ör. profil çelişkileri, istem n11/n12), RM işlem kaydından geri bildirim raporu (`rmprep feedback`) |
@@ -136,14 +136,40 @@ neden?"). Hakem sistemi bilmez; yalnızca iki seti ve olgularını görür.
 | Tur | Ajan | Motor | Eşit | Not |
 |---|---|---|---|---|
 | İlk tur (`20261015-182316`) | 5 | 0 | 1 | 2 kararda ilk 3 aynıydı, soru sorulmadı |
-| P03 yeniden (`20261015-183949`, aday listesi düzeltildikten sonra) | 0 | 2 | 0 | `agent-rm-split`'te ilk 3 aynı kaldı |
+| P03 yeniden (`20261015-183949`, aday listesi düzeltildikten sonra) | 0 | 2 | 0 | `agent-rm-split`'te ilk 3 aynı kaldı; iki "motor" yanıtı aynı sorunun yanıtıdır (aşağıda) |
 | RM işaretleri (`20261015-235705`) | 1 | 0 | 0 | ✗ işaretli bulgu pakette yok, ✓ işaretli bulgu "RM doğruladı" |
-| **Adil karşılaştırmaların toplamı** | **3** | **2** | **1** | ajan: P01, olumsuz haber, RM işaretleri |
+| **Adil karşılaştırmalar, farklı 5 soru** | **3** | **1** | **1** | ajan: P01, olumsuz haber, RM işaretleri; motor: P03 |
+
+**İkinci hakem (E13, 2026-10-29).** Aynı soruları farklı bir firmanın
+modeline, Gemini 3.8 Flash'a da sorduk (`rmprep eval-ab-replay`,
+`data/eval/20261029-150826-ab-replay`). Komut soruları kayıtlı verilerden
+(müşteri profili, ajanın gördüğü veri paketi, aynı rastgele sıra) yeniden
+kurar ve yalnızca ilk hakemin gördüğü metinle birebir aynı olan soruları
+gönderir; bunu ilk hakemin kayıtlı yanıtı kanıtlar. Ajan ve araştırma yeniden
+çağrılmaz.
+
+| Hakem | Ajan | Motor | Eşit |
+|---|---|---|---|
+| Claude Haiku 5.5 | 3 | 1 | 1 |
+| Gemini 3.8 Flash | 4 | 1 | 0 |
+
+İki hakem 5 sorunun 4'ünde aynı kazananı seçti. Fark P05'tedir: Haiku "eşit",
+Gemini ajan dedi ("Set A ... higher nominal and real returns"). Gemini'nin
+gerekçeleri müşteri olgularına dayanır: P01'de nakit ağırlıklı dağılım,
+olumsuz haber senaryosunda enjekte edilen SPK haberi, P03'te KDE'nin negatif
+reel getirisi.
+
+**Tekrarın bulduğu sayım hatası.** P03'ün yeniden çalıştırmasında
+`base-p03` ve `agent-crash` hakeme aynı soruyu sordu: aynı profil, aynı veri
+paketi, aynı çalıştırma kimliği. Hakem bir kez yanıtladı (önbellek), biz
+ise toplamda bu yanıtı iki kez saydık ve README'ye "ajan 3, motor 2, eşit 1"
+yazdık. Farklı sorular üzerinden doğru toplam ajan 3, motor 1, eşit 1'dir
+(`docs/found-and-fixed.md` #21).
 
 İlk turda ajanın 5 kazancının 3'ü P03 senaryolarındaydı ve orada motorun
 seçtiği IDY ile OKT ajanın aday listesinde yoktu. Hakem bu iki fonun
 verisini göremiyordu; gerekçesi "Set B's two funds lack data" idi. Bu hata
-ve düzeltmesi bölüm 5.6'dadır. Düzeltmeden sonra hakem P03'te iki kez de
+ve düzeltmesi bölüm 5.6'dadır. Düzeltmeden sonra hakem P03'te
 motoru seçti.
 
 **Sonuç.** Bu sayılar ajanın motordan daha iyi olduğunu göstermez: örnek
@@ -360,8 +386,9 @@ bir ölçüm "beklenmedik derecede iyi" veya "değişmemiş" görünürse önce
   "kazancının" 3'ü adil değildi.
 - *Düzeltme:* aday listesi (`candidates()`) artık motorun ilk 3'üyle başlar
   ve 10'a kadar ekran sırasıyla dolar. Üç P03 senaryosu yeniden çalıştırıldı.
-- *Ölçülen sonuç:* yeniden çalıştırmada hakem iki kez de motoru seçti. Adil
-  toplam: ajan 3, motor 2, eşit 1 (bölüm 4). Düzeltmeden önceki "%100 ajan"
+- *Ölçülen sonuç:* yeniden çalıştırmada hakem P03'te motoru seçti. Adil
+  toplam, farklı 5 soru: ajan 3, motor 1, eşit 1 (bölüm 4); ikinci hakem
+  Gemini: ajan 4, motor 1; iki hakem 5 sorunun 4'ünde aynı. Düzeltmeden önceki "%100 ajan"
   sonucu bir ölçüm hatasıydı.
 
 **(b) Eski metin önbelleği (2026-10-12).** D19'dan sonra seçim kuralı
@@ -451,8 +478,9 @@ bu yüzden önce / sonra karşılaştırması yaklaşıktır.
 **Hakem notunu bilerek optimize etmedik.** Bir LLM hakemi için istem
 ayarlamak, metni o hakemin zevkine göre ayarlamak olur; bu, RM için daha iyi
 bir metin demek değildir. Bunun yerine ölçülebilir kurallar ekledik ve RM
-incelemesine güvendik. Sonraki adım ikinci bir hakemle uyum kontrolüdür
-(bölüm 9).
+incelemesine güvendik. İkinci bir hakemi (Gemini) şimdilik yalnızca A/B
+karşılaştırmasında kullandık (bölüm 4); metin notları için ikinci hakem
+sonraki adımdır.
 
 ## 6. Diğer bulgular ve iyileştirmeler
 
@@ -521,9 +549,11 @@ değerlendirme raporundadır.
   sn, görüşme metni ort. 24,9 sn); RM'in bugünkü hazırlık süresi ve kazanç
   **[VARSAYIM]**.
 - **Hakem bir LLM:** notlar yön göstergesidir; son tam değerlendirmede 57
-  notun 54'ü "kısmen"dir. İkinci bir hakemle uyum kontrolü yapılmadı.
-- **Ajan karşılaştırması küçük:** adil A/B karşılaştırmaları 6 karardır
-  (ajan 3, motor 2, eşit 1); önbelleksiz tekrarda 8 kararın 5'i aynı kaldı.
+  notun 54'ü "kısmen"dir. Metin notları için ikinci bir hakemle uyum kontrolü
+  yapılmadı (A/B için yapıldı: 5 sorunun 4'ünde uyum).
+- **Ajan karşılaştırması küçük:** adil A/B karşılaştırmaları farklı 5
+  sorudur (Haiku: ajan 3, motor 1, eşit 1; Gemini: ajan 4, motor 1);
+  önbelleksiz tekrarda 8 kararın 5'i aynı kaldı.
 - **Profil kontrolü tek canlı deneme:** 5 yerleştirilmiş çelişki ve 7
   profil; daha geniş bir çelişki seti test edilmedi.
 - **Risk bantları ve D19 ayarları** tek snapshot'ta ayarlandı;

@@ -29,13 +29,14 @@ import dataclasses
 import hashlib
 import json
 import random
+import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
 from rmprep.contracts import DecisionResult, EvidenceSet, NarrativeDraft
-from rmprep.eval.config import JudgeConfig, RubricItem
+from rmprep.eval.config import JudgeConfig, RubricItem, SecondAbJudgeConfig
 
 CHOICES = ("yes", "partly", "no")
 PROMPT_VERSION = "j3"            # bump on any change of the prompt or the schema
@@ -572,6 +573,112 @@ def ab_judge_from_env(config: JudgeConfig, env: Mapping[str, str]) -> HaikuAbJud
         return None
     ws = env.get(config.workspace_id_env, "").strip() if config.workspace_id_env else ""
     return HaikuAbJudge(config, api_key=key, workspace_id=ws or None)
+
+
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+GEMINI_RETRY_STATUS = (500, 503)     # "high demand" and server errors: wait and try again
+GEMINI_RETRIES = 2
+GEMINI_RETRY_WAIT_S = 20.0
+
+
+class GeminiAbJudge:
+    """E13: the second A/B judge (Google Gemini, another vendor than the agent and the
+    first judge). One generateContent call per comparison over REST (httpx, no SDK)
+    with the same system text, question and JSON schema as HaikuAbJudge; thought parts
+    are not read. Errors come back in AbChoice.error and are not cached."""
+
+    def __init__(self, config: SecondAbJudgeConfig, *, api_key: str, http=None,
+                 sleep: Callable[[float], None] = time.sleep,
+                 clock: Callable[[], float] = time.monotonic) -> None:
+        if http is None:
+            import httpx
+
+            http = httpx.Client(timeout=180)
+        self._http = http
+        self._key = api_key
+        self.config = config
+        self.model = config.model
+        self._sleep, self._clock = sleep, clock
+        self._last: float | None = None
+
+    def body(self, user: str) -> dict:
+        gen: dict[str, Any] = {"responseMimeType": "application/json",
+                               "responseJsonSchema": ab_schema(),
+                               "maxOutputTokens": self.config.max_tokens}
+        if self.config.thinking_level:
+            gen["thinkingConfig"] = {"thinkingLevel": self.config.thinking_level}
+        return {"systemInstruction": {"parts": [{"text": ab_system_text()}]},
+                "contents": [{"role": "user", "parts": [{"text": user}]}],
+                "generationConfig": gen}
+
+    def _wait(self) -> None:
+        if self._last is not None and self.config.min_interval_s > 0:
+            left = self.config.min_interval_s - (self._clock() - self._last)
+            if left > 0:
+                self._sleep(left)
+        self._last = self._clock()
+
+    def choose(self, user: str) -> AbChoice:
+        import httpx
+
+        base = AbChoice(model=self.model)
+        for attempt in range(GEMINI_RETRIES + 1):
+            if attempt:
+                self._sleep(GEMINI_RETRY_WAIT_S * attempt)
+            self._wait()
+            try:
+                r = self._http.post(GEMINI_URL.format(model=self.model), json=self.body(user),
+                                    headers={"x-goog-api-key": self._key})
+            except httpx.TimeoutException as e:      # a busy model: as a 503
+                if attempt < GEMINI_RETRIES:
+                    continue
+                return dataclasses.replace(base, error=f"connection: {type(e).__name__}")
+            except httpx.HTTPError as e:
+                return dataclasses.replace(base, error=f"connection: {type(e).__name__}")
+            if r.status_code not in GEMINI_RETRY_STATUS:
+                break
+        try:
+            data = r.json()
+        except ValueError:
+            data = {}
+        if r.status_code != 200:
+            msg = (data.get("error") or {}).get("message", "") if isinstance(data, dict) else ""
+            kind = "rate_limit" if r.status_code == 429 else f"api {r.status_code}"
+            return dataclasses.replace(base, error=f"{kind}: {msg[:200]}")
+        u = data.get("usageMetadata") or {}
+        tokens_out = u.get("candidatesTokenCount", 0) + u.get("thoughtsTokenCount", 0)
+        cost = (u.get("promptTokenCount", 0) * self.config.price_input_per_mtok
+                + tokens_out * self.config.price_output_per_mtok) / 1e6
+        got = dataclasses.replace(base, model=data.get("modelVersion") or self.model, cost_usd=cost)
+        cands = data.get("candidates") or []
+        if not cands:
+            why = (data.get("promptFeedback") or {}).get("blockReason", "no candidate")
+            return dataclasses.replace(got, error=f"blocked ({why})")
+        c = cands[0]
+        finish = c.get("finishReason")
+        if finish == "MAX_TOKENS":
+            return dataclasses.replace(got, error="cut off (max_tokens)")
+        if finish not in (None, "STOP"):
+            return dataclasses.replace(got, error=f"stopped ({finish})")
+        text = "".join(p.get("text", "") for p in (c.get("content") or {}).get("parts", ())
+                       if not p.get("thought"))
+        try:
+            reply = json.loads(text)
+            choice, reason = reply["choice"], reply["reason"]
+        except (ValueError, KeyError, TypeError) as e:
+            return dataclasses.replace(got, error=f"bad reply: {e}")
+        if choice not in AB_CHOICES:
+            return dataclasses.replace(got, error=f"bad reply: unknown choice {choice!r}")
+        return dataclasses.replace(got, choice=choice, reason=str(reason))
+
+
+def second_ab_judge_from_env(config: SecondAbJudgeConfig | None,
+                             env: Mapping[str, str]) -> GeminiAbJudge | None:
+    """The second A/B judge if it is configured and env holds its key, else None."""
+    if config is None:
+        return None
+    key = env.get(config.api_key_env, "").strip()
+    return GeminiAbJudge(config, api_key=key) if key else None
 
 
 class CachedAbJudge:

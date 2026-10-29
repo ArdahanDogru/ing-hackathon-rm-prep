@@ -380,7 +380,7 @@ function notes(slide, who, time, body) {
   card(s, 0.6, 3.0, 5.9, 3.8);
   text(s, "Dört test katmanı", { x: 0.8, y: 3.1, w: 5.5, h: 0.4, fontSize: 15, bold: true });
   text(s, bullets([
-    [{ text: "Birim ve sözleşme: ", options: { bold: true } }, { text: "3.056 pytest, 458 web testi; ağ yok, sahte model" }],
+    [{ text: "Birim ve sözleşme: ", options: { bold: true } }, { text: "3.078 pytest, 458 web testi; ağ yok, sahte model" }],
     [{ text: "Senaryo paketi: ", options: { bold: true } }, { text: "34 senaryo, 39 çalıştırma, dondurulmuş veri; persona ve kısıt değişikliği, erişilemeyen kaynak, hatalı veri, 13 eski hata" }],
     [{ text: "Ajan değerlendirmesi: ", options: { bold: true } }, { text: "8 karar, kör A/B hakemi" }],
     [{ text: "Canlı kontrol: ", options: { bold: true } }, { text: "ekran incelemesi, RM işlem kaydından geri bildirim raporu" }],
@@ -389,14 +389,14 @@ function notes(slide, who, time, body) {
     { x: 0.8, y: 5.95, w: 5.5, h: 0.8, fontSize: 11, color: K.muted });
   card(s, 6.8, 3.0, 5.9, 3.8, K.aiTint);
   text(s, "Ajan, motordan daha iyi mi?", { x: 7.0, y: 3.1, w: 5.5, h: 0.4, fontSize: 15, bold: true, color: K.ai });
-  [["8 / 8", "karar kod denetiminden geçti; yedeğe düşme 0"], ["21 / 24", "öneri, model yeniden çağrılınca korundu (5 / 8 karar aynı)"], ["3 – 2 – 1", "adil A/B: ajan 3, motor 2, berabere 1"]].forEach(([big, d], i) => {
+  [["8 / 8", "karar kod denetiminden geçti; yedeğe düşme 0"], ["21 / 24", "öneri, model yeniden çağrılınca korundu (5 / 8 karar aynı)"], ["4 / 5", "iki bağımsız hakem (Claude, Gemini) aynı kazananı seçti"]].forEach(([big, d], i) => {
     const y = 3.6 + i * 0.72;
     text(s, big, { x: 7.0, y, w: 1.55, h: 0.6, fontSize: 20, bold: true, color: K.ai, valign: "middle" });
     text(s, d, { x: 8.6, y, w: 3.95, h: 0.6, fontSize: 12.5, valign: "middle" });
   });
-  text(s, "Hakem de bir dil modeli: sonuç ajanın daha iyi olduğunu kanıtlamaz. Bu yüzden RM motorun listesini her zaman görür; ajan isteğe bağlıdır.",
+  text(s, "Kör A/B, farklı 5 soru: Haiku ajan 3, motor 1, eşit 1; Gemini ajan 4, motor 1. Az soru ve iki hakem de dil modeli: RM motorun listesini her zaman görür, ajan isteğe bağlıdır.",
     { x: 7.0, y: 5.85, w: 5.5, h: 0.85, fontSize: 12, color: K.muted });
-  notes(s, "Ardahan", "0:45", "Dört katmanda test ettik. Brief'in kesin kuralları için hedefimiz %100: 34 senaryo ve 39 çalıştırmada kural kontrolleri %100, kısıt ihlali 0, aynı girdi 5'te 5 aynı sonucu verdi. Metin kalitesini bir dil modeli hakemi puanlıyor; bunu yalnızca yön göstergesi olarak okuyoruz. Ajan için dürüst olalım: 8 kararın hepsi denetimden geçti, ama adil A/B'de ajan 3, motor 2 kez kazandı. Bu yüzden RM iki listeyi de görüyor ve ajan isteğe bağlı.");
+  notes(s, "Ardahan", "0:45", "Dört katmanda test ettik. Brief'in kesin kuralları için hedefimiz %100: 34 senaryo ve 39 çalıştırmada kural kontrolleri %100, kısıt ihlali 0, aynı girdi 5'te 5 aynı sonucu verdi. Metin kalitesini bir dil modeli hakemi puanlıyor; bunu yalnızca yön göstergesi olarak okuyoruz. Ajan için dürüst olalım: 8 kararın hepsi denetimden geçti. Kör A/B'de iki farklı firmanın modelini hakem yaptık; 5 sorunun 4'ünde aynı kazananı seçtiler ve ajan çoğunlukla kazandı. Ama soru sayısı az ve hakemler de dil modeli; bu yüzden RM iki listeyi de görüyor ve ajan isteğe bağlı.");
 
   // ===== 11. Hata analizi =====
   s = pres.addSlide({ masterName: "ICERIK", sectionTitle: "Sonuçlar" });
@@ -475,7 +475,7 @@ function notes(slide, who, time, body) {
     "E4 · P02 örneği: ilk 3 nasıl çıktı?",
     "E5 · Bir önerinin kanıt kaydı",
     "E6 · Modeller, maliyet ve yedekler",
-    "E7 · Ajan değerlendirmesinin ayrıntısı",
+    "E7 · Ajan değerlendirmesi ve ikinci hakem",
     "E8 · Diğer bulgular ve düzeltmeler",
     "E9 · Neden kural ve şeffaf puan?",
     "E10 · Dağılım ve geri bildirim döngüsü",
@@ -596,9 +596,10 @@ function notes(slide, who, time, body) {
     ["Görüşme metni", "Claude Sonnet 5.5", "doğrulayıcı, 1 tekrar, sonra şablon metin", "metin başına 0,034 $, ort. 24,9 sn"],
     ["Pano özeti", "Claude Haiku 5.5", "doğrulayıcı; hata olursa düz cümle", "~0,003 $"],
     ["Değerlendirme hakemi", "Claude Haiku 5.5", "yalnızca kodun ölçemediği şeyler", "paket başına < 0,01 $"],
-  ], { x: 0.6, y: 1.3, w: 12.1, colW: [2.1, 2.6, 4.4, 3.0], fontSize: 12.5, rowH: 0.62 });
+    ["İkinci A/B hakemi", "Gemini 3.8 Flash", "ilk hakemin sorusunun birebir aynısı", "ücretsiz katman (~0,002 $ / soru)"],
+  ], { x: 0.6, y: 1.3, w: 12.1, colW: [2.1, 2.6, 4.4, 3.0], fontSize: 12.5, rowH: 0.58 });
   text(s, "Bir anahtar eksikse yalnızca ona bağlı parça kapanır; puanlama motoru her zaman çalışır. Piyasa notunu dil modeli değil kod yazar.",
-    { x: 0.6, y: 5.95, w: 12.1, h: 0.6, fontSize: 13, color: K.muted });
+    { x: 0.6, y: 6.25, w: 12.1, h: 0.5, fontSize: 13, color: K.muted });
 
   // E7 Ajan değerlendirmesi
   s = pres.addSlide({ masterName: "ICERIK", sectionTitle: "Ek" });
@@ -606,12 +607,19 @@ function notes(slide, who, time, body) {
   text(s, bullets([
     [{ text: "Kurallara uyum: ", options: { bold: true } }, { text: "8 kararın 8'i kod denetiminden geçti; hiçbirinde yedeğe düşülmedi." }],
     [{ text: "Tutarlılık: ", options: { bold: true } }, { text: "kayıtlı karar aynı istek için geri gelir. Asıl test: sistemi sıfırlayıp modeli yeniden çağırdık; 8 kararın 5'i aynı, 3'ünde yalnızca bir ürün değişti (24 önerinin 21'i korundu)." }],
-    [{ text: "Kör A/B hakemi: ", options: { bold: true } }, { text: "yalnızca iki metni görür: \"Hangisi müşteriye daha uygun ve neden?\". İlk tur: ajan 5, motor 0, berabere 1." }],
-    [{ text: "Kendi hatamız: ", options: { bold: true } }, { text: "ajanın kazançlarının 3'ü P03'teydi ve motorun seçtiği IDY ile OKT ajanın aday listesinde yoktu. Aday listesi artık motorun ilk 3'üyle başlıyor; P03 yeniden: hakem iki kez de motoru seçti." }],
-    [{ text: "Adil toplam: ", options: { bold: true } }, { text: "ajan 3 (P01, olumsuz haber senaryosu, RM işaretleri), motor 2, berabere 1." }],
-  ], { gap: 10 }), { x: 0.6, y: 1.4, w: 12.1, h: 4.3, fontSize: 14 });
+    [{ text: "Kör A/B hakemi: ", options: { bold: true } }, { text: "kimin seçtiğini bilmez; müşteri profilini ve iki ürün setinin olgularını görür: \"Hangisi müşteriye daha uygun ve neden?\". İlk tur: ajan 5, motor 0, eşit 1." }],
+    [{ text: "Kendi hatamız: ", options: { bold: true } }, { text: "ajanın kazançlarının 3'ü P03'teydi ve motorun seçtiği IDY ile OKT ajanın aday listesinde yoktu. Aday listesi artık motorun ilk 3'üyle başlıyor; P03 yeniden: hakem motoru seçti." }],
+    [{ text: "İkinci hakem: ", options: { bold: true } }, { text: "aynı soruları Gemini 3.8 Flash'a da sorduk; yalnızca ilk hakemin gördüğü metinle birebir aynı sorular. Bu tekrar bir sayım hatamızı buldu: iki senaryo aynı soruyu sormuştu ve yanıtı iki kez saymıştık." }],
+  ], { gap: 8 }), { x: 0.6, y: 1.3, w: 7.3, h: 4.5, fontSize: 13 });
+  table(s, [
+    [hdrCell("Farklı 5 soru"), hdrCell("Ajan"), hdrCell("Motor"), hdrCell("Eşit")],
+    ["Claude Haiku 5.5", "3", "1", "1"],
+    ["Gemini 3.8 Flash", "4", "1", "0"],
+  ], { x: 8.2, y: 1.4, w: 4.5, colW: [2.1, 0.8, 0.8, 0.8], fontSize: 13, rowH: 0.5 });
+  text(s, "İki hakem 5 sorunun 4'ünde aynı kazananı seçti; P05'te Haiku \"eşit\", Gemini ajan dedi.",
+    { x: 8.2, y: 3.15, w: 4.5, h: 0.9, fontSize: 12.5, color: K.muted });
   card(s, 0.6, 5.85, 12.1, 0.9, K.orangeTint);
-  text(s, [{ text: "Karar: ", options: { bold: true } }, { text: "hakem de bir dil modeli; sonuç ajanın daha iyi olduğunu göstermez. RM önce motorun önerilerini görür, ajanı isterse çalıştırır ve iki listeyi yan yana karşılaştırır." }],
+  text(s, [{ text: "Karar: ", options: { bold: true } }, { text: "soru sayısı az ve iki hakem de dil modeli; sonuç ajanın daha iyi olduğunu kanıtlamaz. RM önce motorun önerilerini görür, ajanı isterse çalıştırır ve iki listeyi yan yana karşılaştırır." }],
     { x: 0.85, y: 5.85, w: 11.7, h: 0.9, fontSize: 13.5, valign: "middle" });
 
   // E8 Diğer bulgular
