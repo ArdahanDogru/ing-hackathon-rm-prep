@@ -256,6 +256,26 @@ def test_the_issuer_with_its_code_passes(text, config):
     assert _check(ok, f, r, config) == ()
 
 
+@pytest.mark.parametrize("text", ["Fon sepeti grubunda Garanti AAL bulunur.",
+                                  "GARANTİ AAL likiditesi yüksek bir fondur."])
+def test_the_short_issuer_with_its_code_passes(text, config):
+    """Eval 20261029-153753 (found and fixed): the model wrote "Garanti GZP" (the issuer
+    without "Portföy" and the code); the first attempt failed on "garanti"."""
+    r, f = _garanti()
+    sections = list(template_sections(f, "TR", config.disclaimer["TR"]))
+    ok = _with(sections, "oneriler", NarrativeSentence(text, ("fund:AAL",)))
+    assert _check(ok, f, r, config) == ()
+
+
+@pytest.mark.parametrize("text", ["Garanti AAL getiriyi garanti eder.",
+                                  "Garanti ile AAL getirisi korunur."])
+def test_garanti_without_the_code_right_after_still_fails(text, config):
+    r, f = _garanti()
+    sections = list(template_sections(f, "TR", config.disclaimer["TR"]))
+    bad = _with(sections, "oneriler", NarrativeSentence(text, ("fund:AAL",)))
+    assert _codes(_check(bad, f, r, config)) == {"phrase"}
+
+
 def test_a_real_garanti_next_to_the_issuer_still_fails(config):
     r, f = _garanti()
     sections = list(template_sections(f, "TR", config.disclaimer["TR"]))

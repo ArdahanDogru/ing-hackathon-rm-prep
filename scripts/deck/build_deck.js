@@ -380,7 +380,7 @@ function notes(slide, who, time, body) {
   card(s, 0.6, 3.0, 5.9, 3.8);
   text(s, "Dört test katmanı", { x: 0.8, y: 3.1, w: 5.5, h: 0.4, fontSize: 15, bold: true });
   text(s, bullets([
-    [{ text: "Birim ve sözleşme: ", options: { bold: true } }, { text: "3.078 pytest, 458 web testi; ağ yok, sahte model" }],
+    [{ text: "Birim ve sözleşme: ", options: { bold: true } }, { text: "3.082 pytest, 458 web testi; ağ yok, sahte model" }],
     [{ text: "Senaryo paketi: ", options: { bold: true } }, { text: "34 senaryo, 39 çalıştırma, dondurulmuş veri; persona ve kısıt değişikliği, erişilemeyen kaynak, hatalı veri, 13 eski hata" }],
     [{ text: "Ajan değerlendirmesi: ", options: { bold: true } }, { text: "8 karar, kör A/B hakemi" }],
     [{ text: "Canlı kontrol: ", options: { bold: true } }, { text: "ekran incelemesi, RM işlem kaydından geri bildirim raporu" }],
@@ -431,7 +431,7 @@ function notes(slide, who, time, body) {
     { x: 1.4, y: 5.45, w: 11.2, h: 0.62, fontSize: 12.5, valign: "middle" });
   card(s, 0.6, 6.18, 12.1, 0.62, K.orangeTint);
   circleIcon(s, I.FaLightbulb, 0.75, 6.24, 0.5, K.orange);
-  text(s, [{ text: "Öğrenim: ", options: { bold: true } }, { text: "\"kurallar %100\" yeterli değil. Çıktılar arası karşılaştırma ve canlı kontrol gerekir. Tüm liste: docs/found-and-fixed.md (20 kayıt)." }],
+  text(s, [{ text: "Öğrenim: ", options: { bold: true } }, { text: "\"kurallar %100\" yeterli değil. Çıktılar arası karşılaştırma ve canlı kontrol gerekir. Tüm liste: docs/found-and-fixed.md (22 kayıt)." }],
     { x: 1.4, y: 6.18, w: 11.2, h: 0.62, fontSize: 12.5, valign: "middle" });
   notes(s, "Ardahan", "0:40", "İki hata analizi. Birincisi: tüm kurallar geçerken 5 müşterinin 4'üne yalnızca risk 1 nakit benzeri fonlar önerildi; çünkü geçmiş getiri baskındı. Risk uyumu bandı ve varlık sınıfı kuralı ekledik; şimdi 5 profilde 5 farklı set var. İkincisi: profil kendisiyle çelişebiliyordu. 5 personaya bilerek çelişki koyduk: sabit kurallar hiçbirini bulamadı, AI kontrolü 5'ini de buldu. Şimdi RM gerekçe yazmadan onay veremiyor. Hız sorununu da profil çıkararak bulduk ve çözdük.");
 
@@ -631,7 +631,7 @@ function notes(slide, who, time, body) {
     ["5 yıllık pay geçmişi 15.02.2023'te kesiliyordu", "Depremden sonra borsa kapalıydı; boş günler bozuk dosya sayıldı", "Kapanışı 0 olan geçerli bülten = işlem olmayan gün; tam 5 yıl"],
     ["ING oranları eskimişti", "Elle kopyalanmıştı; 28 e-Vadeli oranı değişmişti", "ING oran sayfası adaptörü; %35,00 yerine güncel %34,50"],
     ["Stopaj ve TÜFE yokken güven 1,00 kalıyordu", "Eski bir bayrak açığı gizliyordu", "Reel getiri hesaplanamazsa güven × 0,8; eksik veri 5/7 → 7/7"],
-    ["\"Garanti Portföy\" fon adı yasak ifade sayıldı", "Tarama kurucu adını da okuyordu", "Kurucu adı taramadan çıkarıldı; yasak ifadenin kendisi hâlâ yakalanır"],
+    ["\"Garanti Portföy\" fon adı yasak ifade sayıldı", "Tarama kurucu adını da okuyordu; ücretli yeniden ölçüm ikinci biçimi buldu (\"Garanti GZP\")", "Kurucu adı ve fon kodu taramadan çıkarıldı; ölçüm 3/3; tek başına \"garanti\" hâlâ yakalanır"],
     ["A/B hakemi motoru tuhaf nedenlerle seçti", "Motorun seçtikleri ajanın aday listesinde yoktu", "Aday listesi motorun ilk 3'üyle başlar"],
   ], { x: 0.6, y: 1.3, w: 12.1, colW: [3.4, 4.0, 4.7], fontSize: 12, rowH: 0.62 });
   text(s, "Açık kalanlar: TEFAS bazı günlerde fon fiyatını ve büyüklüğünü 0 yayımlıyor (son snapshot'ta 45 fon); iki EVDS serisi henüz elle doğrulanmadı.",

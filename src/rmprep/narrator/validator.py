@@ -366,8 +366,17 @@ def _check_phrases(sections, f: Facts, config: NarratorConfig) -> list[str]:
     # ("garanti portföy"), as in "Garanti Portföy GZP"; "garanti" alone is still checked
     issuers = {_norm(short_name(o.label)[0]) for o in named}
     issuers = {i for i in issuers if any(i.endswith(" " + _norm(w)) for w in ISSUER_WORDS)}
+    # found and fixed (eval 20261029-153753): the issuer without its issuer word and the
+    # fund code right after it ("Garanti GZP") is a name too
+    coded = set()
+    for oid, o in f.named_options().items():
+        issuer, code = _norm(short_name(o.label)[0]), _norm(oid.split(":", 1)[-1])
+        for w in ISSUER_WORDS:
+            mark = " " + _norm(w)
+            if issuer.endswith(mark) and code:
+                coded.add(f"{issuer[:-len(mark)]} {code}")
     labels = sorted({*_named_labels(f), *(_norm(o.name) for o in named if o.name),
-                     *(x for o in named for x in name_forms(o.label)), *issuers},
+                     *(x for o in named for x in name_forms(o.label)), *issuers, *coded},
                     key=len, reverse=True)
     out = []
     for sec in sections:

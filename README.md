@@ -38,7 +38,7 @@ pip install -e ".[dev,web,narrator]"
 cd web; npm ci; npm run build; cd ..
 python -m rmprep ingest          # veriyi çeker (yaklaşık 16 dk), yeni snapshot
 python -m rmprep serve           # http://127.0.0.1:8600
-pytest -q                        # 151 dosyada 3.078 test, ağ erişimi yok
+pytest -q                        # 151 dosyada 3.082 test, ağ erişimi yok
 python -m rmprep eval --no-llm   # değerlendirme paketi, ücretsiz geçiş
 python -m rmprep feedback        # RM işlem kaydından geri bildirim raporu
 ```
@@ -513,7 +513,7 @@ Sistemimizin müşteriye bir şey gönderebileceği bir kanal yoktur; uygulama y
 
 | Açı | Yanıtladığı Soru | Kapsam |
 |---|---|---|
-| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? | `pytest`: 151 dosyada 3.078 test; web: 458 test; ağ erişimi yok ise dil modeli yerine sahte model |
+| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? | `pytest`: 151 dosyada 3.082 test; web: 458 test; ağ erişimi yok ise dil modeli yerine sahte model |
 | Senaryo değerlendirmesi | Sistem uçtan uca, jürinin değiştirebileceği girdilerle doğru çalışıyor mu? | 34 senaryo, 39 çalıştırma, dondurulmuş veri: temel personalar, persona değişiklikleri, kısıtlar, erişilemeyen kaynak, hatalı veri, eski hataların tekrarı |
 | Ajan değerlendirmesi | Ajan kurallara uyuyor mu, motordan daha iyi mi? | 8 karar: kod denetimi, yedeğe düşme oranı, tekrar, kör A/B hakemi, RM işaretleri |
 | Canlı kontrol ve geri bildirim | Sistem RM için gerçekten kullanışlı mı? | ekran incelemesi, ücretli canlı kontroller, RM işlem kaydından geri bildirim raporu (`rmprep feedback`) |
@@ -568,7 +568,7 @@ Geliştirme boyunca bulduğumuz her hatayı ve yaptığımız her yanlış varsa
 | ING oranları elle kopyalanmıştı ve eskimişti | ING sayfasını elle girilen dosyayla karşılaştırdık: 28 e-Vadeli oranı değişmişti | ING'nin kamuya açık oran sayfası için adaptör ekledik; elle girilen dosyayı yedek olarak kullandık | motor %35,00 yerine güncel %34,50'yi kullanıyor |
 | Pay fiyat geçmişinde ani düşüşler vardı (KORDS 1 ayda −%96) | bilinen bölünmelerin çevresindeki fiyatlara baktık; bültendeki "önceki kapanış" bölünmeye göre düzeltilmemişti | günlük ±%10 limitini aşan bir hareketi bölünme sayıp önceki fiyatları düzelttik; o günün taban fiyatını limit içinde tuttuk | 111 payda 116 düzeltme; KORDS −%96 → −%27,8; 5 yıllık düzeltilmiş getiriler |
 | 5 yıllık geçmiş 15.02.2023'te kesiliyordu | 8-14.02.2023 "okunamaz" işaretlenmişti: depremden sonra borsa kapalıydı | kapanışı 0 olan geçerli bülten = işlem olmayan gün | tam 5 yıllık geçmiş |
-| Ürün adı metni hakim ajanın önüne düştü ("Garanti Portföy GZP" → yasak ifade: "garanti") | değerlendirmede gözüktü | Fonun kurucu adını yasak ifade taramasından çıkardık | testler geçti |
+| Fon adındaki "Garanti" yasak ifade sayıldı ("Garanti Portföy GZP" → "garanti"), metin şablona düştü | değerlendirmenin hata listesi; 29.10'da ücretli yeniden ölçüm ilk denemede ikinci bir biçim gösterdi: "Garanti GZP" | Kurucu adını, "Portföy" sözcüğü olsa da olmasa da fon koduyla birlikte, yasak ifade taramasından çıkardık; tek başına "garanti" hâlâ yasak | yeniden ölçüm: doğrulayıcı 3/3, şablona düşüş yok |
 
 Henüz çözmediğimiz konular da var. TEFAS bazı günlerde bir fonun fiyatını ve büyüklüğünü 0 olarak yayımlıyor (son snapshot'ta 45 fon) ve bu sıfırları henüz işaretlemiyoruz. Bazı EVDS serisilerini (BIST 100 getiri endeksi, altın,...) manual olarak doğrulamadık; bu seriler hala "doğrulanmamış seri" bayrağı taşıyor. 
 

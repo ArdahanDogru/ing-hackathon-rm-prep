@@ -378,7 +378,7 @@ işlem kaydı (`data/logs/rm-actions/`). Zamanlar Türkiye saatiyledir
   sorgusunu varlığa göre dizdik, yapay zekâ kütüphanesini ilk kullanımda
   yükledik ve anlık görüntüyü arka planda okuduk. Karar süresi 2,86 sn'den
   1,18 sn'ye, sunucu açılışı 8,7 sn'den 2,3 sn'ye indi; ilk 3 aynı kaldı.
-- **Testler.** `pytest` 151 dosyada 3.078 test toplar; web uygulamasının 458
+- **Testler.** `pytest` 151 dosyada 3.082 test toplar; web uygulamasının 458
   testi vardır. Hiçbir test ağa çıkmaz; dil modeli testleri sahte istemciyle
   çalışır.
 - **Değerlendirme paketi.** 34 senaryo, 39 çalıştırma: temel personalar,

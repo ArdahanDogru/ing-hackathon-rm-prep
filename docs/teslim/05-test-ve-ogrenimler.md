@@ -17,7 +17,7 @@
 
 | Açı | Ne test eder | Kapsam |
 |---|---|---|
-| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? (veri alma, karar motoru, anlatıcı doğrulayıcısı, ajan, API) | `pytest`: 151 dosyada **3.078** test; web: 51 dosyada **458** test (2026-10-28); ağ erişimi yok, dil modeli yerine sahte model |
+| Birim ve sözleşme testleri | Her kural tek başına doğru çalışıyor mu? (veri alma, karar motoru, anlatıcı doğrulayıcısı, ajan, API) | `pytest`: 151 dosyada **3.082** test; web: 51 dosyada **458** test (2026-10-28); ağ erişimi yok, dil modeli yerine sahte model |
 | Senaryo değerlendirmesi | Sistem uçtan uca, jürinin değiştirebileceği girdilerle doğru çalışıyor mu? | 34 senaryo, 39 çalıştırma; dondurulmuş snapshot; tek komut `python -m rmprep eval` |
 | Ajan değerlendirmesi | Ajan kurallara uyuyor mu, motordan daha iyi mi? | 8 karar: kod denetimi, yedeğe düşme oranı, tekrar, kör A/B hakemi, RM işaretleri (`rmprep eval --agent`) |
 | Canlı kontrol ve geri bildirim | Sistem RM için gerçekten kullanışlı mı? | Ekran incelemesi, ücretli canlı kontroller (ör. profil çelişkileri, istem n11/n12), RM işlem kaydından geri bildirim raporu (`rmprep feedback`) |
@@ -427,10 +427,20 @@ karşıladı.
   metin süresi ortalama 0,97 sn). Model çağrılmadı ve yeni doğrulayıcı bu
   metin üzerinde hiç çalışmadı. Yani bu rapor düzeltmeyi **ölçmedi**; eski
   sonucu tekrarladı. Kural kontrolleri bu raporda da %100'dür.
-- *Bugünkü durum:* düzeltmeyi yalnızca birim testleri gösterir. Tam
-  değerlendirme yeniden çalıştırılmadı; son ölçüm hâlâ %96'dır. Ölçmek için
-  bu metnin önbellek dosyası yeni bir model çağrısıyla yeniden üretilmelidir
-  (bölüm 9).
+- *Ölçüm (2026-10-29, `20261029-153753-garanti-fix-measured`):* önbellekteki
+  şablon metni arşive taşıdık ve senaryoyu ücretli olarak yeniden çalıştırdık
+  (0,088 $). Doğrulayıcı %100 (3/3), 3 metnin üçü de dil modelinden. Ama
+  maliyet defteri ilk denemeyi de gösterdi: model bu kez "Garanti GZP" yazdı
+  (ihraççı "Portföy" sözcüğü olmadan, fon koduyla) ve ilk deneme yine
+  "garanti" bulgusuyla kaldı; metin ancak tekrarda geçti.
+- *İkinci düzeltme:* doğrulayıcı "ihraççı + fon kodu" biçimini "Portföy"
+  sözcüğü olmadan da ad sayar ("garanti gzp"). Koddan hemen sonra gelmeyen
+  bir "garanti" hâlâ bulgudur ("Garanti ile AAL getirisi korunur."). Birim
+  testleri: `test_the_short_issuer_with_its_code_passes`,
+  `test_garanti_without_the_code_right_after_still_fails`.
+- *Öğrenim:* bir ölçüm ancak eski sonucu tekrar okumadığında ölçümdür; ve
+  ilk deneme bulguları defterde olmasaydı tekrarın gizlediği ikinci biçimi
+  görmezdik.
 
 **(d) Piyasa notunda yanlış "uydurma veri" alarmı (vaka 9, 2026-10-14).**
 Snapshot `20261014-233110-1565` ile ilk tam çalıştırmada 25 metnin hepsi
@@ -572,9 +582,9 @@ değerlendirme raporundadır.
 - **Doğrulanmamış EVDS serileri:** bazı EVDS serileri (BIST 100 getiri
   endeksi, altın, …) elle doğrulanmadı; bu seriler hâlâ "doğrulanmamış
   seri" bayrağı taşır.
-- **Garanti düzeltmesinin ölçümü:** düzeltme birim testleriyle
-  korunuyor, ama tam değerlendirmede ölçülmedi (5.6 c). Bir sonraki
-  ücretli tam değerlendirmede bu metin yeniden üretilmelidir.
+- **Garanti düzeltmesi:** tek senaryoda ölçüldü (5.6 c); ikinci biçim
+  ("Garanti GZP") birim testiyle korunuyor. Tam paket yeniden çalıştırılmadı;
+  paketin son ölçümü hâlâ %96'dır.
 - **Hakemin ölçütü:** hakem (Claude Haiku) neredeyse her metne "kısmen"
   der ve ölçütü müşteri sayfası için değil, RM notu için yazılmıştır (n10 →
   n12: uyarlanmış %55 → %50, açık %52 → %50, dengeli %62 → %58; kural
