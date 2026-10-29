@@ -342,29 +342,32 @@ function notes(slide, who, time, body) {
   ], { gap: 4 }), { x: 0.85, y: 5.8, w: 11.7, h: 0.9, fontSize: 13 });
   notes(s, "Öykü", "0:30", "RM'in karar verdiği altı nokta var. Hazırlık sayfasında soruları yanıtlar, çelişkileri çözer, isterse ajanı çalıştırır, sonra önerileri onaylar. Metin yalnızca onaylanan ürünlerle yazılır; RM blokları düzenler ve kartı alır. İki kilit var: çözülmemiş çelişkiyle onay yok, açık bir kural bulgusuyla kart yok. Müşteriye giden bir kanal yok ve her adım zamanıyla kayda geçer.");
 
-  // ===== 9. Demo =====
+  // ===== 9. Demo (3:00 video inside the deck; the live app is for the Jury Challenge) =====
   pres.addSection({ title: "Demo" });
   s = pres.addSlide({ masterName: "ICERIK", sectionTitle: "Demo" });
-  s.addText("Canlı demo: P02, veriden görüşme metnine", { placeholder: "title" });
-  const hD = shot(s, "dashboard.png", 0.6, 1.35, 7.7, 1584 / 905);
-  caption(s, "P02 hazırlık sayfası: profil, AI'ın bulduğu sorular, piyasa notu, onay çubuğu", 0.6, 1.35 + hD + 0.08, 7.7);
+  s.addText("Demo: veriden görüşme metnine (P01, P02, P03)", { placeholder: "title" });
+  const poster = "image/png;base64," + require("fs").readFileSync(path.join(ROOT, "docs", "demo", "agent007-demo-3dk-poster.png")).toString("base64");
+  s.addShape(pres.ShapeType.rect, { x: 0.57, y: 1.27, w: 8.06, h: 5.06, fill: { color: K.navyTint }, line: { type: "none" } });
+  s.addMedia({ type: "video", path: path.join(ROOT, "docs", "demo", "agent007-demo-3dk.mp4"), cover: poster, x: 0.6, y: 1.3, w: 8.0, h: 5.0 });
+  caption(s, "Gerçek uygulama, 18.10.2026 verisi; sessiz, Türkçe altyazılı. Oynatmak için videoya tıklayın.", 0.6, 6.4, 8.0);
   const demo = [
-    ["0:00", "Hazırlık sayfası", "profil, \"Sorulacak\" kartları, K ile kanıt"],
-    ["0:30", "Nasıl seçildi?", "1.444 → 306 aday; döviz kısıtı 15 ürünü eler"],
-    ["1:00", "Fon kartı", "puan parçaları, geçtiği kurallar, alternatif"],
-    ["1:20", "Ajan", "ajanın ve motorun ilk 3'ü yan yana"],
-    ["1:50", "Onay ve metin", "beyaz alan müşteri için, sarı kutular RM için"],
-    ["2:30", "Koşul değişir", "döviz kısıtı gerekçeyle kaldırılır, liste değişir"],
+    ["0:00", "Hazırlık sayfası", "piyasa notu; K ile kaynak ve tarih"],
+    ["0:21", "Nasıl seçildi?", "ağırlıklar; elenenler gerekçeleriyle"],
+    ["0:39", "Ajan", "beş adım; ajanın ve motorun ilk 3'ü"],
+    ["1:06", "Fon kartı ve araştırma", "puan parçaları; bulgu onayı veya reddi"],
+    ["1:27", "Onay ve görüşme metni", "sarı kutular RM için; düzenleme"],
+    ["2:09", "Sunum görünümü", "RM notları müşteriye gösterilmez"],
+    ["2:18", "P02: koşul değişir", "AI'ın bulduğu sorular; döviz kısıtı"],
+    ["2:39", "P03: çelişki kilidi", "RM gerekçesi olmadan onay yok"],
   ];
   demo.forEach(([t, h, d], i) => {
-    const y = 1.35 + i * 0.86;
-    card(s, 8.65, y, 4.05, 0.76, i === 4 ? K.orangeTint : K.tint);
-    text(s, t, { x: 8.8, y, w: 0.65, h: 0.76, fontSize: 12, bold: true, color: K.code, valign: "middle" });
-    text(s, h, { x: 9.5, y: y + 0.07, w: 3.1, h: 0.3, fontSize: 13.5, bold: true });
-    text(s, d, { x: 9.5, y: y + 0.38, w: 3.1, h: 0.33, fontSize: 11, color: K.muted });
+    const y = 1.3 + i * 0.66;
+    card(s, 8.95, y, 3.75, 0.6, i === 4 ? K.orangeTint : K.tint);
+    text(s, t, { x: 9.05, y, w: 0.6, h: 0.6, fontSize: 11.5, bold: true, color: K.code, valign: "middle" });
+    text(s, h, { x: 9.65, y: y + 0.04, w: 3.0, h: 0.28, fontSize: 12.5, bold: true });
+    text(s, d, { x: 9.65, y: y + 0.31, w: 3.0, h: 0.27, fontSize: 10.5, color: K.muted });
   });
-  text(s, "Yedek: kısa demo videosu (docs/demo/agent007-demo-P01-P03.mp4)", { x: 8.65, y: 6.55, w: 4.05, h: 0.3, fontSize: 10, color: K.muted, italic: true });
-  notes(s, "Ardahan ekranı kullanır, Öykü anlatır", "3:00", "Önceden hazırlanmış P02 çalıştırması açık olmalı (ajan ve metin kayıtlı, anında gelir). 0:00 Hazırlık sayfası: profil, AI'ın bulduğu iki soru, piyasa notunda bir K'ya tıkla (kaynak, tarih, alınma zamanı). 0:30 'Bu öneriler nasıl seçildi?': 1.444 seçenek, 1.138 elendi, döviz kısıtı 15; 'Elenenleri gör'. 1:00 EIL fon kartı: puan parçaları, geçtiği kurallar, en yakın alternatif. 1:20 Ajan: beş adım, ajanın ilk 3'ü ve motorun ilk 3'ü yan yana, bir bulguyu onayla. 1:50 'Onayla ve metni hazırla': görüşme metni, beyaz ve sarı alanlar, bir bloğu düzenle, Sunum görünümü. 2:30 Koşul değişikliği: döviz kısıtını gerekçeyle kaldır; sıralama yeniden hesaplanır ve döviz fonları geri gelir. Uygulama açılmazsa kısa demo videosunu oynat.");
+  notes(s, "Öykü anlatır, Ardahan videoyu başlatır", "3:00", "Videoyu başlat (tıkla). Video sessiz ve altyazılı; üzerine konuş. 0:00 P01 hazırlık sayfası: piyasa notunu kod yazar; K işareti değerin kaynağını, değer tarihini ve alınma zamanını açar. 0:21 'Bu öneriler nasıl seçildi?': müşteriye özel ağırlıklar ve elenen ürünler gerekçeleriyle. 0:39 Ajan isteğe bağlıdır: beş adım, süre ve maliyet; ajanın ilk 3'ü motorunkiyle yan yana, her gerekçe bir kanıta bağlı. 1:06 Fon kartı ve ajan araştırması: RM bir bulguyu onaylar veya reddeder; reddedilen bulgu ajana gitmez. 1:27 RM onaylar; metin yalnızca onaylanan ürünlerle yazılır ve denetlenir. Sarı kutular yalnızca RM için. 2:09 Sunum görünümü RM notlarını gizler. 2:18 P02: yapay zekâ profilde iki soru bulur; döviz kısıtı değişince sıralama yeniden hesaplanır. 2:39 P03: profil çelişkisi varken onay kilitlidir; RM gerekçe yazınca kilit açılır. Jüri Challenge için canlı uygulama dizüstünde açık kalsın.");
 
   // ===== 10. Test =====
   pres.addSection({ title: "Sonuçlar" });

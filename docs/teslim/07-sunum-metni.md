@@ -1,6 +1,6 @@
 # Sunum metni ve demo planı
 
-> Teslimat 7 · Agent 007 (Yusuf Ardahan Doğru, Öykü Irmak Hatipoğlu) · 2026-10-28.
+> Teslimat 7 · Agent 007 (Yusuf Ardahan Doğru, Öykü Irmak Hatipoğlu) · 2026-10-29.
 > Süre: **10 dakika sunum ve demo, 5 dakika soru-cevap.** Slaytlar:
 > `docs/teslim/sunum/07-sunum.pptx` (PowerPoint, yalnızca Arial; PDF kopyası
 > `docs/teslim/pdf/07-sunum.pdf`). Her slaytın konuşmacı notunda konuşmacı,
@@ -18,34 +18,37 @@
 | 6 | Belirsizliği saklamıyoruz: tahmin yerine soru | Ardahan | 0:40 | 3:45 |
 | 7 | Ajan sınırlar içinde çalışır | Ardahan | 0:45 | 4:30 |
 | 8 | RM görmeden ve onaylamadan hiçbir şey ilerlemez | Öykü | 0:30 | 5:00 |
-| 9 | Canlı demo (P02) | Ardahan ekranı kullanır, Öykü anlatır | 3:00 | 8:00 |
+| 9 | Demo videosu (3:00, slaytın içinde) | Öykü anlatır, Ardahan başlatır | 3:00 | 8:00 |
 | 10 | Test sonuçları ve ajan değerlendirmesi | Ardahan | 0:45 | 8:45 |
 | 11 | Bulduğumuz hatalar ve iyileştirmeler | Ardahan | 0:40 | 9:25 |
 | 12 | Sınırlar, sonraki adımlar, kapanış | Öykü | 0:30 | 9:55 |
 
 Ek slaytlar (E1–E10) yalnızca soru-cevap içindir. Konuşmacı dağılımı bir
-öneridir; prova sonrası değiştirilebilir. 8:00'de demo bitmediyse 2:30 adımını
-(koşul değişikliği) atlayın; jüri zaten bir koşul değiştirecek.
+öneridir; prova sonrası değiştirilebilir. Demo, slayt 9'daki 3:00'lük videodur
+(süre kesin, sunum bilgisayarında PowerPoint'te oynar). Canlı uygulama soru-cevapta,
+Jüri Challenge için kullanılır.
 
-## 2. Demo adımları (3:00)
+## 2. Demo videosu (3:00)
 
-Hazırlıkta açık olanlar: uygulama (`http://127.0.0.1:8600`), P02 seçili,
-ajan sonucu kayıtlı (bölüm 3). Tarayıcı tam ekran, yakınlaştırma %100.
+Video: `docs/demo/agent007-demo-3dk.mp4` (slayt 9'un içinde; sessiz, Türkçe
+altyazılı; 18.10.2026 verisi). Tam videodan (`agent007-demo-v2-P01-P02-P03.mp4`,
+8:36) kesildi. Slaytta videoya tıklayınca başlar; Öykü üzerine konuşur.
 
-| Zaman | Ekranda | Söylenecek |
+| Video | Ekranda | Söylenecek |
 |---|---|---|
-| 0:00 | P02 hazırlık sayfası; "Sorulacak" kartları; piyasa notunda bir **K**'ya tıkla | "Yapay zekâ profilde iki soru buldu. Her sayının kaynağı, değer tarihi ve alınma zamanı var." |
-| 0:30 | "Bu öneriler nasıl seçildi?" → "Elenenleri gör" | "1.444 seçenekten 1.138'i elendi; 15'i döviz kısıtı yüzünden. Her elemenin gerekçesi ve kanıtı burada." |
-| 1:00 | EIL'e tıkla: fon kartı, "Neden bu öneri?" | "Puanın her parçası, geçtiği kurallar ve en yakın alternatif." |
-| 1:20 | Ajan değerlendirmesi: beş adım, ajanın ilk 3'ü ve motorun ilk 3'ü; bir web bulgusunu onayla | "Ajan isteğe bağlı. Her gerekçesi bir kanıta atıf yapar; kod denetler." |
-| 1:50 | "Onayla ve metni hazırla" → görüşme metni; bir bloğu düzenle; "Sunum görünümü" | "Beyaz alan müşteri için, sarı kutular yalnızca RM için. Sunum görünümü RM notlarını gizler." |
-| 2:30 | Döviz kısıtı sorusunda kısıtı gerekçeyle kaldır | "Kısıtı yalnızca RM gerekçeyle kaldırabilir; sıralama yeniden hesaplanır ve kayda geçer." |
+| 0:00 | P01 hazırlık sayfası; piyasa notu; **K** penceresi | "Piyasa notunu kod yazar. Her sayının kaynağı, değer tarihi ve alınma zamanı var." |
+| 0:21 | "Bu öneriler nasıl seçildi?"; ağırlıklar; elenenler | "Ağırlıkları müşterinin profili belirler. Elenen her ürün gerekçesiyle listelenir." |
+| 0:39 | Ajan: beş adım; ajanın ve motorun ilk 3'ü yan yana | "Ajan isteğe bağlı. Her gerekçesi bir kanıta bağlı; kod denetler." |
+| 1:06 | Fon kartı; ajan araştırması; bulguya onay veya ret | "Reddedilen bulgu ajana gitmez." |
+| 1:27 | Onay; metin hazırlanıyor; görüşme metni; sarı kutular; düzenleme | "Metin yalnızca onaylanan ürünlerle yazılır ve denetlenir. Sarı kutular yalnızca RM için." |
+| 2:09 | Sunum görünümü | "RM notları müşteriye gösterilmez." |
+| 2:18 | P02: AI'ın bulduğu sorular; döviz kısıtı; yeniden hesap | "Bir koşul değişince sıralama yeniden hesaplanır." |
+| 2:39 | P03: profil çelişkisi; onay kilidi; RM gerekçesi | "Çözülmemiş çelişkiyle onay yok." |
 
-Uygulama açılmazsa veya ağ yoksa: kısa demo videosu
-`docs/demo/agent007-demo-P01-P03.mp4` (3:50) oynatılır; ilk 3 dakika yeterli.
-İnternet yoksa motor yine çalışır; dil modeli adımları şablon metne düşer ve
-ekranda bir uyarı bandı çıkar. Bunu jüriye bir güvenilirlik örneği olarak
-söyleyin.
+Video oynamazsa: aynı video `docs/demo/` klasöründedir; doğrudan oynatın. Canlı
+uygulama Jüri Challenge içindir (bölüm 4). İnternet yoksa motor yine çalışır;
+dil modeli adımları şablon metne düşer ve ekranda bir uyarı bandı çıkar. Bunu
+jüriye bir güvenilirlik örneği olarak söyleyin.
 
 ## 3. Sunumdan önce kontrol listesi
 
@@ -62,8 +65,11 @@ söyleyin.
    içerik önbelleği kalır. Demoda ajan ve metin bu yüzden anında gelir.
 6. Sıfırladıktan sonra "Veriyi yenile"ye basmayın.
 7. Slaytları sunum bilgisayarında PowerPoint ile açın, Sunucu görünümünde
-   notları kontrol edin. Yedek: `docs/teslim/pdf/07-sunum.pdf`.
-8. Demo videosunu sunum bilgisayarına kopyalayın ve bir kez oynatın.
+   notları kontrol edin ve slayt 9'daki videoyu bir kez oynatın. Google
+   Slaytlar pptx içindeki videoyu oynatmaz; PowerPoint kullanın. Yedek:
+   `docs/teslim/pdf/07-sunum.pdf` (videosuz) ve `docs/demo/agent007-demo-3dk.mp4`.
+8. Jüri Challenge için uygulamanın açık olduğu dizüstünü hazır tutun
+   (adım 1–6).
 
 ## 4. Jüri Challenge: ekranda nasıl gösterilir?
 
